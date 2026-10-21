@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 import { workspaceRoot } from '@nx/devkit';
+import { ESLint, type Linter } from 'eslint';
 import { describe, expect, it } from 'vitest';
 
 import { impurities, MODULE_LINE_LIMIT } from './meridian-purity.js';
@@ -17,35 +18,6 @@ const source = (path: string, name: string) => ({
 });
 
 describe('impurities', () => {
-  it.each([
-    ['math-random.txt', 'Math.random'],
-    ['date-now.txt', 'Date.now'],
-    ['new-date.txt', 'new Date'],
-    ['new-date-spaced.txt', 'new Date'],
-    ['performance-now.txt', 'performance.now'],
-    ['hrtime.txt', 'process.hrtime'],
-    ['crypto-random-values.txt', 'crypto.getRandomValues'],
-    ['crypto-random-uuid.txt', 'crypto.randomUUID'],
-    ['date-call.txt', 'Date()'],
-  ])('reports %s', (name, call) => {
-    const hits = impurities([source('src/x.ts', name)]);
-    expect(hits).toHaveLength(1);
-    expect(hits[0]).toContain(`src/x.ts:1 names ${call}`);
-  });
-
-  it('reports each timer on its own line', () => {
-    const hits = impurities([source('src/timers.ts', 'timers.txt')]);
-    expect(hits.map((hit) => hit.split(';')[0])).toEqual([
-      'src/timers.ts:1 names setTimeout',
-      'src/timers.ts:2 names setInterval',
-      'src/timers.ts:3 names setImmediate',
-    ]);
-  });
-
-  it('counts a comment as a hit', () => {
-    expect(impurities([source('src/c.ts', 'comment.txt')])).toHaveLength(1);
-  });
-
   it('reports a @nexusdi/ import under physics and allows it elsewhere', () => {
     const text = fixture('physics-imports-core.txt');
     expect(impurities([{ path: 'src/physics/gas.ts', text }])).toEqual([
@@ -109,4 +81,231 @@ describe('examples/meridian-systems/src', () => {
   it('holds the purity rules', () => {
     expect(impurities(files)).toEqual([]);
   });
+});
+
+/*
+ * ESLint enforces the replay rules on the syntax tree, so an alias, a
+ * destructure or an import of a host module fails the same as a direct call.
+ * ESLint resolves a flat config from its cwd, so the linter starts in the
+ * library's folder to load examples/meridian-systems/eslint.config.mjs.
+ */
+const LIBRARY = join(workspaceRoot, 'examples/meridian-systems');
+const eslint = new ESLint({ cwd: LIBRARY });
+
+const PURITY_RULES = [
+  'no-restricted-imports',
+  'no-restricted-globals',
+  'no-restricted-properties',
+  'no-restricted-syntax',
+];
+
+/** The purity rule ids ESLint reports for `code` in a file at `path`. */
+async function purityHits(code: string, path = 'src/simulation/x.ts') {
+  const [result] = await eslint.lintText(code, {
+    filePath: join(LIBRARY, path),
+  });
+  return (result?.messages ?? [])
+    .map((message) => message.ruleId)
+    .filter((rule): rule is string => PURITY_RULES.includes(rule ?? ''));
+}
+
+describe('the meridian-systems eslint purity rules', () => {
+  it.each([
+    ['Math.random()', 'export const r = Math.random();'],
+    ["Math['random']()", "export const r = Math['random']();"],
+    [
+      'a Math destructure',
+      'const { random } = Math;\nexport const r = random();',
+    ],
+    ['Date.now()', 'export const t = Date.now();'],
+    ['new Date()', 'export const t = new Date();'],
+    ['Date()', 'export const t = Date();'],
+    ['a Date destructure', 'const { now } = Date;\nexport const t = now();'],
+    ["globalThis['Date']", "export const t = globalThis['Date'].now();"],
+    ['global.Date', 'export const t = global.Date.now();'],
+    ['performance.now()', 'export const t = performance.now();'],
+    ['process.hrtime()', 'export const t = process.hrtime();'],
+    ['process.uptime()', 'export const t = process.uptime();'],
+    ['Temporal.Now', 'export const t = Temporal.Now.instant();'],
+    ['scheduler.wait', 'export const w = scheduler.wait(1);'],
+    ['setTimeout', 'setTimeout(() => 0, 1);'],
+    ['setInterval', 'setInterval(() => 0, 1);'],
+    ['setImmediate', 'setImmediate(() => 0);'],
+    ['requestAnimationFrame', 'requestAnimationFrame(() => 0);'],
+    ['crypto.getRandomValues', 'crypto.getRandomValues(new Uint8Array(1));'],
+    ['crypto.randomUUID', 'export const id = crypto.randomUUID();'],
+    [
+      'node:crypto randomInt',
+      "import { randomInt } from 'node:crypto';\nexport const r = randomInt(9);",
+    ],
+    [
+      'node:crypto randomBytes',
+      "import { randomBytes } from 'node:crypto';\nexport const r = randomBytes(1);",
+    ],
+    [
+      'a bare crypto import',
+      "import { randomInt } from 'crypto';\nexport const r = randomInt(9);",
+    ],
+    [
+      'node:perf_hooks performance',
+      "import { performance } from 'node:perf_hooks';\nexport const t = performance.now();",
+    ],
+    ['a package import', "import { z } from 'zod';\nexport const s = z;"],
+    ['a dynamic import', "export const c = await import('node:crypto');"],
+    ['require', "export const c = require('node:crypto');"],
+    ['eval', "export const t = eval('Date.now()');"],
+    ['Function', "export const t = Function('return Date.now()')();"],
+    ['new Function', "export const t = new Function('return Date.now()')();"],
+    ['a Math alias', 'const M = Math;\nexport const r = M.random();'],
+    ['Reflect.get on Math', "export const r = Reflect.get(Math, 'random')();"],
+    [
+      'a property descriptor of Math',
+      "export const d = Object.getOwnPropertyDescriptor(Math, 'random');",
+    ],
+    ['a computed Math key', "const k = 'random';\nexport const r = Math[k]();"],
+    ['Intl', 'export const t = Intl.DateTimeFormat().format();'],
+    ['WeakRef', 'export const w = new WeakRef({});'],
+    [
+      'FinalizationRegistry',
+      'export const f = new FinalizationRegistry(() => undefined);',
+    ],
+    ['Atomics', 'export const a = Atomics.load(new Int32Array(1), 0);'],
+    [
+      'the constructor of a function',
+      "export const t = (() => undefined).constructor('return Date.now()')();",
+    ],
+    [
+      'constructor.constructor',
+      "export const t = ({}).constructor.constructor('return Date.now()')();",
+    ],
+    [
+      'a computed constructor key',
+      "export const t = (() => undefined)['constructor']('return Date.now()')();",
+    ],
+  ])('refuses %s', async (_name, code) => {
+    expect(await purityHits(code)).not.toEqual([]);
+  });
+
+  it('refuses a clock in a test file', async () => {
+    expect(
+      await purityHits('export const t = Date.now();', 'src/x.test.ts'),
+    ).not.toEqual([]);
+  });
+
+  it.each([
+    [
+      'the deck JSON import',
+      "import deck from '../../deck/meridian.deck.json' with { type: 'json' };\nexport const d = deck;",
+    ],
+    [
+      'a relative import',
+      "import { R } from './constants';\nexport const r = R;",
+    ],
+    [
+      '@nexusdi/core',
+      "import { Token } from '@nexusdi/core';\nexport const t = Token;",
+    ],
+    ['queueMicrotask', 'queueMicrotask(() => undefined);'],
+    [
+      'the Math functions the physics calls',
+      'export const z = Math.imul(Math.exp(1), Math.floor(Math.PI));',
+    ],
+  ])('allows %s', async (_name, code) => {
+    expect(await purityHits(code)).toEqual([]);
+  });
+
+  it('allows vitest in a test file and nowhere else', async () => {
+    const code = "import { it } from 'vitest';\nexport const t = it;";
+    expect(await purityHits(code, 'src/physics/gas.test.ts')).toEqual([]);
+    expect(await purityHits(code)).not.toEqual([]);
+  });
+});
+
+/** The rule's options from a resolved config, after its severity. */
+function options(config: Linter.Config, rule: string): unknown[] {
+  const entry = config.rules?.[rule];
+  expect(Array.isArray(entry), `${rule} is configured`).toBe(true);
+  const [severity, ...rest] = entry as unknown[];
+  expect([2, 'error'], `${rule} is an error`).toContain(severity);
+  return rest;
+}
+
+const names = (entries: unknown[]) =>
+  entries.map((entry) =>
+    typeof entry === 'string' ? entry : (entry as { name: string }).name,
+  );
+
+/** Math anywhere but the object of a plain `Math.name` read. */
+const MATH_ALIAS =
+  "Identifier[name='Math']:not(MemberExpression[computed=false] > Identifier.object)";
+/** `Math[key]`, which no-restricted-properties reads only for a literal key. */
+const MATH_COMPUTED = "MemberExpression[object.name='Math'][computed=true]";
+/** A read of `constructor`, which reaches the Function constructor from any value. */
+const CONSTRUCTOR_READ =
+  "MemberExpression:matches([property.name='constructor'][computed=false], [property.value='constructor'])";
+
+/*
+ * The config itself is pinned so a later edit cannot drop a rule or an entry
+ * while the bypass cases above still read green on a narrower list.
+ */
+describe('the meridian-systems eslint config', () => {
+  it.each(['src/simulation/x.ts', 'src/physics/gas.test.ts'])(
+    'holds the purity rules for %s',
+    async (path) => {
+      const config = (await eslint.calculateConfigForFile(
+        join(LIBRARY, path),
+      )) as Linter.Config;
+
+      expect(new Set(names(options(config, 'no-restricted-globals')))).toEqual(
+        new Set([
+          'Date',
+          'performance',
+          'Temporal',
+          'process',
+          'crypto',
+          'scheduler',
+          'setTimeout',
+          'setInterval',
+          'setImmediate',
+          'requestAnimationFrame',
+          'globalThis',
+          'global',
+          'window',
+          'self',
+          'require',
+          'eval',
+          'Function',
+          'Intl',
+          'WeakRef',
+          'FinalizationRegistry',
+          'Atomics',
+        ]),
+      );
+
+      expect(options(config, 'no-restricted-properties')).toContainEqual(
+        expect.objectContaining({ object: 'Math', property: 'random' }),
+      );
+
+      const [imports] = options(config, 'no-restricted-imports') as [
+        { patterns: { regex: string }[] },
+      ];
+      const regex = new RegExp(imports.patterns[0]?.regex ?? '$^');
+      expect(regex.test('node:crypto')).toBe(true);
+      expect(regex.test('crypto')).toBe(true);
+      expect(regex.test('@nexusdi/core')).toBe(false);
+      expect(regex.test('./contracts')).toBe(false);
+      expect(regex.test('../../deck/meridian.deck.json')).toBe(false);
+
+      expect(options(config, 'no-restricted-syntax')).toContainEqual(
+        expect.objectContaining({ selector: 'ImportExpression' }),
+      );
+      expect(
+        (options(config, 'no-restricted-syntax') as { selector: string }[]).map(
+          ({ selector }) => selector,
+        ),
+      ).toEqual(
+        expect.arrayContaining([MATH_ALIAS, MATH_COMPUTED, CONSTRUCTOR_READ]),
+      );
+    },
+  );
 });

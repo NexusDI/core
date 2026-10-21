@@ -43,7 +43,7 @@ The classes delegate the arithmetic to pure functions in `src/physics/`, which i
 - `gas.ts` holds the five gases, the air fractions, `pressure(moles, temperature, volume)` from `P = nRT/V` with `R` from `constants.ts`, and `molesAt(pressure, temperature, volume, fractions)`, which fills a compartment.
 - `rng.ts` holds `splitmix32` and `fnv1a32`, which `SeededRandom` uses for its streams and its forks.
 
-`tools/repo-checks/src/meridian-purity.test.ts` keeps the simulation reproducible. It fails when a file under `src/` names `Math.random` or one of the clocks and timers it lists. It also fails when a file under `src/physics/` imports `@nexusdi/`, and when a `*.module.ts` file grows past 120 lines.
+The library's ESLint config keeps the simulation reproducible. A file under `src/` imports relative paths and `@nexusdi/core` alone, never names the clocks, the timers, `crypto`, `process`, `Intl`, `eval` or the global object, and reads `Math` only as `Math.name` and never `Math.random`, so `nx lint` fails on `node:crypto` or `const { now } = Date` as well as on `Date.now()`. `tools/repo-checks/src/meridian-purity.test.ts` checks that the config holds those rules. It also fails when a file under `src/physics/` imports `@nexusdi/`, and when a `*.module.ts` file grows past 120 lines.
 
 ## Testing the Ship
 
