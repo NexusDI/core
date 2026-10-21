@@ -633,10 +633,11 @@ The one-line message with no plugin reads:
 [NEXUS_CORE_NOT_SHARED] received=the module Cartography where=load(). https://nexus.js.org/errors/NEXUS_CORE_NOT_SHARED
 ```
 
-The code says what is wrong and what to share, and the link leads to a page whose first
-fence is the Module Federation `shared` entry. `coreText` gains a builder:
+The code says what is wrong and what to share, and the link leads to a page that
+reproduces the error and then gives the Module Federation `shared` entry as its fix.
+`coreText` gains a builder:
 
-- message: `<received> was made by another copy of @nexusdi/core<, where>.`
+- message: `<received> was made by another copy of @nexusdi/core< (where)>.`
 - fix: `load one copy of @nexusdi/core. Check that npm installed it once (npm ls @nexusdi/core), that no test calls vi.resetModules() between the module and the container that reads it, and that no bundler resolves the @nexusdi/source condition for one import and dist for another. In Module Federation, share @nexusdi/core with singleton: true.`
 
 The text names no package but `@nexusdi/core`. It also names `@nexusdi/source`, an export
@@ -650,10 +651,10 @@ a singleton beside core, or a remote's `useService` finds no `NexusProvider`.
 The three `otherCopy` branches of `coreText` go away.
 
 `@nexusdi/testing`'s `definitionOf` raises `CoreNotSharedError` for a foreign module.
-`@nexusdi/interceptors` raises it for a foreign token in `@UseInterceptors` and in
-`interceptor()`, where it now writes `from another copy of @nexusdi/core` into its own
-`NEXUS_INTERCEPTOR_INVALID` text. One code then covers every foreign value, and a user
-searches one page.
+`@nexusdi/interceptors` raises it for a foreign value in `@UseInterceptors`, in
+`interceptor()` and in the `interceptors()` options, where it wrote
+`from another copy of @nexusdi/core` into its own `NEXUS_INTERCEPTOR_INVALID` text before.
+One code then covers every foreign value, and a user searches one page.
 
 ### 8.3 Detection limits
 
