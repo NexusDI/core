@@ -50,7 +50,8 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // The ship's dispose ends every open telemetry stream, so the servers can close.
+  // The ship's dispose ends every open telemetry stream, so the servers can
+  // close.
   await backend[Symbol.asyncDispose]();
   await devBackend[Symbol.asyncDispose]();
   await new Promise((resolve) => server.close(resolve));
@@ -70,7 +71,10 @@ async function firstEvent(body: ReadableStream<Uint8Array>) {
   return { event: text.slice(0, text.indexOf('\n\n')), reader };
 }
 
-/** A scope of a container whose BridgeLink points at `url`, for mission survey-9. */
+/**
+ * A scope of a container whose BridgeLink points at `url`, for mission
+ * survey-9.
+ */
 async function linkTo(url: string, signal?: AbortSignal) {
   const ship = await Nexus.create(
     defineModule({ name: 'LinkTest', imports: [BridgeLink.forRoot({ url })] }),
