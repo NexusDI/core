@@ -21,7 +21,7 @@ export const MODULE_LINE_LIMIT = 120;
 const BANNED: readonly (readonly [RegExp, string])[] = [
   [/\bMath\.random\b/, 'Math.random'],
   [/\bDate\.now\b/, 'Date.now'],
-  [/\bnew Date\b/, 'new Date'],
+  [/\bnew\s+Date\b/, 'new Date'],
   [/\bperformance\.now\b/, 'performance.now'],
   [/\bprocess\.hrtime\b/, 'process.hrtime'],
   [/\bsetTimeout\b/, 'setTimeout'],
@@ -29,7 +29,8 @@ const BANNED: readonly (readonly [RegExp, string])[] = [
   [/\bsetImmediate\b/, 'setImmediate'],
 ];
 
-const NEXUSDI_IMPORT = /\bfrom\s+['"]@nexusdi\/|\bimport\s*\(\s*['"]@nexusdi\//;
+const NEXUSDI_IMPORT =
+  /\bfrom\s+['"]@nexusdi\/|\bimport\s*\(?\s*['"]@nexusdi\/|\brequire\s*\(\s*['"]@nexusdi\//;
 
 /** One line per hit, as `path:line message`. */
 export function impurities(files: readonly SourceText[]): string[] {

@@ -43,14 +43,16 @@ abstract class ProbeSystem implements IShipSystem {
 
 export class ProbeReactor extends ProbeSystem {
   readonly name = 'ProbeReactor';
-  // The tick loop reads phase through IShipSystem, which fallow does not follow.
+  // The tick loop reads phase through IShipSystem, which ProbeReactor inherits from ProbeSystem,
+  // and fallow only follows an implements clause on the class itself.
   // fallow-ignore-next-line unused-class-member
   readonly phase = 1;
 }
 
 export class ProbeSensor extends ProbeSystem {
   readonly name = 'ProbeSensor';
-  // The tick loop reads phase through IShipSystem, which fallow does not follow.
+  // The tick loop reads phase through IShipSystem, which ProbeSensor inherits from ProbeSystem,
+  // and fallow only follows an implements clause on the class itself.
   // fallow-ignore-next-line unused-class-member
   readonly phase = 2;
 }
