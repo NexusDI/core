@@ -2,13 +2,15 @@
 /**
  * Bundles an entry, test/runtime/smoke.ts unless --entry names another, to
  * one ESM file and runs it on the Deno or Bun on PATH, which must be the
- * version examples/toolchain-matrix/toolchains.json pins: this leg and the toolchain matrix test one version
- * of each runtime (spec 9.1). CI installs it with setup-deno or setup-bun.
- * The bundle keeps node:async_hooks external: each runtime resolves it.
+ * version examples/toolchain-matrix/toolchains.json pins: this leg and the
+ * toolchain matrix test one version of each runtime (spec 9.1). CI installs
+ * it with setup-deno or setup-bun. The bundle keeps node:async_hooks
+ * external: each runtime resolves it.
  *
- *   node scripts/runtime-leg.mjs --leg=deno|bun [--entry=test/runtime/growth.ts]
+ *   node scripts/runtime-leg.mjs --leg=deno|bun [--entry=<path>]
  *
- * The runtime-leg target runs smoke.ts, and e2e-growth runs growth.ts.
+ * The runtime-leg target runs smoke.ts, and e2e-growth runs
+ * test/runtime/growth.ts.
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
