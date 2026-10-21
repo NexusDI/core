@@ -20,6 +20,7 @@
   "include": [
     "vite.config.ts",
     "vitest.workers.config.ts",
+    "vitest.workers-growth.config.ts",
     "vitest.edge.config.ts",
     "vitest.e2e.config.ts",
     "vitest.e2e-growth.config.ts",

@@ -22,7 +22,13 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "examples/bridge-api",
-        "command": "vitest run --config vitest.e2e-growth.config.ts"
+        "commands": [
+          "vitest run --config vitest.e2e-growth.config.ts",
+          "vitest run --config vitest.workers-growth.config.ts",
+          "node scripts/runtime-leg.mjs --leg=deno --entry=test/runtime/growth.ts",
+          "node scripts/runtime-leg.mjs --leg=bun --entry=test/runtime/growth.ts"
+        ],
+        "parallel": false
       }
     },
     "graph": {
