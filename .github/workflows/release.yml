@@ -70,7 +70,10 @@ jobs:
           # The plan reads every tag, and nx reads the history since the last
           # one.
           fetch-depth: 0
-          filter: tree:0
+          # blob:none keeps every tree, so the docs benchmark-data.mjs
+          # `git log` per results file reads local objects. ci.yml's main
+          # job says why tree:0 is too slow for it.
+          filter: blob:none
           # Pushes authenticate as a write deploy key, the one actor every
           # ruleset in this repository lets bypass its pull request and
           # status check rules. It is git-write on this repository only; it

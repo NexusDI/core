@@ -87,7 +87,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          filter: tree:0
+          # blob:none keeps every commit and tree on the runner, so a
+          # path-limited `git log` reads local objects. The docs project's
+          # benchmark-data.mjs runs one per results file. Under tree:0, git
+          # fetches a tree from origin for each commit the log walks, and the
+          # oldest results file can sit hundreds of commits back.
+          filter: blob:none
           fetch-depth: 0
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
