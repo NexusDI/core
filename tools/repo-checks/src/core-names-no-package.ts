@@ -16,7 +16,10 @@ import { allNodes, at } from './error-codes.js';
  * (import, export-from, import(), import type or `declare module`) other
  * than the core package itself, on a string that names another package of
  * the scope, and on any string that starts with `nexus:`, the prefix of a
- * first-party plugin's name.
+ * first-party plugin's name. Core's own export conditions count as core: the
+ * caller passes the scope's condition names from core's package.json
+ * exports, such as `@nexusdi/source`, which core's NEXUS_CORE_NOT_SHARED
+ * text names.
  */
 
 const PLUGIN_NAME = /^nexus:/;
@@ -63,10 +66,11 @@ function isModuleName(node: ts.Node): boolean {
 export function coreNamesNoPackage(
   files: readonly SourceFileText[],
   scope = '@nexusdi',
+  conditions: readonly string[] = [],
 ): CoreNames {
   const self = `${scope}/core`;
   // A package of the scope other than core, as written inside a string.
-  const other = new RegExp(`${scope}/(?!core(?![\\w-]))[\\w.-]+`);
+  const other = new RegExp(`${scope}/(?!core(?![\\w-]))[\\w.-]+`, 'g');
   const violations: string[] = [];
   let modules = 0;
   let strings = 0;
@@ -91,8 +95,10 @@ export function coreNamesNoPackage(
       !isModuleName(node)
     ) {
       strings++;
-      const named = other.exec(node.text);
-      if (named !== null)
+      const named = [...node.text.matchAll(other)].find(
+        ([name]) => !conditions.includes(name),
+      );
+      if (named !== undefined)
         violations.push(
           `${at(node)} names ${named[0]} in ${node.getText()}; core names no other package`,
         );
