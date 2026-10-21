@@ -1,6 +1,10 @@
-import type { ErrorTextPack } from '@nexusdi/core';
+import type { ErrorText, ErrorTextPack } from '@nexusdi/core';
 
-import type { BadCommandError, PowerBudgetError } from './errors';
+import type {
+  BadCommandError,
+  BadCommandReason,
+  PowerBudgetError,
+} from './errors';
 
 /** Every place in an integer's digits where a thousands comma goes. */
 const THOUSANDS = /\B(?=(\d{3})+(?!\d))/g;
@@ -23,6 +27,28 @@ export function formatNumber(value: number, digits: number): string {
 /** Watts as megawatts to one decimal. */
 const megawatts = (watts: number): string => formatNumber(watts / 1e6, 1);
 
+/** The text of each MERIDIAN_BAD_COMMAND reason. */
+const BAD_COMMAND: Readonly<
+  Record<BadCommandReason, (error: BadCommandError) => ErrorText>
+> = {
+  envelope: (e) => ({
+    message: `A ship command is an object with a string system and a string action. The desk serves ${e.expected}.`,
+    fix: 'send { system, action, ...args } as JSON.',
+  }),
+  system: (e) => ({
+    message: `No ship system is named '${e.system}'. The desk serves ${e.expected}.`,
+    fix: 'send the command to one of the systems above.',
+  }),
+  action: (e) => ({
+    message: `${e.system} has no action '${e.action}'. It takes ${e.expected}.`,
+    fix: 'send one of the actions above with its arguments.',
+  }),
+  argument: (e) => ({
+    message: `${e.system} ${e.action} got an argument it cannot use. It takes ${e.expected}.`,
+    fix: 'send the arguments in the ranges above.',
+  }),
+};
+
 /**
  * The text of the `MERIDIAN_*` codes. Register it with
  * `errors({ text: [shipText] })`, or pass it to
@@ -31,11 +57,11 @@ const megawatts = (watts: number): string => formatNumber(watts / 1e6, 1);
  */
 export const shipText = {
   MERIDIAN_POWER_BUDGET: (error: PowerBudgetError) => ({
-    message: `The ${error.consumer} need ${megawatts(error.demand)} MW, and the router has ${megawatts(error.available)} MW free beside the loads above them.`,
+    message: `The ${error.consumer} load needs ${megawatts(error.demand)} MW, and the router has ${megawatts(error.available)} MW free beside the loads above it.`,
     fix: 'raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
   }),
-  MERIDIAN_BAD_COMMAND: (error: BadCommandError) => ({
-    message: `${error.system} has no action '${error.action}'. It takes ${error.expected}.`,
-    fix: 'send one of the actions above with its arguments.',
-  }),
+  MERIDIAN_BAD_COMMAND: (error: BadCommandError) =>
+    Object.hasOwn(BAD_COMMAND, error.reason)
+      ? BAD_COMMAND[error.reason](error)
+      : undefined,
 } satisfies ErrorTextPack;
