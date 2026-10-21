@@ -25,6 +25,8 @@ export interface BridgeOptions {
   log?: NexusLog;
   /** Draws the graph `GET /graph` answers. Without it, the route answers 404. */
   graph?: () => NexusGraph;
+  /** Ends every open `GET /telemetry` stream with `ship offline` when it aborts. */
+  shutdown?: AbortSignal;
 }
 
 export function createBridge(
@@ -95,7 +97,7 @@ export function createBridge(
       .get(
         '/telemetry',
         di.inject({ feed: TELEMETRY }, ({ feed }, c) =>
-          c.body(telemetryStream(feed), 200, SSE_HEADERS),
+          c.body(telemetryStream(feed, options.shutdown), 200, SSE_HEADERS),
         ),
       )
       .post(

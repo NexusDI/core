@@ -30,10 +30,13 @@ const sse = (event: TelemetryEvent, data: string): Uint8Array =>
  * one `offline` event with the feed's reason, then the end. The stream keeps
  * only the latest frame the client has not read and enqueues it when the
  * client reads, so a `POST /sim/advance` of 600 ticks queues one frame per
- * client and never 600. A cancel unsubscribes from the feed.
+ * client and never 600. A cancel unsubscribes from the feed. When `shutdown`
+ * aborts, the stream unsubscribes and ends as the feed's own close does, with
+ * `ship offline`, so a server that stops can close before the ship disposes.
  */
 export function telemetryStream(
   feed: ITelemetryFeed,
+  shutdown?: AbortSignal,
 ): ReadableStream<Uint8Array> {
   let latest: ShipReading | undefined;
   let offline: string | undefined;
@@ -47,21 +50,31 @@ export function telemetryStream(
     resolve?.();
   };
 
+  const close = (reason: string) => {
+    if (ended || offline !== undefined) return;
+    offline = reason;
+    shutdown?.removeEventListener('abort', stop);
+    notify();
+  };
+
+  const stop = () => {
+    unsubscribe();
+    close('ship offline');
+  };
+
   return new ReadableStream<Uint8Array>(
     {
       start() {
+        if (shutdown?.aborted) return close('ship offline');
         unsubscribe = feed.subscribe({
           next(frame) {
             if (ended || offline !== undefined) return;
             latest = frame;
             notify();
           },
-          close(reason) {
-            if (ended || offline !== undefined) return;
-            offline = reason;
-            notify();
-          },
+          close,
         });
+        shutdown?.addEventListener('abort', stop, { once: true });
       },
       async pull(controller) {
         while (latest === undefined && offline === undefined && !ended) {
@@ -83,6 +96,7 @@ export function telemetryStream(
         if (ended) return;
         ended = true;
         latest = undefined;
+        shutdown?.removeEventListener('abort', stop);
         unsubscribe();
         notify();
       },

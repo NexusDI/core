@@ -94,7 +94,7 @@ export function createBridge(
       res.writeHead(200, SSE_HEADERS);
       // pipeline destroys the source when the client goes, which cancels the
       // stream and unsubscribes it from the feed.
-      pipeline(telemetryReadable(feed), res, () => {});
+      pipeline(telemetryReadable(feed, options.shutdown), res, () => {});
     }),
   );
   bridge.post(
