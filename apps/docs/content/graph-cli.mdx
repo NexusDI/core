@@ -111,7 +111,7 @@ A value that is not a `NexusGraph` throws `DevtoolsError` with the code [NEXUS_D
 
 ## CI/CD Integration
 
-The `nexusdi graph` command is ideal for CI pipelines. It exits with code `0` if the graph is valid and code `1` if there are wiring mistakes. Code `2` means the arguments or an input file are wrong, and code `3` means a package the command needs is missing, such as `@nexusdi/devtools` or `@viz-js/viz`. A CI job runs the command and uploads the graph, and the job fails on any nonzero exit code. By adding this to your pipeline, you can prevent broken dependency graphs from ever being merged into your main branch.
+The `nexusdi graph` command is ideal for CI pipelines. It exits with code `0` if the graph is valid and code `1` if there are wiring mistakes. Code `2` means the arguments or an input file are wrong, and code `3` means a package the command needs is missing, such as `@nexusdi/devtools` or `@viz-js/viz`. A CI job runs the command and uploads the graph, and the job fails on any nonzero exit code. By adding this to your pipeline, you can prevent broken dependency graphs from ever being merged into your main branch. [`examples/bridge-api`](https://github.com/NexusDI/core/tree/release/0.4/examples/bridge-api) runs the command as its `graph` target, which also fails when the drawn graph differs from the committed `graph.json`.
 
 ```bash
 # Fail the build if the graph is invalid
