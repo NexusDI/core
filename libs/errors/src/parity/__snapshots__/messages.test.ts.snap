@@ -22,15 +22,30 @@ exports[`NexusError > keeps the message of CircularDependencyError 1`] = `
   Fix: wrap one edge in lazy(), for example the dependency of ShieldGrid on PowerRouter: lazy(PowerRouter)."
 `;
 
-exports[`NexusError > keeps the message of CoreNotSharedError (dep) 1`] = `"[NEXUS_CORE_NOT_SHARED] received=an object where=Engineering.providers[1], deps[0]. https://nexus.js.org/errors/NEXUS_CORE_NOT_SHARED"`;
+exports[`NexusError > keeps the message of CoreNotSharedError (dep) 1`] = `
+"[NEXUS_CORE_NOT_SHARED] the Token meridian/NavCharts was made by another copy of @nexusdi/core (Engineering.providers[1], deps[0]).
+  Fix: load one copy of @nexusdi/core. Check that npm installed it once (npm ls @nexusdi/core), that no test calls vi.resetModules() between the module and the container that reads it, and that no bundler resolves the @nexusdi/source condition for one import and dist for another. In Module Federation, share @nexusdi/core with singleton: true."
+`;
 
-exports[`NexusError > keeps the message of CoreNotSharedError (import path) 1`] = `"[NEXUS_CORE_NOT_SHARED] received=an object where=Meridian. https://nexus.js.org/errors/NEXUS_CORE_NOT_SHARED"`;
+exports[`NexusError > keeps the message of CoreNotSharedError (import path) 1`] = `
+"[NEXUS_CORE_NOT_SHARED] the module Remote was made by another copy of @nexusdi/core (Meridian).
+  Fix: load one copy of @nexusdi/core. Check that npm installed it once (npm ls @nexusdi/core), that no test calls vi.resetModules() between the module and the container that reads it, and that no bundler resolves the @nexusdi/source condition for one import and dist for another. In Module Federation, share @nexusdi/core with singleton: true."
+`;
 
-exports[`NexusError > keeps the message of CoreNotSharedError (no place) 1`] = `"[NEXUS_CORE_NOT_SHARED] received=an object. https://nexus.js.org/errors/NEXUS_CORE_NOT_SHARED"`;
+exports[`NexusError > keeps the message of CoreNotSharedError (no place) 1`] = `
+"[NEXUS_CORE_NOT_SHARED] a provider was made by another copy of @nexusdi/core.
+  Fix: load one copy of @nexusdi/core. Check that npm installed it once (npm ls @nexusdi/core), that no test calls vi.resetModules() between the module and the container that reads it, and that no bundler resolves the @nexusdi/source condition for one import and dist for another. In Module Federation, share @nexusdi/core with singleton: true."
+`;
 
-exports[`NexusError > keeps the message of CoreNotSharedError (providers entry) 1`] = `"[NEXUS_CORE_NOT_SHARED] received=an object where=Engineering.providers[2]. https://nexus.js.org/errors/NEXUS_CORE_NOT_SHARED"`;
+exports[`NexusError > keeps the message of CoreNotSharedError (providers entry) 1`] = `
+"[NEXUS_CORE_NOT_SHARED] the Token meridian/NavCharts was made by another copy of @nexusdi/core (Engineering.providers[2]).
+  Fix: load one copy of @nexusdi/core. Check that npm installed it once (npm ls @nexusdi/core), that no test calls vi.resetModules() between the module and the container that reads it, and that no bundler resolves the @nexusdi/source condition for one import and dist for another. In Module Federation, share @nexusdi/core with singleton: true."
+`;
 
-exports[`NexusError > keeps the message of CoreNotSharedError 1`] = `"[NEXUS_CORE_NOT_SHARED] received=the module Cartography where=load(). https://nexus.js.org/errors/NEXUS_CORE_NOT_SHARED"`;
+exports[`NexusError > keeps the message of CoreNotSharedError 1`] = `
+"[NEXUS_CORE_NOT_SHARED] the module Cartography was made by another copy of @nexusdi/core (load()).
+  Fix: load one copy of @nexusdi/core. Check that npm installed it once (npm ls @nexusdi/core), that no test calls vi.resetModules() between the module and the container that reads it, and that no bundler resolves the @nexusdi/source condition for one import and dist for another. In Module Federation, share @nexusdi/core with singleton: true."
+`;
 
 exports[`NexusError > keeps the message of DisposedError 1`] = `"[NEXUS_DISPOSED] the container is disposed or disposing."`;
 
