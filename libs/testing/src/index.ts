@@ -9,8 +9,10 @@
  * plugin, nexus:testing, ahead of the caller's plugins.
  */
 import {
+  CoreNotSharedError,
   describeValue,
   InvalidModuleError,
+  isForeign,
   moduleDefinitionOf,
   Nexus,
   provide,
@@ -101,10 +103,12 @@ const register = provide as (
 function definitionOf(ref: ModuleRef): ModuleDefinition {
   const definition = moduleDefinitionOf(ref);
   if (definition === undefined)
-    throw new InvalidModuleError({
-      received: describeValue(ref),
-      path: [],
-    });
+    throw isForeign(ref)
+      ? new CoreNotSharedError({
+          received: describeValue(ref),
+          where: 'overrideModule()',
+        })
+      : new InvalidModuleError({ received: describeValue(ref), path: [] });
   return definition;
 }
 

@@ -754,7 +754,7 @@ describe('createTestingContainer', () => {
     },
   );
 
-  it('reports NEXUS_INVALID_MODULE for a module another copy of core made', () => {
+  it('raises NEXUS_CORE_NOT_SHARED for a module another copy of core made', () => {
     const Remote = Object.defineProperty(
       { name: 'Remote' },
       Symbol.for('nexusdi.definition'),
@@ -762,9 +762,12 @@ describe('createTestingContainer', () => {
     );
     const Comms = defineModule({ name: 'Comms' });
     const builder = createTestingContainer(defineModule({ name: 'Root' }));
-    expect(
-      thrown(() => builder.overrideModule(Remote as never, Comms)),
-    ).toMatchObject({ code: 'NEXUS_INVALID_MODULE' });
+    const error = thrown(() => builder.overrideModule(Remote as never, Comms));
+    expect(isNexusError(error, 'NEXUS_CORE_NOT_SHARED')).toBe(true);
+    expect(error).toMatchObject({
+      received: 'the module Remote',
+      where: 'overrideModule()',
+    });
     const Versioned = Object.defineProperty(
       { name: 'Versioned' },
       Symbol.for('nexusdi.definition'),
@@ -772,7 +775,7 @@ describe('createTestingContainer', () => {
     );
     expect(
       thrown(() => builder.overrideModule(Versioned as never, Comms)),
-    ).toMatchObject({ code: 'NEXUS_INVALID_MODULE' });
+    ).toMatchObject({ code: 'NEXUS_CORE_NOT_SHARED' });
     for (const local of [{}, new Token<string>('Nav')])
       expect(
         thrown(() => builder.overrideModule(local as never, Comms)),
