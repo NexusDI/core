@@ -1,4 +1,10 @@
-import { defineModule, Nexus, provide, Token } from '@nexusdi/core';
+import {
+  defineModule,
+  isNexusError,
+  Nexus,
+  provide,
+  Token,
+} from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
 import { findCode, rejected, thrown } from '../test-support/catch.js';
@@ -7,6 +13,12 @@ import { interceptor } from './options.js';
 import { interceptors } from './plugin.js';
 import type { Interceptor } from './types.js';
 import { UseInterceptors } from './use-interceptors.js';
+
+/** What another copy of core makes: a value with the brand and nothing this copy knows. */
+const foreign = <T extends object>(value: T): T =>
+  Object.defineProperty(value, Symbol.for('nexusdi.definition'), {
+    value: true,
+  });
 
 const A = new Token<Interceptor>('A');
 const B = new Token<Interceptor>('B');
@@ -166,6 +178,16 @@ describe('UseInterceptors', () => {
       ),
     ).toMatchObject({
       reason: 'legacy-decorators',
+    });
+  });
+
+  it('raises NEXUS_CORE_NOT_SHARED for a token another copy of core made', () => {
+    const remote = foreign({ description: 'meridian/Audit' });
+    const error = thrown(() => UseInterceptors(remote as never));
+    expect(isNexusError(error, 'NEXUS_CORE_NOT_SHARED')).toBe(true);
+    expect(error).toMatchObject({
+      received: 'the Token meridian/Audit',
+      where: '@UseInterceptors',
     });
   });
 

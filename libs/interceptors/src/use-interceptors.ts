@@ -1,6 +1,6 @@
 import './polyfill/symbol-metadata.js';
 
-import { describeValue, isForeign } from '@nexusdi/core';
+import { CoreNotSharedError, describeValue, isForeign } from '@nexusdi/core';
 
 import { invalidAt } from './interceptor-error.js';
 import {
@@ -28,9 +28,12 @@ export function UseInterceptors(
 ): (target: unknown, context: AnyContext) => void {
   for (const token of tokens) {
     if (isInterceptorToken(token)) continue;
-    const received = isForeign(token)
-      ? `${describeValue(token)} from another copy of @nexusdi/core`
-      : describeValue(token);
+    if (isForeign(token))
+      throw new CoreNotSharedError({
+        received: describeValue(token),
+        where: '@UseInterceptors',
+      });
+    const received = describeValue(token);
     throw invalidAt(
       'declaration',
       { detail: [received] },

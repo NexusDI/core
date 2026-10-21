@@ -1,4 +1,4 @@
-import { errorBase } from '@nexusdi/core';
+import { CoreNotSharedError, errorBase, type NexusError } from '@nexusdi/core';
 
 /** Every code an `InterceptorError` carries. */
 export type InterceptorErrorCode =
@@ -81,6 +81,26 @@ export type Fault = Partial<Omit<InterceptorFields, 'code'>> & {
 /** The error of a fault, with core's one line and no text of its own. */
 export function errorOf(fault: Fault): InterceptorError {
   return new InterceptorError({ ...NONE, ...fault });
+}
+
+/**
+ * A value in the options that another copy of @nexusdi/core made.
+ * compile.check reports it as core's CoreNotSharedError.
+ */
+export interface ForeignValue {
+  readonly foreign: true;
+  readonly received: string;
+  readonly where: string;
+}
+
+/** The error compile.check reports for a problem of the options. */
+export function optionsErrorOf(problem: Fault | ForeignValue): NexusError {
+  if ('foreign' in problem)
+    return new CoreNotSharedError({
+      received: problem.received,
+      where: problem.where,
+    });
+  return new InterceptorError({ ...NONE, ...problem });
 }
 
 /**
