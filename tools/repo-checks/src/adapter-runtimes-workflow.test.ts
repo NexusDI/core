@@ -23,7 +23,7 @@ const ci = parse(
  * Spec 9.8: the bridge API's suite runs on every edge runtime the spec
  * names, on every push and pull request, so `adapter-runtimes` can be a
  * required check. The job runs no `nx run-many` (release-verify-gate holds
- * exactly one in ci.yml).
+ * the one gate step in ci.yml's main job).
  */
 describe('adapter-runtimes job', () => {
   const job = ci.jobs['adapter-runtimes'];

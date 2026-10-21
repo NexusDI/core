@@ -125,10 +125,11 @@ jobs:
       # runs in Chromium through Playwright.
       - run: npx playwright install --with-deps chromium
 
-      # The federation demo projects carry the demo-frontend tag. They build
-      # with rspack, and the demo-apps job below runs their targets, so this
-      # step and release.yml's verify step leave them out. bridge-api and
-      # bridge-console carry only the demo tag and stay here.
+      # The federation demo projects (PR D) carry the demo-frontend tag once
+      # they merge. They build with rspack, and the demo-apps job below runs
+      # their targets, so this step and release.yml's verify step leave them
+      # out. bridge-api and bridge-console carry only the demo tag and stay
+      # here.
       - run: npx nx run-many -t lint test build typecheck --exclude=tag:demo-frontend
 
       # Reports the run's task results to Nx Cloud. `always()` because the run
@@ -153,8 +154,8 @@ jobs:
   # cache and 0 of 17 Nx tasks cached: setup 18 s, npm ci 27 s, Chromium
   # install 31 s, demo-frontend checks 12 s with no project tagged yet, and
   # the bridge-api and bridge-console e2e suites 27 s, their library builds
-  # included. On a cache hit the Chromium step takes 13 s for the system
-  # libraries. The spec estimates 2 min 45 s more for the federation
+  # included. On a cache hit the cache restore takes 5 s and the Chromium
+  # step 13 s for the system libraries. The spec estimates 2 min 45 s more for the federation
   # projects (45 s of checks, 2 min of rspack builds and Playwright), about
   # 4 min 50 s in all. Over 8 minutes, the job splits into a console leg
   # and a federation leg in a matrix (demo apps spec 10.2).
