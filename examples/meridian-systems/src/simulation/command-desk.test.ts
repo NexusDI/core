@@ -86,6 +86,18 @@ describe('CommandDesk', () => {
     });
   });
 
+  it('serves no system when no module contributes a handler', () => {
+    const desk = new CommandDesk([]);
+    expect(
+      refusal(desk, { system: 'engineering', action: 'throttle' }),
+    ).toMatchObject({
+      code: 'MERIDIAN_BAD_COMMAND',
+      reason: 'system',
+      system: 'engineering',
+      expected: 'no system',
+    });
+  });
+
   it('names a system that is a key of every object as unknown', () => {
     const desk = new CommandDesk([handler('engineering').double]);
     expect(

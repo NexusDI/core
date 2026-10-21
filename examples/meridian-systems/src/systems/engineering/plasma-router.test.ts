@@ -88,6 +88,21 @@ describe('PlasmaRouter', () => {
     });
   });
 
+  it('counts a load of the same priority served first by id against a new load', () => {
+    const { router } = build(250e6, RAISED);
+    const zeta: PowerLoad = {
+      id: 'zeta',
+      priority: 2,
+      demand: 100e6,
+      heatShare: 0,
+    };
+    expect(refusal(router, zeta)).toMatchObject({
+      consumer: 'zeta',
+      demand: 100e6,
+      available: 50e6,
+    });
+  });
+
   it('swaps a load in by id, so the current draw of the grid does not count twice', () => {
     expect(() => build(250e6, RAISED).router.divert(RAISED)).not.toThrow();
   });
