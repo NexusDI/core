@@ -4,9 +4,11 @@ import { createRoutesStub, RouterContextProvider } from 'react-router';
 import type { Nexus } from '@nexusdi/core';
 import { NexusProvider } from '@nexusdi/react';
 import { existingScope, NEXUS_SCOPE } from '@nexusdi/react-router';
+import { createTestingContainer } from '@nexusdi/testing';
 import { nexusTest } from '@nexusdi/vitest';
 
 import { BRIDGE_LINK } from '../../app/bridge/bridge-link';
+import { BridgeClient } from '../../app/bridge/bridge.client';
 import { BridgeConsole } from '../../app/bridge/bridge-console';
 import { NAV_CHARTS, WATCH_LOG } from '../../app/bridge/contracts';
 import { fakeBridgeLink } from '../doubles';
@@ -34,6 +36,18 @@ const test = nexusTest(base, BridgeConsole, {
   create: { onInit: false },
 });
 
+/**
+ * The container the browser entry renders under: the client graph, with
+ * the fake charts. ScopeProvider opens its scope there with no request.
+ */
+async function browserShip() {
+  const ship = await createTestingContainer(BridgeClient)
+    .override(NAV_CHARTS, { useValue: fakeCharts })
+    .create();
+  built.push(ship);
+  return ship;
+}
+
 const scopeOf = (ship: Nexus, id: string) =>
   ship.createScope({ request: { mission: { id, target: 'Kepler-442b' } } });
 
@@ -47,9 +61,9 @@ describe('Home route', () => {
       new RouterContextProvider(new Map([[NEXUS_SCOPE, existingScope(scope)]])),
     );
     // CoursePlotter reads NAV_CHARTS in render, under the provider the
-    // browser entry renders: a container and no request scope.
+    // browser entry renders: the client graph and no request scope.
     render(
-      <NexusProvider container={nexus}>
+      <NexusProvider container={await browserShip()}>
         <Stub initialEntries={['/']} />
       </NexusProvider>,
     );
@@ -69,7 +83,7 @@ describe('Home route', () => {
       new RouterContextProvider(new Map([[NEXUS_SCOPE, existingScope(scope)]])),
     );
     render(
-      <NexusProvider container={nexus}>
+      <NexusProvider container={await browserShip()}>
         <Stub initialEntries={['/']} />
       </NexusProvider>,
     );

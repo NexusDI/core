@@ -5,8 +5,6 @@ import { nexus } from '@nexusdi/react-router';
 
 import { BridgeConsole } from './bridge/bridge-console';
 
-export { BridgeConsole };
-
 export const ship = await Nexus.create(BridgeConsole, {
   plugins: import.meta.env.DEV ? [errors()] : [],
 });
