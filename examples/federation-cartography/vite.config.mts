@@ -11,7 +11,7 @@ export default defineConfig(() => ({
   //  plugins: [],
   // },
   test: {
-    name: 'federation-cartography',
+    name: '@nexusdi/federation-cartography',
     watch: false,
     globals: true,
     environment: 'jsdom',

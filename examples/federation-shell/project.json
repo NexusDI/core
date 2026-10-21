@@ -10,12 +10,28 @@
       "options": {
         "command": "rspack serve --mode=development",
         "cwd": "examples/federation-shell"
-      }
+      },
+      "dependsOn": ["^build"]
     },
     "build": {
       "executor": "nx:run-commands",
       "options": {
         "command": "rspack build --mode=production",
+        "cwd": "examples/federation-shell"
+      },
+      "dependsOn": ["^build"],
+      "outputs": ["{projectRoot}/dist/main"],
+      "cache": true,
+      "inputs": ["production", "^production"]
+    },
+    "build-e2e": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "cache": true,
+      "inputs": ["production", "^production"],
+      "outputs": ["{projectRoot}/dist/e2e"],
+      "options": {
+        "command": "rspack build --mode=production --env devtools",
         "cwd": "examples/federation-shell"
       }
     }

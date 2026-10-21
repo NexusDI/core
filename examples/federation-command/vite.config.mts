@@ -11,7 +11,7 @@ export default defineConfig(() => ({
   //  plugins: [],
   // },
   test: {
-    name: 'federation-command',
+    name: '@nexusdi/federation-command',
     watch: false,
     globals: true,
     environment: 'jsdom',
