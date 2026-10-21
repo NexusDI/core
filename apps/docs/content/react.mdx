@@ -10,7 +10,7 @@ A React component that reads services needs a container from somewhere, and pass
 
 `@nexusdi/react` publishes the container your app created through `NexusProvider`, and components read services with `useService`. `ScopeProvider` gives a subtree a scope of its own, and `SectionBoundary` loads a code-split module into the container on first render. [Scopes and the REQUEST Token](/scopes/) covers scopes.
 
-The server-side examples on this page render with `react-dom/server` on Node, and the browser-side ones run in jsdom. For a single-team app with a few services, React context alone is enough.
+The server-side examples on this page render with `react-dom/server` on Node, and the browser-side ones run in jsdom. For a single-team app with a few services, React context alone is enough. `examples/bridge-console` is a full React Router app that renders on the server with these components: its `/charts` route loads the `Cartography` section after hydration, and its home page gives the course plotter a `ScopeProvider` of its own.
 
 ## Install
 
