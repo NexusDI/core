@@ -14,13 +14,13 @@ The rule is the one of npm's `^` range. The majors must match. At major 1 and ab
 
 ## Reproduce `NEXUS_CONTRACT_VERSION`
 
-The shell provides `meridian/ReactorCore` from version 2.3.0 of its contracts package, and a remote's `QuantumComputer` was built against 2.4.0. Without a text pack, the message is one line that starts with the code and ends with the address of this page.
+The shell's `Tactical` module provides `meridian/NavCharts` from version 2.3.0 of its contracts package, and the remote section `Cartography` was built against 2.4.0. `Tactical` is global, because a section that `load()` adds sees only what it imports and what global modules export, and a remote cannot import the shell's module object. The shell's `load()` of `Cartography` rejects. The federation demo raises the same error in a browser from the drift build of [`examples/federation-cartography`](https://github.com/NexusDI/core/tree/release/0.4/examples/federation-cartography). Without a text pack, the message is one line that starts with the code and ends with the address of this page.
 
 ```ts file=examples/meridian/src/errors/NEXUS_CONTRACT_VERSION.md region=reproduce
 
 ```
 
-Try it: run `npm install @nexusdi/core@next @nexusdi/federation@next`, save the region as `contract.ts` and run `npx tsx contract.ts`. It prints the one-line message: `[NEXUS_CONTRACT_VERSION] contract=meridian/ReactorCore required=2.4.0 provided=2.3.0.` and the address of this page. Then change the shell's version to `'2.5.0'` and run it again. A newer minor satisfies the dependent, the container builds, and the region prints `undefined` because there is no error to read. Change it to `'3.0.0'` and the message returns with `provided=3.0.0`, because a new major is a breaking change. Change it back to `'2.3.0'` and the first message prints again.
+Try it: run `npm install @nexusdi/core@next @nexusdi/federation@next`, save the region as `contract.ts` and run `npx tsx contract.ts`. It prints the one-line message: `[NEXUS_CONTRACT_VERSION] contract=meridian/NavCharts required=2.4.0 provided=2.3.0.` and the address of this page. Then change the shell's version to `'2.5.0'` and run it again. A newer minor satisfies the dependent, the container builds, and the region prints `undefined` because there is no error to read. Change it to `'3.0.0'` and the message returns with `provided=3.0.0`, because a new major is a breaking change. Change it back to `'2.3.0'` and the first message prints again.
 
 ## Full text of `NEXUS_CONTRACT_VERSION` with `errors()`
 
@@ -30,7 +30,7 @@ Try it: run `npm install @nexusdi/core@next @nexusdi/federation@next`, save the 
 
 ```
 
-Try it: run `npm install @nexusdi/errors@next`, save the region as `full.ts` and run `npx tsx full.ts`. It prints the two-line message with its `Fix:` line: `[NEXUS_CONTRACT_VERSION] meridian/ReactorCore is needed at 2.4.0, and the provider has 2.3.0.` and `Fix: build the provider against 2.4.0 or a newer 2.x, or build the dependent against 2.3.0.`
+Try it: run `npm install @nexusdi/errors@next`, save the region as `full.ts` and run `npx tsx full.ts`. It prints the two-line message with its `Fix:` line: `[NEXUS_CONTRACT_VERSION] meridian/NavCharts is needed at 2.4.0, and the provider has 2.3.0.` and `Fix: build the provider against 2.4.0 or a newer 2.x, or build the dependent against 2.3.0.`
 
 ## Fix `NEXUS_CONTRACT_VERSION`
 
@@ -40,11 +40,11 @@ Try it: run `npm install @nexusdi/errors@next`, save the region as `full.ts` and
 
 ```
 
-Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `1.21`. Change the shell's version to `'2.3.0'` and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `BlueprintError` and prints a stack trace headed `BlueprintError: [NEXUS_BLUEPRINT_INVALID] 1 error.`, whose message goes on with the line `[NEXUS_CONTRACT_VERSION] contract=meridian/ReactorCore required=2.4.0 provided=2.3.0.` Change it back to `'2.4.0'` and the program prints `1.21` again.
+Try it: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It prints `Kepler-442b: heading 42`. Change the shell's version to `'2.3.0'` and run it again. `npx tsc` accepts the file, and `npx tsx fixed.ts` throws an uncaught `BlueprintError` and prints a stack trace headed `BlueprintError: [NEXUS_BLUEPRINT_INVALID] 1 error.`, whose message goes on with the line `[NEXUS_CONTRACT_VERSION] contract=meridian/NavCharts required=2.4.0 provided=2.3.0.` Change it back to `'2.4.0'` and the program prints `Kepler-442b: heading 42` again.
 
 ## Fields of `ContractVersionError`
 
 - `code`: `'NEXUS_CONTRACT_VERSION'`.
-- `contract`: the contract key and token name, such as `'meridian/ReactorCore'`.
+- `contract`: the contract key and token name, such as `'meridian/NavCharts'`.
 - `required`: the version the dependent was built against, as the string `defineContract` received, such as `'2.4.0'`.
 - `provided`: the version the provider was built against, in the same form.
