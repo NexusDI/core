@@ -12,9 +12,10 @@ import {
   SHIP_STATE,
   TELEMETRY,
 } from '@nexusdi/meridian-systems';
-import express, { type ErrorRequestHandler } from 'express';
+import express, { type ErrorRequestHandler, type Request } from 'express';
 
 import { answerCommand } from './bridge/commands';
+import { readJson } from './bridge/json-body';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { telemetryReadable } from './bridge/telemetry-readable';
 import { SSE_HEADERS } from './bridge/telemetry-stream';
@@ -36,6 +37,11 @@ export function createBridge(
     scopes: options.scopes,
     log: options.log,
   });
+
+  // Reads any body as text, and readJson parses only application/json.
+  const text = express.text({ type: () => true, limit: SIM_BODY_LIMIT });
+  const body = (req: Request) =>
+    readJson(req.get('content-type'), req.body as string | undefined);
 
   const bridge = express();
   bridge.get('/health', (_req, res) => {
@@ -107,11 +113,11 @@ export function createBridge(
       // parsing included, and Express answers 404.
       next(driver.mode === 'live' ? 'route' : undefined);
     }),
-    express.json({ limit: SIM_BODY_LIMIT }),
+    text,
     di.inject(
       { driver: SIM_DRIVER, deck: DECK_PLAN },
       ({ driver, deck }, req, res) => {
-        const ticks = parseTicks(req.body);
+        const ticks = parseTicks(body(req));
         if (ticks === undefined) {
           res.status(400).json(TICKS_REFUSED);
           return;
@@ -122,10 +128,10 @@ export function createBridge(
   );
   bridge.post(
     '/commands',
-    express.json({ limit: SIM_BODY_LIMIT }),
+    text,
     di.inject({ desk: COMMAND_DESK }, ({ desk }, req, res) => {
-      const { status, body } = answerCommand(desk, req.body);
-      res.status(status).json(body);
+      const answer = answerCommand(desk, body(req));
+      res.status(answer.status).json(answer.body);
     }),
   );
   bridge.get(

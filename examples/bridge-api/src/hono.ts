@@ -8,12 +8,13 @@ import {
   SHIP_STATE,
   TELEMETRY,
 } from '@nexusdi/meridian-systems';
-import { Hono, type Context } from 'hono';
+import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { HTTPException } from 'hono/http-exception';
 import { streamSSE } from 'hono/streaming';
 
 import { answerCommand } from './bridge/commands';
+import { readJson } from './bridge/json-body';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { SSE_HEADERS, telemetryStream } from './bridge/telemetry-stream';
 import { UNCHARTED } from './bridge/uncharted';
@@ -31,16 +32,6 @@ export interface BridgeOptions {
   shutdown?: AbortSignal;
 }
 
-/**
- * The parsed body of a request sent as application/json, else undefined.
- * c.req.json() parses any body, and the Express and Fastify routes parse
- * only one sent as application/json.
- */
-async function jsonBody(c: Context): Promise<unknown> {
-  const json = c.req.header('content-type')?.startsWith('application/json');
-  return json ? await c.req.json().catch(() => undefined) : undefined;
-}
-
 export function createBridge(
   ship: ContainerSource,
   options: BridgeOptions = {},
@@ -54,6 +45,11 @@ export function createBridge(
     }),
     scopes: options.scopes,
     log: options.log,
+  });
+  // An empty 413, as Express and Fastify answer it.
+  const limit = bodyLimit({
+    maxSize: SIM_BODY_LIMIT,
+    onError: (c) => c.body(null, 413),
   });
 
   return (
@@ -123,11 +119,13 @@ export function createBridge(
           await next();
           return undefined;
         },
-        bodyLimit({ maxSize: SIM_BODY_LIMIT }),
+        limit,
         di.inject(
           { driver: SIM_DRIVER, deck: DECK_PLAN },
           async ({ driver, deck }, c) => {
-            const ticks = parseTicks(await jsonBody(c));
+            const ticks = parseTicks(
+              readJson(c.req.header('content-type'), await c.req.text()),
+            );
             if (ticks === undefined) return c.json(TICKS_REFUSED, 400);
             return c.json(readShip(driver.advance(ticks), deck));
           },
@@ -135,9 +133,12 @@ export function createBridge(
       )
       .post(
         '/commands',
-        bodyLimit({ maxSize: SIM_BODY_LIMIT }),
+        limit,
         di.inject({ desk: COMMAND_DESK }, async ({ desk }, c) => {
-          const { status, body } = answerCommand(desk, await jsonBody(c));
+          const { status, body } = answerCommand(
+            desk,
+            readJson(c.req.header('content-type'), await c.req.text()),
+          );
           return c.json(body, status);
         }),
       )

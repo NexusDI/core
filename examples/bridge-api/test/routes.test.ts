@@ -89,10 +89,25 @@ const json = (body: unknown): Payload => ({
   text: JSON.stringify(body),
 });
 
-/** The status and, for a JSON answer, the parsed body. */
+/** Bodies every framework refuses the same way: none of them holds JSON it can read. */
+const UNREADABLE: readonly (readonly [string, Payload])[] = [
+  ['malformed JSON', { type: 'application/json', text: '{ ticks' }],
+  ['an empty JSON body', { type: 'application/json', text: '' }],
+  ['a form', { type: 'application/x-www-form-urlencoded', text: 'ticks=3' }],
+  ['plain text', { type: 'text/plain', text: '{ "ticks": 3 }' }],
+];
+
+/** A JSON body sent with the media type in another case and a charset. */
+const charset = (body: unknown): Payload => ({
+  type: 'Application/JSON; charset=utf-8',
+  text: JSON.stringify(body),
+});
+
+/** The status and the body: parsed for a JSON answer, undefined for an empty one, else the text. */
 function answerOf(status: number, type: unknown, text: string): Answer {
   const json = String(type ?? '').startsWith('application/json');
-  return { status, body: json ? JSON.parse(text) : undefined };
+  if (json) return { status, body: JSON.parse(text) };
+  return { status, body: text === '' ? undefined : text };
 }
 
 const answerOfResponse = async (res: Response): Promise<Answer> =>
@@ -188,13 +203,29 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         await call(nexus, 'POST', '/sim/advance', json({ ticks: 0 })),
       ).toEqual(refused);
       expect(await call(nexus, 'POST', '/sim/advance')).toEqual(refused);
-      expect(
-        await call(nexus, 'POST', '/sim/advance', {
-          type: 'text/plain',
-          text: '{ "ticks": 3 }',
-        }),
-      ).toEqual(refused);
       expect(nexus.get(SHIP_STATE).snapshot().tick).toBe(0);
+    });
+
+    test.for(UNREADABLE)(
+      'POST /sim/advance answers 400 for %s',
+      async ([, payload], { nexus }) => {
+        expect(await call(nexus, 'POST', '/sim/advance', payload)).toEqual({
+          status: 400,
+          body: TICKS_REFUSED,
+        });
+      },
+    );
+
+    test('POST /sim/advance reads a JSON media type in any case, with a charset', async ({
+      nexus,
+    }) => {
+      const advanced = await call(
+        nexus,
+        'POST',
+        '/sim/advance',
+        charset({ ticks: 3 }),
+      );
+      expect(advanced).toMatchObject({ status: 200, body: { tick: 3 } });
     });
 
     test('POST /sim/advance answers 413 for a body over 100 kB', async ({
@@ -207,7 +238,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         '/sim/advance',
         json({ ticks: 3, pad }),
       );
-      expect(over.status).toBe(413);
+      expect(over).toEqual({ status: 413, body: undefined });
       expect(nexus.get(SHIP_STATE).snapshot().tick).toBe(0);
       const under = json({ ticks: 3, pad: pad.slice(0, SIM_BODY_LIMIT - 100) });
       expect((await call(nexus, 'POST', '/sim/advance', under)).status).toBe(
@@ -361,18 +392,24 @@ describe.each(['hono', 'express', 'fastify'] as const)(
       );
       expect(warp.status).toBe(400);
       expect(warp.body).toMatchObject({ code: 'MERIDIAN_BAD_COMMAND' });
-      const text = await call(nexus, 'POST', '/commands', {
-        type: 'text/plain',
-        text: throttle.text,
-      });
-      expect(text.status).toBe(400);
-      expect(text.body).toMatchObject({ code: 'MERIDIAN_BAD_COMMAND' });
-      const malformed = await call(nexus, 'POST', '/commands', {
-        type: 'application/json',
-        text: '{ system',
-      });
-      expect(malformed.status).toBe(400);
-      expect(nexus.get(SHIP_STATE).log()).toEqual([]);
+    });
+
+    test.for(UNREADABLE)(
+      'POST /commands answers 400 for %s',
+      async ([, payload], { nexus }) => {
+        const { status, body } = await call(nexus, 'POST', '/commands', payload);
+        expect(status).toBe(400);
+        expect(body).toMatchObject({ code: 'MERIDIAN_BAD_COMMAND' });
+      },
+    );
+
+    test('POST /commands reads a JSON media type in any case, with a charset', async ({
+      nexus,
+    }) => {
+      const command = { system: 'engineering', action: 'throttle', level: 1 };
+      expect(await call(nexus, 'POST', '/commands', charset(command))).toEqual(
+        { status: 202, body: { tick: 1 } },
+      );
     });
 
     test('POST /commands answers 413 for a body over 100 kB', async ({
@@ -384,7 +421,10 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         level: 1,
         pad: 'x'.repeat(SIM_BODY_LIMIT),
       });
-      expect((await call(nexus, 'POST', '/commands', over)).status).toBe(413);
+      expect(await call(nexus, 'POST', '/commands', over)).toEqual({
+        status: 413,
+        body: undefined,
+      });
     });
 
     test('GET /commands answers the log once the tick applies the throttle', async ({
