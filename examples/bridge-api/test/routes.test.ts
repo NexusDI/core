@@ -7,7 +7,7 @@ import { describe, expect, vi } from 'vitest';
 
 import { createBridge as expressBridge } from '../src/express';
 import { createBridge as fastifyBridge } from '../src/fastify';
-import { TICKS_REFUSED } from '../src/bridge/sim-ticks';
+import { SIM_BODY_LIMIT, TICKS_REFUSED } from '../src/bridge/sim-ticks';
 import { createBridge as honoBridge } from '../src/hono';
 import { AUDIT_LOG } from '../src/ship/audit-trail.module';
 import { offlineMeridian } from '../src/ship/meridian';
@@ -177,6 +177,24 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         }),
       ).toEqual(refused);
       expect(nexus.get(SHIP_STATE).snapshot().tick).toBe(0);
+    });
+
+    test('POST /sim/advance answers 413 for a body over 100 kB', async ({
+      nexus,
+    }) => {
+      const pad = 'x'.repeat(SIM_BODY_LIMIT);
+      const over = await call(
+        nexus,
+        'POST',
+        '/sim/advance',
+        json({ ticks: 3, pad }),
+      );
+      expect(over.status).toBe(413);
+      expect(nexus.get(SHIP_STATE).snapshot().tick).toBe(0);
+      const under = json({ ticks: 3, pad: pad.slice(0, SIM_BODY_LIMIT - 100) });
+      expect((await call(nexus, 'POST', '/sim/advance', under)).status).toBe(
+        200,
+      );
     });
 
     test('POST /sim/advance answers 404 on a live ship', async () => {

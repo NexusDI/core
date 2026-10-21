@@ -6,7 +6,7 @@ import { nexus, type ContainerSource } from '@nexusdi/express';
 import { roundSnapshot, SHIP_STATE } from '@nexusdi/meridian-systems';
 import express, { type ErrorRequestHandler } from 'express';
 
-import { parseTicks, TICKS_REFUSED } from './bridge/sim-ticks';
+import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { UNCHARTED } from './bridge/uncharted';
 import type { BridgeOptions } from './hono';
 import { FLIGHT_LOG, MISSION, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
@@ -80,7 +80,7 @@ export function createBridge(
       // parsing included, and Express answers 404.
       next(driver.mode === 'live' ? 'route' : undefined);
     }),
-    express.json(),
+    express.json({ limit: SIM_BODY_LIMIT }),
     di.inject({ driver: SIM_DRIVER }, ({ driver }, req, res) => {
       const ticks = parseTicks(req.body);
       if (ticks === undefined) {
