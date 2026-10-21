@@ -3,6 +3,7 @@ import { defineModule, provide } from '@nexusdi/core';
 import { SHIP_SYSTEMS, TICK_LOOP } from '../src/simulation/contracts';
 import { FixedStepLoop } from '../src/simulation/fixed-step-loop';
 import { Simulation } from '../src/simulation/simulation.module';
+import { Telemetry } from '../src/telemetry/telemetry.module';
 import {
   LOOP_WATCH,
   LoopWatch,
@@ -24,7 +25,7 @@ const ProbeSystems = defineModule({
   exports: [PROBE_LOG, SHIP_SYSTEMS, LOOP_WATCH],
 });
 
-/** The root `meridianSystems()` builds, written out with the probe systems imported beside the simulation. */
+/** The root `meridianSystems()` builds, written out with the probe systems imported beside the simulation and the telemetry. */
 export const ShipUnderTest = defineModule({
   name: 'ShipUnderTest',
   global: true,
@@ -35,6 +36,7 @@ export const ShipUnderTest = defineModule({
     // override applied, since dt 1 would read 600.
     Simulation.forRoot({ seed: 1, dt: 1 }),
     ProbeSystems,
+    Telemetry,
   ],
   providers: [
     // all(SHIP_SYSTEMS) reads this module's own providers plus the exports of

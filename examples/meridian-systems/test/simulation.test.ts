@@ -1,4 +1,4 @@
-import { Nexus } from '@nexusdi/core';
+import { defineModule, Nexus } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
 import { meridianSystems } from '../src/meridian-systems.module';
@@ -9,6 +9,7 @@ import {
   TICK_LOOP,
 } from '../src/simulation/contracts';
 import { roundNumber, roundSnapshot } from '../src/simulation/round-snapshot';
+import { TELEMETRY } from '../src/telemetry/contracts';
 import { test } from './fixtures';
 import { LOOP_WATCH, PROBE_LOG } from './probes';
 
@@ -17,6 +18,16 @@ describe('meridianSystems', () => {
     expect(() =>
       Nexus.check(meridianSystems({ seed: 7, dt: 0.5 })),
     ).not.toThrow();
+  });
+
+  it('exports TELEMETRY to a root that imports it', async () => {
+    const Root = defineModule({
+      name: 'Root',
+      imports: [meridianSystems({ seed: 7, dt: 0.5 })],
+    });
+    expect(() => Nexus.check(Root)).not.toThrow();
+    await using ship = await Nexus.create(Root);
+    expect(ship.get(TELEMETRY)).toBeDefined();
   });
 
   it('builds on its own and gives one snapshot for one seed', async () => {
