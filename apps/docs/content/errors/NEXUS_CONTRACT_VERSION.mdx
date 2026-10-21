@@ -14,13 +14,13 @@ The rule is the one of npm's `^` range. The majors must match. At major 1 and ab
 
 ## Reproduce `NEXUS_CONTRACT_VERSION`
 
-The shell's `Tactical` module provides `meridian/NavCharts` from version 2.3.0 of its contracts package, and the remote section `Cartography` was built against 2.4.0. `Tactical` is global, because a section that `load()` adds sees only what it imports and what global modules export, and a remote cannot import the shell's module object. The shell's `load()` of `Cartography` rejects. The federation demo raises the same error in a browser from the drift build of [`examples/federation-cartography`](https://github.com/NexusDI/core/tree/release/0.4/examples/federation-cartography). Without a text pack, the message is one line that starts with the code and ends with the address of this page.
+The shell's `Tactical` module provides `meridian/NavCharts` from version 2.3.0 of its contracts package, and the remote section `Cartography` was built against 2.4.0. `Tactical` is global because a remote cannot import the shell's module object. A module that `load()` adds sees its own providers, the exports of its imports, and the exports of every global module. The shell's `load()` of `Cartography` rejects. The federation demo shows the same error in a browser: the `build-drift` build of [`examples/federation-cartography`](https://github.com/NexusDI/core/tree/release/0.4/examples/federation-cartography) builds the remote against the next minor of the shell's contract. Without a text pack, the message is one line that starts with the code and ends with the address of this page.
 
 ```ts file=examples/meridian/src/errors/NEXUS_CONTRACT_VERSION.md region=reproduce
 
 ```
 
-Try it: run `npm install @nexusdi/core@next @nexusdi/federation@next`, save the region as `contract.ts` and run `npx tsx contract.ts`. It prints the one-line message: `[NEXUS_CONTRACT_VERSION] contract=meridian/NavCharts required=2.4.0 provided=2.3.0.` and the address of this page. Then change the shell's version to `'2.5.0'` and run it again. A newer minor satisfies the dependent, the container builds, and the region prints `undefined` because there is no error to read. Change it to `'3.0.0'` and the message returns with `provided=3.0.0`, because a new major is a breaking change. Change it back to `'2.3.0'` and the first message prints again.
+Try it: run `npm install @nexusdi/core@next @nexusdi/federation@next`, save the region as `contract.ts` and run `npx tsx contract.ts`. It prints the one-line message: `[NEXUS_CONTRACT_VERSION] contract=meridian/NavCharts required=2.4.0 provided=2.3.0.` and the address of this page. Then change the shell's version to `'2.5.0'` and run it again. A newer minor satisfies the dependent, the shell's `load()` of `Cartography` resolves, and the region prints `undefined` because there is no error to read. Change it to `'3.0.0'` and the message returns with `provided=3.0.0`, because a new major is a breaking change. Change it back to `'2.3.0'` and the first message prints again.
 
 ## Full text of `NEXUS_CONTRACT_VERSION` with `errors()`
 
