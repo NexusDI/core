@@ -19,13 +19,10 @@
   "include": ["src/**/*.ts", "src/**/*.json", "worker-configuration.d.ts"],
   "references": [
     {
-      "path": "../../libs/node/tsconfig.lib.json"
+      "path": "../meridian-systems/tsconfig.lib.json"
     },
     {
       "path": "../../libs/interceptors/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/hono/tsconfig.lib.json"
     },
     {
       "path": "../../libs/fastify/tsconfig.lib.json"
@@ -37,12 +34,6 @@
       "path": "../../libs/errors/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/devtools/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/core/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/vitest/tsconfig.lib.json"
     },
     {
@@ -50,6 +41,18 @@
     },
     {
       "path": "../../libs/cli/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/hono/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/node/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/devtools/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/core/tsconfig.lib.json"
     }
   ]
 }

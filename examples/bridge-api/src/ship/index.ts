@@ -6,7 +6,11 @@ export {
   Meridian,
   meridian,
   OfflineMeridian,
+  offlineMeridian,
+  SEEDED,
+  type ShipSetup,
 } from './meridian';
 export { bridgePlugins } from './plugins';
+export { SimDriver } from './sim-driver.module';
 export { OfflineTactical, tactical } from './tactical.module';
 export * from './contracts';

@@ -8,7 +8,9 @@
         "m1",
         "m3",
         "m4",
-        "m5"
+        "m5",
+        "m7",
+        "m8"
       ],
       "exports": []
     },
@@ -53,6 +55,39 @@
     },
     {
       "id": "m5",
+      "name": "MeridianSystems",
+      "global": true,
+      "imports": [
+        "m6"
+      ],
+      "exports": [
+        "p6"
+      ]
+    },
+    {
+      "id": "m6",
+      "name": "Simulation",
+      "global": true,
+      "imports": [],
+      "exports": [
+        "p11",
+        "p7",
+        "p8",
+        "p9",
+        "p10"
+      ]
+    },
+    {
+      "id": "m7",
+      "name": "SimDriver",
+      "global": false,
+      "imports": [],
+      "exports": [
+        "p12"
+      ]
+    },
+    {
+      "id": "m8",
       "name": "interceptors",
       "global": false,
       "imports": [
@@ -136,8 +171,104 @@
     },
     {
       "id": "p6",
-      "token": "NavAudit",
+      "token": "TickLoop",
       "module": "m5",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "FixedStepLoop",
+      "internal": false
+    },
+    {
+      "id": "p7",
+      "token": "SimClock",
+      "module": "m6",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "FixedStepClock",
+      "internal": false
+    },
+    {
+      "id": "p8",
+      "token": "RandomSource",
+      "module": "m6",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "SeededRandom",
+      "internal": false
+    },
+    {
+      "id": "p9",
+      "token": "ShipState",
+      "module": "m6",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "ShipStateStore",
+      "internal": false
+    },
+    {
+      "id": "p10",
+      "token": "DeckPlan",
+      "module": "m6",
+      "lifetime": null,
+      "kind": "value",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "p11",
+      "token": "SimOptions",
+      "module": "m6",
+      "lifetime": null,
+      "kind": "value",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "p12",
+      "token": "SimDriver",
+      "module": "m7",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "WallClockDriver",
+      "internal": false
+    },
+    {
+      "id": "p13",
+      "token": "DriverOptions",
+      "module": "m7",
+      "lifetime": null,
+      "kind": "value",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "p14",
+      "token": "NavAudit",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -147,9 +278,9 @@
       "internal": false
     },
     {
-      "id": "p7",
+      "id": "p15",
       "token": "interceptors registry",
-      "module": "m5",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "factory",
       "eager": true,
@@ -159,9 +290,9 @@
       "internal": false
     },
     {
-      "id": "p8",
+      "id": "p16",
       "token": "interceptors guard",
-      "module": "m5",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "factory",
       "eager": true,
@@ -206,12 +337,57 @@
     },
     {
       "from": "p6",
-      "to": "p5",
+      "to": "p7",
+      "kind": "required"
+    },
+    {
+      "from": "p6",
+      "to": "p9",
+      "kind": "required"
+    },
+    {
+      "from": "p6",
+      "to": "p8",
       "kind": "required"
     },
     {
       "from": "p7",
+      "to": "p11",
+      "kind": "required"
+    },
+    {
+      "from": "p8",
+      "to": "p11",
+      "kind": "required"
+    },
+    {
+      "from": "p9",
+      "to": "p10",
+      "kind": "required"
+    },
+    {
+      "from": "p12",
       "to": "p6",
+      "kind": "required"
+    },
+    {
+      "from": "p12",
+      "to": "p11",
+      "kind": "required"
+    },
+    {
+      "from": "p12",
+      "to": "p13",
+      "kind": "required"
+    },
+    {
+      "from": "p14",
+      "to": "p5",
+      "kind": "required"
+    },
+    {
+      "from": "p15",
+      "to": "p14",
       "kind": "required"
     }
   ]
