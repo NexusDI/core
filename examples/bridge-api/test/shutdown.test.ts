@@ -1,0 +1,40 @@
+import { Nexus, type TraceEvent } from '@nexusdi/core';
+import { SHIP_STATE } from '@nexusdi/meridian-systems';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { offlineMeridian } from '../src/ship/meridian';
+import { bridgePlugins } from '../src/ship/plugins';
+
+describe('the ship shutdown', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('stops the driver before the reactor scrams', async () => {
+    const events: TraceEvent[] = [];
+    const ship = await Nexus.create(
+      offlineMeridian({ sim: { seed: 7, dt: 0.5 }, mode: 'live' }),
+      { plugins: bridgePlugins({ trace: (event) => events.push(event) }) },
+    );
+    const state = ship.get(SHIP_STATE);
+    state.queue({ reactor: { throttle: 1 } });
+    vi.advanceTimersByTime(5_000);
+    expect(state.snapshot().reactor.level).toBeGreaterThan(0);
+
+    await ship[Symbol.asyncDispose]();
+
+    // G0b and G3 add their tokens to this sequence.
+    const order = ['SimDriver', 'ReactorCore'];
+    const disposed = events.flatMap((event) =>
+      event.type === 'dispose:instance' && order.includes(event.token)
+        ? [event.token]
+        : [],
+    );
+    expect(disposed).toEqual(order);
+    expect(state.snapshot().reactor.level).toBe(0);
+    expect(state.snapshot().setpoints.reactor.throttle).toBe(0);
+  });
+});
