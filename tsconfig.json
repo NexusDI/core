@@ -95,6 +95,9 @@
     },
     {
       "path": "./examples/federation-contracts"
+    },
+    {
+      "path": "./examples/meridian-systems"
     }
   ],
   "compilerOptions": {
