@@ -72,9 +72,10 @@ export interface StoppingServer {
  * Without that call, a keep-alive connection whose stream ended holds the
  * server open until the client's or the server's keep-alive timeout ends it
  * (5 seconds on Node, 72 on Fastify). An entry calls this before its server
- * takes a request. A second dispose, such as an entry's `await using`, returns the
- * first one's promise. A rejection from either step goes to the console and
- * sets exit code 1 (`http.Server.close()` without a callback never throws).
+ * takes a request. A second dispose, such as an entry's `await using`,
+ * returns the first one's promise. A rejection from either step goes to the
+ * console and sets exit code 1 (`http.Server.close()` without a callback
+ * never throws).
  */
 export function stopOnSigterm(
   server: StoppingServer,
