@@ -12,9 +12,10 @@ import {
   SHIP_STATE,
   TELEMETRY,
 } from '@nexusdi/meridian-systems';
-import Fastify from 'fastify';
+import Fastify, { type FastifyRequest } from 'fastify';
 
 import { answerCommand } from './bridge/commands';
+import { readJson } from './bridge/json-body';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { telemetryReadable } from './bridge/telemetry-readable';
 import { SSE_HEADERS } from './bridge/telemetry-stream';
@@ -51,6 +52,15 @@ export async function createBridge(
   );
   await bridge.register(async (scoped) => {
     await scoped.register(di.encapsulatedPlugin);
+    // Reads any body as text, and readJson parses only application/json.
+    scoped.removeAllContentTypeParsers();
+    scoped.addContentTypeParser(
+      '*',
+      { parseAs: 'string' },
+      (_req, text, done) => done(null, text),
+    );
+    const body = (req: FastifyRequest) =>
+      readJson(req.headers['content-type'], req.body as string | undefined);
     scoped.get<{ Params: { to: string } }>(
       '/course/:to',
       di.inject(
@@ -113,7 +123,7 @@ export async function createBridge(
       di.inject(
         { driver: SIM_DRIVER, deck: DECK_PLAN },
         async ({ driver, deck }, req, reply) => {
-          const ticks = parseTicks(req.body);
+          const ticks = parseTicks(body(req));
           if (ticks === undefined) return reply.code(400).send(TICKS_REFUSED);
           return readShip(driver.advance(ticks), deck);
         },
@@ -123,8 +133,8 @@ export async function createBridge(
       '/commands',
       { bodyLimit: SIM_BODY_LIMIT },
       di.inject({ desk: COMMAND_DESK }, async ({ desk }, req, reply) => {
-        const { status, body } = answerCommand(desk, req.body);
-        return reply.code(status).send(body);
+        const answer = answerCommand(desk, body(req));
+        return reply.code(answer.status).send(answer.body);
       }),
     );
     scoped.get(
