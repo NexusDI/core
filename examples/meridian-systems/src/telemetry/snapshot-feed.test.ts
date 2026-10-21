@@ -68,9 +68,11 @@ describe('SnapshotFeed', () => {
 
   it('sends the current rounded snapshot at subscribe', () => {
     const { state, feed } = build();
+    state.commit(at(state, 0));
     const sink = new RecordingSink();
     feed.subscribe(sink);
     expect(sink.frames).toEqual([roundSnapshot(state.snapshot())]);
+    expect(sink.frames[0].compartments.habitat.temperature).toBe(293.1);
   });
 
   it('sends one rounded frame per tick, the same object to every sink', () => {
@@ -131,6 +133,18 @@ describe('SnapshotFeed', () => {
     expect(sink.frames).toEqual([]);
     expect(sink.closed).toEqual(['ship offline']);
     expect(() => stop()).not.toThrow();
+  });
+
+  it('skips a sink that an earlier one unsubscribed during the tick', () => {
+    const { loop, state, feed } = build();
+    let stopLater = () => {};
+    const first = new RecordingSink();
+    feed.subscribe(first);
+    first.next = () => stopLater();
+    const later = new RecordingSink();
+    stopLater = feed.subscribe(later);
+    loop.tick(at(state, 1));
+    expect(later.frames).toHaveLength(1);
   });
 
   it('sends the frame to the other sinks when one throws', () => {

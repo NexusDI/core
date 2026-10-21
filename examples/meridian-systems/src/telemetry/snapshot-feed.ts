@@ -69,13 +69,16 @@ export class SnapshotFeed implements ITelemetryFeed, Disposable {
   /** Rounds the snapshot once, and only while a sink is open. */
   private send(ship: ShipSnapshot): void {
     if (this.entries.size === 0) return;
-    callAll(
-      [...this.entries].map(
-        ({ sink }) =>
-          (frame: ShipSnapshot) =>
-            sink.next(frame),
-      ),
-      roundSnapshot(ship),
-    );
+    callAll(this.openSinks(), roundSnapshot(ship));
+  }
+
+  /**
+   * Walks the sinks open when dispatch began and skips one unsubscribed
+   * since, as the loop does with its listeners.
+   */
+  private *openSinks(): Generator<(frame: ShipSnapshot) => void> {
+    for (const entry of [...this.entries]) {
+      if (this.entries.has(entry)) yield (frame) => entry.sink.next(frame);
+    }
   }
 }

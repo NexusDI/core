@@ -3,7 +3,6 @@ import { describe, expect } from 'vitest';
 
 import { meridianSystems } from '../src/meridian-systems.module';
 import { TICK_LOOP } from '../src/simulation/contracts';
-import { roundSnapshot } from '../src/simulation/round-snapshot';
 import { TELEMETRY, type TelemetrySink } from '../src/telemetry/contracts';
 import { test } from './fixtures';
 
@@ -11,19 +10,15 @@ function recordingSink() {
   const frames: number[] = [];
   const closed: string[] = [];
   const sink: TelemetrySink = {
-    next: (frame) => {
-      expect(frame).toEqual(roundSnapshot(frame));
-      frames.push(frame.tick);
-    },
+    // src/telemetry/snapshot-feed.test.ts covers the rounding.
+    next: (frame) => frames.push(frame.tick),
     close: (reason) => closed.push(reason),
   };
   return { sink, frames, closed };
 }
 
 describe('Telemetry', () => {
-  test('streams a rounded frame at subscribe and after each tick', ({
-    nexus,
-  }) => {
+  test('streams a frame at subscribe and after each tick', ({ nexus }) => {
     const { sink, frames } = recordingSink();
     nexus.get(TELEMETRY).subscribe(sink);
     nexus.get(TICK_LOOP).advance(2);
