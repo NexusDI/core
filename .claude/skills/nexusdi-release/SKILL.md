@@ -106,7 +106,8 @@ Before the dry run:
 4. For 0.4.0: each of `@nexusdi/hono`, `@nexusdi/express`, `@nexusdi/fastify`,
    `@nexusdi/react-router`, `@nexusdi/vitest` and `@nexusdi/react` was
    published in at least one rc whose commit had `demo-apps` green. The rc's
-   commit is the parent of its release commit:
+   commit is the parent of its release commit. After
+   `git fetch --tags origin`,
    `gh api "repos/NexusDI/core/commits/$(git rev-parse '@nexusdi/core@0.4.0-rc.N^')/check-runs?check_name=demo-apps&filter=latest" --jq '.check_runs[].conclusion'`
    prints `success`.
 
