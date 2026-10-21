@@ -18,9 +18,9 @@ The graph lives in `src/ship/`, and each framework entry wires it to routes with
 | `GET /log/stream`   | a scope that stays open while the body streams, and closes when it ends |
 | any, after disposal | a 503 with an empty body once the container is disposed                 |
 
-The bridge console calls the Hono entry. The Express and Fastify entries run the same cases of `e2e/cases.ts`, so each framework serves the same graph with the same results.
-
 - `src/worker.ts` builds the container on the first request of each isolate (the function form of `nexus()`), because Workers refuse I/O at module scope.
+
+The bridge console in `examples/bridge-console`, the Meridian's React Router app, calls the Hono entry. The Express and Fastify entries run every case of `e2e/cases.ts` except one Hono-only check of the execution context, so each framework serves the same graph with the same results.
 
 ## Running a Server
 
@@ -51,9 +51,11 @@ The app's checks run as Nx targets, each with the workspace packages built first
 
 ## Where the Docs Use It
 
-Four docs pages link this folder as the full app behind their examples. Their examples cite regions of `examples/meridian/src/pages/`, which repeat these routes in a form one block can run.
+Four docs pages link this folder as the full app behind their examples, and two more report or reprint its code. The pages' examples cite regions of `examples/meridian/src/pages/`, which repeat these routes in a form one block can run.
 
 - [Scoping Hono Requests](https://nexus.js.org/next/hono/), [Scoping Express Requests](https://nexus.js.org/next/express/) and [Scoping Fastify Requests](https://nexus.js.org/next/fastify/) point to `src/server.hono.ts`, `src/server.express.ts` and `src/server.fastify.ts`: one graph behind three frameworks.
 - [Visualizing Your Dependency Graph](https://nexus.js.org/next/graph-cli/) points to the `graph` target, which fails when the drawn graph differs from `graph.json`.
+- [Where NexusDI Runs](https://nexus.js.org/next/runtimes/) reports the workerd, Deno, Bun and Edge Runtime legs that run this app's Worker entry and e2e cases.
+- [Running on Edge Runtimes](https://nexus.js.org/next/edge/) shows this app's `wrangler.jsonc` and the function form `src/worker.ts` uses for a container whose factories do I/O.
 
 Next, read [Scoping Hono Requests](https://nexus.js.org/next/hono/) for the adapter this app leads with.
