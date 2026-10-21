@@ -21,6 +21,7 @@
     "@nexusdi/fastify": "*",
     "@nexusdi/hono": "*",
     "@nexusdi/interceptors": "*",
+    "@nexusdi/meridian-systems": "*",
     "@nexusdi/node": "*",
     "express": "5.3.0",
     "fastify": "5.12.7",
