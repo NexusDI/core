@@ -44,7 +44,7 @@ npm install @nexusdi/federation@next @nexusdi/core@next
 
 ## Quick Example
 
-A remote bundles its own copy of the package that defines the contract, so its `NAV_CHARTS` is another token object. `federation()` binds that copy to the shell's provider by contract key and token name, `meridian/NavCharts`.
+A remote bundles its own copy of the package that defines the contract, so its `NAV_CHARTS` is another token object. `federation()` binds that copy to the shell's provider by contract key and token name, `meridian/NavCharts`. `Tactical` is global so that a section a remote hands to `load()` can see it.
 
 ```ts @import.meta.vitest
 import { Nexus, defineModule, provide } from '@nexusdi/core';
