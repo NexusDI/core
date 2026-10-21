@@ -6,7 +6,7 @@ import { describe, expect, it, onTestFinished } from 'vitest';
 
 const LISTENING = /Server is running on (http:\/\/localhost:(\d+))/;
 
-/** Starts one entry as a reader runs it, on a free port and the offline graph. */
+/** Starts one entry under tsx, on a free port and the offline graph. */
 function start(entry: string): ChildProcess {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
