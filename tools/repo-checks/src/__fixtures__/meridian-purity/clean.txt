@@ -1,0 +1,1 @@
+export const advance = (tick: number, dt: number): number => tick + dt;

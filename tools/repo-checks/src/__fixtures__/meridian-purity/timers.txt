@@ -1,0 +1,3 @@
+export const a = () => setTimeout(() => {}, 1);
+export const b = () => setInterval(() => {}, 1);
+export const c = () => setImmediate(() => {});
