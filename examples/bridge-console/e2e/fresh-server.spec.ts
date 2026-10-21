@@ -5,6 +5,15 @@ import { createRequire } from 'node:module';
 import { createServer } from 'node:net';
 import { dirname, join } from 'node:path';
 
+import {
+  DECK_PLAN,
+  RNG,
+  SHIP_STATE,
+  SIM_CLOCK,
+  TELEMETRY,
+  TICK_LOOP,
+} from '@nexusdi/meridian-systems';
+
 import { expect, test } from './support';
 
 const require = createRequire(import.meta.url);
@@ -15,6 +24,27 @@ const serveBin = join(
 );
 const app = join(import.meta.dirname, '..');
 let child: ChildProcess | undefined;
+
+/**
+ * The descriptions of the simulation's tokens. A minifier keeps a token's
+ * description as a string literal and renames function names, so these
+ * strings show the library in a bundle (ship systems spec section 9).
+ */
+const SIMULATION = [
+  TICK_LOOP,
+  SHIP_STATE,
+  SIM_CLOCK,
+  RNG,
+  DECK_PLAN,
+  TELEMETRY,
+].map(String);
+
+/** The client build's scripts: what the browser downloads. */
+async function clientScripts(): Promise<string[]> {
+  const assets = join(app, 'build/client/assets');
+  const scripts = (await readdir(assets)).filter((f) => f.endsWith('.js'));
+  return scripts.map((file) => join(assets, file));
+}
 
 async function freePort(): Promise<number> {
   const server = createServer().listen(0, '127.0.0.1');
@@ -69,15 +99,24 @@ test('serves the lazy sectors route as the first request on a fresh server', asy
 });
 
 test('keeps every server container module out of the client build', async () => {
-  const assets = join(app, 'build/client/assets');
-  const scripts = (await readdir(assets)).filter((f) => f.endsWith('.js'));
+  const scripts = await clientScripts();
   expect(scripts.length).toBeGreaterThan(0);
   for (const file of scripts) {
-    const text = await readFile(join(assets, file), 'utf8');
+    const text = await readFile(file, 'utf8');
     expect(text, file).not.toContain('x-mission-id');
     expect(text, file).not.toContain('BRIDGE_API_URL');
     // A module's name stays a string in the minified build, and
     // BridgeConsole is the server root.
     expect(text, file).not.toContain('BridgeConsole');
+  }
+});
+
+test('keeps the simulation out of the client build', async () => {
+  const scripts = await clientScripts();
+  expect(scripts.length).toBeGreaterThan(0);
+  for (const file of scripts) {
+    const text = await readFile(file, 'utf8');
+    for (const sentinel of SIMULATION)
+      expect(text, `${sentinel} in ${file}`).not.toContain(sentinel);
   }
 });
