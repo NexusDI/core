@@ -1,28 +1,35 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDir": ".",
     "outDir": "dist",
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": true,
     "forceConsistentCasingInFileNames": true,
-    "importHelpers": true,
+    "verbatimModuleSyntax": true,
+    // Vitest and the apps run the sources, so they resolve as a bundler
+    // does: extensionless imports and a JSON module.
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "lib": ["es2022", "esnext.disposable"],
     "types": ["node"]
   },
-  "include": ["src/**/*.ts"],
-  "references": [],
+  "include": ["src/**/*.ts", "deck/*.json"],
+  "references": [
+    {
+      "path": "../../libs/core/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/vitest/tsconfig.lib.json"
+    }
+  ],
   "exclude": [
     "vite.config.ts",
     "vite.config.mts",
     "vitest.config.ts",
     "vitest.config.mts",
     "src/**/*.test.ts",
-    "src/**/*.spec.ts",
-    "src/**/*.test.tsx",
-    "src/**/*.spec.tsx",
-    "src/**/*.test.js",
-    "src/**/*.spec.js",
-    "src/**/*.test.jsx",
-    "src/**/*.spec.jsx"
+    "src/**/*.spec.ts"
   ]
 }
