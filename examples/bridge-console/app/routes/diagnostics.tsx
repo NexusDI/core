@@ -5,7 +5,10 @@ import { Section } from '../components';
 import { di } from '../nexus.server';
 import type { Route } from './+types/diagnostics';
 
-/** The backend's annotated graph, or null when it serves none. */
+/**
+ * The backend's annotated graph, or null when it serves none. A backend
+ * that fails rejects, and the ErrorBoundary below answers.
+ */
 export const loader: (args: Route.LoaderArgs) => Promise<NexusGraph | null> =
   di.inject({ link: BRIDGE_LINK }, ({ link }) => link.graph());
 
@@ -48,9 +51,9 @@ export default function Diagnostics({ loaderData }: Route.ComponentProps) {
             {module.providers.map((provider) => (
               <li key={provider.id}>
                 <code>{provider.token}</code>
-                {provider.notes.map((note) => (
+                {provider.notes.map((note, at) => (
                   <span
-                    key={note}
+                    key={`${at}:${note}`}
                     className="ml-2 text-sm text-gray-600 dark:text-gray-400"
                   >
                     {note}
@@ -61,6 +64,18 @@ export default function Diagnostics({ loaderData }: Route.ComponentProps) {
           </ul>
         </section>
       ))}
+    </Section>
+  );
+}
+
+/**
+ * The page when the backend fails. It renders inside the ship layout, so the
+ * status strip above it still shows the ship offline.
+ */
+export function ErrorBoundary() {
+  return (
+    <Section>
+      <p>The bridge is unreachable</p>
     </Section>
   );
 }
