@@ -5,7 +5,8 @@ import { TICK_LOOP } from './simulation/contracts';
 /**
  * Labels each ship provider `system: <module name>` for the devtools graph.
  * It finds the module that binds the `TICK_LOOP` the root resolves, then walks
- * that module's imports transitively, so a root's own modules stay unlabelled.
+ * that module's imports transitively, so a module outside that walk, such as
+ * one the root imports beside the ship, stays unlabelled.
  * The shape matches devtools' `GraphAnnotator`, so the library needs no
  * import from `@nexusdi/devtools`.
  */
