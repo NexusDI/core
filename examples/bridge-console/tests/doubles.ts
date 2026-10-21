@@ -1,8 +1,8 @@
 import { REQUEST, type NexusRequest } from '@nexusdi/core';
 import type { NexusGraph } from '@nexusdi/devtools';
-import type { ShipReading } from '@nexusdi/meridian-systems';
+import type { ShipCommand, ShipReading } from '@nexusdi/meridian-systems';
 
-import type { IBridgeLink } from '../app/bridge/bridge-link';
+import type { CommandAnswer, IBridgeLink } from '../app/bridge/bridge-link';
 
 /**
  * A compartment at 293 K that carries the pressure the backend reports for
@@ -35,10 +35,11 @@ const snapshotEvent = (ship: ShipReading) =>
 
 /**
  * The double of BRIDGE_LINK: it answers the way bridge-api's
- * `GET /course/:to` does, from the scope's mission, with no server. Its
- * ship sits at tick 0, its telemetry sends that one frame and ends, and it
- * has no graph. Route tests override BRIDGE_LINK with `fakeBridgeLink`, a
- * scoped binding of this class, or with a subclass that changes one answer.
+ * `GET /course/:to` does, from the scope's mission, and `POST /commands`
+ * the way the seeded ship does at tick 0, with no server. Its ship sits at
+ * tick 0, its telemetry sends that one frame and ends, and it has no graph.
+ * Route tests override BRIDGE_LINK with `fakeBridgeLink`, a scoped binding
+ * of this class, or with a subclass that changes one answer.
  */
 export class FakeBridgeLink implements IBridgeLink {
   static deps = [REQUEST] as const;
@@ -62,6 +63,18 @@ export class FakeBridgeLink implements IBridgeLink {
   }
   async graph(): Promise<NexusGraph | null> {
     return null;
+  }
+  /** The idle reactor: a throttle queues for tick 1, and it powers no shields. */
+  async command(cmd: ShipCommand): Promise<CommandAnswer> {
+    if (cmd.action === 'throttle') return { accepted: true, tick: 1 };
+    return {
+      accepted: false,
+      status: 409,
+      code: 'MERIDIAN_POWER_BUDGET',
+      message:
+        'The shields load needs 200 MW, and the router has 0 MW free beside the loads above it.',
+      fix: 'raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
+    };
   }
 }
 
