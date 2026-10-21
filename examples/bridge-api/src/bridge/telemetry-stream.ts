@@ -2,7 +2,10 @@ import type { ITelemetryFeed, ShipReading } from '@nexusdi/meridian-systems';
 
 import type { TelemetryEvent } from '../ship/contracts';
 
-/** The headers of `GET /telemetry`. `no-transform` stops a compressing proxy from buffering the stream. */
+/**
+ * The headers of `GET /telemetry`. `no-transform` stops a compressing proxy
+ * from buffering the stream.
+ */
 export const SSE_HEADERS = {
   'content-type': 'text/event-stream',
   'cache-control': 'no-cache, no-transform',
