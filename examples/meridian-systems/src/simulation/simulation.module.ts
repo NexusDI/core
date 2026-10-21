@@ -10,12 +10,14 @@ import {
 } from './contracts';
 import { FixedStepClock } from './fixed-step-clock';
 import { SeededRandom } from './seeded-random';
+import { SIM_OPTIONS_SCHEMA } from './sim-options-schema';
 import { ShipStateStore } from './ship-state-store';
 
 export const Simulation = defineModule({
   name: 'Simulation',
   global: true,
   options: SIM_OPTIONS,
+  schema: SIM_OPTIONS_SCHEMA,
   providers: [
     provide(SIM_CLOCK, { useClass: FixedStepClock }),
     provide(RNG, { useClass: SeededRandom }),
