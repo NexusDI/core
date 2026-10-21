@@ -133,6 +133,42 @@ console.log(hidden);
 
 <!-- #endregion module-class -->
 
+<!-- #region module-name -->
+
+```ts @import.meta.vitest
+import { Token, provide } from '@nexusdi/core';
+import { Module } from '@nexusdi/decorators';
+import { inspect } from '@nexusdi/devtools';
+
+interface IReactorCore {
+  readonly output: number;
+}
+const REACTOR = new Token<IReactorCore>('ReactorCore');
+
+class FusionReactor implements IReactorCore {
+  readonly output = 1.21;
+}
+
+// A minifier renames the classes Engineering and Command to `e` and `t`.
+const e =
+  @Module({
+    name: 'Engineering',
+    providers: [provide(REACTOR, { useClass: FusionReactor })],
+    exports: [REACTOR],
+  })
+  class {};
+
+const t =
+  @Module({ imports: [e] })
+  class {};
+
+const map = inspect(t);
+const names = map.modules.map((m) => m.name); // -> ['t', 'Engineering']
+console.log(names);
+```
+
+<!-- #endregion module-name -->
+
 <!-- #region missing-deps -->
 
 ```ts @import.meta.vitest

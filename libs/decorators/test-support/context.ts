@@ -24,3 +24,22 @@ export function viewRecorder(): {
     },
   };
 }
+
+/**
+ * A class with the given `name` and the context a compiler passes to its
+ * class decorator, for tests that stand in for a minified class.
+ */
+export function minifiedClass(name: string): {
+  readonly cls: abstract new () => unknown;
+  readonly context: ClassDecoratorContext;
+} {
+  const cls = class {};
+  Object.defineProperty(cls, 'name', { value: name });
+  const context = {
+    kind: 'class',
+    name,
+    metadata: {},
+    addInitializer: () => {},
+  } as unknown as ClassDecoratorContext;
+  return { cls, context };
+}

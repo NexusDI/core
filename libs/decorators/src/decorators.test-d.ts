@@ -88,4 +88,14 @@ describe('Module', () => {
     class Comms {}
     void Comms;
   });
+
+  it('takes an optional string name', () => {
+    @Module({ name: 'Engineering', providers: [ReactorCore] })
+    class EngineeringModule {}
+
+    // @ts-expect-error a module name is a string
+    @Module({ name: 42 })
+    class Broken {}
+    void [EngineeringModule, Broken];
+  });
 });

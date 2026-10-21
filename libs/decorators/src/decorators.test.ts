@@ -12,7 +12,7 @@ import {
 } from '@nexusdi/core';
 
 import { rejected, thrown } from '../test-support/catch.js';
-import { viewRecorder } from '../test-support/context.js';
+import { minifiedClass, viewRecorder } from '../test-support/context.js';
 import { Inject, Injectable, LegacyDecoratorsError, Module } from './index.js';
 
 interface NavCharts {
@@ -236,17 +236,102 @@ describe('Module', () => {
   it('names a class (anonymous module) when the context name is empty', async () => {
     // What a Rollup bundle of tsc's emit passes: the class binding is gone,
     // so the class and its context both carry ''.
-    const Unnamed = class {};
-    Object.defineProperty(Unnamed, 'name', { value: '' });
-    Module({ providers: [ReactorCore] })(Unnamed, {
-      kind: 'class',
-      name: '',
-      metadata: {},
-      addInitializer: () => {},
-    });
+    const { cls: Unnamed, context } = minifiedClass('');
+    Module({ providers: [ReactorCore] })(Unnamed, context);
     const { plugin, view } = viewRecorder();
     await Nexus.create(Unnamed, { plugins: [plugin] });
     expect(view().modules.map((m) => m.name)).toEqual(['(anonymous module)']);
+  });
+
+  it('names a module by its configured name when a minifier strips the class name', async () => {
+    // A production minifier renames the class, so the class and its
+    // context carry '' or a mangled name such as 'e'.
+    const engineering = minifiedClass('');
+    Module({ name: 'Engineering', providers: [ReactorCore] })(
+      engineering.cls,
+      engineering.context,
+    );
+    const meridian = minifiedClass('e');
+    Module({ name: 'Meridian', imports: [engineering.cls] })(
+      meridian.cls,
+      meridian.context,
+    );
+    const { plugin, view } = viewRecorder();
+    await Nexus.create(meridian.cls, { plugins: [plugin] });
+    expect(view().modules.map((m) => m.name)).toEqual([
+      'Meridian',
+      'Engineering',
+    ]);
+
+    const hangar = minifiedClass('t');
+    Module({ name: 'Hangar', exports: [NAV_CHARTS] })(
+      hangar.cls,
+      hangar.context,
+    );
+    expect(await rejected(Nexus.create(hangar.cls))).toMatchObject({
+      errors: [{ code: 'NEXUS_INVALID_EXPORT', module: 'Hangar' }],
+    });
+  });
+
+  it('prefers the configured name over the class name', async () => {
+    @Module({ name: 'Engineering', providers: [ReactorCore] })
+    class EngineeringModule {}
+    const { plugin, view } = viewRecorder();
+    await Nexus.create(EngineeringModule, { plugins: [plugin] });
+    expect(view().modules.map((m) => m.name)).toEqual(['Engineering']);
+  });
+
+  it('names the module after the class when the own name is undefined', async () => {
+    const { cls, context } = minifiedClass('Hangar');
+    Module({ name: undefined, providers: [ReactorCore] })(cls, context);
+    const { plugin, view } = viewRecorder();
+    await Nexus.create(cls, { plugins: [plugin] });
+    expect(view().modules.map((m) => m.name)).toEqual(['Hangar']);
+  });
+
+  it('reads an inherited name as no name', async () => {
+    const { cls, context } = minifiedClass('Hangar');
+    const config = Object.create({ name: 'Inherited' }) as { name?: string };
+    Module(config)(cls, context);
+    const { plugin, view } = viewRecorder();
+    await Nexus.create(cls, { plugins: [plugin] });
+    expect(view().modules.map((m) => m.name)).toEqual(['Hangar']);
+  });
+
+  it('reads a getter on name once', async () => {
+    const { cls, context } = minifiedClass('t');
+    let reads = 0;
+    const config = {
+      get name() {
+        reads += 1;
+        return reads === 1 ? 'Engineering' : 42;
+      },
+    };
+    Module(config as never)(cls, context);
+    const { plugin, view } = viewRecorder();
+    await Nexus.create(cls, { plugins: [plugin] });
+    expect(view().modules.map((m) => m.name)).toEqual(['Engineering']);
+    expect(reads).toBe(1);
+  });
+
+  it('rejects an empty configured name with NEXUS_INVALID_MODULE', () => {
+    const { cls, context } = minifiedClass('Hangar');
+    expect(thrown(() => Module({ name: '' })(cls, context))).toMatchObject({
+      code: 'NEXUS_INVALID_MODULE',
+      message:
+        '[NEXUS_INVALID_MODULE] @Module was given the string "" as its name.\n' +
+        '  Fix: pass a non-empty string, or leave name out to name the module after the class.',
+    });
+  });
+
+  it('rejects a non-string configured name with NEXUS_INVALID_MODULE', () => {
+    const { cls, context } = minifiedClass('Hangar');
+    expect(
+      thrown(() => Module({ name: 42 } as never)(cls, context)),
+    ).toMatchObject({
+      code: 'NEXUS_INVALID_MODULE',
+      received: 'the number 42',
+    });
   });
 
   it('brands the class as a definition core made, non-enumerably', () => {

@@ -16,7 +16,7 @@ These decorators utilize standard TC39 specifications to avoid restrictive compi
 - **Declarative Toolset**:
   - **`@Injectable({ deps })`**: Defines constructor dependencies.
   - **`@Inject(TOKEN)`**: Enables dependency injection via accessor fields.
-  - **`@Module({ ... })`**: Converts a class into a NexusDI module.
+  - **`@Module({ ... })`**: Converts a class into a NexusDI module. Its `name` option keeps the module's name in errors and graphs when a production minifier renames the class.
 
 ## Installation
 

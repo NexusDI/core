@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
 
+import { minifiedClass } from '../../test-support/context.js';
 import { extraKeys, snapshotBuiltins } from '../../test-support/security.js';
 import { Inject, Injectable, Module } from '../index.js';
 
@@ -67,6 +68,52 @@ describe('SEC-003 a polluted Object.prototype (CWE-1321)', () => {
       expect(ship.has(SIGNAL, { module: Feature })).toBe(false);
     } finally {
       delete proto['global'];
+    }
+  });
+
+  it('names an @Module class after the class when Object.prototype carries name at decoration time', async () => {
+    const names: string[] = [];
+    const proto = Object.prototype as Record<string, unknown>;
+    proto['name'] = 'Polluted';
+    try {
+      @Module({})
+      class Hangar {}
+      await using ship = await Nexus.create(Hangar, {
+        plugins: [
+          {
+            name: 'test:names',
+            apiVersion: 1,
+            setup: (context) => {
+              names.push(...context.blueprint().modules.map((m) => m.name));
+            },
+          },
+        ],
+      });
+      void ship;
+      expect(names).toEqual(['Hangar']);
+    } finally {
+      delete proto['name'];
+    }
+  });
+
+  it('never reads a name getter on Object.prototype when an @Module config has no own name', () => {
+    let reads = 0;
+    Object.defineProperty(Object.prototype, 'name', {
+      configurable: true,
+      get: () => {
+        reads += 1;
+        return 'Polluted';
+      },
+    });
+    try {
+      // A compiler's own decorator helpers assign context.name, which a
+      // getter without a setter refuses, so the test passes the context by
+      // hand. The literal gives the context its own name.
+      const { cls, context } = minifiedClass('Hangar');
+      Module({})(cls, context);
+      expect(reads).toBe(0);
+    } finally {
+      delete (Object.prototype as Record<string, unknown>)['name'];
     }
   });
 });
