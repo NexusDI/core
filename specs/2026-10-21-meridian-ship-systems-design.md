@@ -293,9 +293,15 @@ divided by 2³². `fork(label)` returns a new source seeded with FNV-1a of
 `${seed}:${label}`. The loop hands each system `rng.fork(system.name)` once, so the
 numbers the fire model draws stay the same when a weapons system joins the ship (S5).
 
-No file under `examples/meridian-systems/src` calls `Math.random`, `Date.now`,
-`performance.now`, `setTimeout` or `setInterval`. A repo-check test reads the folder and
-fails on any of them (section 8.1).
+No file under `examples/meridian-systems/src` reads the wall clock or an unseeded
+random source. The library's ESLint config enforces this on the syntax tree, so
+`nx lint` fails on an alias or a destructure as well as a direct call. A file under `src`
+imports relative paths and `@nexusdi/core` alone, which refuses `node:crypto` and
+`node:perf_hooks`. It names none of `Date`, `performance`, `Temporal`, `process`,
+`crypto`, `scheduler`, `Intl`, `eval`, `Function`, the timers, the GC hooks, `Atomics` or
+the global object. It reads `Math` only as `Math.name`, and never `Math.random`, so
+`const M = Math` and `Reflect.get(Math, 'random')` fail too. A repo-check test pins those
+rules and lints one case per bypass (section 8.1).
 
 ### 4.4 Driving the loop
 
@@ -832,9 +838,9 @@ The physics tests import `src/physics/*` and no NexusDI code:
 - `rng.test.ts`: seed 7 gives the same first 1,000 numbers on every run (a committed
   fixture); `fork('Safety')` gives the same stream whether or not `fork('Weapons')` was
   called first.
-- `tools/repo-checks/src/meridian-purity.test.ts`: no file under
-  `examples/meridian-systems/src` calls a clock, a timer or `Math.random`, and no file
-  under `src/physics` imports `@nexusdi/*`.
+- `tools/repo-checks/src/meridian-purity.test.ts`: the library's ESLint config holds the
+  replay rules of section 4.3, and ESLint refuses each known bypass of them. No file
+  under `src/physics` imports `@nexusdi/*`, and no `*.module.ts` file passes 120 lines.
 
 ### 8.2 Module tests on the vitest fixtures
 

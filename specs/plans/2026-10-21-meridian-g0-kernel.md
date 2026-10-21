@@ -30,7 +30,7 @@ The architect proposed and the tech lead decided these on 2026-10-21. Task 9 wri
 - Commit messages follow conventional commits with a scope from `commitlint.config.js` (`meridian-systems`, `bridge-api`, `repo`, `specs`), a lowercase subject, and the trailer `Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>`.
 - Prose in READMEs, comments and commits follows the writing rules of `nexusdi-ways-of-working`.
 - Every token is interface-first: an interface, a `Token<IFoo>` named for the role, and a class bound with `useClass`. Consumers declare tokens in `static deps = [...] as const`.
-- No file under `examples/meridian-systems/src` names `Math.random`, `Date.now`, `new Date`, `performance.now`, `process.hrtime`, `setTimeout`, `setInterval` or `setImmediate`. No file under `src/physics` imports `@nexusdi/`.
+- No file under `examples/meridian-systems/src` reads the wall clock or an unseeded random source. The library's ESLint config enforces it (spec section 4.3). No file under `src/physics` imports `@nexusdi/`.
 - A `*.module.ts` file holds tokens, providers and at most one small delegation, and stays under 120 lines.
 
 ### Heavy work
@@ -180,6 +180,7 @@ Files:
 
 - [ ] Step 1: write the test first. A pure function `impurities(files: readonly { path: string; text: string }[])` returns one line per hit. Fixture cases: a file that calls `Math.random()`, one with `Date.now()`, `new Date(`, `performance.now()`, `process.hrtime`, `setTimeout(`, `setInterval(` and `setImmediate(`, a file under `src/physics/` that imports `@nexusdi/core`, a `*.module.ts` of 121 lines, and a clean tree. Then a case on the real `examples/meridian-systems/src` that expects no hit. Comments count as hits, so no file mentions the names in prose. See it fail.
 - [ ] Step 2: write the checker. Run `npx nx test @nexusdi/repo-checks -- meridian-purity`. Commit `test(repo): keep clocks, timers and nexusdi imports out of the ship physics`.
+- Revision (review of PR #174): a text match missed imports and indirect reads, so ESLint enforces the replay rules. A scoped block in `examples/meridian-systems/eslint.config.mjs` for `src/**` sets `no-restricted-imports` (relative paths and `@nexusdi/core` alone, plus `vitest` in a test file), `no-restricted-globals` (the clocks, the timers, `crypto`, `process`, `Intl`, `eval`, `Function`, the GC hooks, `Atomics` and the global object) and `no-restricted-properties` (`Math.random`), and `no-restricted-syntax` refuses a dynamic `import()` and any read of `Math` other than `Math.name`. `impurities` keeps the two checks ESLint has no rule for: no `@nexusdi/` import under `src/physics` and the 120-line cap on a `*.module.ts` file. The test reads the resolved config with `calculateConfigForFile` and checks each rule and entry, and lints one case per known bypass with `lintText`.
 - [ ] Step 3: cleanup, then the review gate.
 
 ### Task 5: the golden
