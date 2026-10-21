@@ -116,16 +116,6 @@ describe('parseOptions', () => {
     ).toEqual([PAYMENTS]);
   });
 
-  it('rejects a forged entry that interceptor() did not make', () => {
-    expect(
-      invalidReason({
-        register: [{ token: AUDIT, provider: LoggingInterceptor }],
-      }),
-    ).toBe('options');
-  });
-});
-
-describe('interceptor', () => {
   it('marks a token another copy of core made as foreign, for compile.check to report', () => {
     const remote = foreign({ description: 'meridian/Audit' });
     const entry = interceptor(remote as never, {
@@ -158,6 +148,16 @@ describe('interceptor', () => {
     );
   });
 
+  it('rejects a forged entry that interceptor() did not make', () => {
+    expect(
+      invalidReason({
+        register: [{ token: AUDIT, provider: LoggingInterceptor }],
+      }),
+    ).toBe('options');
+  });
+});
+
+describe('interceptor', () => {
   it('turns a token that is not a Token or a class into a fault of the options that register it', () => {
     const entry = interceptor('Audit' as never, {
       useClass: LoggingInterceptor,
