@@ -6,6 +6,7 @@ import { parse } from 'yaml';
 
 interface Step {
   uses?: string;
+  if?: string;
   run?: string;
   with?: Record<string, string>;
 }
@@ -18,6 +19,21 @@ interface Job {
 const ci = parse(
   readFileSync(join(workspaceRoot, '.github/workflows/ci.yml'), 'utf-8'),
 ) as { on: Record<string, unknown>; jobs: Record<string, Job> };
+
+/** The version examples/toolchain-matrix/toolchains.json pins for `id`. */
+const pinned = (id: string) =>
+  (
+    JSON.parse(
+      readFileSync(
+        join(workspaceRoot, 'examples/toolchain-matrix/toolchains.json'),
+        'utf-8',
+      ),
+    ) as { toolchains: { id: string; version: string }[] }
+  ).toolchains.find((t) => t.id === id)?.version;
+
+/** The step of `job` that runs `action`, at any ref. */
+const setup = (job: Job, action: string) =>
+  job.steps.find((s) => s.uses?.startsWith(`${action}@`));
 
 /**
  * Spec 9.8: the bridge API's suite runs on every edge runtime the spec
@@ -50,21 +66,10 @@ describe('adapter-runtimes job', () => {
     expect(runs).toContain('nx run @nexusdi/bridge-api:runtime-leg --leg=deno');
     expect(runs).toContain('nx run @nexusdi/bridge-api:runtime-leg --leg=bun');
     expect(runs).toContain('nx run @nexusdi/bridge-api:test-edge');
-    const pinned = (id: string) =>
-      (
-        JSON.parse(
-          readFileSync(
-            join(workspaceRoot, 'examples/toolchain-matrix/toolchains.json'),
-            'utf-8',
-          ),
-        ) as { toolchains: { id: string; version: string }[] }
-      ).toolchains.find((t) => t.id === id)?.version;
-    const setup = (action: string) =>
-      job.steps.find((s) => s.uses?.startsWith(`${action}@`));
-    expect(setup('denoland/setup-deno')?.with?.['deno-version']).toBe(
+    expect(setup(job, 'denoland/setup-deno')?.with?.['deno-version']).toBe(
       pinned('deno'),
     );
-    expect(setup('oven-sh/setup-bun')?.with?.['bun-version']).toBe(
+    expect(setup(job, 'oven-sh/setup-bun')?.with?.['bun-version']).toBe(
       pinned('bun'),
     );
   });
@@ -84,4 +89,32 @@ describe('adapter-runtimes job', () => {
       expect(step.run ?? '').not.toContain('nx run-many');
     }
   });
+});
+
+/**
+ * Ship systems spec section 14: the growth target runs the simulation on
+ * Deno and Bun too, so the non-required demo-growth job installs the same
+ * runtimes the adapter-runtimes legs run, from the same action pins.
+ */
+describe('demo-growth job', () => {
+  const job = ci.jobs['demo-growth'];
+  const legs = ci.jobs['adapter-runtimes'];
+
+  it.each([
+    ['denoland/setup-deno', 'deno-version', 'deno'],
+    ['oven-sh/setup-bun', 'bun-version', 'bun'],
+  ])(
+    'installs %s with the pin adapter-runtimes uses and the version toolchains.json pins, before e2e-growth',
+    (action, input, id) => {
+      const step = setup(job, action);
+      expect(step?.uses).toBe(setup(legs, action)?.uses);
+      expect(step?.with?.[input]).toBe(pinned(id));
+      expect(step?.if).toBeUndefined();
+      const growth = job.steps.findIndex((s) =>
+        s.run?.includes('-t e2e-growth'),
+      );
+      expect(growth).toBeGreaterThan(-1);
+      expect(job.steps.indexOf(step as Step)).toBeLessThan(growth);
+    },
+  );
 });
