@@ -21,8 +21,8 @@ interface Entry {
 
 /**
  * Runs the ship systems once per tick in ascending phase, each on the
- * snapshot the previous one returned, then commits the result and advances
- * the clock (spec §4.2, steps 2 and 3).
+ * snapshot the previous one returned, then advances the clock, commits the
+ * result and calls the tick listeners (spec §4.2, steps 2 and 3).
  */
 export class FixedStepLoop implements ITickLoop {
   static deps = [SIM_CLOCK, SHIP_STATE, RNG, all(SHIP_SYSTEMS)] as const;
@@ -89,7 +89,7 @@ export class FixedStepLoop implements ITickLoop {
   }
 
   /**
-   * Walks the listeners present when the tick began and skips one removed
+   * Walks the listeners present when dispatch began and skips one removed
    * since, so a listener added during a tick first hears the next one.
    */
   private *liveListeners(): Generator<TickListener> {
