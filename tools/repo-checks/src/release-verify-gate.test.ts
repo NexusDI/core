@@ -25,11 +25,12 @@ import { describe, expect, it } from 'vitest';
  * filter would leave some of them unverified. The one narrowing both gates
  * take is `--exclude=tag:demo-frontend`, which drops the federation demo
  * projects. They build with rspack, so the `demo-apps` job runs their
- * targets (demo apps spec §10.1), and the exclusion is held to private demo
- * projects here.
+ * targets (demo apps spec §10.1), and a test below holds the exclusion to
+ * private demo projects.
  *
- * In ci.yml only the `main` job is read. The `demo-apps` and `demo-growth`
- * jobs run `nx run-many` too, and they are checked below as the second gate.
+ * This file reads only the `main` job of ci.yml. The `demo-apps` and
+ * `demo-growth` jobs run `nx run-many` too, and the tests below check them
+ * as the second gate.
  */
 
 const workflows = join(workspaceRoot, '.github', 'workflows');
@@ -205,7 +206,19 @@ function playwrightSetup(steps: Step[], job: string): number {
   expect(cache, `${job} caches the Playwright browsers`).toBeDefined();
   expect(cache.with?.path).toBe('~/.cache/ms-playwright');
   expect(cache.with?.key).toContain('playwright');
-  expect(cache.with?.key).toMatch(/\$\{\{\s*steps\.[a-z-]+\.outputs\./);
+  const [, versionStep, versionOutput] =
+    /\$\{\{\s*steps\.([a-z-]+)\.outputs\.([a-z-]+)\s*\}\}/.exec(
+      cache.with?.key ?? '',
+    ) ?? [];
+  const version = steps.find(
+    (step) => (step as Step & { id?: string }).id === versionStep,
+  );
+  expect(
+    version?.run,
+    `${job} keys the cache by the installed Playwright version`,
+  ).toContain('playwright-core/package.json');
+  expect(version?.run).toContain(`${versionOutput}=`);
+  expect(version?.run).toContain('$GITHUB_OUTPUT');
 
   const hit = `steps.${cache.id}.outputs.cache-hit`;
   const install = steps.findIndex((step) =>
