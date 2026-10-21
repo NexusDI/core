@@ -125,11 +125,10 @@ jobs:
       # runs in Chromium through Playwright.
       - run: npx playwright install --with-deps chromium
 
-      # The federation demo projects (PR D) carry the demo-frontend tag once
-      # they merge. They build with rspack, and the demo-apps job below runs
-      # their targets, so this step and release.yml's verify step leave them
-      # out. bridge-api and bridge-console carry only the demo tag and stay
-      # here.
+      # The four federation demo projects carry the demo-frontend tag. They
+      # build with rspack, and the demo-apps job below runs their targets, so
+      # this step and release.yml's verify step leave them out. bridge-api
+      # and bridge-console carry only the demo tag and stay here.
       - run: npx nx run-many -t lint test build typecheck --exclude=tag:demo-frontend
 
       # Reports the run's task results to Nx Cloud. `always()` because the run
@@ -194,7 +193,10 @@ jobs:
       - if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
-      - run: npx nx run-many -t lint test typecheck --projects=tag:demo-frontend
+      # main's target list over the projects main leaves out. build is in it
+      # because federation-shell's e2e depends on build-e2e, so no e2e task
+      # runs the shell's production build.
+      - run: npx nx run-many -t lint test build typecheck --projects=tag:demo-frontend
 
       - run: npx nx run-many -t e2e --projects=tag:demo
 
