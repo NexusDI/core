@@ -37,19 +37,6 @@ export default defineConfig((_env, argv) => {
       headers: { 'Access-Control-Allow-Origin': '*' },
     },
     resolve: { extensions: ['...', '.ts', '.tsx', '.jsx'] },
-    optimization: {
-      minimizer: [
-        // @Module names the module after its class. A minifier that renames
-        // or drops class names leaves the module unnamed in graph(ship) and
-        // in every error, so the production build keeps them.
-        new rspack.SwcJsMinimizerRspackPlugin({
-          minimizerOptions: {
-            compress: { keep_classnames: true },
-            mangle: { keep_classnames: true },
-          },
-        }),
-      ],
-    },
     module: {
       rules: [
         {
