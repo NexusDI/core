@@ -228,7 +228,7 @@ inside Node's CommonJS translator, under `node --import tsx` as well.
 
 The CLI registers tsx globally. tsx's `tsImport()` loads the import graph under a namespaced
 URL, which would give the entry its own copy of `@nexusdi/core`, and core would reject
-every module as `NEXUS_INVALID_MODULE` with `otherCopy` set (core spec, the package
+every module as `NEXUS_CORE_NOT_SHARED` (demo-apps spec section 8, the package
 split). A test pins this with a TypeScript fixture.
 
 A user whose project runs another loader (swc, ts-node) and has no tsx installed starts
