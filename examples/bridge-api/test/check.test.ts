@@ -57,6 +57,31 @@ describe('the bridge API graph', () => {
     expect(drawnNames).not.toContain('Audit');
   });
 
+  it('labels the ship providers with their system in the development graph', async () => {
+    await using ship = await Nexus.create(offlineMeridian(), {
+      plugins: bridgePlugins({ dev: true }),
+    });
+    const { modules, providers } = graph(ship);
+    const notes = Object.fromEntries(providers.map((p) => [p.token, p.notes]));
+    expect(notes['TickLoop']).toEqual(['system: MeridianSystems']);
+    expect(notes['ShipState']).toEqual(['system: Simulation']);
+    expect(notes['TelemetryFeed']).toEqual(['system: Telemetry']);
+
+    const bridgeModules = [
+      'BridgeApi',
+      'AuditTrail',
+      'OfflineTactical',
+      'SimDriver',
+    ];
+    const ids = modules
+      .filter((m) => bridgeModules.includes(m.name))
+      .map((m) => m.id);
+    expect(ids).toHaveLength(bridgeModules.length);
+    const bridgeProviders = providers.filter((p) => ids.includes(p.module));
+    expect(bridgeProviders.length).toBeGreaterThan(0);
+    for (const provider of bridgeProviders) expect(provider.notes).toEqual([]);
+  });
+
   it('fails the check when a provider has no MISSION to read', () => {
     const TRACKER = new Token<{ id: string }>('Tracker');
     const Broken = defineModule({

@@ -2,6 +2,7 @@ import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 
 import { Nexus } from '@nexusdi/core';
+import { graph } from '@nexusdi/devtools';
 import {
   roundSnapshot,
   SHIP_STATE,
@@ -15,10 +16,11 @@ import { servers } from '../e2e/servers';
 import { createBridge as expressBridge } from '../src/express';
 import { createBridge as fastifyBridge } from '../src/fastify';
 import { SIM_BODY_LIMIT, TICKS_REFUSED } from '../src/bridge/sim-ticks';
-import { createBridge as honoBridge } from '../src/hono';
+import { type BridgeOptions, createBridge as honoBridge } from '../src/hono';
 import { AUDIT_LOG } from '../src/ship/audit-trail.module';
 import { SIM_DRIVER } from '../src/ship/contracts';
 import { OfflineMeridian, offlineMeridian } from '../src/ship/meridian';
+import { bridgePlugins } from '../src/ship/plugins';
 import { RecordingFeed } from './doubles';
 import { test } from './fixtures';
 
@@ -78,6 +80,7 @@ type Call = (
   method: 'GET' | 'POST',
   path: string,
   payload?: Payload,
+  options?: BridgeOptions,
 ) => Promise<Answer>;
 
 const json = (body: unknown): Payload => ({
@@ -105,13 +108,13 @@ const init = (method: string, payload?: Payload): RequestInit =>
 
 /** One request to `ship` through each framework's bridge. */
 const calls: Readonly<Record<'hono' | 'express' | 'fastify', Call>> = {
-  async hono(ship, method, path, payload) {
+  async hono(ship, method, path, payload, options) {
     return answerOfResponse(
-      await honoBridge(ship).request(path, init(method, payload)),
+      await honoBridge(ship, options).request(path, init(method, payload)),
     );
   },
-  async express(ship, method, path, payload) {
-    const server = expressBridge(ship).listen(0, '127.0.0.1');
+  async express(ship, method, path, payload, options) {
+    const server = expressBridge(ship, options).listen(0, '127.0.0.1');
     await once(server, 'listening');
     const { port } = server.address() as AddressInfo;
     try {
@@ -122,8 +125,8 @@ const calls: Readonly<Record<'hono' | 'express' | 'fastify', Call>> = {
       server.close();
     }
   },
-  async fastify(ship, method, path, payload) {
-    const bridge = await fastifyBridge(ship);
+  async fastify(ship, method, path, payload, options) {
+    const bridge = await fastifyBridge(ship, options);
     try {
       const res = await bridge.inject({
         method,
@@ -204,6 +207,23 @@ describe.each(['hono', 'express', 'fastify'] as const)(
       expect((await call(nexus, 'POST', '/sim/advance', under)).status).toBe(
         200,
       );
+    });
+
+    test('GET /graph answers the graph the option draws', async () => {
+      await using ship = await Nexus.create(OfflineMeridian, {
+        plugins: bridgePlugins({ dev: true }),
+      });
+      const { status, body } = await call(ship, 'GET', '/graph', undefined, {
+        graph: () => graph(ship),
+      });
+      expect(status).toBe(200);
+      expect(body).toEqual(graph(ship));
+    });
+
+    test('GET /graph answers 404 without the graph option', async ({
+      nexus,
+    }) => {
+      expect((await call(nexus, 'GET', '/graph')).status).toBe(404);
     });
 
     test('POST /sim/advance answers 404 on a live ship', async () => {
