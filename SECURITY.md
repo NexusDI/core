@@ -42,10 +42,10 @@ In scope: anything in the published `@nexusdi/core` package — code injection,
 prototype pollution, an unsafe default, a dependency vulnerability that is
 actually reachable through this code.
 
-Out of scope: examples/react-ssr and examples/react-ssr-e2e (demo code, never
-published), anything in this repository that is not published to npm, and
-anything that requires an attacker to already control the machine running the
-code.
+Out of scope: the demo apps under examples/, such as examples/bridge-api and
+examples/bridge-console (demo code, never published), anything in this
+repository that is not published to npm, and anything that requires an
+attacker to already control the machine running the code.
 
 ## How This Repository Is Protected
 
