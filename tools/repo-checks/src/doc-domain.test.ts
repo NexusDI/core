@@ -23,6 +23,15 @@ describe('doc-domain fixtures', () => {
     expect(checkDomain(await tree('clean'), {})).toEqual([]);
   });
 
+  it('passes every Meridian interface in spec section 7.7, which none ends in Service', async () => {
+    const interfaces = (await tree('clean')).find(
+      (page) => page.slug === 'interfaces',
+    );
+    if (!interfaces) throw new Error('the clean tree has no interfaces page');
+    expect(interfaces.fences[0]?.body.match(/^interface /gm)).toHaveLength(35);
+    expect(domainHits(interfaces)).toEqual([]);
+  });
+
   it('finds every 0.3 name in the fences, the expanded region included', async () => {
     const tokens = (await tree('sabotaged')).find(
       (page) => page.slug === 'tokens',
