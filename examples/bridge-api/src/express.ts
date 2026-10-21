@@ -38,6 +38,10 @@ export function createBridge(
   bridge.get('/health', (_req, res) => {
     res.send('ok');
   });
+  bridge.get('/graph', (_req, res, next) => {
+    if (options.graph) res.json(options.graph());
+    else next();
+  });
   bridge.use(di.middleware);
   bridge.get(
     '/course/:to',

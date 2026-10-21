@@ -7,6 +7,7 @@ import {
   type Interceptor,
   type Next,
 } from '@nexusdi/interceptors';
+import { shipNotes } from '@nexusdi/meridian-systems';
 
 import { AUDIT_LOG, AuditTrail, type IAuditLog } from './audit-trail.module';
 import { NAV_CHARTS } from './contracts';
@@ -23,7 +24,11 @@ class NavAudit implements Interceptor {
   }
 }
 
-/** The demo app's plugins: the audit interceptor always; errors() and devtools() in development. */
+/**
+ * The demo app's plugins: the audit interceptor always; errors() and
+ * devtools() in development, where `shipNotes` labels each simulation
+ * provider in graph() with its system.
+ */
 export function bridgePlugins(
   options: { dev?: boolean; trace?: (event: TraceEvent) => void } = {},
 ): NexusPlugin[] {
@@ -33,7 +38,7 @@ export function bridgePlugins(
       register: [NavAudit],
       bindings: [{ token: NAV_CHARTS, class: [NavAudit] }],
     }),
-    ...(options.dev ? [errors(), devtools()] : []),
+    ...(options.dev ? [errors(), devtools({ annotate: [shipNotes] })] : []),
     ...(options.trace ? [trace(options.trace)] : []),
   ];
 }

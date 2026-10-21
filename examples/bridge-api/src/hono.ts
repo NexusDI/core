@@ -1,4 +1,5 @@
 import type { Scope } from '@nexusdi/core';
+import type { NexusGraph } from '@nexusdi/devtools';
 import { nexus, type ContainerSource, type NexusLog } from '@nexusdi/hono';
 import {
   roundSnapshot,
@@ -21,6 +22,8 @@ export interface BridgeOptions {
     current?(): Scope | undefined;
   };
   log?: NexusLog;
+  /** Draws the graph `GET /graph` answers. Without it, the route answers 404. */
+  graph?: () => NexusGraph;
 }
 
 export function createBridge(
@@ -40,8 +43,11 @@ export function createBridge(
 
   return (
     new Hono()
-      // Before the middleware, so it never has a scope handle.
+      // Before the middleware, so they never have a scope handle.
       .get('/health', (c) => c.text('ok'))
+      .get('/graph', (c) =>
+        options.graph ? c.json(options.graph()) : c.notFound(),
+      )
       .use(di.middleware)
       .get(
         '/course/:to',
