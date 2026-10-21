@@ -521,7 +521,7 @@ Tool routes:
 | T4  | `/academy/progress/`  | Progress, stats, storage state, export and reset (section 13.7)   | 4     |
 
 Counts: 51 inventory rows. Phase 1 holds 27 documentation pages (2 Start, 11 Concepts, 10
-Guides, 3 Migration, 1 API) and the 40 code pages. Phase 2 adds 21 pages (rows 24 to 31,
+Guides, 3 Migration, 1 API) and the 41 code pages. Phase 2 adds 21 pages (rows 24 to 31,
 37, 39 and 43 to 50, with row 30 holding the four `/vs-*/` pages). Five rows wait for a
 package release (R). The tool routes are 12 (the Playground, the Academy index, 9 missions and the
 progress page), and at final the blog holds an index and at least four posts.
@@ -3036,7 +3036,7 @@ order:
    Guides `/plugins/`, `/testing/`, `/node-request-scopes/`, `/load/`, `/decorators/`,
    `/legacy-decorators/`, `/interceptors/`, `/graph-cli/`, `/error-text/` and
    `/write-a-plugin/`, the Migration pages `/release-candidate/`, `/upgrade/` and
-   `/support-policy/`, `/api-errors/`, the 40 code pages, and `/comparison/` and
+   `/support-policy/`, `/api-errors/`, the 41 code pages, and `/comparison/` and
    `/benchmark-method/` with the landing page's bundle-size figure (decision 38). The
    owner merges the rc.0 benchmark results (pull request #73) into `release/0.4` first.
 4. The switch: a green CI `docs` job on `release/0.4`, a green `rehearse: rc` run of
@@ -3156,7 +3156,7 @@ the `@nexusdi/core@0.4.0-rc.0` tag. Each case below follows the code.
 8. The deny list. Section 7.7 listed `forRoot` as a removed 0.3 name; 0.4 has `forRoot()`
    (core spec D4), so the guard drops it.
 9. `NexusErrorCode`. Earlier revisions counted core's codes; at rc.0 `NexusErrorCode` is
-   `keyof NexusErrorByCode`, open to every package, and 40 first-party codes exist: 28 in
+   `keyof NexusErrorByCode`, open to every package, and 41 first-party codes exist: 29 in
    core, 1 in decorators, 2 in devtools, 1 in federation, 6 in interceptors and 2 in testing.
 10. Permissions. Section 15.3 gave the workflow `pages: write` and `id-token: write`;
     `docs.yml` grants them to the deploy job alone, which is tighter, and the spec follows.
