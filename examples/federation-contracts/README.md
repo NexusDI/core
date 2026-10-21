@@ -4,12 +4,9 @@ The `meridian` contract between the Meridian shell (`examples/federation-shell`)
 two remotes, `federation-cartography` and `federation-command`. The package is private
 and part of the federation demo.
 
-```ts
-import { defineContract } from '@nexusdi/federation';
-
-export const meridian = defineContract({ key: 'meridian', version: '2.3.0' });
-export const NAV_CHARTS = meridian.token<INavCharts>('NavCharts');
-```
+`src/index.ts` defines the contract with `defineContract({ key: 'meridian', version })`
+and one token, `NAV_CHARTS = meridian.token<INavCharts>('NavCharts')`, described
+`meridian/NavCharts`.
 
 ## Who owns the contract
 
@@ -18,8 +15,8 @@ team that binds the providers decides what each token promises and when the vers
 moves. The remotes depend on this package and never provide its tokens.
 
 Each bundle holds its own copy of this package. The remote's `NAV_CHARTS` is then a
-different `Token` object from the shell's, and `federation()` binds the two by their
-description, `meridian/NavCharts`.
+different `Token` object from the shell's, and `federation()` binds the two by contract
+key and token name, `meridian/NavCharts`.
 
 ## The version rule
 
