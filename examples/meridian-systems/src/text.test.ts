@@ -40,24 +40,63 @@ describe('shipText', () => {
     });
     expect(render(error)).toBe(
       [
-        '[MERIDIAN_POWER_BUDGET] The shields need 200 MW, and the router has 193.6 MW free beside the loads above them.',
+        '[MERIDIAN_POWER_BUDGET] The shields load needs 200 MW, and the router has 193.6 MW free beside the loads above it.',
         '  Fix: raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
       ].join('\n'),
     );
   });
 
-  it('words MERIDIAN_BAD_COMMAND with the actions the system takes', () => {
-    const error = new BadCommandError({
-      system: 'engineering',
-      action: 'warp',
-      expected:
-        'throttle { level: 0 to 1 } or shields { raised: true or false }',
-    });
-    expect(render(error)).toBe(
+  const ACTIONS =
+    'throttle { level: 0 to 1 } or shields { raised: true or false }';
+
+  it.each([
+    [
+      'envelope',
+      { system: '', action: '', expected: 'engineering' },
+      [
+        '[MERIDIAN_BAD_COMMAND] A ship command is an object with a string system and a string action. The desk serves engineering.',
+        '  Fix: send { system, action, ...args } as JSON.',
+      ],
+    ],
+    [
+      'system',
+      { system: 'warp-core', action: 'engage', expected: 'engineering' },
+      [
+        "[MERIDIAN_BAD_COMMAND] No ship system is named 'warp-core'. The desk serves engineering.",
+        '  Fix: send the command to one of the systems above.',
+      ],
+    ],
+    [
+      'action',
+      { system: 'engineering', action: 'warp', expected: ACTIONS },
       [
         "[MERIDIAN_BAD_COMMAND] engineering has no action 'warp'. It takes throttle { level: 0 to 1 } or shields { raised: true or false }.",
         '  Fix: send one of the actions above with its arguments.',
-      ].join('\n'),
-    );
+      ],
+    ],
+    [
+      'argument',
+      { system: 'engineering', action: 'throttle', expected: ACTIONS },
+      [
+        '[MERIDIAN_BAD_COMMAND] engineering throttle got an argument it cannot use. It takes throttle { level: 0 to 1 } or shields { raised: true or false }.',
+        '  Fix: send the arguments in the ranges above.',
+      ],
+    ],
+  ] as const)(
+    'words MERIDIAN_BAD_COMMAND for a bad %s',
+    (reason, fields, lines) => {
+      const error = new BadCommandError({ reason, ...fields });
+      expect(render(error)).toBe(lines.join('\n'));
+    },
+  );
+
+  it('leaves a MERIDIAN_BAD_COMMAND of an unknown reason to the one-line message', () => {
+    const error = new BadCommandError({
+      reason: 'drift' as 'action',
+      system: 'engineering',
+      action: 'warp',
+      expected: ACTIONS,
+    });
+    expect(explain(error, { text: [shipText] })).toBeUndefined();
   });
 });

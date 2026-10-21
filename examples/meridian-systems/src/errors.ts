@@ -19,12 +19,19 @@ export class PowerBudgetError extends errorBase<
   PowerBudgetFields
 >('MERIDIAN_POWER_BUDGET', 'PowerBudgetError', DOCS) {}
 
+/**
+ * What the desk or the system could not read: the envelope, the system's
+ * name, the action, or an argument of the action.
+ */
+export type BadCommandReason = 'envelope' | 'system' | 'action' | 'argument';
+
 interface BadCommandFields {
+  readonly reason: BadCommandReason;
   /** The system the command names. */
   readonly system: string;
   /** The action the command names. */
   readonly action: string;
-  /** What the desk or the system takes, in words. */
+  /** What the desk serves or the system takes, in words. */
   readonly expected: string;
 }
 

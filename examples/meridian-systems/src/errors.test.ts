@@ -15,6 +15,7 @@ const budget = () =>
 
 const badCommand = () =>
   new BadCommandError({
+    reason: 'action',
     system: 'engineering',
     action: 'warp',
     expected: 'throttle { level: 0 to 1 } or shields { raised: true or false }',
@@ -55,6 +56,7 @@ describe('BadCommandError', () => {
     expect(error.code).toBe('MERIDIAN_BAD_COMMAND');
     expect(error.name).toBe('BadCommandError');
     expect({ ...error }).toEqual({
+      reason: 'action',
       system: 'engineering',
       action: 'warp',
       expected:
