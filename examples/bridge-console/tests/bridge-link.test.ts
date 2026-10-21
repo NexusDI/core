@@ -20,32 +20,44 @@ let devServer: ServerType;
 let devBase: string;
 /** The path of each request either backend received, as it arrived. */
 const paths: string[] = [];
+/** The mission header of each request either backend received. */
+const missions: (string | null)[] = [];
+/** A server that answers every request with an empty 500. */
+let broken: ServerType;
+let brokenBase: string;
 
-/** Serves `app` on a free port and returns the server and its base URL. */
-async function listen(app: {
-  fetch(request: Request): Response | Promise<Response>;
-}) {
-  const listening = serve({
-    port: 0,
-    hostname: '127.0.0.1',
-    fetch: (request) => {
-      paths.push(new URL(request.url).pathname);
-      return app.fetch(request);
-    },
-  });
+/** Serves `fetch` on a free port and resolves its base URL. */
+async function listen(
+  fetch: (request: Request) => Response | Promise<Response>,
+) {
+  const listening = serve({ port: 0, hostname: '127.0.0.1', fetch });
   await new Promise<void>((resolve) => listening.once('listening', resolve));
   const { port } = listening.address() as AddressInfo;
-  return { server: listening, base: `http://127.0.0.1:${port}/` };
+  return { server: listening, url: `http://127.0.0.1:${port}/` };
+}
+
+/** Answers with `app`, after it records the path and the mission header. */
+function recorded(app: {
+  fetch(request: Request): Response | Promise<Response>;
+}) {
+  return (request: Request) => {
+    paths.push(new URL(request.url).pathname);
+    missions.push(request.headers.get('x-mission-id'));
+    return app.fetch(request);
+  };
 }
 
 beforeAll(async () => {
   backend = await Nexus.create(OfflineMeridian);
-  ({ server, base } = await listen(createBridge(backend)));
+  ({ server, url: base } = await listen(recorded(createBridge(backend))));
   devBackend = await Nexus.create(OfflineMeridian, {
     plugins: bridgePlugins({ dev: true }),
   });
-  ({ server: devServer, base: devBase } = await listen(
-    createBridge(devBackend, { graph: () => graph(devBackend) }),
+  ({ server: devServer, url: devBase } = await listen(
+    recorded(createBridge(devBackend, { graph: () => graph(devBackend) })),
+  ));
+  ({ server: broken, url: brokenBase } = await listen(
+    () => new Response(null, { status: 500 }),
   ));
 });
 
@@ -56,6 +68,7 @@ afterAll(async () => {
   await devBackend[Symbol.asyncDispose]();
   await new Promise((resolve) => server.close(resolve));
   await new Promise((resolve) => devServer.close(resolve));
+  await new Promise((resolve) => broken.close(resolve));
 });
 
 /** The first server-sent event of `body`, as text. */
@@ -186,5 +199,61 @@ describe('the bridge link', () => {
       drawn?.providers.find((provider) => provider.token === 'TelemetryFeed')
         ?.notes,
     ).toEqual(['system: Telemetry']);
+  });
+});
+
+describe("the bridge link's commands", () => {
+  // The backend runs manual, so no tick passes between two commands.
+  it('gives the tick that applies an accepted command', async () => {
+    await using bridge = await linkTo(base);
+    expect(
+      await bridge.link.command({
+        system: 'engineering',
+        action: 'throttle',
+        level: 1,
+      }),
+    ).toEqual({ accepted: true, tick: 1 });
+    expect(paths.at(-1)).toBe('/commands');
+    expect(missions.at(-1)).toBe('survey-9');
+  });
+
+  it('gives the refusal of a load the reactor cannot power, with its fix', async () => {
+    await using bridge = await linkTo(base);
+    expect(
+      await bridge.link.command({
+        system: 'engineering',
+        action: 'shields',
+        raised: true,
+      }),
+    ).toEqual({
+      accepted: false,
+      status: 409,
+      code: 'MERIDIAN_POWER_BUDGET',
+      message:
+        'The shields load needs 200 MW, and the router has 0 MW free beside the loads above it.',
+      fix: 'raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
+    });
+  });
+
+  it('gives the refusal of a command no system serves', async () => {
+    await using bridge = await linkTo(base);
+    expect(
+      await bridge.link.command({ system: 'warp', action: 'engage' }),
+    ).toMatchObject({
+      accepted: false,
+      status: 400,
+      code: 'MERIDIAN_BAD_COMMAND',
+    });
+  });
+
+  it('rejects when the backend answers 500', async () => {
+    await using bridge = await linkTo(brokenBase);
+    await expect(
+      bridge.link.command({
+        system: 'engineering',
+        action: 'throttle',
+        level: 1,
+      }),
+    ).rejects.toThrow('bridge-api answered 500 for /commands');
   });
 });
