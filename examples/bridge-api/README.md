@@ -11,15 +11,15 @@ The graph lives in `src/ship/`, and each framework entry wires it to routes with
 - `src/ship/plugins.ts` registers an audit interceptor on `NAV_CHARTS` that records each call in `AUDIT_LOG`, plus `errors()` and `devtools()` in development.
 - `src/hono.ts`, `src/express.ts` and `src/fastify.ts` each export `createBridge(ship, options)`, which serves the same seven routes through `@nexusdi/hono`, `@nexusdi/express` or `@nexusdi/fastify`:
 
-| Route               | What it shows                                                                                                          |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `GET /health`       | a route before the middleware, which creates no scope                                                                  |
-| `GET /course/:to`   | `inject` resolving the charts and the request's flight log                                                             |
-| `GET /mission`      | a service reading the request scope through `scopes.current()`                                                         |
-| `GET /log/stream`   | a scope that stays open while the body streams, and closes when it ends                                                |
-| `GET /sim`          | `inject` resolving `SHIP_STATE`: the snapshot, rounded to four significant digits                                      |
-| `POST /sim/advance` | `{ "ticks": n }` advances a manual ship `n` ticks, 1 to 10000; any other body answers 400, and a live ship answers 404 |
-| any, after disposal | a 503 with an empty body once the container is disposed                                                                |
+| Route               | What it shows                                                                                                                                                                                             |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /health`       | a route before the middleware, which creates no scope                                                                                                                                                     |
+| `GET /course/:to`   | `inject` resolving the charts and the request's flight log                                                                                                                                                |
+| `GET /mission`      | a service reading the request scope through `scopes.current()`                                                                                                                                            |
+| `GET /log/stream`   | a scope that stays open while the body streams, and closes when it ends                                                                                                                                   |
+| `GET /sim`          | `inject` resolving `SHIP_STATE`: the snapshot, rounded to four significant digits                                                                                                                         |
+| `POST /sim/advance` | `{ "ticks": n }` advances a manual ship `n` ticks, 1 to 10000; a body without a whole `ticks` from 1 to 10000 answers 400 or, on Fastify, 415 for a content type it cannot parse; a live ship answers 404 |
+| any, after disposal | a 503 with an empty body once the container is disposed                                                                                                                                                   |
 
 - `src/worker.ts` builds the container on the first request of each isolate (the function form of `nexus()`), because Workers refuse I/O at module scope.
 
