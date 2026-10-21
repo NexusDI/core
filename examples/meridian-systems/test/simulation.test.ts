@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { meridianSystems } from '../src/meridian-systems.module';
 import { GASES, pressure } from '../src/physics/gas';
+import { COMMAND_DESK } from '../src/simulation/commands';
 import {
   DECK_PLAN,
   type SimOptions,
@@ -41,6 +42,23 @@ describe('meridianSystems', () => {
     const b = second.get(TICK_LOOP).advance(600);
     expect(roundSnapshot(a)).toEqual(roundSnapshot(b));
     expect(a).toEqual(b);
+  });
+
+  it('serves the command desk, which refuses a system no module handles', async () => {
+    await using ship = await Nexus.create(
+      meridianSystems({ seed: 7, dt: 0.5 }),
+    );
+    expect(() =>
+      ship
+        .get(COMMAND_DESK)
+        .submit({ system: 'engineering', action: 'throttle' }),
+    ).toThrow(
+      expect.objectContaining({
+        code: 'MERIDIAN_BAD_COMMAND',
+        reason: 'system',
+        expected: 'no system',
+      }),
+    );
   });
 });
 
