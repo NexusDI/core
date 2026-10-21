@@ -92,6 +92,9 @@
     },
     {
       "path": "./examples/federation-command"
+    },
+    {
+      "path": "./examples/federation-contracts"
     }
   ],
   "compilerOptions": {
