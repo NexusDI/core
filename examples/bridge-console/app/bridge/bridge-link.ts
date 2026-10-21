@@ -44,6 +44,15 @@ const BRIDGE_LINK_OPTIONS = new Token<{ readonly url: string }>(
 );
 
 /**
+ * The error for an answer the link does not read. It cancels the body first:
+ * an unread body holds the connection open until it is read or cancelled.
+ */
+async function rejection(res: Response, url: URL) {
+  await res.body?.cancel();
+  return new Error(`bridge-api answered ${res.status} for ${url.pathname}`);
+}
+
+/**
  * Calls bridge-api with the request's mission id and abort signal, so the
  * backend opens its own scope for the same mission, and a reader who leaves
  * the page aborts the call.
@@ -101,7 +110,7 @@ class BridgeApiLink implements IBridgeLink {
       };
       return { accepted: false, status: res.status, ...refusal };
     }
-    throw new Error(`bridge-api answered ${res.status} for ${url.pathname}`);
+    throw await rejection(res, url);
   }
 
   /** Fetches `path` and throws when the status is not ok. */
@@ -121,8 +130,7 @@ class BridgeApiLink implements IBridgeLink {
   /** Returns `res` when it is ok, or cancels its body and throws its status. */
   async #ok(res: Response, url: URL) {
     if (res.ok) return res;
-    await res.body?.cancel();
-    throw new Error(`bridge-api answered ${res.status} for ${url.pathname}`);
+    throw await rejection(res, url);
   }
 }
 

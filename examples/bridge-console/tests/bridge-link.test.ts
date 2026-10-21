@@ -104,6 +104,26 @@ async function linkTo(url: string, signal?: AbortSignal) {
   };
 }
 
+/**
+ * Makes fetch answer `status` with a body nobody reads, until disposed.
+ * `cancelled` turns true once the link cancels that body.
+ */
+function answerWith(status: number) {
+  const answer = {
+    cancelled: false,
+    [Symbol.asyncDispose]: async () => fetch.mockRestore(),
+  };
+  const body = new ReadableStream({
+    cancel() {
+      answer.cancelled = true;
+    },
+  });
+  const fetch = vi
+    .spyOn(globalThis, 'fetch')
+    .mockResolvedValue(new Response(body, { status }));
+  return answer;
+}
+
 describe('the bridge link', () => {
   it("returns the backend's course and flight log for the scope's mission", async () => {
     await using bridge = await linkTo(base);
@@ -125,6 +145,15 @@ describe('the bridge link', () => {
     await expect(bridge.link.course('Kepler-442b')).rejects.toThrow(
       'bridge-api answered 404 for /uncharted/course/Kepler-442b',
     );
+  });
+
+  it('cancels the body of a course answer it rejects', async () => {
+    await using answer = answerWith(404);
+    await using bridge = await linkTo(base);
+    await expect(bridge.link.course('Kepler-442b')).rejects.toThrow(
+      'bridge-api answered 404 for /course/Kepler-442b',
+    );
+    expect(answer.cancelled).toBe(true);
   });
 
   it("rejects when the request's signal aborts", async () => {
@@ -255,5 +284,18 @@ describe("the bridge link's commands", () => {
         level: 1,
       }),
     ).rejects.toThrow('bridge-api answered 500 for /commands');
+  });
+
+  it('cancels the body of an answer it rejects, so the connection is freed', async () => {
+    await using answer = answerWith(500);
+    await using bridge = await linkTo(base);
+    await expect(
+      bridge.link.command({
+        system: 'engineering',
+        action: 'throttle',
+        level: 1,
+      }),
+    ).rejects.toThrow('bridge-api answered 500 for /commands');
+    expect(answer.cancelled).toBe(true);
   });
 });
