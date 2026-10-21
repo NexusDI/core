@@ -32,12 +32,12 @@ svg{--bg:#ffffff;--ink:#1a1a19;--muted:#5f5f5b;--grid:#e3e3e0;--c0:#0072B2;--c1:
 <text class="muted" x="64" y="40" text-anchor="end">1,000,000</text>
 <text class="muted" x="328" y="410" text-anchor="middle">providers</text>
 <text class="muted" x="14" y="200" text-anchor="middle" transform="rotate(-90 14 200)">gzip bytes</text>
-<polyline class="line s0" data-series="nexusdi" points="191.29,218.04 294.04,208.73 413.33,176.81 481.25,145.88 532.62,117.85"/>
-<circle class="dot s0" data-series="nexusdi" data-n="50" cx="191.29" cy="218.04" r="4"/>
-<circle class="dot s0" data-series="nexusdi" data-n="200" cx="294.04" cy="208.73" r="4"/>
-<circle class="dot s0" data-series="nexusdi" data-n="1000" cx="413.33" cy="176.81" r="4"/>
-<circle class="dot s0" data-series="nexusdi" data-n="2500" cx="481.25" cy="145.88" r="4"/>
-<circle class="dot s0" data-series="nexusdi" data-n="5000" cx="532.62" cy="117.85" r="4"/>
+<polyline class="line s0" data-series="nexusdi" points="191.29,217.53 294.04,208.33 413.33,176.58 481.25,145.76 532.62,117.81"/>
+<circle class="dot s0" data-series="nexusdi" data-n="50" cx="191.29" cy="217.53" r="4"/>
+<circle class="dot s0" data-series="nexusdi" data-n="200" cx="294.04" cy="208.33" r="4"/>
+<circle class="dot s0" data-series="nexusdi" data-n="1000" cx="413.33" cy="176.58" r="4"/>
+<circle class="dot s0" data-series="nexusdi" data-n="2500" cx="481.25" cy="145.76" r="4"/>
+<circle class="dot s0" data-series="nexusdi" data-n="5000" cx="532.62" cy="117.81" r="4"/>
 <polyline class="line s1" data-series="inversify" points="191.29,213.92 294.04,204.67 413.33,174.07 481.25,142.46 532.62,114.04"/>
 <circle class="dot s1" data-series="inversify" data-n="50" cx="191.29" cy="213.92" r="4"/>
 <circle class="dot s1" data-series="inversify" data-n="200" cx="294.04" cy="204.67" r="4"/>
@@ -62,7 +62,7 @@ svg{--bg:#ffffff;--ink:#1a1a19;--muted:#5f5f5b;--grid:#e3e3e0;--c0:#0072B2;--c1:
 <circle class="dot s4" data-series="needle-di" data-n="1000" cx="413.33" cy="207.74" r="4"/>
 <circle class="dot s4" data-series="needle-di" data-n="2500" cx="481.25" cy="167.69" r="4"/>
 <circle class="dot s4" data-series="needle-di" data-n="5000" cx="532.62" cy="136.11" r="4"/>
-<line class="leader s0" data-series="nexusdi" x1="532.62" y1="117.85" x2="542.62" y2="129.04"/>
+<line class="leader s0" data-series="nexusdi" x1="532.62" y1="117.81" x2="542.62" y2="129.04"/>
 <line class="swatch s0" data-series="nexusdi" x1="542.62" y1="129.04" x2="554.62" y2="129.04"/>
 <text class="end-label" x="558.62" y="133.04">NexusDI</text>
 <line class="swatch s1" data-series="inversify" x1="542.62" y1="114.04" x2="554.62" y2="114.04"/>

@@ -1426,40 +1426,40 @@
       "variant": "plain",
       "shape": "mixed",
       "size": 50,
-      "minified": 67731,
-      "gzip": 21626
+      "minified": 68447,
+      "gzip": 21862
     },
     {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
       "size": 200,
-      "minified": 93827,
-      "gzip": 26311
+      "minified": 94543,
+      "gzip": 26532
     },
     {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
       "size": 1000,
-      "minified": 239735,
-      "gzip": 51535
+      "minified": 240451,
+      "gzip": 51780
     },
     {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
       "size": 2500,
-      "minified": 524071,
-      "gzip": 98852
+      "minified": 524794,
+      "gzip": 99101
     },
     {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
       "size": 5000,
-      "minified": 1002406,
-      "gzip": 178376
+      "minified": 1003135,
+      "gzip": 178559
     },
     {
       "library": "tsyringe",
@@ -1557,7 +1557,7 @@
       "variant": "plain",
       "shape": "mixed",
       "bytes": "gzip",
-      "perProvider": 31.71
+      "perProvider": 31.69
     },
     {
       "library": "tsyringe",
