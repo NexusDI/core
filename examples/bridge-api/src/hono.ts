@@ -2,7 +2,8 @@ import type { Scope } from '@nexusdi/core';
 import type { NexusGraph } from '@nexusdi/devtools';
 import { nexus, type ContainerSource, type NexusLog } from '@nexusdi/hono';
 import {
-  roundSnapshot,
+  DECK_PLAN,
+  readShip,
   SHIP_STATE,
   TELEMETRY,
 } from '@nexusdi/meridian-systems';
@@ -86,8 +87,9 @@ export function createBridge(
       )
       .get(
         '/sim',
-        di.inject({ state: SHIP_STATE }, ({ state }, c) =>
-          c.json(roundSnapshot(state.snapshot())),
+        di.inject(
+          { state: SHIP_STATE, deck: DECK_PLAN },
+          ({ state, deck }, c) => c.json(readShip(state.snapshot(), deck)),
         ),
       )
       .get(
@@ -108,19 +110,22 @@ export function createBridge(
           return undefined;
         },
         bodyLimit({ maxSize: SIM_BODY_LIMIT }),
-        di.inject({ driver: SIM_DRIVER }, async ({ driver }, c) => {
-          // c.req.json() parses any body, and the Express and Fastify routes
-          // parse only one sent as application/json.
-          const json = c.req
-            .header('content-type')
-            ?.startsWith('application/json');
-          const body = json
-            ? await c.req.json().catch(() => undefined)
-            : undefined;
-          const ticks = parseTicks(body);
-          if (ticks === undefined) return c.json(TICKS_REFUSED, 400);
-          return c.json(roundSnapshot(driver.advance(ticks)));
-        }),
+        di.inject(
+          { driver: SIM_DRIVER, deck: DECK_PLAN },
+          async ({ driver, deck }, c) => {
+            // c.req.json() parses any body, and the Express and Fastify routes
+            // parse only one sent as application/json.
+            const json = c.req
+              .header('content-type')
+              ?.startsWith('application/json');
+            const body = json
+              ? await c.req.json().catch(() => undefined)
+              : undefined;
+            const ticks = parseTicks(body);
+            if (ticks === undefined) return c.json(TICKS_REFUSED, 400);
+            return c.json(readShip(driver.advance(ticks), deck));
+          },
+        ),
       )
       // The adapter's HTTPException keeps its 500 or 503 (spec 4.3); the
       // handler's own errors answer an empty 500.

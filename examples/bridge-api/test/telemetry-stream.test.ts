@@ -1,6 +1,6 @@
 import type {
   ITelemetryFeed,
-  ShipSnapshot,
+  ShipReading,
   TelemetrySink,
 } from '@nexusdi/meridian-systems';
 import { describe, expect, it, vi } from 'vitest';
@@ -9,10 +9,10 @@ import { SSE_HEADERS, telemetryStream } from '../src/bridge/telemetry-stream';
 import type { TelemetryEvent } from '../src/ship/contracts';
 
 /** A frame with no compartments: the stream frames whatever JSON it gets. */
-const frameAt = (tick: number): ShipSnapshot => ({
+const frameAt = (tick: number): ShipReading => ({
   tick,
   time: tick / 2,
-  compartments: {} as ShipSnapshot['compartments'],
+  compartments: {} as ShipReading['compartments'],
 });
 
 const sse = (event: TelemetryEvent, data: string) =>
@@ -22,7 +22,7 @@ const sse = (event: TelemetryEvent, data: string) =>
 class FakeFeed implements ITelemetryFeed {
   sink: TelemetrySink | undefined;
   readonly unsubscribe = vi.fn();
-  constructor(private readonly first: ShipSnapshot = frameAt(0)) {}
+  constructor(private readonly first: ShipReading = frameAt(0)) {}
   subscribe(sink: TelemetrySink) {
     this.sink = sink;
     sink.next(this.first);

@@ -399,6 +399,11 @@
       "kind": "required"
     },
     {
+      "from": "p12",
+      "to": "p10",
+      "kind": "required"
+    },
+    {
       "from": "p13",
       "to": "p6",
       "kind": "required"

@@ -1,6 +1,6 @@
 import type {
   ITelemetryFeed,
-  ShipSnapshot,
+  ShipReading,
   TelemetrySink,
 } from '@nexusdi/meridian-systems';
 
@@ -29,7 +29,7 @@ export class MemoryFlightLog implements IFlightLog {
  */
 export class RecordingFeed implements ITelemetryFeed {
   readonly sinks = new Set<TelemetrySink>();
-  constructor(private readonly frame: ShipSnapshot) {}
+  constructor(private readonly frame: ShipReading) {}
   subscribe(sink: TelemetrySink) {
     this.sinks.add(sink);
     sink.next(this.frame);
