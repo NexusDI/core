@@ -66,3 +66,16 @@ export async function sectorsServer() {
   built.push(ship);
   return { di: nexus(ship, { request }), ship };
 }
+
+/**
+ * What the ship routes' mocked nexus.server exports: the BridgeConsole
+ * graph with the bridge link double. A test that needs another link opens
+ * its scope in its own container and puts that scope on the router context.
+ */
+export async function shipServer() {
+  const ship = await createTestingContainer(BridgeConsole)
+    .override(BRIDGE_LINK, fakeBridgeLink)
+    .create();
+  built.push(ship);
+  return { di: nexus(ship, { request }), ship };
+}

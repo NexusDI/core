@@ -12,4 +12,6 @@ export default [
     route('course/:to', 'routes/course.tsx'),
     route('charts', 'routes/charts.tsx'),
   ]),
+  // A resource route outside the page layout: it answers with the stream alone.
+  route('telemetry', 'routes/telemetry.ts'),
 ] satisfies RouteConfig;
