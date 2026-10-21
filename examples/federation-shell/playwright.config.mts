@@ -2,74 +2,63 @@ import { defineConfig, devices } from '@playwright/test';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { workspaceRoot } from '@nx/devkit';
 
-// For CI, you may want to set BASE_URL to the deployed application.
-const baseURL = process.env['BASE_URL'] || 'http://localhost:3000';
+import { REMOTES, SHELLS } from './e2e/ports.ts';
+
+const cwd = `${workspaceRoot}/examples`;
+
+/** One static server from e2e/serve.ts, ready once `ready` answers. */
+function serve(folder: string, port: number, ready: string, remotes?: string) {
+  const env: Record<string, string> =
+    remotes === undefined ? {} : { REMOTES: remotes };
+  return {
+    command: `node federation-shell/e2e/serve.ts ${folder} ${port}`,
+    url: `http://127.0.0.1:${port}${ready}`,
+    reuseExistingServer: false,
+    cwd,
+    env,
+  };
+}
 
 /**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// import 'dotenv/config';
-
-/**
- * See https://playwright.dev/docs/test-configuration.
+ * Three instances of the shell's e2e build, one per remote list, and the
+ * four remote builds they load (demo apps spec 7.5). The e2e target builds
+ * every one of them first (project.json).
  *
  * Generated as a .mts file so Node forces ESM regardless of workspace
- * `type`. Playwright routes `.mts` through its ESM loader (dynamic import,
- * bypassing the pirates CJS-compile path), and Nx's native TS strip loads
- * `.mts` directly. Playwright's configLoader auto-discovers
- * `playwright.config.mts` via its extension list
- * (.ts/.js/.mts/.mjs/.cts/.cjs).
+ * `type`. Playwright routes `.mts` through its ESM loader, and Nx's native
+ * TS strip loads `.mts` directly.
  */
 export default defineConfig({
   ...nxE2EPreset(import.meta.dirname, { testDir: './e2e' }),
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    baseURL,
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
+    baseURL: `http://127.0.0.1:${SHELLS.main}`,
     trace: 'on-first-retry',
   },
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'npx nx serve federation-shell',
-    url: 'http://localhost:3000',
-    reuseExistingServer: true,
-    cwd: workspaceRoot,
-  },
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-
-    // Uncomment for mobile browsers support
-    /* {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    }, */
-
-    // Uncomment for branded browsers
-    /* {
-      name: 'Microsoft Edge',
-      use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    },
-    {
-      name: 'Google Chrome',
-      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    } */
+  webServer: [
+    serve(
+      'federation-cartography/dist/main',
+      REMOTES.cartography,
+      '/remoteEntry.js',
+    ),
+    serve('federation-command/dist/main', REMOTES.command, '/remoteEntry.js'),
+    serve(
+      'federation-cartography/dist/drift',
+      REMOTES.drift,
+      '/remoteEntry.js',
+    ),
+    serve(
+      'federation-cartography/dist/unshared',
+      REMOTES.unshared,
+      '/remoteEntry.js',
+    ),
+    ...(['main', 'drift', 'unshared'] as const).map((list) =>
+      serve(
+        'federation-shell/dist/e2e',
+        SHELLS[list],
+        '/',
+        `federation-shell/e2e/remotes/${list}.json`,
+      ),
+    ),
   ],
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 });

@@ -35,3 +35,8 @@ export function SectionFailed({
     </div>
   );
 }
+
+/** A station's onError: the load error, as the console shows it. */
+export function logSectionError(error: unknown): void {
+  console.error(error);
+}
