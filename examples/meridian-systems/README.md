@@ -11,9 +11,9 @@ A ship imports one module, the one `meridianSystems({ seed, dt })` returns. `see
 - `Simulation`, in `src/simulation/simulation.module.ts`, is a global module that `Simulation.forRoot({ seed, dt })` configures. It binds the clock, the random source, the ship state and the deck plan, and exports them with `SIM_OPTIONS`.
 - `MeridianSystems`, the aggregate in `src/meridian-systems.module.ts`, is global too. It imports `Simulation.forRoot(options)`, and binds and exports `TICK_LOOP` with `FixedStepLoop`.
 
-Each ship system contributes one `IShipSystem`, with a `name` and a `phase` from 1 to 6, to the multi token `SHIP_SYSTEMS`. `FixedStepLoop` takes them all with `all(SHIP_SYSTEMS)`. `all()` collects what the binding module can see: the providers it binds or imports, and the exports of the global modules. A loop bound in `Simulation` would miss a system that a sibling module provides, so `TICK_LOOP` sits in the aggregate, which imports each system module from G1 on.
+Each ship system contributes one `IShipSystem`, with a `name` and a `phase` from 1 to 6, to the multi token `SHIP_SYSTEMS`. `FixedStepLoop` takes them all with `all(SHIP_SYSTEMS)`. `all()` collects what the binding module can see: the providers it binds, its imports' exports and the exports of the global modules. Each system module exports `SHIP_SYSTEMS`. A loop bound in `Simulation` would miss a system that a sibling module provides, so `TICK_LOOP` sits in the aggregate, which imports each system module from G1 on.
 
-The tokens follow the interface-first rule: each interface has a token named for its role, and the module binds a class to it with `useClass`. `src/index.ts` exports the tokens and their interfaces, and keeps the classes internal.
+The tokens follow the interface-first rule: each interface has a token named for its role, and the module binds a class to each service token with `useClass`. `src/index.ts` exports the tokens and their interfaces, and keeps the classes internal.
 
 | Token          | Interface       | Bound to                  | Bound in           |
 | -------------- | --------------- | ------------------------- | ------------------ |
@@ -57,6 +57,6 @@ npx nx run @nexusdi/meridian-systems:e2e-growth
 - `test` runs the unit tests beside the files in `src/` and the module tests in `test/`. The module tests build `ShipUnderTest` on `@nexusdi/vitest` fixtures with probe systems, and assert rounded idle values after 600 ticks that hold on any Node.
 - `e2e-growth` runs `e2e/idle.e2e.ts`, which compares seed 7 at ticks 0, 1 and 600 with `e2e/golden/idle.seed-7.json`. The suite runs only on the Node version `.nvmrc` names, and stops with both versions in the message on any other. `npx nx run @nexusdi/meridian-systems:e2e-growth -- -u` rewrites the golden. Review its diff as you review a change to `graph.json`. Under `CI`, Vitest writes no snapshot, so a missing golden fails.
 
-No CI workflow runs an `e2e-growth` target yet. The ship systems spec (`specs/2026-10-21-meridian-ship-systems-design.md`, section 14) gives them to a non-required `demo-growth` job.
+The non-required `demo-growth` CI job runs both `e2e-growth` targets (ship systems spec, section 14).
 
 Next, read [`examples/bridge-api`](../bridge-api/README.md), which drives this simulation and serves it over HTTP.
