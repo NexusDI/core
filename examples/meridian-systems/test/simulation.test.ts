@@ -49,14 +49,12 @@ describe('meridianSystems', () => {
       meridianSystems({ seed: 7, dt: 0.5 }),
     );
     expect(() =>
-      ship
-        .get(COMMAND_DESK)
-        .submit({ system: 'engineering', action: 'throttle' }),
+      ship.get(COMMAND_DESK).submit({ system: 'warp-core', action: 'engage' }),
     ).toThrow(
       expect.objectContaining({
         code: 'MERIDIAN_BAD_COMMAND',
         reason: 'system',
-        expected: 'no system',
+        expected: 'engineering',
       }),
     );
   });
