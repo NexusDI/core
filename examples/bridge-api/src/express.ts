@@ -6,6 +6,7 @@ import { pipeline } from 'node:stream';
 
 import { nexus, type ContainerSource } from '@nexusdi/express';
 import {
+  COMMAND_DESK,
   DECK_PLAN,
   readShip,
   SHIP_STATE,
@@ -13,6 +14,7 @@ import {
 } from '@nexusdi/meridian-systems';
 import express, { type ErrorRequestHandler } from 'express';
 
+import { answerCommand } from './bridge/commands';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { telemetryReadable } from './bridge/telemetry-readable';
 import { SSE_HEADERS } from './bridge/telemetry-stream';
@@ -117,6 +119,20 @@ export function createBridge(
         res.json(readShip(driver.advance(ticks), deck));
       },
     ),
+  );
+  bridge.post(
+    '/commands',
+    express.json({ limit: SIM_BODY_LIMIT }),
+    di.inject({ desk: COMMAND_DESK }, ({ desk }, req, res) => {
+      const { status, body } = answerCommand(desk, req.body);
+      res.status(status).json(body);
+    }),
+  );
+  bridge.get(
+    '/commands',
+    di.inject({ state: SHIP_STATE }, ({ state }, _req, res) => {
+      res.json(state.log());
+    }),
   );
   // Every error ends with its status and an empty body, so Express's
   // development handler never sends a stack. NexusHttpError carries status,

@@ -2,16 +2,18 @@ import type { Scope } from '@nexusdi/core';
 import type { NexusGraph } from '@nexusdi/devtools';
 import { nexus, type ContainerSource, type NexusLog } from '@nexusdi/hono';
 import {
+  COMMAND_DESK,
   DECK_PLAN,
   readShip,
   SHIP_STATE,
   TELEMETRY,
 } from '@nexusdi/meridian-systems';
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { HTTPException } from 'hono/http-exception';
 import { streamSSE } from 'hono/streaming';
 
+import { answerCommand } from './bridge/commands';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { SSE_HEADERS, telemetryStream } from './bridge/telemetry-stream';
 import { UNCHARTED } from './bridge/uncharted';
@@ -27,6 +29,16 @@ export interface BridgeOptions {
   graph?: () => NexusGraph;
   /** Ends every open `GET /telemetry` stream with `ship offline` when it aborts. */
   shutdown?: AbortSignal;
+}
+
+/**
+ * The parsed body of a request sent as application/json, else undefined.
+ * c.req.json() parses any body, and the Express and Fastify routes parse
+ * only one sent as application/json.
+ */
+async function jsonBody(c: Context): Promise<unknown> {
+  const json = c.req.header('content-type')?.startsWith('application/json');
+  return json ? await c.req.json().catch(() => undefined) : undefined;
 }
 
 export function createBridge(
@@ -115,19 +127,23 @@ export function createBridge(
         di.inject(
           { driver: SIM_DRIVER, deck: DECK_PLAN },
           async ({ driver, deck }, c) => {
-            // c.req.json() parses any body, and the Express and Fastify routes
-            // parse only one sent as application/json.
-            const json = c.req
-              .header('content-type')
-              ?.startsWith('application/json');
-            const body = json
-              ? await c.req.json().catch(() => undefined)
-              : undefined;
-            const ticks = parseTicks(body);
+            const ticks = parseTicks(await jsonBody(c));
             if (ticks === undefined) return c.json(TICKS_REFUSED, 400);
             return c.json(readShip(driver.advance(ticks), deck));
           },
         ),
+      )
+      .post(
+        '/commands',
+        bodyLimit({ maxSize: SIM_BODY_LIMIT }),
+        di.inject({ desk: COMMAND_DESK }, async ({ desk }, c) => {
+          const { status, body } = answerCommand(desk, await jsonBody(c));
+          return c.json(body, status);
+        }),
+      )
+      .get(
+        '/commands',
+        di.inject({ state: SHIP_STATE }, ({ state }, c) => c.json(state.log())),
       )
       // The adapter's HTTPException keeps its 500 or 503 (spec 4.3); the
       // handler's own errors answer an empty 500.
