@@ -6,7 +6,7 @@ A server team that adopts NexusDI wants to see one module graph serve real HTTP 
 
 The graph lives in `src/ship/`, and each framework entry wires it to routes with that framework's adapter.
 
-- `src/ship/meridian.ts` composes `Meridian` from `Tactical`, which downloads the star charts over a relay with an async factory, `BridgeApi`, which reads the request's mission into a scoped flight log, and `Audit`. `OfflineMeridian` swaps in charts bundled from `charts.json`, with no I/O.
+- `src/ship/meridian.ts` composes `Meridian` from `Tactical`, which downloads the star charts over a relay with an async factory, `BridgeApi`, which reads the request's mission into a scoped flight log, and `AuditTrail`. `OfflineMeridian` swaps in charts bundled from `charts.json`, with no I/O.
 - `src/ship/plugins.ts` registers an audit interceptor on `NAV_CHARTS` that records each call in `AUDIT_LOG`, plus `errors()` and `devtools()` in development.
 - `src/hono.ts`, `src/express.ts` and `src/fastify.ts` each export `createBridge(ship, options)`, which serves the same five routes through `@nexusdi/hono`, `@nexusdi/express` or `@nexusdi/fastify`:
 

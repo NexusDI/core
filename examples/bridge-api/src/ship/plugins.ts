@@ -8,7 +8,7 @@ import {
   type Next,
 } from '@nexusdi/interceptors';
 
-import { Audit, AUDIT_LOG, type IAuditLog } from './audit';
+import { AUDIT_LOG, AuditTrail, type IAuditLog } from './audit-trail.module';
 import { NAV_CHARTS } from './contracts';
 
 /** Records each NAV_CHARTS call in the audit log. Private: the class is its own token. */
@@ -29,7 +29,7 @@ export function bridgePlugins(
 ): NexusPlugin[] {
   return [
     interceptors({
-      imports: [Audit],
+      imports: [AuditTrail],
       register: [NavAudit],
       bindings: [{ token: NAV_CHARTS, class: [NavAudit] }],
     }),

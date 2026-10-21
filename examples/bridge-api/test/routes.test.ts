@@ -6,7 +6,7 @@ import { expect } from 'vitest';
 import { createBridge as expressBridge } from '../src/express';
 import { createBridge as fastifyBridge } from '../src/fastify';
 import { createBridge as honoBridge } from '../src/hono';
-import { AUDIT_LOG } from '../src/ship/audit';
+import { AUDIT_LOG } from '../src/ship/audit-trail.module';
 import { test } from './fixtures';
 
 const course = { to: 'Kepler-442b', heading: 42 };

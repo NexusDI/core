@@ -21,8 +21,8 @@ class AuditLog implements IAuditLog {
  * Exports the store, so the app and the interceptors plugin, which imports
  * it for its interceptor's dependency, share one instance.
  */
-export const Audit = defineModule({
-  name: 'Audit',
+export const AuditTrail = defineModule({
+  name: 'AuditTrail',
   providers: [provide(AUDIT_LOG, { useClass: AuditLog })],
   exports: [AUDIT_LOG],
 });

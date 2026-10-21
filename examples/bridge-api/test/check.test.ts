@@ -5,8 +5,10 @@ import {
   provide,
   Token,
 } from '@nexusdi/core';
+import { devtools, graph } from '@nexusdi/devtools';
 import { describe, expect, it } from 'vitest';
 
+import drawn from '../graph.json';
 import { MISSION } from '../src/ship/contracts';
 import { Meridian, OfflineMeridian } from '../src/ship/meridian';
 import { bridgePlugins } from '../src/ship/plugins';
@@ -19,6 +21,18 @@ describe('the bridge API graph', () => {
     expect(() =>
       Nexus.check(OfflineMeridian, { plugins: bridgePlugins() }),
     ).not.toThrow();
+  });
+
+  it('names the audit module AuditTrail, in the container and in graph.json', async () => {
+    await using ship = await Nexus.create(OfflineMeridian, {
+      plugins: [...bridgePlugins(), devtools()],
+    });
+    const names = graph(ship).modules.map((m) => m.name);
+    expect(names).toContain('AuditTrail');
+    expect(names).not.toContain('Audit');
+    const drawnNames = drawn.modules.map((m) => m.name);
+    expect(drawnNames).toContain('AuditTrail');
+    expect(drawnNames).not.toContain('Audit');
   });
 
   it('fails the check when a provider has no MISSION to read', () => {

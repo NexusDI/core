@@ -26,7 +26,8 @@
     "bench/**/*.ts",
     "src/**/*.d.ts",
     "worker-configuration.d.ts",
-    "scripts/*.d.mts"
+    "scripts/*.d.mts",
+    "graph.json"
   ],
   "references": [
     {
