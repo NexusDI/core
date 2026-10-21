@@ -62,11 +62,7 @@ export class SnapshotFeed implements ITelemetryFeed, Disposable {
     const open = [...this.entries];
     this.entries.clear();
     callAll(
-      open.map(
-        ({ sink }) =>
-          (reason: string) =>
-            sink.close(reason),
-      ),
+      open.map(({ sink }) => sink.close.bind(sink)),
       OFFLINE,
     );
   }
