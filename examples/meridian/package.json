@@ -11,6 +11,7 @@
     "@nexusdi/express": "*",
     "@nexusdi/fastify": "*",
     "@nexusdi/federation": "*",
+    "@nexusdi/federation-contracts": "*",
     "@nexusdi/hono": "*",
     "@nexusdi/interceptors": "*",
     "@nexusdi/node": "*",

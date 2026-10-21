@@ -51,6 +51,9 @@ const meta: MetaRecord = {
   'trace-events': { title: 'What the trace events promise' },
   'error-text': { title: 'Full error text' },
   'write-a-plugin': { title: 'Write a plugin' },
+  federation: {
+    title: 'How do I share tokens between a shell and its remotes?',
+  },
   comparison: {
     title: 'NexusDI compared with InversifyJS, tsyringe, awilix and needle-di',
   },
