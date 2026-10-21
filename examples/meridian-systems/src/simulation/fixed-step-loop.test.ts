@@ -216,7 +216,7 @@ describe('FixedStepLoop', () => {
     });
 
     it('runs the other listeners, keeps the tick and stops advance after one throws', () => {
-      const { state, loop } = build([]);
+      const { clock, state, loop } = build([]);
       const boom = new Error('boom');
       const heard: number[] = [];
       loop.listen(() => {
@@ -226,17 +226,27 @@ describe('FixedStepLoop', () => {
       expect(() => loop.advance(3)).toThrow(boom);
       expect(heard).toEqual([1]);
       expect(state.snapshot().tick).toBe(1);
+      expect(clock.tick).toBe(1);
     });
 
     it('throws an AggregateError when two listeners throw', () => {
       const { loop } = build([]);
+      const first = new Error('first');
+      const second = new Error('second');
       loop.listen(() => {
-        throw new Error('first');
+        throw first;
       });
       loop.listen(() => {
-        throw new Error('second');
+        throw second;
       });
-      expect(() => loop.advance(1)).toThrow(AggregateError);
+      let error: unknown;
+      try {
+        loop.advance(1);
+      } catch (thrown) {
+        error = thrown;
+      }
+      expect(error).toBeInstanceOf(AggregateError);
+      expect((error as AggregateError).errors).toEqual([first, second]);
     });
   });
 });
