@@ -793,7 +793,10 @@ the tag `demo-frontend`. `main`'s step becomes
 `nx run-many -t lint test typecheck --projects=tag:demo-frontend`. Their `build` runs as
 a dependency of `e2e`. `main` then keeps its 10 min 29 s, and `bridge-api` stays in
 `main` as today.
-`examples/next-bridge` carries no `demo` tag and stays out. `@nexusdi/react`'s own `e2e`
+`examples/next-bridge` carries no `demo` tag and stays out. The ship systems growth
+track adds a second, non-required job, `demo-growth`, for its e2e cases (ship systems
+spec section 14). It never blocks, and `demo-apps` takes a growth case after a green RC
+cycle. `@nexusdi/react`'s own `e2e`
 targets stay in the `adapter-peers` legs that run them today.
 
 The job runs every demo on every run, with the Nx cache, so a push to `release/0.4`
@@ -908,17 +911,18 @@ branch ends with a final review by an opus reviewer.
 
 ## 16. Owner decision log
 
-| Date       | Decision                                                                                                                                       | Source           |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| 2026-10-12 | Every package covered by a demo app; federation gets its own app; the apps live in `examples/`                                                 | decisions 1 to 3 |
-| 2026-10-15 | 0.4.0 final waits until every adapter sat in an RC with its demo app green                                                                     | integrations Q2  |
-| 2026-10-21 | decorators in a federation remote; the bridge console; `react-ssr` removed; the core error                                                     | decisions 4 to 7 |
-| 2026-10-21 | every app scaffolded by its official generator                                                                                                 | generator rule   |
-| 2026-10-21 | Q1: `@nx/react:consumer` and `provider` on rspack, vitest and Playwright added by their configuration generators; replaces `host` and `remote` | owner            |
-| 2026-10-21 | Q2: add `NEXUS_CORE_NOT_SHARED` and drop `otherCopy` in rc.2; the +204 B gzip is accepted                                                      | owner            |
-| 2026-10-21 | Q3: "section" means a module added after startup; the front page labels its parts "modules"                                                    | tech lead        |
-| 2026-10-21 | Q4: audit `bridge-api` against the `create-hono` `nodejs` template, with no re-scaffold                                                        | tech lead        |
-| 2026-10-21 | Q5: `demo-apps` becomes a required check after three green runs on `release/0.4`; the owner changes the rulesets                               | owner            |
+| Date       | Decision                                                                                                                                                                                                                                           | Source           |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 2026-10-12 | Every package covered by a demo app; federation gets its own app; the apps live in `examples/`                                                                                                                                                     | decisions 1 to 3 |
+| 2026-10-15 | 0.4.0 final waits until every adapter sat in an RC with its demo app green                                                                                                                                                                         | integrations Q2  |
+| 2026-10-21 | decorators in a federation remote; the bridge console; `react-ssr` removed; the core error                                                                                                                                                         | decisions 4 to 7 |
+| 2026-10-21 | every app scaffolded by its official generator                                                                                                                                                                                                     | generator rule   |
+| 2026-10-21 | Q1: `@nx/react:consumer` and `provider` on rspack, vitest and Playwright added by their configuration generators; replaces `host` and `remote`                                                                                                     | owner            |
+| 2026-10-21 | Q2: add `NEXUS_CORE_NOT_SHARED` and drop `otherCopy` in rc.2; the +204 B gzip is accepted                                                                                                                                                          | owner            |
+| 2026-10-21 | Q3: "section" means a module added after startup; the front page labels its parts "modules"                                                                                                                                                        | tech lead        |
+| 2026-10-21 | Q4: audit `bridge-api` against the `create-hono` `nodejs` template, with no re-scaffold                                                                                                                                                            | tech lead        |
+| 2026-10-21 | Q5: `demo-apps` becomes a required check after three green runs on `release/0.4`; the owner changes the rulesets                                                                                                                                   | owner            |
+| 2026-10-21 | Ship systems Q1: growth increments merge green; their unit tests and graph check run in `main` and the release verify step and block an RC; their e2e runs in the non-required `demo-growth` job and moves into `demo-apps` after a green RC cycle | owner            |
 
 The questions as they were put, with their answers:
 
