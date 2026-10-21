@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { createServer } from 'node:net';
 import { dirname, join } from 'node:path';
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support';
 
 const require = createRequire(import.meta.url);
 // The package exports only its package.json, so the bin is found beside it.
@@ -68,7 +68,7 @@ test('serves the lazy sectors route as the first request on a fresh server', asy
   expect(await res.text()).toContain('Kepler-442b: heading 42');
 });
 
-test('ships no server container module to the client build', async () => {
+test('keeps every server container module out of the client build', async () => {
   const assets = join(app, 'build/client/assets');
   const scripts = (await readdir(assets)).filter((f) => f.endsWith('.js'));
   expect(scripts.length).toBeGreaterThan(0);
@@ -76,6 +76,8 @@ test('ships no server container module to the client build', async () => {
     const text = await readFile(join(assets, file), 'utf8');
     expect(text, file).not.toContain('x-mission-id');
     expect(text, file).not.toContain('BRIDGE_API_URL');
-    expect(text, file).not.toContain('BridgeApiLink');
+    // A module's name stays a string in the minified build, and
+    // BridgeConsole is the server root.
+    expect(text, file).not.toContain('BridgeConsole');
   }
 });

@@ -1,6 +1,4 @@
-import { expect, test } from '@playwright/test';
-
-import { problems } from './support';
+import { expect, problems, test } from './support';
 
 test('renders a document request with the request mission and its own watch log', async ({
   request,
@@ -46,10 +44,20 @@ test('answers 404 for a path no route matches', async ({ page }) => {
 
 test("streams the backend's course, with the watch and flight log entries of one mission", async ({
   page,
+  request,
 }) => {
+  // The shell goes out before the backend answers: the server HTML holds
+  // the Suspense fallback, and the answer follows in the same body.
+  const html = await (
+    await request.get('/course/Kepler-442b', {
+      headers: { 'x-mission-id': 'survey-9' },
+    })
+  ).text();
+  expect(html).toContain('Calling the bridge');
+  expect(html).toContain('survey-9: plotting Kepler-442b');
+
   const seen = problems(page);
-  // The mission header on the console's own requests only: a cross-origin
-  // font request with it would fail its CORS preflight.
+  // The mission header on the console's own requests only.
   await page.route('http://127.0.0.1:4210/**', (route) =>
     route.continue({
       headers: { ...route.request().headers(), 'x-mission-id': 'survey-9' },
@@ -61,10 +69,37 @@ test("streams the backend's course, with the watch and flight log entries of one
   await expect(page.getByText('survey-9: docked')).toBeVisible();
   // The backend's request scope, on bridge-api, reached through BRIDGE_LINK.
   await expect(page.getByText('survey-9: plotting Kepler-442b')).toBeVisible();
+  // The flight log entry reaches the page only if the request's scope stays
+  // open until the stream ends: a disposed scope fails the backend call.
   await expect(page.getByText('Kepler-442b: heading 42')).toBeVisible();
-  // The scope stays open until the stream ends, so nothing is disposed early.
-  expect(seen.filter((text) => text.includes('NEXUS_'))).toEqual([]);
   expect(seen).toEqual([]);
+});
+
+test('shows a failed backend call inside the stream and keeps the watch log', async ({
+  request,
+}) => {
+  // bridge-api answers 500 for this mission (its missing-provider case).
+  const res = await request.get('/course/Kepler-442b', {
+    headers: { 'x-mission-id': 'missing-provider' },
+  });
+  expect(res.status()).toBe(200);
+  const html = await res.text();
+  expect(html).toContain('missing-provider: docked');
+  expect(html).toContain('The bridge did not answer.');
+});
+
+test('keeps two concurrent missions in their own request scopes', async ({
+  request,
+}) => {
+  const [a, b] = await Promise.all(
+    ['survey-1', 'survey-2'].map(async (id) =>
+      (await request.get('/', { headers: { 'x-mission-id': id } })).text(),
+    ),
+  );
+  expect(a).toContain('survey-1: docked');
+  expect(a).not.toContain('survey-2');
+  expect(b).toContain('survey-2: docked');
+  expect(b).not.toContain('survey-1');
 });
 
 test('sends the star map fallback in the server HTML and renders StarMap after hydration', async ({
