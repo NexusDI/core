@@ -100,11 +100,14 @@
     "examples/bridge-api/vitest.e2e.config.ts",
     "examples/bridge-api/vitest.e2e-growth.config.ts",
     "examples/bridge-api/vitest.workers.config.ts",
+    "examples/bridge-api/vitest.workers-growth.config.ts",
     // The Deno, Bun and Edge Runtime legs: runtime-leg.mjs runs by path and
-    // bundles smoke.ts, and the edge test bundles entry.ts by path.
+    // bundles smoke.ts, or growth.ts for e2e-growth, and the edge test
+    // bundles entry.ts by path.
     "examples/bridge-api/vitest.edge.config.ts",
     "examples/bridge-api/scripts/runtime-leg.mjs",
     "examples/bridge-api/test/runtime/smoke.ts",
+    "examples/bridge-api/test/runtime/growth.ts",
     "examples/bridge-api/test/edge/entry.ts",
     "examples/bridge-api/bench/*.{ts,mjs}",
     "examples/bridge-api/src/server.*.ts",
