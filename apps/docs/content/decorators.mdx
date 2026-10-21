@@ -68,3 +68,19 @@ Module encapsulation rules apply exactly as they do with `defineModule()`: only 
 **Try it:** Save the region as `module.ts` and run `npx tsx module.ts`: it prints the status line and `false`. Add `REACTOR` to `exports` and run it again, and the last line is `true`.
 
 **Note:** `@Module` classes are static. If you need a configurable module (e.g., one with `forRoot()` or `forRootAsync()`), you should continue using `defineModule()`. See [Configurable Modules](/configurable-modules/). A `@Module` class may import a configurable module.
+
+## Naming Modules for a Minified Bundle
+
+A `@Module` class takes its name from the class, and a production minifier renames classes. A minifier renames `Engineering` to `e`, and every error and graph then names the module `e`. A minifier that drops the name altogether leaves `(anonymous module)`.
+
+The `name` option sets the module's name in the source. `@Module({ name: 'Engineering' })` names the module `Engineering` whatever the minifier calls the class, the same way `defineModule({ name })` names a definition. The region reads the names with [`inspect()`](/api-devtools/#inspect) from `@nexusdi/devtools`, which compiles the graph and runs no constructor.
+
+```ts file=examples/meridian/src/pages/decorators.md region=module-name
+
+```
+
+The module bound to `e` sets `name: 'Engineering'`, so `inspect()` lists it as `Engineering`. The module bound to `t` sets no `name`, and `inspect()` lists it as `t`. Providers keep readable names through their token descriptions, as [Handling Minification](/introspection/#handling-minification) explains. A `name` on each `@Module` class then keeps the whole graph readable.
+
+A bundler setting can keep class names too, and esbuild's `keepNames` keeps them. When tsc compiles the decorators for ES2022 or later, the `keep_classnames` option of terser and of the swc minifier leaves the class with an empty name. The `name` option works with every toolchain.
+
+**Try it:** Run `npm install @nexusdi/devtools@next`, save the region as `names.ts` and run `npx tsx names.ts`: it prints `[ 't', 'Engineering' ]`. Delete the `name: 'Engineering'` line and run it again: it prints `[ 't', 'e' ]`. Put the line back and the second name is `Engineering` again.

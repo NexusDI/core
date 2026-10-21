@@ -92,7 +92,7 @@ A `construct`, `init` or `compile` event also carries `startMs` and `durationMs`
 
 In production, minifiers often rename classes to single letters (e.g., `FusionReactor` becomes `t`). This can make error messages and graphs unreadable. NexusDI names a provider in errors, in `graph()` and in trace events by its token: the description of a `Token<T>`, or the name of a class used as its own token.
 
-To prevent this, you should always provide a human-readable description when creating a `Token<T>`. NexusDI uses this description for all introspection and error reporting, ensuring that your logs remain meaningful regardless of minification. To keep the class names too, configure the bundler to preserve them (`keepNames` in esbuild).
+To prevent this, you should always provide a human-readable description when creating a `Token<T>`. NexusDI uses this description for all introspection and error reporting, ensuring that your logs remain meaningful regardless of minification. To keep the class names too, configure the bundler to preserve them (`keepNames` in esbuild). A `@Module` class takes its module name from the class, so give it a `name` as [Naming Modules for a Minified Bundle](/decorators/#naming-modules-for-a-minified-bundle) shows.
 
 ```ts file=examples/meridian/src/pages/introspection.md region=minified-names
 
