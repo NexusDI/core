@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFINITION_BRAND } from './brand.js';
 import { declareModuleClass, defineModule } from './define-module.js';
 import { describeValue } from './describe.js';
 import { provide } from './provide.js';
@@ -57,7 +56,9 @@ describe('describeValue', () => {
     expect(describeValue({})).toBe('an object');
     expect(describeValue({ description: 'Nav' })).toBe('an object');
     expect(
-      describeValue(Object.create({ [DEFINITION_BRAND]: true }) as object),
+      describeValue(
+        Object.create({ [Symbol.for('nexusdi.definition')]: true }) as object,
+      ),
     ).toBe('an object');
   });
 
