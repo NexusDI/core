@@ -14,10 +14,10 @@ import { Nexus, provide } from '@nexusdi/core';
 import { defineContract, federation } from '@nexusdi/federation';
 
 interface INavCharts {
-  plot(to: string): string;
+  plot(to: string): { to: string; heading: number };
 }
 class StarCharts implements INavCharts {
-  plot = (to: string) => `course to ${to}`;
+  plot = (to: string) => ({ to, heading: 42 });
 }
 
 const meridian = defineContract({ key: 'meridian', version: '2.3.0' });
@@ -25,7 +25,7 @@ const NAV_CHARTS = meridian.token<INavCharts>('NavCharts');
 
 const providers = [provide(NAV_CHARTS, { useClass: StarCharts })];
 await using ship = await Nexus.create(providers, { plugins: [federation()] });
-ship.get(NAV_CHARTS).plot('Kepler-442b'); // -> 'course to Kepler-442b'
+ship.get(NAV_CHARTS).plot('Kepler-442b').heading; // -> 42
 ```
 
 ## Key Features
@@ -44,33 +44,34 @@ npm install @nexusdi/federation@next @nexusdi/core@next
 
 ## Quick Example
 
-A remote bundles its own copy of the contracts package, so its `NAV_CHARTS` is another token object. `federation()` binds that copy to the shell's provider by its key, `meridian/NavCharts`.
+A remote bundles its own copy of the package that defines the contract, so its `NAV_CHARTS` is another token object. `federation()` binds that copy to the shell's provider by contract key and token name, `meridian/NavCharts`.
 
 ```ts @import.meta.vitest
 import { Nexus, defineModule, provide } from '@nexusdi/core';
 import { defineContract, federation } from '@nexusdi/federation';
 
 interface INavCharts {
-  plot(to: string): string;
+  plot(to: string): { to: string; heading: number };
 }
 class StarCharts implements INavCharts {
-  plot = (to: string) => `course to ${to}`;
+  plot = (to: string) => ({ to, heading: 42 });
 }
 
-// The shell's copy of the contracts package, and a remote's copy.
-const shell = defineContract({ key: 'meridian', version: '2.3.0' });
-const remote = defineContract({ key: 'meridian', version: '2.3.0' });
-const NAV_CHARTS = shell.token<INavCharts>('NavCharts');
+// The shell's copy of the contract, and a remote's copy.
+const meridian = defineContract({ key: 'meridian', version: '2.3.0' });
+const remoteMeridian = defineContract({ key: 'meridian', version: '2.3.0' });
+const NAV_CHARTS = meridian.token<INavCharts>('NavCharts');
 
 const Tactical = defineModule({
   name: 'Tactical',
   providers: [provide(NAV_CHARTS, { useClass: StarCharts })],
   exports: [NAV_CHARTS],
+  global: true,
 });
 const Meridian = defineModule({ name: 'Meridian', imports: [Tactical] });
 
 await using ship = await Nexus.create(Meridian, { plugins: [federation()] });
-const charts = ship.get(remote.token<INavCharts>('NavCharts'));
+const charts = ship.get(remoteMeridian.token<INavCharts>('NavCharts'));
 charts === ship.get(NAV_CHARTS); // -> true
 ```
 
