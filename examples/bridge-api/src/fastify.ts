@@ -8,7 +8,7 @@ import { nexus, type ContainerSource } from '@nexusdi/fastify';
 import { roundSnapshot, SHIP_STATE } from '@nexusdi/meridian-systems';
 import Fastify from 'fastify';
 
-import { parseTicks, TICKS_REFUSED } from './bridge/sim-ticks';
+import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { UNCHARTED } from './bridge/uncharted';
 import type { BridgeOptions } from './hono';
 import { FLIGHT_LOG, MISSION, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
@@ -80,6 +80,7 @@ export async function createBridge(
     scoped.post(
       '/sim/advance',
       {
+        bodyLimit: SIM_BODY_LIMIT,
         // A live ship advances on its own timer, so the route exists only in
         // manual mode. The check runs in onRequest, before Fastify parses
         // the body, and callNotFound() answers as Fastify's 404 does.

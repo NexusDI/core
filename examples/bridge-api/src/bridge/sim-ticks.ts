@@ -1,5 +1,11 @@
 const MAX_TICKS = 10_000;
 
+/**
+ * The largest body `POST /sim/advance` reads, in bytes, on every framework.
+ * It equals the 100 kB default of Express's `express.json()`.
+ */
+export const SIM_BODY_LIMIT = 100 * 1024;
+
 /** The 400 body of `POST /sim/advance`, for a body `parseTicks` refuses. */
 export const TICKS_REFUSED = {
   error: `Send { "ticks": n } with n a whole number from 1 to ${MAX_TICKS}.`,

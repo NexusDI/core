@@ -2,10 +2,11 @@ import type { Scope } from '@nexusdi/core';
 import { nexus, type ContainerSource, type NexusLog } from '@nexusdi/hono';
 import { roundSnapshot, SHIP_STATE } from '@nexusdi/meridian-systems';
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { HTTPException } from 'hono/http-exception';
 import { streamSSE } from 'hono/streaming';
 
-import { parseTicks, TICKS_REFUSED } from './bridge/sim-ticks';
+import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { UNCHARTED } from './bridge/uncharted';
 import { FLIGHT_LOG, MISSION, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
 
@@ -80,10 +81,17 @@ export function createBridge(
       )
       .post(
         '/sim/advance',
-        di.inject({ driver: SIM_DRIVER }, async ({ driver }, c) => {
-          // A live ship advances on its own timer, so the route exists only
-          // in manual mode: notFound() answers as Hono's 404 does.
+        // A live ship advances on its own timer, so the route exists only in
+        // manual mode. The check runs before bodyLimit reads the body, and
+        // notFound() answers as Hono's 404 does.
+        async (c, next) => {
+          const driver = (await di.scope(c)).get(SIM_DRIVER);
           if (driver.mode === 'live') return c.notFound();
+          await next();
+          return undefined;
+        },
+        bodyLimit({ maxSize: SIM_BODY_LIMIT }),
+        di.inject({ driver: SIM_DRIVER }, async ({ driver }, c) => {
           // c.req.json() parses any body, and the Express and Fastify routes
           // parse only one sent as application/json.
           const json = c.req
