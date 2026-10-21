@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test as base, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createRoutesStub, RouterContextProvider } from 'react-router';
 import type { Nexus } from '@nexusdi/core';
 import { NexusProvider } from '@nexusdi/react';
@@ -57,6 +57,25 @@ describe('Home route', () => {
       expect(screen.getByText('survey-7')).toBeDefined();
       expect(screen.getByText('survey-7: docked')).toBeDefined();
     });
+    await scope[Symbol.asyncDispose]();
+  });
+
+  test("records the form's entry through the action, in the request's scope", async ({
+    nexus,
+  }) => {
+    const scope = await scopeOf(nexus, 'survey-7');
+    const Stub = createRoutesStub(
+      [{ path: '/', Component: Home, HydrateFallback, loader, action }],
+      new RouterContextProvider(new Map([[NEXUS_SCOPE, existingScope(scope)]])),
+    );
+    render(
+      <NexusProvider container={nexus}>
+        <Stub initialEntries={['/']} />
+      </NexusProvider>,
+    );
+    await screen.findByText('survey-7: docked');
+    fireEvent.click(screen.getByRole('button', { name: 'Record' }));
+    expect(await screen.findByText('survey-7: course plotted')).toBeDefined();
     await scope[Symbol.asyncDispose]();
   });
 
