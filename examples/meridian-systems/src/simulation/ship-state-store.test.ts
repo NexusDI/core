@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import deck from '../../deck/meridian.deck.json';
 import { AIR, molesAt } from '../physics/gas';
+import { LITHIUM_LOOP } from '../physics/thermal';
 import {
   COMPARTMENT_IDS,
   type CompartmentId,
@@ -76,5 +77,119 @@ describe('ShipStateStore', () => {
     expect(() => new ShipStateStore(twice)).toThrow(
       "The deck plan names compartment 'habitat' twice.",
     );
+  });
+
+  it('starts the engineering records idle', () => {
+    const ship = new ShipStateStore(plan).snapshot();
+    expect(ship.reactor).toEqual({
+      level: 0,
+      thermal: 0,
+      electric: 0,
+      tripped: false,
+    });
+    expect(ship.coolant).toEqual({ temperature: LITHIUM_LOOP.standby });
+    expect(ship.power).toEqual({ output: 0, loads: [], shed: [] });
+    expect(ship.setpoints).toEqual({
+      reactor: { throttle: 0 },
+      shields: { raised: false },
+    });
+    for (const record of [
+      ship.reactor,
+      ship.coolant,
+      ship.power,
+      ship.power.loads,
+      ship.power.shed,
+      ship.setpoints,
+      ship.setpoints.reactor,
+      ship.setpoints.shields,
+    ]) {
+      expect(Object.isFrozen(record)).toBe(true);
+    }
+  });
+});
+
+describe('ShipStateStore setpoint queue', () => {
+  it('answers a queued change with the next tick', () => {
+    const store = new ShipStateStore(plan);
+    expect(store.queue({ reactor: { throttle: 1 } })).toEqual({ tick: 1 });
+    store.commit({ ...store.snapshot(), tick: 4, time: 2 });
+    expect(store.queue({ shields: { raised: true } })).toEqual({ tick: 5 });
+  });
+
+  it('merges the queued changes in queue order at applyQueued', () => {
+    const store = new ShipStateStore(plan);
+    store.queue({ reactor: { throttle: 0.5 } });
+    store.queue({ shields: { raised: true } });
+    store.queue({ reactor: { throttle: 1 } });
+    const ship = store.applyQueued(1);
+    expect(ship.setpoints).toEqual({
+      reactor: { throttle: 1 },
+      shields: { raised: true },
+    });
+    expect(Object.isFrozen(ship)).toBe(true);
+    expect(Object.isFrozen(ship.setpoints)).toBe(true);
+    expect(Object.isFrozen(ship.setpoints.reactor)).toBe(true);
+    expect(Object.isFrozen(ship.setpoints.shields)).toBe(true);
+    expect(store.snapshot()).toBe(ship);
+  });
+
+  it('keeps the setpoints a change leaves out', () => {
+    const store = new ShipStateStore(plan);
+    store.queue({ reactor: { throttle: 0.4 } });
+    store.applyQueued(1);
+    store.queue({ shields: { raised: true } });
+    expect(store.applyQueued(2).setpoints).toEqual({
+      reactor: { throttle: 0.4 },
+      shields: { raised: true },
+    });
+  });
+
+  it('logs each change under the tick that applied it', () => {
+    const store = new ShipStateStore(plan);
+    store.queue({ reactor: { throttle: 0.5 } });
+    store.queue({ shields: { raised: true } });
+    store.applyQueued(1);
+    expect(store.log()).toEqual([
+      { tick: 1, change: { reactor: { throttle: 0.5 } } },
+      { tick: 1, change: { shields: { raised: true } } },
+    ]);
+  });
+
+  it('empties the queue once it applies it', () => {
+    const store = new ShipStateStore(plan);
+    store.queue({ reactor: { throttle: 0.5 } });
+    const first = store.applyQueued(1);
+    expect(store.applyQueued(2)).toBe(first);
+    expect(store.log()).toHaveLength(1);
+  });
+
+  it('returns the current snapshot when nothing is queued', () => {
+    const store = new ShipStateStore(plan);
+    expect(store.applyQueued(1)).toBe(store.snapshot());
+    expect(store.log()).toEqual([]);
+  });
+
+  it('keeps a change from the caller mutating it after the queue', () => {
+    const store = new ShipStateStore(plan);
+    const change = { reactor: { throttle: 0.5 } };
+    store.queue(change);
+    change.reactor.throttle = 0.9;
+    expect(store.applyQueued(1).setpoints.reactor.throttle).toBe(0.5);
+    expect(store.log()[0].change).toEqual({ reactor: { throttle: 0.5 } });
+  });
+
+  it('keeps the newest 1,000 entries in the log', () => {
+    const store = new ShipStateStore(plan);
+    for (let i = 1; i <= 1_001; i++) {
+      store.queue({ reactor: { throttle: i / 1_001 } });
+      store.applyQueued(i);
+    }
+    const log = store.log();
+    expect(log).toHaveLength(1_000);
+    expect(log[0].tick).toBe(2);
+    expect(log[999]).toEqual({
+      tick: 1_001,
+      change: { reactor: { throttle: 1 } },
+    });
   });
 });

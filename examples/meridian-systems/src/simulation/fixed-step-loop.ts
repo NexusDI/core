@@ -63,7 +63,7 @@ export class FixedStepLoop implements ITickLoop {
     }
     for (let i = 0; i < ticks; i++) {
       const tick = this.clock.tick + 1;
-      let ship = this.state.snapshot();
+      let ship = this.state.applyQueued(tick);
       for (const { system, rng } of this.entries) {
         ship = system.step(ship, { tick, dt: this.clock.dt, rng });
       }
