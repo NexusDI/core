@@ -11,7 +11,7 @@
         "command": "rspack serve --mode=development",
         "cwd": "examples/federation-command"
       },
-      "dependsOn": ["@nexusdi/federation-shell:serve"]
+      "dependsOn": ["^build", "@nexusdi/federation-shell:serve"]
     },
     "build": {
       "executor": "nx:run-commands",
