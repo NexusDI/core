@@ -3,10 +3,11 @@ import deck from '../../deck/meridian.deck.json';
 import type {
   DeckPlan,
   ITickLoop,
+  ShipReading,
   ShipSnapshot,
   TickListener,
 } from '../simulation/contracts';
-import { roundSnapshot } from '../simulation/round-snapshot';
+import { readShip } from '../simulation/read-ship';
 import { ShipStateStore } from '../simulation/ship-state-store';
 import type { TelemetrySink } from './contracts';
 import { SnapshotFeed } from './snapshot-feed';
@@ -28,9 +29,9 @@ class FakeLoop implements ITickLoop {
 }
 
 class RecordingSink implements TelemetrySink {
-  readonly frames: ShipSnapshot[] = [];
+  readonly frames: ShipReading[] = [];
   readonly closed: string[] = [];
-  next(frame: ShipSnapshot): void {
+  next(frame: ShipReading): void {
     this.frames.push(frame);
   }
   close(reason: string): void {
@@ -40,8 +41,9 @@ class RecordingSink implements TelemetrySink {
 
 function build() {
   const loop = new FakeLoop();
-  const state = new ShipStateStore(deck satisfies DeckPlan);
-  const feed = new SnapshotFeed(loop, state);
+  const plan: DeckPlan = deck;
+  const state = new ShipStateStore(plan);
+  const feed = new SnapshotFeed(loop, state, plan);
   feed.onInit();
   return { loop, state, feed };
 }
@@ -66,16 +68,17 @@ describe('SnapshotFeed', () => {
     expect(loop.listeners).toHaveLength(1);
   });
 
-  it('sends the current rounded snapshot at subscribe', () => {
+  it('sends the reading of the current snapshot at subscribe', () => {
     const { state, feed } = build();
     state.commit(at(state, 0));
     const sink = new RecordingSink();
     feed.subscribe(sink);
-    expect(sink.frames).toEqual([roundSnapshot(state.snapshot())]);
+    expect(sink.frames).toEqual([readShip(state.snapshot(), deck)]);
+    expect(sink.frames[0].compartments.habitat.pressure).toBe(101_300);
     expect(sink.frames[0].compartments.habitat.temperature).toBe(293.1);
   });
 
-  it('sends one rounded frame per tick, the same object to every sink', () => {
+  it('sends one reading per tick, the same object to every sink', () => {
     const { loop, state, feed } = build();
     const a = new RecordingSink();
     const b = new RecordingSink();
@@ -83,12 +86,12 @@ describe('SnapshotFeed', () => {
     feed.subscribe(b);
     const ship = at(state, 1);
     loop.tick(ship);
-    expect(a.frames[1]).toEqual(roundSnapshot(ship));
+    expect(a.frames[1]).toEqual(readShip(ship, deck));
     expect(a.frames[1].compartments.habitat.temperature).toBe(293.1);
     expect(b.frames[1]).toBe(a.frames[1]);
   });
 
-  it('rounds nothing while no sink is open', () => {
+  it('reads nothing while no sink is open', () => {
     const { loop, state } = build();
     let reads = 0;
     const ship = at(state, 1);

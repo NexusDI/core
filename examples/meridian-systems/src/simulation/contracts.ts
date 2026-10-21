@@ -34,6 +34,19 @@ export interface ShipSnapshot {
   readonly compartments: Readonly<Record<CompartmentId, CompartmentState>>;
 }
 
+export interface CompartmentReading extends CompartmentState {
+  /** Pascals, from the moles of every gas, the temperature and the deck volume. */
+  readonly pressure: number;
+}
+
+/**
+ * What the routes and the telemetry frames send: the rounded snapshot with
+ * each compartment's pressure, which `readShip` reads from the deck plan.
+ */
+export interface ShipReading extends Omit<ShipSnapshot, 'compartments'> {
+  readonly compartments: Readonly<Record<CompartmentId, CompartmentReading>>;
+}
+
 /**
  * The ids are strings because a JSON import types them so. `ShipStateStore`
  * checks them against `COMPARTMENT_IDS` when the container builds it.
