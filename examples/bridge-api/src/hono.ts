@@ -84,7 +84,15 @@ export function createBridge(
           // A live ship advances on its own timer, so the route exists only
           // in manual mode: notFound() answers as Hono's 404 does.
           if (driver.mode === 'live') return c.notFound();
-          const ticks = parseTicks(await c.req.json().catch(() => undefined));
+          // c.req.json() parses any body, and the Express and Fastify routes
+          // parse only one sent as application/json.
+          const json = c.req
+            .header('content-type')
+            ?.startsWith('application/json');
+          const body = json
+            ? await c.req.json().catch(() => undefined)
+            : undefined;
+          const ticks = parseTicks(body);
           if (ticks === undefined) return c.json(TICKS_REFUSED, 400);
           return c.json(roundSnapshot(driver.advance(ticks)));
         }),

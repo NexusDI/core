@@ -74,11 +74,14 @@ export function createBridge(
   );
   bridge.post(
     '/sim/advance',
-    express.json(),
-    di.inject({ driver: SIM_DRIVER }, ({ driver }, req, res, next) => {
+    di.inject({ driver: SIM_DRIVER }, ({ driver }, _req, _res, next) => {
       // A live ship advances on its own timer, so the route exists only in
-      // manual mode: next() falls through to Express's 404.
-      if (driver.mode === 'live') return next();
+      // manual mode: next('route') skips the rest of this route, body
+      // parsing included, and Express answers 404.
+      next(driver.mode === 'live' ? 'route' : undefined);
+    }),
+    express.json(),
+    di.inject({ driver: SIM_DRIVER }, ({ driver }, req, res) => {
       const ticks = parseTicks(req.body);
       if (ticks === undefined) {
         res.status(400).json(TICKS_REFUSED);
