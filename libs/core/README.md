@@ -85,7 +85,7 @@ interface IHelm {
 }
 const NAV_CHARTS = new Token<INavCharts>('NavCharts');
 const HELM = new Token<IHelm>('Helm');
-class Helm implements IHelm {
+class HelmControl implements IHelm {
   static deps = [NAV_CHARTS] as const;
   constructor(private readonly charts: INavCharts) {}
   engage(to: string) {
@@ -93,15 +93,18 @@ class Helm implements IHelm {
   }
 }
 const charts = async (): Promise<INavCharts> => ({ plot: (to) => `to ${to}` });
-const Bridge = defineModule({
-  name: 'Bridge',
-  providers: [
-    provide(NAV_CHARTS, { useFactory: charts }),
-    provide(HELM, { useClass: Helm }),
-  ],
+const Tactical = defineModule({
+  name: 'Tactical',
+  providers: [provide(NAV_CHARTS, { useFactory: charts })],
+  exports: [NAV_CHARTS],
+});
+const Helm = defineModule({
+  name: 'Helm',
+  imports: [Tactical],
+  providers: [provide(HELM, { useClass: HelmControl })],
   exports: [HELM],
 });
-const Meridian = defineModule({ name: 'Meridian', imports: [Bridge] });
+const Meridian = defineModule({ name: 'Meridian', imports: [Helm] });
 await using ship = await Nexus.create(Meridian);
 ship.get(HELM).engage('Vega'); // -> 'to Vega'
 ship.has(NAV_CHARTS); // -> false

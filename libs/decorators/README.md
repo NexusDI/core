@@ -31,41 +31,40 @@ npm install @nexusdi/decorators@next @nexusdi/core@next
 ```ts @import.meta.vitest
 import { Nexus, Token, provide } from '@nexusdi/core';
 import { Inject, Injectable, Module } from '@nexusdi/decorators';
-interface IBridge {
-  readonly callsign: string;
-}
+
 interface INavCharts {
   plot(to: string): string;
 }
-interface IHelm {
-  engage(to: string): string;
+
+interface IBridge {
+  readonly callsign: string;
+  course(to: string): string;
 }
+
 const CALLSIGN = new Token<string>('Callsign');
-const BRIDGE = new Token<IBridge>('Bridge');
 const NAV_CHARTS = new Token<INavCharts>('NavCharts');
-const HELM = new Token<IHelm>('Helm');
+const BRIDGE = new Token<IBridge>('Bridge');
+
+// deps fills the constructor, @Inject fills an accessor field.
 @Injectable({ deps: [CALLSIGN] })
 class Bridge implements IBridge {
-  constructor(readonly callsign: string) {}
-}
-
-// Field injection on an accessor. The Meridian's HelmControl also takes the thrusters and the main drive.
-class HelmControl implements IHelm {
   @Inject(NAV_CHARTS) accessor charts!: INavCharts;
-  engage = (to: string) => this.charts.plot(to);
+
+  constructor(readonly callsign: string) {}
+
+  course(to: string) {
+    return this.charts.plot(to);
+  }
 }
 
 @Module({
-  providers: [
-    provide(NAV_CHARTS, { useValue: { plot: (to) => `to ${to}` } }),
-    provide(HELM, { useClass: HelmControl }),
-  ],
-  exports: [HELM],
+  providers: [provide(NAV_CHARTS, { useValue: { plot: (to) => `to ${to}` } })],
+  exports: [NAV_CHARTS],
 })
-class Helm {}
+class Tactical {}
 
 @Module({
-  imports: [Helm],
+  imports: [Tactical],
   providers: [
     provide(CALLSIGN, { useValue: 'Meridian' }),
     provide(BRIDGE, { useClass: Bridge }),
@@ -75,7 +74,7 @@ class Command {}
 
 await using ship = await Nexus.create(Command);
 ship.get(BRIDGE).callsign; // -> 'Meridian'
-ship.get(HELM).engage('Vega'); // -> 'to Vega'
+ship.get(BRIDGE).course('Vega'); // -> 'to Vega'
 ```
 
 ## Documentation
