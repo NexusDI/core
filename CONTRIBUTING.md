@@ -10,7 +10,7 @@ npm ci
 ```
 
 ```bash
-npx nx run-many -t lint test build typecheck   # the same gate CI runs
+npx nx run-many -t lint test build typecheck --exclude=tag:demo-frontend   # the gate CI's main job runs
 npx nx build core
 npx nx test core
 npx nx lint core
