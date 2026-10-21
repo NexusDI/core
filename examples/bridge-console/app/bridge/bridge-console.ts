@@ -2,6 +2,7 @@ import { defineModule } from '@nexusdi/core';
 
 import { BridgeLink } from './bridge-link';
 import { Tactical } from './tactical';
+import { TelemetryClient } from './telemetry-client';
 import { Watch } from './watch';
 
 /**
@@ -13,6 +14,7 @@ export const BridgeConsole = defineModule({
   imports: [
     Tactical,
     Watch,
+    TelemetryClient,
     BridgeLink.forRoot({
       url: process.env.BRIDGE_API_URL ?? 'http://127.0.0.1:4211/',
     }),
