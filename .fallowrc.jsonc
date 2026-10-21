@@ -98,6 +98,7 @@
     // entry wrangler bundles (Task 21).
     "examples/bridge-api/e2e/**/*.ts",
     "examples/bridge-api/vitest.e2e.config.ts",
+    "examples/bridge-api/vitest.e2e-growth.config.ts",
     "examples/bridge-api/vitest.workers.config.ts",
     // The Deno, Bun and Edge Runtime legs: runtime-leg.mjs runs by path and
     // bundles smoke.ts, and the edge test bundles entry.ts by path.

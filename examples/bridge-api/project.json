@@ -17,6 +17,14 @@
         "command": "vitest run --config vitest.e2e.config.ts"
       }
     },
+    "e2e-growth": {
+      "dependsOn": ["^build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/bridge-api",
+        "command": "vitest run --config vitest.e2e-growth.config.ts"
+      }
+    },
     "graph": {
       "dependsOn": ["^build"],
       "executor": "nx:run-commands",
