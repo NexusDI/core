@@ -9,10 +9,15 @@
   },
   "dependencies": {
     "@module-federation/enhanced": "2.9.2",
+    "@nexusdi/core": "*",
+    "@nexusdi/federation-contracts": "*",
+    "@nexusdi/react": "*",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@nexusdi/federation": "*",
+    "@nexusdi/testing": "*",
     "@rspack/cli": "2.2.9",
     "@rspack/core": "2.2.9",
     "@rspack/dev-server": "2.0.1",
