@@ -21,9 +21,16 @@
   "include": [
     "vite.config.mts",
     "rspack.config.ts",
+    "rspack.config.drift.ts",
+    "rspack.config.unshared.ts",
+    "drift/**/*.ts",
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
     "src/**/*.d.ts"
   ],
-  "references": [{ "path": "./tsconfig.app.json" }]
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    }
+  ]
 }

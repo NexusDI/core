@@ -23,6 +23,28 @@
       "cache": true,
       "inputs": ["production", "^production"],
       "outputs": ["{projectRoot}/dist/main"]
+    },
+    "build-drift": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "cache": true,
+      "inputs": ["production", "^production"],
+      "outputs": ["{projectRoot}/dist/drift"],
+      "options": {
+        "command": "rspack build --mode=production --config rspack.config.drift.ts",
+        "cwd": "examples/federation-cartography"
+      }
+    },
+    "build-unshared": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "cache": true,
+      "inputs": ["production", "^production"],
+      "outputs": ["{projectRoot}/dist/unshared"],
+      "options": {
+        "command": "rspack build --mode=production --config rspack.config.unshared.ts",
+        "cwd": "examples/federation-cartography"
+      }
     }
   }
 }
