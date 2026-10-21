@@ -6,6 +6,7 @@
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": true,
     "forceConsistentCasingInFileNames": true,
+    "verbatimModuleSyntax": true,
     // Vitest, wrangler and esbuild run the sources, so they resolve as a
     // bundler does: extensionless imports and a JSON module.
     "module": "esnext",

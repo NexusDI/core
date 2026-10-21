@@ -19,3 +19,7 @@ export function shipFromEnv(): Promise<Nexus> {
 
 /** The port the Node servers listen on: PORT, or 3000. */
 export const port = (): number => Number(process.env.PORT ?? 3000);
+
+/** Prints the line a Node server prints once it listens on `port`. */
+export const listening = (port: number): void =>
+  console.log(`Server is running on http://localhost:${port}`);

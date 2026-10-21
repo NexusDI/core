@@ -14,6 +14,7 @@
     "resolveJsonModule": true,
     "lib": ["es2022", "esnext.disposable"],
     "forceConsistentCasingInFileNames": true,
+    "verbatimModuleSyntax": true,
     "ignoreDeprecations": "6.0"
   },
   "include": [

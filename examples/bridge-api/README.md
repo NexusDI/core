@@ -25,19 +25,22 @@ The graph lives in `src/ship/`, and each framework entry wires it to routes with
 Each Node entry builds the container from the environment and listens on `PORT`, or 3000. Set `RELAY_URL` to download the charts from a relay; without it the server uses `OfflineMeridian`.
 
 ```sh
-node --import tsx examples/bridge-api/src/server.hono.ts
-node --import tsx examples/bridge-api/src/server.express.ts
-node --import tsx examples/bridge-api/src/server.fastify.ts
+npx nx dev @nexusdi/bridge-api
+npx nx run @nexusdi/bridge-api:build-deps
+npx tsx examples/bridge-api/src/server.express.ts
+npx tsx examples/bridge-api/src/server.fastify.ts
 ```
 
-The entries are TypeScript with parameter properties, so a loader such as `tsx` runs them. `SIGTERM` closes the server, and the container is disposed after it.
+`nx dev` builds the workspace packages and runs `tsx watch src/server.hono.ts`, the app's `dev` script. The Express and Fastify entries read the same built packages, so `build-deps` builds them first. Each entry prints `Server is running on http://localhost:3000` once it listens.
+
+The sources use parameter properties and extensionless imports, which plain `node` refuses, so `tsx` runs them. `SIGTERM` closes the server, and the container is disposed after it.
 
 ## Testing and Measuring
 
 The app's checks run as Nx targets, each with the workspace packages built first.
 
 - `npx nx test @nexusdi/bridge-api` runs the route tests over `@nexusdi/vitest` fixtures with fake charts, and a startup check that compiles both graphs.
-- `npx nx run @nexusdi/bridge-api:e2e` starts each Node server against a local relay (`e2e/relay.ts`) and runs the cases of `e2e/cases.ts` on all three: 50 concurrent scopes, a stream, a client abort, a missing provider and a disposed container.
+- `npx nx run @nexusdi/bridge-api:e2e` starts each Node server against a local relay (`e2e/relay.ts`) and runs the cases of `e2e/cases.ts` on all three: 50 concurrent scopes, a stream, a client abort, a missing provider and a disposed container. `e2e/entries.e2e.ts` starts each entry file on a free port, reads the URL it prints, requests `/health` and expects exit code 0 after `SIGTERM`.
 - `npx nx run @nexusdi/bridge-api:test-workers` checks that `worker-configuration.d.ts` matches `wrangler types`, then runs `test/worker/` inside workerd twice, with `wrangler.jsonc` (`enable_request_signal` on) and with `wrangler.no-signal.jsonc`.
 - `npx nx run @nexusdi/bridge-api:runtime-leg --leg=deno` and `--leg=bun` bundle `test/runtime/smoke.ts` and run the e2e cases (`e2e/cases.ts`) on the Deno or Bun on PATH, which must be the version `examples/toolchain-matrix/toolchains.json` pins.
 - `npx nx run @nexusdi/bridge-api:test-edge` bundles `test/edge/entry.ts` and runs it in `@edge-runtime/vm`, the VM of Vercel's Edge Runtime.

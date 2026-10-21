@@ -2,6 +2,10 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "@nexusdi/bridge-api",
   "targets": {
+    "dev": {
+      "dependsOn": ["^build"],
+      "continuous": true
+    },
     "test": {
       "dependsOn": ["^build"]
     },
