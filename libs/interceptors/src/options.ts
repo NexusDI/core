@@ -59,6 +59,23 @@ const rejected = (
     ? { foreign: true, received: describeValue(value), where }
     : bad(rule, displayName(value));
 
+/**
+ * The first value another copy of core made in a binding's `class` list or
+ * in one of its `methods` lists, read from own keys only (SEC-013).
+ */
+function foreignIn(binding: object): unknown {
+  const methods = own(binding, 'methods');
+  const lists = [
+    own(binding, 'class'),
+    ...(typeof methods === 'object' && methods !== null
+      ? Reflect.ownKeys(methods).map((key) => own(methods, key))
+      : []),
+  ];
+  return lists
+    .flatMap((list) => (Array.isArray(list) ? list : []))
+    .find(isForeign);
+}
+
 /** Binds an interceptor to an interface token, typed like provide(). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the class constraint provide() uses
 export function interceptor<C extends new (...args: any) => Interceptor>(
@@ -209,6 +226,11 @@ export function parseOptions(
     const token = own(element, 'token');
     if (!(token instanceof Token) && typeof token !== 'function') {
       faults.push(rejected('binding-token', token, 'interceptors() bindings'));
+      continue;
+    }
+    const remote = foreignIn(element);
+    if (remote !== undefined) {
+      faults.push(rejected('binding-map', remote, 'interceptors() bindings'));
       continue;
     }
     const parsed = parseMap(element, ['token']);

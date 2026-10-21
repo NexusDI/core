@@ -136,11 +136,23 @@ describe('parseOptions', () => {
       parseOptions({
         register: [LoggingInterceptor, remote],
         global: [remote, { use: remote }],
-        bindings: [{ token: remote }],
+        bindings: [
+          { token: remote },
+          { token: PAYMENTS, class: [remote] },
+          { token: PAYMENTS, methods: { charge: [remote] } },
+        ],
         exempt: [remote],
       }),
     ).toEqual(
-      ['register', 'global', 'global', 'bindings', 'exempt'].map((option) => ({
+      [
+        'register',
+        'global',
+        'global',
+        'bindings',
+        'bindings',
+        'bindings',
+        'exempt',
+      ].map((option) => ({
         foreign: true,
         received: 'the Token meridian/Audit',
         where: `interceptors() ${option}`,
