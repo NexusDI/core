@@ -58,7 +58,7 @@ A route whose section is a module of its own registers `di.load(Navigation)` as 
 
 ```
 
-`Navigation` imports `Tactical`, and `load()` finds that module object already in the graph, so the section reads the root's `NAV_CHARTS`. A loaded module sees only what it imports. An app that picks its charts module at runtime, the relay or the bundled table, builds the section with `navigation(charts)` over the module object the root holds:
+`Navigation` imports `Tactical`, and `load()` finds that module object already in the graph, so the section reads the root's `NAV_CHARTS`. A loaded module sees only what it imports. An app that picks its charts module at runtime, for example a relay or a bundled table, builds the section with `navigation(charts)` over the module object the root holds:
 
 ```ts file=examples/meridian/src/pages/react-router-ssr.md region=lazy-runtime
 
