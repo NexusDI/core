@@ -5,7 +5,8 @@ import type { IBridgeLink } from '../app/bridge/bridge-link';
 /**
  * The double of BRIDGE_LINK: it answers the way bridge-api's
  * `GET /course/:to` does, from the scope's mission, with no server.
- * Override BRIDGE_LINK with `useClass: FakeBridgeLink` in a scoped binding.
+ * Route tests override BRIDGE_LINK with `fakeBridgeLink`, a scoped binding
+ * of this class.
  */
 class FakeBridgeLink implements IBridgeLink {
   static deps = [REQUEST] as const;
