@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import { nxE2EPreset } from '@nx/playwright/preset';
 
-import { webServers } from './playwright.servers.mts';
+import { GATING_PORTS, webServers } from './playwright.servers.mts';
 
 /**
  * The gating suite. The growth cases under e2e/growth run only in the
@@ -18,9 +18,9 @@ export default defineConfig({
   ...nxE2EPreset(import.meta.dirname, { testDir: './e2e' }),
   testIgnore: ['**/growth/**'],
   use: {
-    baseURL: 'http://127.0.0.1:4210',
+    baseURL: `http://127.0.0.1:${GATING_PORTS.console}`,
     trace: 'on-first-retry',
   },
-  webServer: webServers({ console: 4210, api: 4211 }),
+  webServer: webServers(GATING_PORTS),
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 });

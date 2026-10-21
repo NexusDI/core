@@ -7,11 +7,19 @@ export interface SuitePorts {
   readonly api: number;
 }
 
+/** The gating suite's ports (playwright.config.mts). */
+export const GATING_PORTS: SuitePorts = { console: 4210, api: 4211 };
+
+/**
+ * The growth suite's ports (playwright.e2e-growth.config.mts), beside the
+ * gating suite's, so the two suites can run at once.
+ */
+export const GROWTH_PORTS: SuitePorts = { console: 4220, api: 4221 };
+
 /**
  * The built console under react-router-serve, as it runs in production,
  * and bridge-api's Hono entry, which the console's loaders call over HTTP.
- * The gating and the growth configs each start their own pair on their own
- * ports, so the two suites can run at once. The e2e and e2e-growth targets
+ * The gating and the growth configs each start their own pair. The e2e and e2e-growth targets
  * build the console first (package.json).
  */
 export function webServers(
