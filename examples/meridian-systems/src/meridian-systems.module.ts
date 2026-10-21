@@ -11,7 +11,8 @@ export function meridianSystems(options: SimOptions) {
     global: true,
     imports: [Simulation.forRoot(options)],
     providers: [
-      // all(SHIP_SYSTEMS) reads the systems this module can see: its imports and the globals.
+      // all(SHIP_SYSTEMS) reads this module's own providers plus the exports of
+      // its imports and of the global modules.
       provide(TICK_LOOP, { useClass: FixedStepLoop }),
     ],
     exports: [TICK_LOOP],
