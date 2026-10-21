@@ -419,6 +419,8 @@ commit after the scaffold pins each one exactly, at the version the lockfile res
 (2.9.2 for both `@module-federation/*` packages and 2.2.9 for `@rspack/core` and
 `@rspack/cli` on 2026-10-21, each published more than seven days earlier), as the root
 pins every other dependency. Task D1 lists every root dependency the generator added.
+Each federation project declares the packages it imports at those exact versions, so the
+root keeps none of the generator's additions.
 
 The contracts library:
 
