@@ -87,6 +87,9 @@ reload. The second case finds `Simulation`, `MeridianSystems` and
 `Telemetry` on `/diagnostics`, with `system: Telemetry` on the feed. The
 third, `e2e/growth/engineering.spec.ts`, reads the ship's tick from the
 backend, raises the shields at the idle reactor and reads the
-`MERIDIAN_POWER_BUDGET` text, then sets the throttle and reads `Queued for
-tick` with the next tick. Only the non-required `demo-growth` CI job runs
-`e2e-growth` (ship systems spec, section 14).
+`MERIDIAN_POWER_BUDGET` text, then sets the throttle and reads
+`Queued for tick` with the next tick. Only the non-required `demo-growth` CI
+job runs `e2e-growth` (ship systems spec, section 14).
+
+Next, read [the command desk](../meridian-systems/README.md#the-command-desk) for how
+the ship hands these commands to Engineering.
