@@ -51,7 +51,7 @@ The app's checks run as Nx targets, each with the workspace packages built first
 
 ## Where the Docs Use It
 
-Four docs pages link this folder as the full app behind their examples, and two more report or reprint its code. The pages' examples cite regions of `examples/meridian/src/pages/`, which repeat these routes in a form one block can run.
+Four docs pages link this folder as the full app behind their examples, and two more report or reprint its code. The Hono, Express and Fastify pages cite regions of `examples/meridian/src/pages/`, which repeat these routes in a form one block can run.
 
 - [Scoping Hono Requests](https://nexus.js.org/next/hono/), [Scoping Express Requests](https://nexus.js.org/next/express/) and [Scoping Fastify Requests](https://nexus.js.org/next/fastify/) point to `src/server.hono.ts`, `src/server.express.ts` and `src/server.fastify.ts`: one graph behind three frameworks.
 - [Visualizing Your Dependency Graph](https://nexus.js.org/next/graph-cli/) points to the `graph` target, which fails when the drawn graph differs from `graph.json`.
