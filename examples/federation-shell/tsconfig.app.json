@@ -16,6 +16,26 @@
     "verbatimModuleSyntax": true,
     "ignoreDeprecations": "6.0"
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.json"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
+  "references": [
+    {
+      "path": "../../libs/errors/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/devtools/tsconfig.lib.json"
+    },
+    {
+      "path": "../federation-contracts/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/federation/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/react/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/core/tsconfig.lib.json"
+    }
+  ]
 }
