@@ -5,6 +5,11 @@
     "outDir": "out-tsc/playwright",
     "sourceMap": false,
     "allowImportingTsExtensions": true,
+    // bundle.spec.ts imports @nexusdi/meridian-systems, whose sources use
+    // extensionless imports and a JSON module, as a bundler resolves them.
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "types": ["node"]
   },
   "include": ["e2e/**/*.ts", "e2e/**/*.js", "playwright.config.mts"],
