@@ -8,20 +8,24 @@ The graph lives in `src/ship/`, and each framework entry wires it to routes with
 
 - `src/ship/meridian.ts` composes `Meridian` from `Tactical`, which downloads the star charts over a relay with an async factory, `BridgeApi`, which reads the request's mission into a scoped flight log, and `AuditTrail`. `OfflineMeridian` swaps in charts bundled from `charts.json`, with no I/O. Both also import the ship's simulation, `meridianSystems(setup.sim)` from `@nexusdi/meridian-systems`, and `SimDriver.forRoot({ mode: setup.mode })`.
 - `src/ship/sim-driver.module.ts` binds `SIM_DRIVER` to `WallClockDriver`. In live mode the driver advances the loop one tick every `dt` seconds with `setInterval`, the one timer in the demo, and the container clears it when it disposes the ship. In manual mode it starts no timer, and `POST /sim/advance` moves the ship. `Meridian` and `OfflineMeridian` run manual, so a test or a Worker that builds them starts no timer.
-- `src/ship/plugins.ts` registers an audit interceptor on `NAV_CHARTS` that records each call in `AUDIT_LOG`, plus `errors()` and `devtools()` in development.
-- `src/hono.ts`, `src/express.ts` and `src/fastify.ts` each export `createBridge(ship, options)`, which serves the same seven routes through `@nexusdi/hono`, `@nexusdi/express` or `@nexusdi/fastify`:
+- `src/ship/plugins.ts` registers an audit interceptor on `NAV_CHARTS` that records each call in `AUDIT_LOG`, plus `errors()` and `devtools({ annotate: [shipNotes] })` in development. `shipNotes` from `@nexusdi/meridian-systems` labels each simulation provider in the graph with its system, such as `system: Telemetry`.
+- `src/hono.ts`, `src/express.ts` and `src/fastify.ts` each export `createBridge(ship, options)`, which serves the same nine routes through `@nexusdi/hono`, `@nexusdi/express` or `@nexusdi/fastify`:
 
-| Route               | What it shows                                                                                                                                                                                                                             |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /health`       | a route before the middleware, which creates no scope                                                                                                                                                                                     |
-| `GET /course/:to`   | `inject` resolving the charts and the request's flight log                                                                                                                                                                                |
-| `GET /mission`      | a service reading the request scope through `scopes.current()`                                                                                                                                                                            |
-| `GET /log/stream`   | a scope that stays open while the body streams, and closes when it ends                                                                                                                                                                   |
-| `GET /sim`          | `inject` resolving `SHIP_STATE`: the snapshot, rounded to four significant digits                                                                                                                                                         |
-| `POST /sim/advance` | `{ "ticks": n }` advances a manual ship `n` ticks, 1 to 10000; a body without a whole `ticks` from 1 to 10000 answers 400 or, on Fastify, 415 for a content type it cannot parse; a body over 100 kB answers 413; a live ship answers 404 |
-| any, after disposal | a 503 with an empty body once the container is disposed                                                                                                                                                                                   |
+| Route               | What it shows                                                                                                                                                                                                                                                                                       |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /health`       | a route before the middleware, which creates no scope                                                                                                                                                                                                                                               |
+| `GET /course/:to`   | `inject` resolving the charts and the request's flight log                                                                                                                                                                                                                                          |
+| `GET /mission`      | a service reading the request scope through `scopes.current()`                                                                                                                                                                                                                                      |
+| `GET /log/stream`   | a scope that stays open while the body streams, and closes when it ends                                                                                                                                                                                                                             |
+| `GET /sim`          | `inject` resolving `SHIP_STATE` and `DECK_PLAN`: the `readShip` reading, the snapshot with each compartment's pressure, rounded to four significant digits                                                                                                                                          |
+| `POST /sim/advance` | `{ "ticks": n }` advances a manual ship `n` ticks, 1 to 10000; a body without a whole `ticks` from 1 to 10000 answers 400 or, on Fastify, 415 for a content type it cannot parse; a body over 100 kB answers 413; a live ship answers 404; a 200 answers the `readShip` reading after the last tick |
+| `GET /telemetry`    | `inject` resolving `TELEMETRY`: server-sent events, an `event: snapshot` with the reading at once and after each tick, then one `event: offline` with `ship offline` when the ship is disposed, and the end of the body                                                                             |
+| `GET /graph`        | a route outside the middleware, as `/health` is: the annotated `graph(ship)` as JSON when the entry passes the `graph` option, and 404 without it                                                                                                                                                   |
+| any, after disposal | a 503 with an empty body once the container is disposed                                                                                                                                                                                                                                             |
 
-- `src/worker.ts` builds the container on the first request of each isolate (the function form of `nexus()`), because Workers refuse I/O at module scope.
+- `src/worker.ts` builds the container on the first request of each isolate (the function form of `nexus()`), because Workers refuse I/O at module scope. It passes no `graph` option, so `GET /graph` answers 404 on a Worker.
+
+The telemetry stream holds only the latest frame the client has not read, and sends it when the client reads. So a `POST /sim/advance` of 600 ticks queues one frame per open stream, and a slow client skips the frames between its reads. The stream sends no heartbeat. A client that disconnects cancels the stream, and the cancel unsubscribes it from the feed. Express and Fastify send the stream through `telemetryReadable` (`src/bridge/telemetry-readable.ts`), a Node `Readable` with a high-water mark of 0, so the `Readable` reads no frame ahead of the client.
 
 The bridge console in `examples/bridge-console`, the Meridian's React Router app, calls the Hono entry. The Express and Fastify entries run every case of `e2e/cases.ts` except one Hono-only check of the execution context, so each framework serves the same graph with the same results.
 
@@ -46,9 +50,14 @@ A manual ship moves only when a client asks it to:
 SIM_MODE=manual npx nx dev @nexusdi/bridge-api
 curl -X POST http://localhost:3000/sim/advance -H 'content-type: application/json' -d '{ "ticks": 600 }'
 curl http://localhost:3000/sim
+curl -N http://localhost:3000/telemetry
 ```
 
-The sources use parameter properties and extensionless imports, which plain `node` refuses, so `tsx` runs them. `SIGTERM` closes the server, and the container is disposed after it.
+Each Node entry passes `graph: () => graph(ship)` unless `NODE_ENV` is `production` (`isDev` in `src/ship-from-env.ts`), so `GET /graph` answers 404 in production.
+
+The sources use parameter properties and extensionless imports, which plain `node` refuses, so `tsx` runs them.
+
+Each Node entry stops on `SIGTERM` through `stopOnSigterm(server, ship, { close?, signals? })` from `src/ship-from-env.ts`. On the signal, it closes the server (`server.close()` by default, `bridge.close()` on Fastify) and starts the ship's dispose without waiting for the close, since the close waits on the open telemetry streams that the dispose ends. The feed sends `event: offline` to every stream as the ship disposes. After the signal, each response that finishes calls `server.closeIdleConnections()`, so a keep-alive connection closes once its response ends, and the process exits without waiting for a keep-alive timeout. An error from either step goes to the console and sets exit code 1.
 
 ## Testing and Measuring
 
@@ -56,7 +65,21 @@ The app's checks run as Nx targets, each with the workspace packages built first
 
 - `npx nx test @nexusdi/bridge-api` runs the route tests over `@nexusdi/vitest` fixtures with fake charts, and a startup check that compiles both graphs. `test/check.test.ts` also compares the graph `inspect()` draws with the committed `graph.json`, so `main`'s test run and the release verify step catch a stale file. The driver, `setupFromEnv`, `parseTicks` and the two simulation routes on each framework have their own cases.
 - `npx nx run @nexusdi/bridge-api:e2e` starts each Node server against a local relay (`e2e/relay.ts`) and runs the cases of `e2e/cases.ts` on all three: 50 concurrent scopes, a stream, a client abort, a missing provider and a disposed container. `e2e/entries.e2e.ts` starts each entry file on a free port with `SIM_MODE=manual` and `SIM_SEED=7`, reads the URL it prints, requests `/health` and expects exit code 0 after `SIGTERM`.
-- `npx nx run @nexusdi/bridge-api:e2e-growth` runs the simulation cases of `e2e/growth/`. On all three servers, a manual ship advanced 600 ticks reads 300 ship seconds and a habitat at 293 K, and a tick count of 0, 1.5 or 10001 answers 400. A live ship answers 404 on `/sim/advance` and leaves no timer after disposal, and one case starts `src/server.hono.ts` with `SIM_MODE=manual` and `SIM_SEED=7` and advances it over HTTP. The `e2e` target excludes `e2e/growth/`, and only the non-required `demo-growth` CI job runs `e2e-growth` (ship systems spec, section 14). A case joins `e2e` with a `git mv` out of `e2e/growth/`.
+- `npx nx run @nexusdi/bridge-api:e2e-growth` runs the growth cases, one command after the other:
+
+  ```sh
+  vitest run --config vitest.e2e-growth.config.ts
+  vitest run --config vitest.workers-growth.config.ts
+  node scripts/runtime-leg.mjs --leg=deno --entry=test/runtime/growth.ts
+  node scripts/runtime-leg.mjs --leg=bun --entry=test/runtime/growth.ts
+  ```
+
+  The first runs `e2e/growth/` on all three servers. A manual ship advanced 600 ticks reads 300 ship seconds and a habitat at 293 K, and a tick count of 0, 1.5 or 10001 answers 400. A live ship answers 404 on `/sim/advance` and leaves no timer after disposal. `GET /telemetry` sends tick 0 at once and reaches tick 3 after an advance of 3, a client abort unsubscribes from the feed, and a disposed ship sends `ship offline` and ends the body. One case starts `src/server.hono.ts` with `SIM_MODE=manual` and `SIM_SEED=7` and advances it over HTTP, and one per entry opens `/telemetry`, sends `SIGTERM`, reads `event: offline` and expects exit code 0 within 1.5 seconds.
+
+  The other three run the cases of `test/runtime/growth-cases.ts` on workerd (`test/worker/growth/`), Deno and Bun: `GET /sim` at tick 0, an advance of 600 ticks to 293 K and 101.3 kPa, and a first telemetry frame at tick 0 before the client cancels. The Deno and Bun legs need Deno 2.9.6 and Bun 1.4.2, the versions `examples/toolchain-matrix/toolchains.json` pins, first on `PATH`. The edge runtime has no growth leg.
+
+  The `e2e` target excludes `e2e/growth/`, the `test-workers` target excludes `test/worker/growth/`, and only the non-required `demo-growth` CI job runs `e2e-growth` (ship systems spec, section 14). That job installs the pinned Deno and Bun. A case joins `e2e` with a `git mv` out of `e2e/growth/`.
+
 - `npx nx run @nexusdi/bridge-api:test-workers` checks that `worker-configuration.d.ts` matches `wrangler types`, then runs `test/worker/` inside workerd twice, with `wrangler.jsonc` (`enable_request_signal` on) and with `wrangler.no-signal.jsonc`.
 - `npx nx run @nexusdi/bridge-api:runtime-leg --leg=deno` and `--leg=bun` bundle `test/runtime/smoke.ts` and run the e2e cases (`e2e/cases.ts`) on the Deno or Bun on PATH, which must be the version `examples/toolchain-matrix/toolchains.json` pins.
 - `npx nx run @nexusdi/bridge-api:test-edge` bundles `test/edge/entry.ts` and runs it in `@edge-runtime/vm`, the VM of Vercel's Edge Runtime.
