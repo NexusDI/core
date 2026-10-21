@@ -7,15 +7,15 @@ import {
 } from '@nexusdi/core';
 
 import type { NexusGraph } from '@nexusdi/devtools';
-import type { ShipSnapshot } from '@nexusdi/meridian-systems';
+import type { ShipReading } from '@nexusdi/meridian-systems';
 
 import type { Course } from './contracts';
 
 /** The console's link to bridge-api, over HTTP. */
 export interface IBridgeLink {
   course(to: string): Promise<{ course: Course; entries: readonly string[] }>;
-  /** The ship now, from `GET /sim`. */
-  snapshot(): Promise<ShipSnapshot>;
+  /** The ship now, with each compartment's pressure, from `GET /sim`. */
+  snapshot(): Promise<ShipReading>;
   /** The body of `GET /telemetry`, a stream of server-sent events. */
   telemetry(): Promise<ReadableStream<Uint8Array>>;
   /** The ship's annotated graph from `GET /graph`, or null when the backend serves none. */
@@ -45,7 +45,7 @@ class BridgeApiLink implements IBridgeLink {
     };
   }
   async snapshot() {
-    return (await (await this.#get('sim')).json()) as ShipSnapshot;
+    return (await (await this.#get('sim')).json()) as ShipReading;
   }
   async telemetry() {
     const res = await this.#get('telemetry');

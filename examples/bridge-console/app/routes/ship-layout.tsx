@@ -1,4 +1,4 @@
-import type { ShipSnapshot } from '@nexusdi/meridian-systems';
+import type { ShipReading } from '@nexusdi/meridian-systems';
 import { Outlet } from 'react-router';
 
 import { BRIDGE_LINK } from '../bridge/bridge-link';
@@ -7,7 +7,7 @@ import { di } from '../nexus.server';
 import type { Route } from './+types/ship-layout';
 
 /** The ship now, or null when the backend fails, so the strip shows it offline. */
-export const loader: (args: Route.LoaderArgs) => Promise<ShipSnapshot | null> =
+export const loader: (args: Route.LoaderArgs) => Promise<ShipReading | null> =
   di.inject({ link: BRIDGE_LINK }, ({ link }) =>
     link.snapshot().catch(() => null),
   );
