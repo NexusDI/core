@@ -40,7 +40,7 @@ async function withShip(
   setup: ShipSetup,
   body: (url: string) => Promise<void>,
 ): Promise<void> {
-  const ship = await Nexus.create(offlineMeridian(setup), {
+  await using ship = await Nexus.create(offlineMeridian(setup), {
     plugins: bridgePlugins(),
   });
   const bridge = await servers[framework](ship);
@@ -48,7 +48,6 @@ async function withShip(
     await body(bridge.url);
   } finally {
     await bridge.close();
-    await ship[Symbol.asyncDispose]();
   }
 }
 
