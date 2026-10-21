@@ -10,11 +10,16 @@ export function roundNumber(value: number): number {
   return Number.isInteger(value) ? value : Number(value.toPrecision(4));
 }
 
-/** A plain JSON copy of `ship` with every number through `roundNumber`, as the routes and the golden print it. */
-export function roundSnapshot(ship: ShipSnapshot): ShipSnapshot {
+/** A plain JSON copy of `value` with every number through `roundNumber`. */
+export function roundJson<T>(value: T): T {
   return JSON.parse(
-    JSON.stringify(ship, (_key, value: unknown) =>
-      typeof value === 'number' ? roundNumber(value) : value,
+    JSON.stringify(value, (_key, field: unknown) =>
+      typeof field === 'number' ? roundNumber(field) : field,
     ),
-  ) as ShipSnapshot;
+  ) as T;
+}
+
+/** A plain JSON copy of `ship` with every number through `roundNumber`, as the golden prints it. */
+export function roundSnapshot(ship: ShipSnapshot): ShipSnapshot {
+  return roundJson(ship);
 }
