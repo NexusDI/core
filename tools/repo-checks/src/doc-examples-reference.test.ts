@@ -374,6 +374,38 @@ describe('the reference loader source', () => {
   });
 });
 
+/**
+ * Times `run` on inputs of size n and 4n and asserts the time grows less than
+ * 10x. Linear code gives about 4x and quadratic code about 16x, so the bound
+ * holds on a slow or loaded machine. The two sizes run alternately and each
+ * keeps its fastest of many runs, which drops scheduler and GC noise.
+ */
+function expectNearLinear(
+  build: (n: number) => string,
+  run: (input: string) => unknown,
+): void {
+  const small = build(50000);
+  const large = build(200000);
+  const time = (input: string): number => {
+    const start = performance.now();
+    run(input);
+    return performance.now() - start;
+  };
+  run(small);
+  run(large);
+  let fastestSmall = Infinity;
+  let fastestLarge = Infinity;
+  for (let i = 0; i < 15; i++) {
+    fastestSmall = Math.min(fastestSmall, time(small));
+    fastestLarge = Math.min(fastestLarge, time(large));
+  }
+  const ratio = fastestLarge / Math.max(fastestSmall, 0.05);
+  expect(
+    ratio,
+    `mdxProse time grew ${ratio.toFixed(1)}x for 4x input`,
+  ).toBeLessThan(10);
+}
+
 describe('mdxProse link tags', () => {
   it('turns a link into its label or its target', () => {
     expect(mdxProse('{@link Foo}')).toBe('`Foo`');
@@ -382,16 +414,12 @@ describe('mdxProse link tags', () => {
   });
 
   it('reads an unclosed link on long input in linear time', () => {
-    const input = '{@link ' + '\t'.repeat(50000);
-    const start = performance.now();
-    expect(mdxProse(input)).toBe('\\' + input);
-    expect(performance.now() - start).toBeLessThan(200);
+    const build = (n: number) => '{@link ' + '\t'.repeat(n);
+    expect(mdxProse(build(50000))).toBe('\\' + build(50000));
+    expectNearLinear(build, mdxProse);
   });
 
   it('reads repeated unclosed link starts in linear time', () => {
-    const input = '{@link ' + '{@link |'.repeat(20000);
-    const start = performance.now();
-    mdxProse(input);
-    expect(performance.now() - start).toBeLessThan(200);
+    expectNearLinear((n) => '{@link ' + '{@link |'.repeat(n), mdxProse);
   });
 });
