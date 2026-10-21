@@ -82,6 +82,7 @@ module.exports = {
         // The private demo apps of integrations spec 14. Not under
         // release.projects.
         'bridge-api',
+        'bridge-console',
         'next-bridge',
       ],
     ],
