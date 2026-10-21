@@ -114,7 +114,8 @@ export function louvre(temperature: number, rating: CoolantRating): number {
  *
  * `heat` is every watt that enters the loop this tick: the reactor's
  * `P_th − P_e` plus the load heat. The explicit step stays stable because the
- * loop's shortest time constant, 102 s at 1,186 K, is far above `dt`.
+ * loop's time constant stays far above `dt`: 102 s at 1,186 K and 56 s at the
+ * 1,450 K trip.
  */
 export function stepCoolant(
   coolant: CoolantRecord,
