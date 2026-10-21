@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { declareModuleClass, defineModule } from './define-module.js';
-import { describeValue } from './describe.js';
+import { describeValue, MultiToken, Token } from './token.js';
 import { provide } from './provide.js';
-import { MultiToken, Token } from './token.js';
 
 /** What another copy of core makes: an object with the brand and nothing this copy knows. */
 const foreign = <T extends object>(value: T): T =>

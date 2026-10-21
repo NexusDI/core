@@ -3,10 +3,9 @@ import {
   resolveModuleRef,
   type ModuleDefinition,
 } from '../definitions/define-module.js';
-import { describeValue } from '../definitions/describe.js';
+import { describeValue, MultiToken } from '../definitions/token.js';
 import { readProvider } from '../definitions/provide.js';
 import { REQUEST } from '../definitions/request.js';
-import { MultiToken } from '../definitions/token.js';
 import { PluginError, type NexusError } from '../errors/index.js';
 import {
   NO_ENTRIES,

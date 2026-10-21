@@ -1,10 +1,14 @@
 import type { Blueprint, TokenKey } from '../blueprint/blueprint.js';
 import { isForeign } from '../definitions/brand.js';
 import { resolveModuleRef } from '../definitions/define-module.js';
-import { describeValue, notShared } from '../definitions/describe.js';
+import {
+  describeValue,
+  notShared,
+  MultiToken,
+  displayName,
+} from '../definitions/token.js';
 import { isToken } from '../definitions/guards.js';
 import { HOOK_SITES } from '../definitions/hook-sites.js';
-import { MultiToken, displayName } from '../definitions/token.js';
 import {
   InvalidModuleError,
   InvalidTokenError,

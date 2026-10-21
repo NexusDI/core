@@ -4,9 +4,13 @@ import {
   type ModuleDefinition,
 } from '../definitions/define-module.js';
 import { isForeign } from '../definitions/brand.js';
-import { describeValue, notShared } from '../definitions/describe.js';
+import {
+  describeValue,
+  notShared,
+  MultiToken,
+  displayName,
+} from '../definitions/token.js';
 import { isToken } from '../definitions/guards.js';
-import { MultiToken, displayName } from '../definitions/token.js';
 import {
   DuplicateProviderError,
   InvalidExportError,

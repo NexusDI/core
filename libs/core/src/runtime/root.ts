@@ -6,7 +6,7 @@ import {
   type ProviderEntry,
 } from '../definitions/define-module.js';
 import { isForeign } from '../definitions/brand.js';
-import { notShared } from '../definitions/describe.js';
+import { notShared } from '../definitions/token.js';
 import { pickOwn } from '../definitions/own-keys.js';
 import type {
   ProviderEntries,

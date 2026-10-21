@@ -3,7 +3,12 @@ import {
   resolveModuleRef,
   type ModuleInternals,
 } from '../definitions/define-module.js';
-import { describeValue, notShared } from '../definitions/describe.js';
+import {
+  describeValue,
+  notShared,
+  MultiToken,
+  displayName,
+} from '../definitions/token.js';
 import { isToken } from '../definitions/guards.js';
 import {
   injectableIn,
@@ -16,7 +21,6 @@ import { isModifier } from '../definitions/modifiers.js';
 import { pickOwn } from '../definitions/own-keys.js';
 import { readProvider } from '../definitions/provide.js';
 import { REQUEST } from '../definitions/request.js';
-import { MultiToken, displayName } from '../definitions/token.js';
 import type { Ctor, Lifetime } from '../definitions/types.js';
 import {
   CoreNotSharedError,

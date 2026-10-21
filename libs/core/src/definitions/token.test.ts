@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { thrown } from '../../test-support/catch.js';
-import { describeValue } from './describe.js';
-import { MultiToken, Token, displayName } from './token.js';
+import { describeValue, MultiToken, Token, displayName } from './token.js';
 
 describe('Token', () => {
   it('returns its description from toString', () => {

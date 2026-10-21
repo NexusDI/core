@@ -1,6 +1,6 @@
 import { CoreNotSharedError, InvalidModuleError } from '../errors/index.js';
 import { brand, isForeign } from './brand.js';
-import { describeValue } from './describe.js';
+import { describeValue } from './token.js';
 import type { Dep, ResolveAll } from './modifiers.js';
 import { pickOwn } from './own-keys.js';
 import type { Provider } from './provide.js';
