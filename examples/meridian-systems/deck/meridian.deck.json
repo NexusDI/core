@@ -1,0 +1,43 @@
+{
+  "compartments": [
+    {
+      "id": "bridge",
+      "volume": 60,
+      "conductance": 90,
+      "structureHeatCapacity": 2000000,
+      "occupants": 2
+    },
+    {
+      "id": "habitat",
+      "volume": 120,
+      "conductance": 150,
+      "structureHeatCapacity": 4000000,
+      "occupants": 4
+    },
+    {
+      "id": "reactor-bay",
+      "volume": 80,
+      "conductance": 110,
+      "structureHeatCapacity": 6000000,
+      "occupants": 0
+    },
+    {
+      "id": "airlock",
+      "volume": 12,
+      "conductance": 30,
+      "structureHeatCapacity": 500000,
+      "occupants": 0
+    }
+  ],
+  "doors": [
+    { "id": "bridge-habitat", "between": ["bridge", "habitat"], "area": 1.5 },
+    {
+      "id": "habitat-reactor-bay",
+      "between": ["habitat", "reactor-bay"],
+      "area": 1.5
+    },
+    { "id": "habitat-airlock", "between": ["habitat", "airlock"], "area": 1.2 },
+    { "id": "airlock-outer", "between": ["airlock", "space"], "area": 1.2 }
+  ],
+  "initial": { "temperature": 293, "pressure": 101300 }
+}
