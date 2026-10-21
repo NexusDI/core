@@ -59,6 +59,9 @@
     "tools/gemma-refactor.mjs",
     // The e2e project's webServer command runs serve.mjs by path.
     "apps/docs-e2e/src/support/serve.mjs",
+    // The federation shell's Playwright webServer entries run serve.ts by
+    // path.
+    "examples/federation-shell/e2e/serve.ts",
     // The docs app's behaviour-data target runs this script by path.
     "apps/docs/tools/behaviour-data.mjs",
     "libs/decorators/vite.decorators.ts",

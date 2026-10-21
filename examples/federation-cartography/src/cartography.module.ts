@@ -13,7 +13,7 @@ export const NAV_ROUTES = new Token<INavRoutes>('NavRoutes');
  * binds that copy to the one the shell's Tactical provides, by its key
  * `meridian/NavCharts`.
  */
-export class SectorRoutes implements INavRoutes {
+class SectorRoutes implements INavRoutes {
   static deps = [NAV_CHARTS] as const;
   constructor(private readonly charts: INavCharts) {}
 
