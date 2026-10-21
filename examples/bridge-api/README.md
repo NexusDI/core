@@ -18,6 +18,8 @@ The graph lives in `src/ship/`, and each framework entry wires it to routes with
 | `GET /log/stream`   | a scope that stays open while the body streams, and closes when it ends |
 | any, after disposal | a 503 with an empty body once the container is disposed                 |
 
+The bridge console calls the Hono entry. The Express and Fastify entries run the same cases of `e2e/cases.ts`, so each framework serves the same graph with the same results.
+
 - `src/worker.ts` builds the container on the first request of each isolate (the function form of `nexus()`), because Workers refuse I/O at module scope.
 
 ## Running a Server
@@ -49,9 +51,9 @@ The app's checks run as Nx targets, each with the workspace packages built first
 
 ## Where the Docs Use It
 
-No docs page cites a file of this app today. The adapter guides of the integrations plan (Task 25) cite regions of `examples/meridian/src/pages/`, which repeat these routes in a form one block can run. The plan gives this app two jobs for the docs (Task 26):
+Four docs pages link this folder as the full app behind their examples. Their examples cite regions of `examples/meridian/src/pages/`, which repeat these routes in a form one block can run.
 
-- `/runtimes/` reports the runtimes the adapter-runtimes legs run `src/worker.ts` and `src/hono.ts` on, and the figures `bench/` prints, with the machine and the date.
-- `/edge/` describes the function form that `src/worker.ts` uses for a container whose factories do I/O.
+- [Scoping Hono Requests](https://nexus.js.org/next/hono/), [Scoping Express Requests](https://nexus.js.org/next/express/) and [Scoping Fastify Requests](https://nexus.js.org/next/fastify/) point to `src/server.hono.ts`, `src/server.express.ts` and `src/server.fastify.ts`: one graph behind three frameworks.
+- [Visualizing Your Dependency Graph](https://nexus.js.org/next/graph-cli/) points to the `graph` target, which fails when the drawn graph differs from `graph.json`.
 
 Next, read [Scoping Hono Requests](https://nexus.js.org/next/hono/) for the adapter this app leads with.
