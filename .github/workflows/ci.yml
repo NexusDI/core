@@ -109,7 +109,7 @@ jobs:
       # nothing extra to keep correct regardless.
       #
       # `nx run <project>:typegen` rather than `run-many -t typegen`, so this
-      # isn't a second `nx run-many` step in this file --
+      # isn't a second `nx run-many` step in this job --
       # tools/repo-checks/src/release-verify-gate.test.ts asserts there is
       # exactly one, the actual gate below.
       - run: npx nx run @nexusdi/bridge-console:typegen
@@ -125,12 +125,106 @@ jobs:
       # runs in Chromium through Playwright.
       - run: npx playwright install --with-deps chromium
 
-      - run: npx nx run-many -t lint test build typecheck
+      # The federation demo projects carry the demo-frontend tag. They build
+      # with rspack, and the demo-apps job below runs their targets, so this
+      # step and release.yml's verify step leave them out. bridge-api and
+      # bridge-console carry only the demo tag and stay here.
+      - run: npx nx run-many -t lint test build typecheck --exclude=tag:demo-frontend
 
       # Reports the run's task results to Nx Cloud. `always()` because the run
       # it reports on is the failing one.
       - run: npx nx fix-ci
         if: always()
+
+  # The second gate (demo apps spec 10.1): every project tagged demo runs its
+  # e2e suite here, against the workspace's packages, so a package change
+  # that breaks an app goes red before it reaches an rc. The release workflow
+  # requires the ruleset checks green on the commit it releases, and the
+  # owner adds this one to the rulesets after three green runs on
+  # release/0.4.
+  #
+  # It runs every demo on every run, with the Nx cache. `nx affected` would
+  # skip the demos on a push whose parent changed nothing they depend on,
+  # and leave that commit with a green check that tested nothing. A demo
+  # joins through its tag, with no edit here.
+  #
+  # Budget: 8 minutes, so the run's wall time stays at main's.
+  demo-apps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          filter: tree:0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - run: npm ci
+
+      # The browsers are keyed by the Playwright version the lockfile
+      # installs. A cache hit still needs the system libraries, which live
+      # outside the cached folder.
+      - name: Read the Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+
+      - if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - run: npx nx run-many -t lint test typecheck --projects=tag:demo-frontend
+
+      - run: npx nx run-many -t e2e --projects=tag:demo
+
+  # The growth track's e2e cases (ship systems spec section 14). Each demo
+  # app keeps them in an e2e-growth target, and only this job runs it. The
+  # rulesets never require this check, so a red growth case shows on the run
+  # and blocks no merge or release. A case moves into its app's e2e target,
+  # and so into demo-apps, after a green rc cycle. Until the first growth
+  # increment adds an e2e-growth target, Nx finds no task and the job passes.
+  demo-growth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          filter: tree:0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Read the Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+
+      - if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - run: npx nx run-many -t e2e-growth --projects=tag:demo
 
   # The only check that reads a package as npm publishes it. Everything in
   # `main` resolves through `customConditions: ["@nexusdi/source"]`, which
@@ -314,7 +408,7 @@ jobs:
   # (spec 9.8). One leg per runtime, so a red leg names the runtime. Runs on
   # every push and pull request with no path filter, so the rulesets can
   # require it. No step runs `nx run-many`: release-verify-gate holds the one
-  # gate step in this file.
+  # gate step in the main job.
   adapter-runtimes:
     runs-on: ubuntu-latest
     strategy:
