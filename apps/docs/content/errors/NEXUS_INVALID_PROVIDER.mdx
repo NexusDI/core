@@ -8,7 +8,7 @@ errorClass: InvalidProviderError
 
 # NEXUS_INVALID_PROVIDER
 
-`NEXUS_INVALID_PROVIDER` means an entry in a module's `providers` is malformed: a value with a lifetime, a module listed as a provider, an entry with no definition or with two, a `deps` list that is not an array, and the other reasons below. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
+`NEXUS_INVALID_PROVIDER` means an entry in a module's `providers` is malformed: a value with a lifetime, a module listed as a provider, an entry with no definition or with two, a `deps` list that is not an array, and the other reasons below. `Nexus.create` reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). An entry, or a dep of one, that another copy of `@nexusdi/core` made raises [NEXUS_CORE_NOT_SHARED](/errors/NEXUS_CORE_NOT_SHARED/).
 
 ## Reproduce `NEXUS_INVALID_PROVIDER`
 
@@ -44,4 +44,3 @@ Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the 
 - `index`: the position of the entry in that list.
 - `reason`: why the entry is malformed: `static-deps-throws`, `static-deps-not-array`, `deps-in-both`, `options-not-object`, `not-a-provider`, `class-throws`, `bad-dep`, `deps-not-array`, `bad-injectable-lifetime`, `is-a-module`, `options-throw`, `provides-request`, `no-definition`, `several-definitions`, `bad-lifetime`, `use-class-not-a-class`, `value-with-lifetime`, `factory-not-a-function`, `alias-with-lifetime`, `alias-to-multi-token`, `bad-eager` or `eager-not-deferrable`.
 - `detail`: the values the reason names, such as the module listed as a provider.
-- `otherCopy`: `true` when another copy of `@nexusdi/core` made the value the entry holds. Load one copy of `@nexusdi/core`.

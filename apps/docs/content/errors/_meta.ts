@@ -40,6 +40,10 @@ const meta: MetaRecord = {
     title: 'NEXUS_INVALID_MODULE',
     display: 'hidden',
   },
+  NEXUS_CORE_NOT_SHARED: {
+    title: 'NEXUS_CORE_NOT_SHARED',
+    display: 'hidden',
+  },
   NEXUS_MISSING_DEPS: {
     title: 'NEXUS_MISSING_DEPS',
     display: 'hidden',
