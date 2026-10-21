@@ -213,9 +213,9 @@ Files:
   Fix: send { system, action, ...args } as JSON.
 [MERIDIAN_BAD_COMMAND] No ship system is named 'warp-core'. The desk serves engineering.
   Fix: send the command to one of the systems above.
-[MERIDIAN_BAD_COMMAND] engineering has no action 'warp'. It takes throttle { level: 0 to 1 } or shields { raised: true or false }.
+[MERIDIAN_BAD_COMMAND] engineering has no action 'warp'. It takes throttle with a level from 0 to 1 and shields with raised true or false.
   Fix: send one of the actions above with its arguments.
-[MERIDIAN_BAD_COMMAND] engineering throttle got an argument it cannot use. It takes throttle { level: 0 to 1 } or shields { raised: true or false }.
+[MERIDIAN_BAD_COMMAND] engineering throttle got an argument it cannot use. It takes throttle with a level from 0 to 1 and shields with raised true or false.
   Fix: send the arguments in the ranges above.
 ```
 
