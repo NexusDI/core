@@ -86,12 +86,14 @@ describe('coreNamesNoPackage', () => {
         .violations,
     ).toEqual([
       "fix.ts:4 names @acme/sourcemaps in 'load @acme/sourcemaps'; core names no other package",
+      "fix.ts:6 names @acme/react in 'the @acme/source condition and @acme/react'; core names no other package",
     ]);
     expect(
       coreNamesNoPackage(fixture('condition'), '@acme').violations,
     ).toEqual([
       "fix.ts:2 names @acme/source in 'check that no bundler resolves the @acme/source condition for one import and dist for another'; core names no other package",
       "fix.ts:4 names @acme/sourcemaps in 'load @acme/sourcemaps'; core names no other package",
+      "fix.ts:6 names @acme/source in 'the @acme/source condition and @acme/react'; core names no other package",
     ]);
   });
 
