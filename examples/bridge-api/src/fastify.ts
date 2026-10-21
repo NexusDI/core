@@ -6,6 +6,7 @@ import { Readable } from 'node:stream';
 
 import { nexus, type ContainerSource } from '@nexusdi/fastify';
 import {
+  COMMAND_DESK,
   DECK_PLAN,
   readShip,
   SHIP_STATE,
@@ -13,6 +14,7 @@ import {
 } from '@nexusdi/meridian-systems';
 import Fastify from 'fastify';
 
+import { answerCommand } from './bridge/commands';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { telemetryReadable } from './bridge/telemetry-readable';
 import { SSE_HEADERS } from './bridge/telemetry-stream';
@@ -116,6 +118,18 @@ export async function createBridge(
           return readShip(driver.advance(ticks), deck);
         },
       ),
+    );
+    scoped.post(
+      '/commands',
+      { bodyLimit: SIM_BODY_LIMIT },
+      di.inject({ desk: COMMAND_DESK }, async ({ desk }, req, reply) => {
+        const { status, body } = answerCommand(desk, req.body);
+        return reply.code(status).send(body);
+      }),
+    );
+    scoped.get(
+      '/commands',
+      di.inject({ state: SHIP_STATE }, async ({ state }) => state.log()),
     );
   });
   return bridge;

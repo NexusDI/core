@@ -1,8 +1,8 @@
 const MAX_TICKS = 10_000;
 
 /**
- * The largest body `POST /sim/advance` reads, in bytes, on every framework.
- * It equals the 100 kB default of Express's `express.json()`.
+ * The largest body `POST /sim/advance` and `POST /commands` read, in bytes,
+ * on every framework. It equals the 100 kB default of Express's `express.json()`.
  */
 export const SIM_BODY_LIMIT = 100 * 1024;
 

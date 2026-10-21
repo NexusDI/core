@@ -317,3 +317,104 @@ describe.each(['hono', 'express', 'fastify'] as const)(
     });
   },
 );
+
+describe.each(['hono', 'express', 'fastify'] as const)(
+  'the command routes on %s',
+  (framework) => {
+    const call = calls[framework];
+    const throttle = json({
+      system: 'engineering',
+      action: 'throttle',
+      level: 1,
+    });
+
+    test('POST /commands queues a throttle for the next tick', async ({
+      nexus,
+    }) => {
+      expect(await call(nexus, 'POST', '/commands', throttle)).toEqual({
+        status: 202,
+        body: { tick: 1 },
+      });
+    });
+
+    test('POST /commands answers 409 for shields the idle reactor cannot power', async ({
+      nexus,
+    }) => {
+      const raise = json({
+        system: 'engineering',
+        action: 'shields',
+        raised: true,
+      });
+      const { status, body } = await call(nexus, 'POST', '/commands', raise);
+      expect(status).toBe(409);
+      expect(body).toMatchObject({ code: 'MERIDIAN_POWER_BUDGET' });
+    });
+
+    test('POST /commands answers 400 for a command the desk cannot read', async ({
+      nexus,
+    }) => {
+      const warp = await call(
+        nexus,
+        'POST',
+        '/commands',
+        json({ system: 'warp' }),
+      );
+      expect(warp.status).toBe(400);
+      expect(warp.body).toMatchObject({ code: 'MERIDIAN_BAD_COMMAND' });
+      const text = await call(nexus, 'POST', '/commands', {
+        type: 'text/plain',
+        text: throttle.text,
+      });
+      expect(text.status).toBe(400);
+      expect(text.body).toMatchObject({ code: 'MERIDIAN_BAD_COMMAND' });
+      const malformed = await call(nexus, 'POST', '/commands', {
+        type: 'application/json',
+        text: '{ system',
+      });
+      expect(malformed.status).toBe(400);
+      expect(nexus.get(SHIP_STATE).log()).toEqual([]);
+    });
+
+    test('POST /commands answers 413 for a body over 100 kB', async ({
+      nexus,
+    }) => {
+      const over = json({
+        system: 'engineering',
+        action: 'throttle',
+        level: 1,
+        pad: 'x'.repeat(SIM_BODY_LIMIT),
+      });
+      expect((await call(nexus, 'POST', '/commands', over)).status).toBe(413);
+    });
+
+    test('GET /commands answers the log once the tick applies the throttle', async ({
+      nexus,
+    }) => {
+      await call(nexus, 'POST', '/commands', throttle);
+      expect(await call(nexus, 'GET', '/commands')).toEqual({
+        status: 200,
+        body: [],
+      });
+      await call(nexus, 'POST', '/sim/advance', json({ ticks: 1 }));
+      expect(await call(nexus, 'GET', '/commands')).toEqual({
+        status: 200,
+        body: [{ tick: 1, change: { reactor: { throttle: 1 } } }],
+      });
+    });
+
+    test('POST /commands queues on a live ship', async () => {
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+      try {
+        await using ship = await Nexus.create(
+          offlineMeridian({ sim: { seed: 7, dt: 0.5 }, mode: 'live' }),
+        );
+        expect(await call(ship, 'POST', '/commands', throttle)).toEqual({
+          status: 202,
+          body: { tick: 1 },
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  },
+);
