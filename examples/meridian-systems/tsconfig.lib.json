@@ -18,10 +18,13 @@
   "include": ["src/**/*.ts", "deck/*.json"],
   "references": [
     {
-      "path": "../../libs/core/tsconfig.lib.json"
+      "path": "../../libs/vitest/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/vitest/tsconfig.lib.json"
+      "path": "../../libs/devtools/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/core/tsconfig.lib.json"
     }
   ],
   "exclude": [

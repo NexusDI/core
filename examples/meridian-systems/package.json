@@ -17,6 +17,7 @@
     "@nexusdi/core": "*"
   },
   "devDependencies": {
+    "@nexusdi/devtools": "*",
     "@nexusdi/vitest": "*"
   },
   "nx": {
