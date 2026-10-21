@@ -30,12 +30,17 @@ export class ShipStateStore implements IShipState {
 
 function initialSnapshot(deck: DeckPlan): ShipSnapshot {
   const { temperature, pressure } = deck.initial;
+  const seen = new Set<string>();
   for (const room of deck.compartments) {
     if (!(COMPARTMENT_IDS as readonly string[]).includes(room.id)) {
       throw new Error(
         `The deck plan names an unknown compartment '${room.id}'.`,
       );
     }
+    if (seen.has(room.id)) {
+      throw new Error(`The deck plan names compartment '${room.id}' twice.`);
+    }
+    seen.add(room.id);
   }
   const compartments = {} as Record<CompartmentId, CompartmentState>;
   for (const id of COMPARTMENT_IDS) {

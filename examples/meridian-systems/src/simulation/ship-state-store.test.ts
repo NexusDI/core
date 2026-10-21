@@ -67,4 +67,14 @@ describe('ShipStateStore', () => {
     };
     expect(() => new ShipStateStore(extra)).toThrow(/'galley'/);
   });
+
+  it('refuses a deck plan that lists one compartment twice', () => {
+    const twice: DeckPlan = {
+      ...plan,
+      compartments: [...plan.compartments, plan.compartments[1]],
+    };
+    expect(() => new ShipStateStore(twice)).toThrow(
+      "The deck plan names compartment 'habitat' twice.",
+    );
+  });
 });
