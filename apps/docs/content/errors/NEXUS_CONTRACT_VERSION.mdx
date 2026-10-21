@@ -14,7 +14,7 @@ The rule is the one of npm's `^` range. The majors must match. At major 1 and ab
 
 ## Reproduce `NEXUS_CONTRACT_VERSION`
 
-The shell's `Tactical` module provides `meridian/NavCharts` from version 2.3.0 of its contracts package, and the remote section `Cartography` was built against 2.4.0. `Tactical` is global because a remote cannot import the shell's module object. A module that `load()` adds sees its own providers, the exports of its imports, and the exports of every global module. The shell's `load()` of `Cartography` rejects. The federation demo shows the same error in a browser: the `build-drift` build of [`examples/federation-cartography`](https://github.com/NexusDI/core/tree/release/0.4/examples/federation-cartography) builds the remote against the next minor of the shell's contract. Without a text pack, the message is one line that starts with the code and ends with the address of this page.
+The shell's `Tactical` module provides `meridian/NavCharts` from version 2.3.0 of its contracts package, and the remote section `Cartography` was built against 2.4.0. `Tactical` is global because a remote cannot import the shell's module object. A module that `load()` adds sees what it imports and what every global module exports. The shell's `load()` of `Cartography` rejects. The federation demo shows the same error in a browser: the `build-drift` target of [`examples/federation-cartography`](https://github.com/NexusDI/core/tree/release/0.4/examples/federation-cartography) compiles the remote against the next minor of the shell's contract. Without a text pack, the message is one line that starts with the code and ends with the address of this page.
 
 ```ts file=examples/meridian/src/errors/NEXUS_CONTRACT_VERSION.md region=reproduce
 
