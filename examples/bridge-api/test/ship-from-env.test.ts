@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { EventEmitter } from 'node:events';
 
-import { setupFromEnv } from '../src/ship-from-env';
+import { describe, expect, it, vi } from 'vitest';
+
+import { isDev, setupFromEnv, stopOnSigterm } from '../src/ship-from-env';
 
 describe('setupFromEnv', () => {
   it('runs a live ship on seed 7 at dt 0.5 when no variable is set', () => {
@@ -43,5 +45,56 @@ describe('setupFromEnv', () => {
         message: expect.stringMatching(/SIM_MODE.*'live'.*'manual'/s),
       }),
     );
+  });
+});
+
+describe('isDev', () => {
+  it('reads every NODE_ENV but production as development', () => {
+    expect(isDev({})).toBe(true);
+    expect(isDev({ NODE_ENV: 'development' })).toBe(true);
+    expect(isDev({ NODE_ENV: 'production' })).toBe(false);
+  });
+});
+
+describe('stopOnSigterm', () => {
+  it('closes the server, then disposes the ship once, on SIGTERM', async () => {
+    const order: string[] = [];
+    const signals = new EventEmitter();
+    const dispose = vi.fn(async () => {
+      order.push('dispose');
+    });
+    stopOnSigterm(
+      () => order.push('close'),
+      { [Symbol.asyncDispose]: dispose },
+      signals,
+    );
+    expect(order).toEqual([]);
+    signals.emit('SIGTERM');
+    signals.emit('SIGTERM');
+    await vi.waitFor(() => expect(order).toEqual(['close', 'dispose']));
+    expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('disposes the ship when close throws, and reports the error with exit code 1', async () => {
+    const signals = new EventEmitter();
+    const dispose = vi.fn(async () => {});
+    const report = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const boom = new Error('server already closed');
+    try {
+      stopOnSigterm(
+        () => {
+          throw boom;
+        },
+        { [Symbol.asyncDispose]: dispose },
+        signals,
+      );
+      signals.emit('SIGTERM');
+      await vi.waitFor(() => expect(report).toHaveBeenCalledWith(boom));
+      expect(dispose).toHaveBeenCalledTimes(1);
+      expect(process.exitCode).toBe(1);
+    } finally {
+      report.mockRestore();
+      process.exitCode = undefined;
+    }
   });
 });
