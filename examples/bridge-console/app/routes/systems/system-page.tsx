@@ -1,8 +1,8 @@
 /**
- * The components every ship system page under /systems shares: its gauge
- * lists, its headed control sections and the answer to its last command. A
- * new system page builds its gauges and forms from these, and its action
- * from `systemAction` in system-action.server.ts.
+ * The components every ship system page under /systems and the airlock panel
+ * share: its gauge lists, its headed control sections and the answer to its
+ * last command. A new system page builds its gauges and forms from these,
+ * and its action from `systemAction` in system-action.server.ts.
  */
 import type { ReactNode } from 'react';
 import { Form } from 'react-router';
