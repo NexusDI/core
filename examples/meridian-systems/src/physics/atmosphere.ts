@@ -11,6 +11,7 @@ import {
   type Air,
   type Gas,
 } from './gas';
+import type { PowerLoad } from './power';
 
 /** The devices a compartment's plan can list under `equipment`. */
 export const LIFE_SUPPORT_DEVICES = [
@@ -20,6 +21,17 @@ export const LIFE_SUPPORT_DEVICES = [
   'vent',
   'pump',
 ] as const;
+
+/**
+ * Life support's place on the power router, spec §5.7. Its demand comes from
+ * `lifeSupportDemand` each tick. The model puts none of its power into the
+ * coolant loop.
+ */
+export const LIFE_SUPPORT_LOAD: Omit<PowerLoad, 'demand'> = {
+  id: 'life-support',
+  priority: 1,
+  heatShare: 0,
+};
 
 /**
  * The figures of one room that the atmosphere reads. The deck's

@@ -1,4 +1,5 @@
 import { MultiToken, Token } from '@nexusdi/core';
+import type { LifeSupportRecord, RoomPlan } from '../physics/atmosphere';
 import type { Gas } from '../physics/gas';
 import type { PowerRecord } from '../physics/power';
 import type { CoolantRecord, ReactorRecord } from '../physics/thermal';
@@ -43,6 +44,7 @@ export interface ShipSnapshot {
   readonly reactor: ReactorRecord;
   readonly coolant: CoolantRecord;
   readonly power: PowerRecord;
+  readonly lifeSupport: LifeSupportRecord<CompartmentId>;
   readonly setpoints: Setpoints;
 }
 
@@ -63,19 +65,13 @@ export interface ShipReading extends Omit<ShipSnapshot, 'compartments'> {
 }
 
 /**
- * The ids are strings because a JSON import types them so. `ShipStateStore`
- * checks them against `COMPARTMENT_IDS` when the container builds it.
+ * One compartment of the deck: its volume, hull and crew, and the
+ * life-support devices it carries (`RoomPlan` documents each field). The ids
+ * are strings because a JSON import types them so. `ShipStateStore` checks
+ * them against `COMPARTMENT_IDS` and the devices against
+ * `LIFE_SUPPORT_DEVICES` when the container builds it.
  */
-export interface CompartmentPlan {
-  readonly id: string;
-  /** Cubic metres. */
-  readonly volume: number;
-  /** Hull conductance in W/K. */
-  readonly conductance: number;
-  /** J/K. */
-  readonly structureHeatCapacity: number;
-  readonly occupants: number;
-}
+export type CompartmentPlan = RoomPlan;
 
 export interface DoorPlan {
   readonly id: string;
@@ -119,8 +115,8 @@ export interface IShipState {
   snapshot(): ShipSnapshot;
   commit(next: ShipSnapshot): void;
   /**
-   * Merges `change` field by field over the change pending for the next
-   * tick, the later value winning, and answers with that tick.
+   * Merges `change` over the change pending for the next tick, level by
+   * level, the later value winning, and answers with that tick.
    */
   queue(change: SetpointChange): QueuedCommand;
   /**

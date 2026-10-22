@@ -1,4 +1,6 @@
 import { MultiToken, Token } from '@nexusdi/core';
+import type { LifeSupportSetpoints } from '../physics/atmosphere';
+import type { CompartmentId } from './contracts';
 
 /** What the crew asks of each system. A system steps toward its setpoint each tick. */
 export interface Setpoints {
@@ -7,12 +9,21 @@ export interface Setpoints {
     readonly throttle: number;
   };
   readonly shields: { readonly raised: boolean };
+  readonly lifeSupport: LifeSupportSetpoints<CompartmentId>;
 }
 
-/** The setpoints one command changes. `SHIP_STATE` merges it over the current ones. */
-export type SetpointChange = {
-  readonly [K in keyof Setpoints]?: Partial<Setpoints[K]>;
-};
+/**
+ * `T` with every field optional at every level of plain objects. An array or
+ * a primitive stays whole, since a merge replaces it.
+ */
+export type DeepPartial<T> = T extends readonly unknown[]
+  ? T
+  : T extends object
+    ? { readonly [K in keyof T]?: DeepPartial<T[K]> }
+    : T;
+
+/** The setpoints one command changes. `SHIP_STATE` merges it over the current ones, level by level. */
+export type SetpointChange = DeepPartial<Setpoints>;
 
 /** The answer to a queued command. */
 export interface QueuedCommand {

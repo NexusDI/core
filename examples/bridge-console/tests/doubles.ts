@@ -29,10 +29,28 @@ export const shipAtStart: ShipReading = {
   coolant: { temperature: 500 },
   power: {
     output: 0,
-    loads: [{ id: 'shields', priority: 2, demand: 0, allocated: 0 }],
+    loads: [
+      { id: 'life-support', priority: 1, demand: 0, allocated: 0 },
+      { id: 'shields', priority: 2, demand: 0, allocated: 0 },
+    ],
     shed: [],
   },
-  setpoints: { reactor: { throttle: 0 }, shields: { raised: false } },
+  lifeSupport: { heaters: { bridge: 0, habitat: 0 } },
+  setpoints: {
+    reactor: { throttle: 0 },
+    shields: { raised: false },
+    lifeSupport: {
+      online: false,
+      heaters: {
+        bridge: { on: true, target: 293 },
+        habitat: { on: true, target: 293 },
+      },
+      scrubbers: { bridge: true, habitat: true },
+      oxygen: { bridge: true, habitat: true },
+      vents: { airlock: false },
+      pumps: { airlock: 'off' },
+    },
+  },
 };
 
 /** One server-sent event as the bridge's `GET /telemetry` frames it. */

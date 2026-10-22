@@ -43,6 +43,7 @@ function shipAt(running: Running): ShipSnapshot {
     },
     coolant: { temperature: running.coolant ?? 500 },
     setpoints: {
+      ...idle.setpoints,
       reactor: { throttle: running.throttle },
       shields: { raised: running.raised ?? false },
     },

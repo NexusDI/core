@@ -5,28 +5,33 @@
       "volume": 60,
       "conductance": 90,
       "structureHeatCapacity": 2000000,
-      "occupants": 2
+      "occupants": 2,
+      "equipment": ["heater", "scrubber", "oxygen"]
     },
     {
       "id": "habitat",
       "volume": 120,
       "conductance": 150,
       "structureHeatCapacity": 4000000,
-      "occupants": 4
+      "occupants": 4,
+      "equipment": ["heater", "scrubber", "oxygen"]
     },
     {
       "id": "reactor-bay",
       "volume": 80,
       "conductance": 110,
       "structureHeatCapacity": 6000000,
-      "occupants": 0
+      "occupants": 0,
+      "coolantConductance": 2
     },
     {
       "id": "airlock",
       "volume": 12,
       "conductance": 30,
       "structureHeatCapacity": 500000,
-      "occupants": 0
+      "occupants": 0,
+      "equipment": ["vent", "pump"],
+      "pumpReservoir": "habitat"
     }
   ],
   "doors": [

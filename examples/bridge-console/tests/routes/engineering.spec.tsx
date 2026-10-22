@@ -171,7 +171,11 @@ describe('the engineering gauges', () => {
         ],
         shed: [],
       },
-      setpoints: { reactor: { throttle: 1 }, shields: { raised: true } },
+      setpoints: {
+        ...shipAtStart.setpoints,
+        reactor: { throttle: 1 },
+        shields: { raised: true },
+      },
     };
     class BusyLink extends FakeBridgeLink {
       override async snapshot() {
