@@ -23,7 +23,7 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: /(life-support|safety)\.spec\.ts/,
+      testIgnore: /(life-support|safety|airlock)\.spec\.ts/,
     },
     // Life support's online command is one-way on the shared manual ship, so
     // its case runs after every case that reads the idle ship.
@@ -41,6 +41,14 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
       testMatch: /safety\.spec\.ts/,
       dependencies: ['life-support'],
+    },
+    // The airlock case needs life support online, and it reads the doors and
+    // the alarms after the safety case has left them shut and clear.
+    {
+      name: 'airlock',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /airlock\.spec\.ts/,
+      dependencies: ['safety'],
     },
   ],
 });
