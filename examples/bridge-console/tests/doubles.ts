@@ -1,6 +1,11 @@
 import { REQUEST, type NexusRequest } from '@nexusdi/core';
 import type { NexusGraph } from '@nexusdi/devtools';
-import type { ShipCommand, ShipReading } from '@nexusdi/meridian-systems';
+import type {
+  AtmosphereReading,
+  CompartmentId,
+  ShipCommand,
+  ShipReading,
+} from '@nexusdi/meridian-systems';
 
 import type { CommandAnswer, IBridgeLink } from '../app/bridge/bridge-link';
 
@@ -53,6 +58,44 @@ export const shipAtStart: ShipReading = {
   },
 };
 
+/**
+ * Seed 7's analyzer readings at tick 0, as `GET /compartments/:id/atmosphere`
+ * answers them: the true air plus each analyzer's noise, rounded to 0.01 K
+ * and 1 Pa.
+ */
+export const airAtStart: Readonly<
+  Record<CompartmentId, AtmosphereReading<CompartmentId>>
+> = {
+  bridge: {
+    compartment: 'bridge',
+    tick: 0,
+    temperature: 292.98,
+    pressure: 101_290,
+    partial: { O2: 21_274, N2: 79_010, CO2: 37, H2O: 916, volatiles: 65 },
+  },
+  habitat: {
+    compartment: 'habitat',
+    tick: 0,
+    temperature: 293.04,
+    pressure: 101_286,
+    partial: { O2: 21_272, N2: 79_014, CO2: 44, H2O: 912, volatiles: 62 },
+  },
+  'reactor-bay': {
+    compartment: 'reactor-bay',
+    tick: 0,
+    temperature: 293.02,
+    pressure: 101_301,
+    partial: { O2: 21_271, N2: 79_010, CO2: 44, H2O: 909, volatiles: 61 },
+  },
+  airlock: {
+    compartment: 'airlock',
+    tick: 0,
+    temperature: 293.02,
+    pressure: 101_310,
+    partial: { O2: 21_277, N2: 79_011, CO2: 37, H2O: 913, volatiles: 58 },
+  },
+};
+
 /** One server-sent event as the bridge's `GET /telemetry` frames it. */
 const snapshotEvent = (ship: ShipReading) =>
   new TextEncoder().encode(
@@ -63,7 +106,8 @@ const snapshotEvent = (ship: ShipReading) =>
  * The double of BRIDGE_LINK: it answers the way bridge-api's
  * `GET /course/:to` does, from the scope's mission, and `POST /commands`
  * the way the seeded ship does at tick 0, with no server. Its ship sits at
- * tick 0, its telemetry sends that one frame and ends, and it has no graph.
+ * tick 0, its analyzers read seed 7's air at tick 0, its telemetry sends
+ * that one frame and ends, and it has no graph.
  * Route tests override BRIDGE_LINK with `fakeBridgeLink`, a scoped binding
  * of this class, or with a subclass that changes one answer.
  */
@@ -78,6 +122,15 @@ export class FakeBridgeLink implements IBridgeLink {
   }
   async snapshot() {
     return shipAtStart;
+  }
+  /** Rejects a compartment the deck lacks, as the link does on the 404. */
+  async atmosphere(compartment: string) {
+    if (!Object.hasOwn(airAtStart, compartment)) {
+      throw new Error(
+        `bridge-api answered 404 for /compartments/${compartment}/atmosphere`,
+      );
+    }
+    return airAtStart[compartment as CompartmentId];
   }
   async telemetry() {
     return new ReadableStream<Uint8Array>({
