@@ -62,11 +62,37 @@ describe('the bridge API graph', () => {
       plugins: bridgePlugins({ dev: true }),
     });
     const { modules, providers } = graph(ship);
-    const notes = Object.fromEntries(providers.map((p) => [p.token, p.notes]));
-    expect(notes['TickLoop']).toEqual(['system: MeridianSystems']);
-    expect(notes['ShipState']).toEqual(['system: Simulation']);
-    expect(notes['TelemetryFeed']).toEqual(['system: Telemetry']);
-    expect(notes['ShipSystems']).toEqual(['system: Engineering', 'phase: 1']);
+    // ShipSystems and CommandHandlers have a provider in Engineering and one
+    // in LifeSupport, so a note is keyed by token and module.
+    const moduleName = new Map(modules.map((m) => [m.id, m.name]));
+    const notes = Object.fromEntries(
+      providers.map((p) => [
+        `${p.token} in ${moduleName.get(p.module)}`,
+        p.notes,
+      ]),
+    );
+    expect(notes['TickLoop in MeridianSystems']).toEqual([
+      'system: MeridianSystems',
+    ]);
+    expect(notes['ShipState in Simulation']).toEqual(['system: Simulation']);
+    expect(notes['TelemetryFeed in Telemetry']).toEqual(['system: Telemetry']);
+    expect(notes['ShipSystems in Engineering']).toEqual([
+      'system: Engineering',
+      'phase: 1',
+    ]);
+    expect(notes['ShipSystems in LifeSupport']).toEqual([
+      'system: LifeSupport',
+      'phase: 4',
+    ]);
+    expect(notes['CommandHandlers in Engineering']).toEqual([
+      'system: Engineering',
+    ]);
+    expect(notes['CommandHandlers in LifeSupport']).toEqual([
+      'system: LifeSupport',
+    ]);
+    expect(notes['PowerConsumers in LifeSupport']).toEqual([
+      'system: LifeSupport',
+    ]);
 
     const bridgeModules = [
       'BridgeApi',

@@ -5,6 +5,13 @@ export {
   type BadCommandReason,
 } from './errors';
 export { meridianSystems } from './meridian-systems.module';
+export type {
+  AtmosphereReading,
+  HeaterSetpoint,
+  LifeSupportRecord,
+  LifeSupportSetpoints,
+  PumpMode,
+} from './physics/atmosphere';
 export { GASES, pressure, type Gas } from './physics/gas';
 export type { LoadRecord, PowerLoad, PowerRecord } from './physics/power';
 export type {
@@ -29,3 +36,11 @@ export {
   REACTOR,
   SHIELD_GRID,
 } from './systems/engineering/contracts';
+export {
+  ATMOSPHERE_CONTROL,
+  ATMOSPHERE_SENSOR,
+  type IAtmosphereControl,
+  type IAtmosphereSensor,
+  LIFE_SUPPORT_OPTIONS,
+  type LifeSupportOptions,
+} from './systems/life-support/contracts';
