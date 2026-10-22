@@ -101,7 +101,7 @@ await once(server, 'close');
 await ship[Symbol.asyncDispose](); // after the last request has finished
 ```
 
-On Node 22 and 24, `server.close()` leaves open a connection that has never sent a request, so it can wait out the keep-alive timeout (nodejs/node#63452). `server.closeAllConnections()` ends them, along with requests still in flight, so call it after a drain deadline, such as `setTimeout(() => server.closeAllConnections(), 10_000)` in the `SIGTERM` handler.
+On Node 22 and 24, `server.close()` leaves open a connection that has never sent a request, so it can wait out the keep-alive timeout (nodejs/node#63452). `server.closeAllConnections()` ends them, along with requests still in flight, so call it after a drain deadline, such as `setTimeout(() => server.closeAllConnections(), 10_000).unref()` in the `SIGTERM` handler.
 
 An app that disposes the container before its server stops answers the remaining requests with a 503.
 
