@@ -13,7 +13,8 @@ export type BridgeFetch = (
 /**
  * One growth case. `run` throws an `Error` that names the first mismatch.
  * Each case expects a fresh `OfflineMeridian` ship, manual at seed 7 and
- * dt 0.5, behind `fetch`.
+ * dt 0.5, behind `fetch`. The ship's `bridgePlugins` and the bridge share one
+ * `nodeScopes()`, so the interlock and the flight recorder run.
  */
 export interface GrowthCase {
   readonly name: string;
@@ -33,9 +34,189 @@ async function okJson<T>(what: string, res: Response): Promise<T> {
   return (await res.json()) as T;
 }
 
+/** The init of a POST that sends `body` as JSON. */
+const json = (body: unknown): RequestInit => ({
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify(body),
+});
+
+/** A command for the desk: `system` and `action` with their arguments. */
+const command = (system: string, action: string, args: object = {}) => ({
+  system,
+  action,
+  ...args,
+});
+const pump = (mode: string) =>
+  command('life-support', 'pump', { compartment: 'airlock', mode });
+const vent = (open: boolean) =>
+  command('life-support', 'vent', { compartment: 'airlock', open });
+const door = (action: string, id: string) =>
+  command('safety', action, { door: id });
+
+/** Posts `command` and checks the status and body the desk answers. */
+async function send(
+  fetch: BridgeFetch,
+  command: { action: string },
+  status: number,
+  expected: object,
+): Promise<void> {
+  const res = await fetch('/commands', json(command));
+  expectEqual(`${command.action} status`, res.status, status);
+  expectEqual(`${command.action} answer`, await res.json(), expected);
+}
+
+/** Opens door `id` and checks that the interlock refuses it. */
+async function refused(fetch: BridgeFetch, id: string): Promise<void> {
+  const res = await fetch('/commands', json(door('open', id)));
+  expectEqual(`open ${id} status`, res.status, 409);
+  const answer = (await res.json()) as { code: string; message: string };
+  expectEqual(`open ${id} code`, answer.code, 'MERIDIAN_INTERLOCK');
+  const message = new RegExp(`^The ${id} door holds [\\d,]+ Pa of difference`);
+  if (!message.test(answer.message))
+    throw new Error(`open ${id} message: got ${answer.message}`);
+}
+
+/**
+ * Advances the ship `ticks` to `tick`, reads it with GET /sim and checks that
+ * no room raises an alarm.
+ */
+async function advanceTo(
+  fetch: BridgeFetch,
+  ticks: number,
+  tick: number,
+): Promise<ShipReading> {
+  await okJson(
+    'POST /sim/advance',
+    await fetch('/sim/advance', json({ ticks })),
+  );
+  const ship = await okJson<ShipReading>('GET /sim', await fetch('/sim'));
+  expectEqual('tick', ship.tick, tick);
+  expectEqual(`alarms at tick ${tick}`, ship.safety.alarms, []);
+  return ship;
+}
+
+/** Checks that `value` lies from `low` to `high`. */
+function expectWithin(what: string, value: number, low: number, high: number) {
+  if (!(value >= low && value <= high))
+    throw new Error(`${what}: got ${value}, want ${low} to ${high}`);
+}
+
+/**
+ * The airlock drill on fixed tick counts from tick 0, each read far from the
+ * interlock's 5,000 Pa. Seed 7 gives the airlock 9,089 Pa at tick 300 after
+ * the pump-down, 3,949 Pa at tick 340 after the vent, and a 410 Pa gap to the
+ * habitat at tick 474 after the fill.
+ */
+export const airlockDrill: GrowthCase = {
+  name: 'the airlock drill pumps the airlock down and vents it to space, then refills it under the interlock',
+  async run(fetch) {
+    const queued = (tick: number) => ({ tick });
+    const logged = (tick: number, line: string) => ({
+      tick,
+      flightLog: [`survey-7: ${line}`],
+    });
+    await send(
+      fetch,
+      command('engineering', 'throttle', { level: 0.01 }),
+      202,
+      queued(1),
+    );
+    await send(fetch, command('life-support', 'online'), 202, queued(1));
+    await send(fetch, pump('evacuate'), 202, queued(1));
+
+    let ship = await advanceTo(fetch, 300, 300);
+    expectWithin(
+      'airlock at tick 300',
+      ship.compartments.airlock.pressure,
+      8_500,
+      9_500,
+    );
+    await refused(fetch, 'airlock-outer');
+    await send(fetch, pump('off'), 202, queued(301));
+    await send(fetch, vent(true), 202, queued(301));
+
+    ship = await advanceTo(fetch, 40, 340);
+    expectWithin(
+      'airlock at tick 340',
+      ship.compartments.airlock.pressure,
+      3_500,
+      4_500,
+    );
+    await send(
+      fetch,
+      door('open', 'airlock-outer'),
+      202,
+      logged(341, 'opened airlock-outer'),
+    );
+
+    ship = await advanceTo(fetch, 20, 360);
+    expectWithin(
+      'airlock at tick 360',
+      ship.compartments.airlock.pressure,
+      0,
+      100,
+    );
+    expectEqual(
+      'airlock-outer at tick 360',
+      ship.setpoints.safety.doors['airlock-outer'],
+      true,
+    );
+    await send(
+      fetch,
+      door('close', 'airlock-outer'),
+      202,
+      logged(361, 'closed airlock-outer'),
+    );
+    await send(fetch, vent(false), 202, queued(361));
+    await send(fetch, pump('fill'), 202, queued(361));
+    await refused(fetch, 'habitat-airlock');
+
+    ship = await advanceTo(fetch, 114, 474);
+    const { habitat, airlock: room } = ship.compartments;
+    expectWithin(
+      'gap at tick 474',
+      Math.abs(habitat.pressure - room.pressure),
+      0,
+      2_500,
+    );
+    await send(fetch, pump('off'), 202, queued(475));
+    await send(
+      fetch,
+      door('open', 'habitat-airlock'),
+      202,
+      logged(475, 'opened habitat-airlock'),
+    );
+
+    ship = await advanceTo(fetch, 20, 494);
+    expectEqual(
+      'habitat-airlock at tick 494',
+      ship.setpoints.safety.doors['habitat-airlock'],
+      true,
+    );
+    const end = ship.compartments;
+    expectWithin(
+      'gap at tick 494',
+      Math.abs(end.habitat.pressure - end.airlock.pressure),
+      0,
+      500,
+    );
+    const log = await okJson<{ tick: number }[]>(
+      'GET /commands',
+      await fetch('/commands'),
+    );
+    expectEqual(
+      'command log ticks',
+      log.map((entry) => entry.tick),
+      [1, 301, 341, 361, 475],
+    );
+  },
+};
+
 /**
  * The cases bridge-api's e2e-growth target runs on workerd
  * (test/worker/growth/sim.test.ts), Deno and Bun (test/runtime/growth.ts).
+ * The airlock drill also runs on the Node servers (e2e/growth/airlock.e2e.ts).
  */
 export const growthCases: readonly GrowthCase[] = [
   {
@@ -131,4 +312,5 @@ export const growthCases: readonly GrowthCase[] = [
       );
     },
   },
+  airlockDrill,
 ];
