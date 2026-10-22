@@ -20,8 +20,9 @@ export const LIFE_SUPPORT_ACTIONS =
   'online with no arguments, heater with a compartment and on true or false or a target from 283 to 303 K, scrubber and oxygen with a compartment and on true or false, vent with a compartment and open true or false, and pump with a compartment and mode off, evacuate or fill';
 
 /**
- * The calibrated sensors of every compartment. The analyzers of a route and
- * the tick read through the same probe, so both see the same noisy numbers.
+ * The calibrated sensors of every compartment. A route's analyzer and
+ * Safety's step read through the same probe, so both see the same noisy
+ * numbers.
  */
 export interface IAtmosphereProbe {
   /**
