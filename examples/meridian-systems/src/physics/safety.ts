@@ -88,7 +88,7 @@ export interface SafetyInput<
   readonly setpoints: SafetySetpoints<Id, Door>;
   /** The safety record of the tick before. */
   readonly record: SafetyRecord<Id>;
-  /** The engineering records this tick: the coolant in K, the trip and the shed loads. */
+  /** The engineering records Safety reads this tick, with `coolant` in K. */
   readonly engineering: {
     readonly coolant: number;
     readonly tripped: boolean;
