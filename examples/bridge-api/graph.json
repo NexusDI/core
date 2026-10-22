@@ -9,8 +9,8 @@
         "m3",
         "m4",
         "m5",
-        "m9",
-        "m10"
+        "m10",
+        "m11"
       ],
       "exports": []
     },
@@ -60,13 +60,15 @@
       "imports": [
         "m6",
         "m7",
-        "m8"
+        "m8",
+        "m9"
       ],
       "exports": [
         "p6",
         "p14",
         "p7",
-        "m8"
+        "m8",
+        "m9"
       ]
     },
     {
@@ -102,20 +104,37 @@
         "p17",
         "p18",
         "p19",
-        "p20"
+        "p23",
+        "p20",
+        "p25"
       ]
     },
     {
       "id": "m9",
-      "name": "SimDriver",
+      "name": "LifeSupport",
       "global": false,
       "imports": [],
       "exports": [
-        "p21"
+        "p21",
+        "p22",
+        "p19",
+        "p23",
+        "p24",
+        "p20",
+        "p25"
       ]
     },
     {
       "id": "m10",
+      "name": "SimDriver",
+      "global": false,
+      "imports": [],
+      "exports": [
+        "p27"
+      ]
+    },
+    {
+      "id": "m11",
       "name": "interceptors",
       "global": false,
       "imports": [
@@ -379,44 +398,68 @@
     },
     {
       "id": "p21",
-      "token": "SimDriver",
+      "token": "AtmosphereSensor",
       "module": "m9",
-      "lifetime": "singleton",
+      "lifetime": "transient",
       "kind": "class",
       "eager": true,
       "async": null,
       "notes": [],
-      "implementation": "WallClockDriver",
+      "implementation": "GasAnalyzer",
       "internal": false
     },
     {
       "id": "p22",
-      "token": "DriverOptions",
+      "token": "AtmosphereControl",
       "module": "m9",
-      "lifetime": null,
-      "kind": "value",
-      "eager": true,
-      "async": null,
-      "notes": [],
-      "implementation": null,
-      "internal": false
-    },
-    {
-      "id": "p23",
-      "token": "NavAudit",
-      "module": "m10",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
       "async": null,
       "notes": [],
-      "implementation": "NavAudit",
+      "implementation": "EnvironmentalController",
+      "internal": false
+    },
+    {
+      "id": "p23",
+      "token": "ShipSystems",
+      "module": "m9",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "LifeSupportPhysics",
       "internal": false
     },
     {
       "id": "p24",
-      "token": "interceptors registry",
-      "module": "m10",
+      "token": "PowerConsumers",
+      "module": "m9",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "LifeSupportPower",
+      "internal": false
+    },
+    {
+      "id": "p25",
+      "token": "CommandHandlers",
+      "module": "m9",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "LifeSupportCommands",
+      "internal": false
+    },
+    {
+      "id": "p26",
+      "token": "LifeSupportOptions",
+      "module": "m9",
       "lifetime": "singleton",
       "kind": "factory",
       "eager": true,
@@ -426,9 +469,57 @@
       "internal": false
     },
     {
-      "id": "p25",
-      "token": "interceptors guard",
+      "id": "p27",
+      "token": "SimDriver",
       "module": "m10",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "WallClockDriver",
+      "internal": false
+    },
+    {
+      "id": "p28",
+      "token": "DriverOptions",
+      "module": "m10",
+      "lifetime": null,
+      "kind": "value",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "p29",
+      "token": "NavAudit",
+      "module": "m11",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "NavAudit",
+      "internal": false
+    },
+    {
+      "id": "p30",
+      "token": "interceptors registry",
+      "module": "m11",
+      "lifetime": "singleton",
+      "kind": "factory",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "p31",
+      "token": "interceptors guard",
+      "module": "m11",
       "lifetime": "singleton",
       "kind": "factory",
       "eager": true,
@@ -492,8 +583,18 @@
       "kind": "all"
     },
     {
+      "from": "p6",
+      "to": "p23",
+      "kind": "all"
+    },
+    {
       "from": "p7",
       "to": "p20",
+      "kind": "all"
+    },
+    {
+      "from": "p7",
+      "to": "p25",
       "kind": "all"
     },
     {
@@ -547,6 +648,11 @@
       "kind": "lazy"
     },
     {
+      "from": "p17",
+      "to": "p24",
+      "kind": "all"
+    },
+    {
       "from": "p18",
       "to": "p10",
       "kind": "required"
@@ -583,27 +689,87 @@
     },
     {
       "from": "p21",
-      "to": "p6",
+      "to": "p12",
       "kind": "required"
     },
     {
       "from": "p21",
-      "to": "p13",
+      "to": "p10",
       "kind": "required"
     },
     {
       "from": "p21",
-      "to": "p22",
+      "to": "p9",
+      "kind": "required"
+    },
+    {
+      "from": "p21",
+      "to": "p26",
+      "kind": "required"
+    },
+    {
+      "from": "p21",
+      "to": "p11",
+      "kind": "required"
+    },
+    {
+      "from": "p22",
+      "to": "p10",
       "kind": "required"
     },
     {
       "from": "p23",
-      "to": "p5",
+      "to": "p26",
+      "kind": "required"
+    },
+    {
+      "from": "p23",
+      "to": "p11",
       "kind": "required"
     },
     {
       "from": "p24",
-      "to": "p23",
+      "to": "p26",
+      "kind": "required"
+    },
+    {
+      "from": "p24",
+      "to": "p11",
+      "kind": "required"
+    },
+    {
+      "from": "p25",
+      "to": "p22",
+      "kind": "required"
+    },
+    {
+      "from": "p26",
+      "to": "p11",
+      "kind": "required"
+    },
+    {
+      "from": "p27",
+      "to": "p6",
+      "kind": "required"
+    },
+    {
+      "from": "p27",
+      "to": "p13",
+      "kind": "required"
+    },
+    {
+      "from": "p27",
+      "to": "p28",
+      "kind": "required"
+    },
+    {
+      "from": "p29",
+      "to": "p5",
+      "kind": "required"
+    },
+    {
+      "from": "p30",
+      "to": "p29",
       "kind": "required"
     }
   ]
