@@ -10,6 +10,7 @@ import {
   SHIP_STATE,
   TELEMETRY,
 } from '@nexusdi/meridian-systems';
+import { nodeScopes, type NodeScopes } from '@nexusdi/node';
 import { createTestingContainer } from '@nexusdi/testing';
 import { describe, expect, vi } from 'vitest';
 
@@ -83,6 +84,7 @@ type Call = (
   path: string,
   payload?: Payload,
   options?: BridgeOptions,
+  headers?: Readonly<Record<string, string>>,
 ) => Promise<Answer>;
 
 const json = (body: unknown): Payload => ({
@@ -114,44 +116,54 @@ function answerOf(status: number, type: unknown, text: string): Answer {
 const answerOfResponse = async (res: Response): Promise<Answer> =>
   answerOf(res.status, res.headers.get('content-type'), await res.text());
 
-const init = (method: string, payload?: Payload): RequestInit =>
+const init = (
+  method: string,
+  payload?: Payload,
+  headers: Readonly<Record<string, string>> = {},
+): RequestInit =>
   payload === undefined
-    ? { method }
+    ? { method, headers }
     : {
         method,
-        headers: { 'content-type': payload.type },
+        headers: { ...headers, 'content-type': payload.type },
         body: payload.text,
       };
 
 /** One request to `ship` through each framework's bridge. */
 const calls: Readonly<Record<'hono' | 'express' | 'fastify', Call>> = {
-  async hono(ship, method, path, payload, options) {
+  async hono(ship, method, path, payload, options, headers) {
     return answerOfResponse(
-      await honoBridge(ship, options).request(path, init(method, payload)),
+      await honoBridge(ship, options).request(
+        path,
+        init(method, payload, headers),
+      ),
     );
   },
-  async express(ship, method, path, payload, options) {
+  async express(ship, method, path, payload, options, headers) {
     const server = expressBridge(ship, options).listen(0, '127.0.0.1');
     await once(server, 'listening');
     const { port } = server.address() as AddressInfo;
     try {
       return answerOfResponse(
-        await fetch(`http://127.0.0.1:${port}${path}`, init(method, payload)),
+        await fetch(
+          `http://127.0.0.1:${port}${path}`,
+          init(method, payload, headers),
+        ),
       );
     } finally {
       server.close();
     }
   },
-  async fastify(ship, method, path, payload, options) {
+  async fastify(ship, method, path, payload, options, headers = {}) {
     const bridge = await fastifyBridge(ship, options);
     try {
       const res = await bridge.inject({
         method,
         url: path,
         ...(payload === undefined
-          ? {}
+          ? { headers }
           : {
-              headers: { 'content-type': payload.type },
+              headers: { ...headers, 'content-type': payload.type },
               payload: payload.text,
             }),
       });
@@ -464,6 +476,90 @@ describe.each(['hono', 'express', 'fastify'] as const)(
       } finally {
         vi.useRealTimers();
       }
+    });
+  },
+);
+
+describe.each(['hono', 'express', 'fastify'] as const)(
+  'the door commands on %s',
+  (framework) => {
+    const call = calls[framework];
+    const door = (action: 'open' | 'close', id: string) =>
+      json({ system: 'safety', action, door: id });
+
+    /** A ship whose plugins read `scopes`, which the bridge runs too, as the Node entries build them. */
+    const scopedShip = (scopes: NodeScopes) =>
+      Nexus.create(OfflineMeridian, { plugins: bridgePlugins({ scopes }) });
+
+    test('POST /commands answers the flight log entry of an opened door', async () => {
+      const scopes = nodeScopes();
+      await using ship = await scopedShip(scopes);
+      expect(
+        await call(ship, 'POST', '/commands', door('open', 'bridge-habitat'), {
+          scopes,
+        }),
+      ).toEqual({
+        status: 202,
+        body: { tick: 1, flightLog: ['survey-7: opened bridge-habitat'] },
+      });
+    });
+
+    test('POST /commands records the entry under the request mission', async () => {
+      const scopes = nodeScopes();
+      await using ship = await scopedShip(scopes);
+      expect(
+        await call(
+          ship,
+          'POST',
+          '/commands',
+          door('open', 'bridge-habitat'),
+          { scopes },
+          { 'x-mission-id': 'survey-9' },
+        ),
+      ).toEqual({
+        status: 202,
+        body: { tick: 1, flightLog: ['survey-9: opened bridge-habitat'] },
+      });
+    });
+
+    test('POST /commands answers the tick alone without scopes', async () => {
+      await using ship = await Nexus.create(OfflineMeridian, {
+        plugins: bridgePlugins(),
+      });
+      expect(
+        await call(ship, 'POST', '/commands', door('open', 'bridge-habitat')),
+      ).toEqual({ status: 202, body: { tick: 1 } });
+    });
+
+    test('POST /commands answers 409 for the outer door at sea-level pressure', async () => {
+      const scopes = nodeScopes();
+      await using ship = await scopedShip(scopes);
+      expect(
+        await call(ship, 'POST', '/commands', door('open', 'airlock-outer'), {
+          scopes,
+        }),
+      ).toEqual({
+        status: 409,
+        body: {
+          code: 'MERIDIAN_INTERLOCK',
+          message:
+            'The airlock-outer door holds 101,300 Pa of difference, above the 5,000 Pa interlock.',
+          fix: 'bring both sides within 5,000 Pa of each other with a pump or a vent, then open the door.',
+        },
+      });
+    });
+
+    test('POST /commands records a closed door, which the interlock never holds', async () => {
+      const scopes = nodeScopes();
+      await using ship = await scopedShip(scopes);
+      expect(
+        await call(ship, 'POST', '/commands', door('close', 'airlock-outer'), {
+          scopes,
+        }),
+      ).toEqual({
+        status: 202,
+        body: { tick: 1, flightLog: ['survey-7: closed airlock-outer'] },
+      });
     });
   },
 );

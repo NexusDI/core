@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 import { answerCommand } from '../src/bridge/commands';
 import { refusalOf, SHIP_TEXT } from '../src/bridge/refusal';
+import { MemoryFlightLog } from './doubles';
 
 /** A desk whose submit() calls `answer`. */
 const desk = (answer: () => { tick: number }): ICommandDesk => ({
@@ -29,6 +30,7 @@ describe('answerCommand', () => {
       answerCommand(
         desk(() => ({ tick: 4 })),
         {},
+        new MemoryFlightLog(),
       ),
     ).toEqual({
       status: 202,
@@ -43,7 +45,7 @@ describe('answerCommand', () => {
       action: 'engage',
       expected: 'engineering',
     });
-    expect(answerCommand(refuse(error), {})).toEqual({
+    expect(answerCommand(refuse(error), {}, new MemoryFlightLog())).toEqual({
       status: 400,
       body: {
         code: 'MERIDIAN_BAD_COMMAND',
@@ -60,7 +62,7 @@ describe('answerCommand', () => {
       demand: 200e6,
       available: 193.6e6,
     });
-    expect(answerCommand(refuse(error), {})).toEqual({
+    expect(answerCommand(refuse(error), {}, new MemoryFlightLog())).toEqual({
       status: 409,
       body: {
         code: 'MERIDIAN_POWER_BUDGET',
@@ -73,7 +75,7 @@ describe('answerCommand', () => {
 
   it('answers 409 with the one-line message for a code no pack words', () => {
     const error = new NexusError('BRIDGE_PROBE', 'ProbeError', {});
-    expect(answerCommand(refuse(error), {})).toEqual({
+    expect(answerCommand(refuse(error), {}, new MemoryFlightLog())).toEqual({
       status: 409,
       body: {
         code: 'BRIDGE_PROBE',
@@ -82,9 +84,50 @@ describe('answerCommand', () => {
     });
   });
 
+  it('answers the tick alone when the flight log holds no entry', () => {
+    expect(
+      answerCommand(
+        desk(() => ({ tick: 4 })),
+        {},
+        new MemoryFlightLog(),
+      ),
+    ).toEqual({ status: 202, body: { tick: 4 } });
+  });
+
+  it('answers the flight log beside the tick when it holds entries', () => {
+    const log = new MemoryFlightLog();
+    const opened = desk(() => {
+      log.record('survey-7: opened bridge-habitat');
+      return { tick: 4 };
+    });
+    expect(answerCommand(opened, {}, log)).toEqual({
+      status: 202,
+      body: { tick: 4, flightLog: ['survey-7: opened bridge-habitat'] },
+    });
+  });
+
+  it('answers 409 with the interlock text', () => {
+    const error = new InterlockError({
+      door: 'airlock-outer',
+      difference: 101_300,
+      limit: 5_000,
+    });
+    expect(answerCommand(refuse(error), {}, new MemoryFlightLog())).toEqual({
+      status: 409,
+      body: {
+        code: 'MERIDIAN_INTERLOCK',
+        message:
+          'The airlock-outer door holds 101,300 Pa of difference, above the 5,000 Pa interlock.',
+        fix: 'bring both sides within 5,000 Pa of each other with a pump or a vent, then open the door.',
+      },
+    });
+  });
+
   it('rethrows an error that is not a NexusError', () => {
     const bug = new Error('the handler broke');
-    expect(() => answerCommand(refuse(bug), {})).toThrow(bug);
+    expect(() => answerCommand(refuse(bug), {}, new MemoryFlightLog())).toThrow(
+      bug,
+    );
   });
 });
 

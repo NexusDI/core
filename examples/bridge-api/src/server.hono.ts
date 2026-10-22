@@ -3,6 +3,7 @@ import type { Server } from 'node:http';
 
 import { serve } from '@hono/node-server';
 import { graph } from '@nexusdi/devtools';
+import { nodeScopes } from '@nexusdi/node';
 
 import { createBridge } from './hono';
 import {
@@ -13,9 +14,12 @@ import {
   stopOnSigterm,
 } from './ship-from-env';
 
-await using ship = await shipFromEnv();
+// The bridge runs each request in its scope, and the flight recorder reads it.
+const scopes = nodeScopes();
+await using ship = await shipFromEnv(scopes);
 const shutdown = new AbortController();
 const bridge = createBridge(ship, {
+  scopes,
   graph: isDev(process.env) ? () => graph(ship) : undefined,
   shutdown: shutdown.signal,
 });

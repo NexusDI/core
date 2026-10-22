@@ -143,10 +143,13 @@ export function createBridge(
   bridge.post(
     '/commands',
     text,
-    di.inject({ desk: COMMAND_DESK }, ({ desk }, req, res) => {
-      const answer = answerCommand(desk, body(req));
-      res.status(answer.status).json(answer.body);
-    }),
+    di.inject(
+      { desk: COMMAND_DESK, log: FLIGHT_LOG },
+      ({ desk, log }, req, res) => {
+        const answer = answerCommand(desk, body(req), log);
+        res.status(answer.status).json(answer.body);
+      },
+    ),
   );
   bridge.get(
     '/commands',

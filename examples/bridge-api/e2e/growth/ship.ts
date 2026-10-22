@@ -1,5 +1,6 @@
 import { Nexus } from '@nexusdi/core';
 import type { ShipReading } from '@nexusdi/meridian-systems';
+import { nodeScopes } from '@nexusdi/node';
 import { expect } from 'vitest';
 
 import { offlineMeridian, type ShipSetup } from '../../src/ship/meridian';
@@ -40,16 +41,21 @@ export async function readShip(url: string): Promise<ShipReading> {
   return (await read.json()) as ShipReading;
 }
 
-/** Serves a fresh offline ship on `framework`, runs `body`, then stops both. */
+/**
+ * Serves a fresh offline ship on `framework`, runs `body`, then stops both.
+ * The ship and the bridge share one `nodeScopes()`, as the Node entries do,
+ * so a door command answers its flight log entry.
+ */
 export async function withShip(
   framework: keyof typeof servers,
   setup: ShipSetup,
   body: (url: string) => Promise<void>,
 ): Promise<void> {
+  const scopes = nodeScopes();
   await using ship = await Nexus.create(offlineMeridian(setup), {
-    plugins: bridgePlugins(),
+    plugins: bridgePlugins({ scopes }),
   });
-  const bridge = await servers[framework](ship);
+  const bridge = await servers[framework](ship, scopes);
   try {
     await body(bridge.url);
   } finally {

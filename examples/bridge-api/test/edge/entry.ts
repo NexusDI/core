@@ -1,13 +1,13 @@
 import { Nexus } from '@nexusdi/core';
-import { trace } from '@nexusdi/devtools';
 
 import { createBridge } from '../../src/hono';
 import { OfflineMeridian } from '../../src/ship/meridian';
+import { bridgePlugins } from '../../src/ship/plugins';
 
 // The offline worker of src/worker.offline.ts for Vercel's Edge Runtime: the
-// same graph, built once per isolate, with no nodeScopes(), since the VM
-// has no node:async_hooks. The counters let the test read what happened
-// inside the VM.
+// same graph and plugins, built once per isolate, with no nodeScopes(), since
+// the VM has no node:async_hooks. A door command answers the tick alone. The
+// counters let the test read what happened inside the VM.
 interface FetchEvent extends Event {
   readonly request: Request;
   respondWith(response: Response | Promise<Response>): void;
@@ -18,12 +18,12 @@ const counts = { create: 0, dispose: 0, waitUntil: 0 };
 (globalThis as { bridgeCounts?: typeof counts }).bridgeCounts = counts;
 
 const ready = Nexus.create(OfflineMeridian, {
-  plugins: [
-    trace((event) => {
+  plugins: bridgePlugins({
+    trace: (event) => {
       if (event.type === 'scope:create') counts.create += 1;
       if (event.type === 'scope:dispose') counts.dispose += 1;
-    }),
-  ],
+    },
+  }),
 }).then((ship) => createBridge(ship));
 
 addEventListener('fetch', (event) => {
