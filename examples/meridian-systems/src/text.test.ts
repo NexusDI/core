@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   BadCommandError,
+  InterlockError,
   PowerBudgetError,
   UnknownCompartmentError,
 } from './errors';
@@ -137,6 +138,20 @@ describe('shipText', () => {
       [
         '[MERIDIAN_UNKNOWN_COMPARTMENT] The request names no compartment. The deck has bridge, habitat, reactor-bay and airlock.',
         '  Fix: read /compartments/<id>/atmosphere with one of the compartments above.',
+      ].join('\n'),
+    );
+  });
+
+  it('words MERIDIAN_INTERLOCK with the difference and the limit', () => {
+    const error = new InterlockError({
+      door: 'habitat-airlock',
+      difference: 70_585,
+      limit: 5_000,
+    });
+    expect(render(error)).toBe(
+      [
+        '[MERIDIAN_INTERLOCK] The habitat-airlock door holds 70,585 Pa of difference, above the 5,000 Pa interlock.',
+        '  Fix: bring both sides within 5,000 Pa of each other with a pump or a vent, then open the door.',
       ].join('\n'),
     );
   });

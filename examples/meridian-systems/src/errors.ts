@@ -54,10 +54,26 @@ export class UnknownCompartmentError extends errorBase<
   UnknownCompartmentFields
 >('MERIDIAN_UNKNOWN_COMPARTMENT', 'UnknownCompartmentError', DOCS) {}
 
+interface InterlockFields {
+  /** The door the command named. */
+  readonly door: string;
+  /** The pressure difference across the door, in Pa, rounded. */
+  readonly difference: number;
+  /** The largest difference the interlock lets a door open across, in Pa. */
+  readonly limit: number;
+}
+
+/** A command asked to open a door with more pressure across it than the interlock allows. */
+export class InterlockError extends errorBase<
+  'MERIDIAN_INTERLOCK',
+  InterlockFields
+>('MERIDIAN_INTERLOCK', 'InterlockError', DOCS) {}
+
 declare module '@nexusdi/core' {
   interface NexusErrorByCode {
     MERIDIAN_POWER_BUDGET: PowerBudgetError;
     MERIDIAN_BAD_COMMAND: BadCommandError;
     MERIDIAN_UNKNOWN_COMPARTMENT: UnknownCompartmentError;
+    MERIDIAN_INTERLOCK: InterlockError;
   }
 }

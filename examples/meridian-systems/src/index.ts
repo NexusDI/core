@@ -1,5 +1,6 @@
 export {
   BadCommandError,
+  InterlockError,
   PowerBudgetError,
   UnknownCompartmentError,
   type BadCommandReason,
