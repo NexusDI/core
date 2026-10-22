@@ -7,9 +7,14 @@ const LISTENING = /Server is running on (http:\/\/localhost:(\d+))/;
 
 /**
  * Starts one entry under tsx, on a free port, the offline graph and a manual
- * ship, and kills it when the test finishes if it is still running.
+ * ship, and kills it when the test finishes if it is still running. A
+ * concurrent test passes its own context's `onTestFinished`, since the
+ * imported hook can attach to another test that runs at the same time.
  */
-export function start(entry: string): ChildProcess {
+export function start(
+  entry: string,
+  finished: typeof onTestFinished = onTestFinished,
+): ChildProcess {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     PORT: '0',
@@ -27,7 +32,7 @@ export function start(entry: string): ChildProcess {
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  onTestFinished(() => {
+  finished(() => {
     if (child.exitCode === null && child.signalCode === null)
       child.kill('SIGKILL');
   });
