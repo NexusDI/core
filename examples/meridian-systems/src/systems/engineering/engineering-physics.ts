@@ -1,10 +1,10 @@
 import { allocatePower, loadHeat } from '../../physics/power';
 import { stepCoolant, stepReactor, tripped } from '../../physics/thermal';
-import {
-  type IShipSystem,
-  type Phase,
-  type ShipSnapshot,
-  type TickContext,
+import type {
+  IShipSystem,
+  Phase,
+  ShipSnapshot,
+  TickContext,
 } from '../../simulation/contracts';
 import {
   COOLANT_LOOP,

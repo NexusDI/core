@@ -21,13 +21,16 @@
       "path": "../../libs/vitest/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/errors/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/devtools/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/core/tsconfig.lib.json"
+      "path": "../../libs/interceptors/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/errors/tsconfig.lib.json"
+      "path": "../../libs/core/tsconfig.lib.json"
     }
   ],
   "exclude": [

@@ -93,7 +93,8 @@ const LIBRARY = join(workspaceRoot, 'examples/meridian-systems');
 const eslint = new ESLint({ cwd: LIBRARY });
 
 const PURITY_RULES = [
-  'no-restricted-imports',
+  '@typescript-eslint/no-restricted-imports',
+  '@typescript-eslint/no-import-type-side-effects',
   'no-restricted-globals',
   'no-restricted-properties',
   'no-restricted-syntax',
@@ -186,6 +187,39 @@ describe('the meridian-systems eslint purity rules', () => {
     expect(await purityHits(code)).not.toEqual([]);
   });
 
+  it.each([
+    [
+      'a value import of @nexusdi/interceptors',
+      "import { interceptors } from '@nexusdi/interceptors';\nexport const x = interceptors;",
+    ],
+    [
+      'a subpath type import of @nexusdi/interceptors',
+      "import type { Interceptor } from '@nexusdi/interceptors/text';\nexport type X = Interceptor;",
+    ],
+    [
+      'a subpath value import of @nexusdi/interceptors',
+      "import { interceptorsText } from '@nexusdi/interceptors/text';\nexport const x = interceptorsText;",
+    ],
+    [
+      'a side-effect import of @nexusdi/interceptors',
+      "import '@nexusdi/interceptors';",
+    ],
+    [
+      'a mixed import of @nexusdi/interceptors',
+      "import { interceptors, type Interceptor } from '@nexusdi/interceptors';\nexport type X = Interceptor;\nexport const x = interceptors;",
+    ],
+    [
+      'an import type of node:crypto',
+      "import type { webcrypto } from 'node:crypto';\nexport type X = webcrypto.Crypto;",
+    ],
+    [
+      'an inline type import that leaves a bare import behind',
+      "import { type Interceptor } from '@nexusdi/interceptors';\nexport type X = Interceptor;",
+    ],
+  ])('refuses %s', async (_name, code) => {
+    expect(await purityHits(code)).not.toEqual([]);
+  });
+
   it('refuses a clock in a test file', async () => {
     expect(
       await purityHits('export const t = Date.now();', 'src/x.test.ts'),
@@ -204,6 +238,10 @@ describe('the meridian-systems eslint purity rules', () => {
     [
       '@nexusdi/core',
       "import { Token } from '@nexusdi/core';\nexport const t = Token;",
+    ],
+    [
+      'an import type of @nexusdi/interceptors',
+      "import type { Interceptor } from '@nexusdi/interceptors';\nexport type X = Interceptor;",
     ],
     ['queueMicrotask', 'queueMicrotask(() => undefined);'],
     [
@@ -291,10 +329,27 @@ describe('the meridian-systems eslint config', () => {
         expect.objectContaining({ object: 'Math', property: 'random' }),
       );
 
-      const [imports] = options(config, 'no-restricted-imports') as [
-        { patterns: { regex: string }[] },
-      ];
+      expect(config.rules?.['no-restricted-imports']).toEqual([0]);
+      expect(
+        config.rules?.['@typescript-eslint/no-import-type-side-effects'],
+      ).toEqual([2]);
+      const [imports] = options(
+        config,
+        '@typescript-eslint/no-restricted-imports',
+      ) as [{ patterns: { regex: string; allowTypeImports?: boolean }[] }];
       const regex = new RegExp(imports.patterns[0]?.regex ?? '$^');
+      // The bare package passes the first pattern; the second holds it to
+      // import type.
+      expect(regex.test('@nexusdi/interceptors')).toBe(false);
+      expect(regex.test('@nexusdi/interceptors/text')).toBe(true);
+      const bare = imports.patterns[1];
+      expect(bare?.allowTypeImports).toBe(true);
+      expect(
+        new RegExp(bare?.regex ?? '$^').test('@nexusdi/interceptors'),
+      ).toBe(true);
+      expect(
+        new RegExp(bare?.regex ?? '$^').test('@nexusdi/interceptors/text'),
+      ).toBe(false);
       expect(regex.test('node:crypto')).toBe(true);
       expect(regex.test('crypto')).toBe(true);
       expect(regex.test('@nexusdi/core')).toBe(false);
