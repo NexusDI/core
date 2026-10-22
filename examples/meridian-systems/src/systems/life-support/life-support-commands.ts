@@ -1,5 +1,9 @@
-import { BadCommandError } from '../../errors';
 import type { PumpMode } from '../../physics/atmosphere';
+import {
+  commandRefusal,
+  flagArgument,
+  textArgument,
+} from '../../simulation/command-arguments';
 import type {
   ICommandHandler,
   QueuedCommand,
@@ -26,6 +30,8 @@ export class LifeSupportCommands implements ICommandHandler {
 
   readonly system = 'life-support';
 
+  private readonly refuse = commandRefusal(this.system, LIFE_SUPPORT_ACTIONS);
+
   constructor(private readonly control: IAtmosphereControl) {}
 
   handle(command: ShipCommand): QueuedCommand {
@@ -33,7 +39,7 @@ export class LifeSupportCommands implements ICommandHandler {
       case 'online':
         return this.control.online();
       case 'heater': {
-        const compartment = this.compartment(command);
+        const compartment = textArgument(command, 'compartment', this.refuse);
         const { on, target } = command;
         const goodOn = on === undefined || typeof on === 'boolean';
         const goodTarget =
@@ -46,7 +52,7 @@ export class LifeSupportCommands implements ICommandHandler {
           !goodTarget ||
           (on === undefined && target === undefined)
         ) {
-          throw this.refuse(command, 'argument');
+          throw this.refuse(command.action);
         }
         return this.control.heater(compartment, {
           on: on as boolean | undefined,
@@ -55,52 +61,28 @@ export class LifeSupportCommands implements ICommandHandler {
       }
       case 'scrubber':
         return this.control.scrubber(
-          this.compartment(command),
-          this.flag(command, 'on'),
+          textArgument(command, 'compartment', this.refuse),
+          flagArgument(command, 'on', this.refuse),
         );
       case 'oxygen':
         return this.control.oxygen(
-          this.compartment(command),
-          this.flag(command, 'on'),
+          textArgument(command, 'compartment', this.refuse),
+          flagArgument(command, 'on', this.refuse),
         );
       case 'vent':
         return this.control.vent(
-          this.compartment(command),
-          this.flag(command, 'open'),
+          textArgument(command, 'compartment', this.refuse),
+          flagArgument(command, 'open', this.refuse),
         );
       case 'pump': {
-        const compartment = this.compartment(command);
+        const compartment = textArgument(command, 'compartment', this.refuse);
         if (!PUMP_MODES.includes(command.mode)) {
-          throw this.refuse(command, 'argument');
+          throw this.refuse(command.action);
         }
         return this.control.pump(compartment, command.mode as PumpMode);
       }
       default:
-        throw this.refuse(command, 'action');
+        throw this.refuse(command.action, 'action');
     }
-  }
-
-  private compartment(command: ShipCommand): string {
-    const { compartment } = command;
-    if (typeof compartment !== 'string') throw this.refuse(command, 'argument');
-    return compartment;
-  }
-
-  private flag(command: ShipCommand, name: 'on' | 'open'): boolean {
-    const value = command[name];
-    if (typeof value !== 'boolean') throw this.refuse(command, 'argument');
-    return value;
-  }
-
-  private refuse(
-    command: ShipCommand,
-    reason: 'action' | 'argument',
-  ): BadCommandError {
-    return new BadCommandError({
-      reason,
-      system: this.system,
-      action: command.action,
-      expected: LIFE_SUPPORT_ACTIONS,
-    });
   }
 }
