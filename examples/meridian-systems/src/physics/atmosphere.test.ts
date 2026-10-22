@@ -184,12 +184,14 @@ describe('the crew and the deck in one tick', () => {
 });
 
 describe('the scrubber', () => {
-  it('holds the habitat CO₂ at 2.525 mol, 51.3 Pa at 293 K', () => {
+  it('holds the habitat CO₂ at 2.5245 mol, 51.248 Pa at 293 K', () => {
     const habitat = room('habitat');
     const result = run(input({ rooms: [habitat] }), 60_000);
     const co2 = result.compartments.habitat.moles.CO2;
-    expect(co2).toBeCloseTo(2.525, 3);
-    expect(Math.abs((co2 * R * 293) / habitat.volume - 51.3)).toBeLessThan(0.1);
+    expect(Math.abs(co2 - 2.52454)).toBeLessThanOrEqual(1e-5);
+    expect(
+      Math.abs((co2 * R * 293) / habitat.volume - 51.2481),
+    ).toBeLessThanOrEqual(0.001);
   });
 
   it('holds the habitat at 40.00 % relative humidity', () => {

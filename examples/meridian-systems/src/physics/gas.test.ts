@@ -56,6 +56,13 @@ describe('the gas law', () => {
 });
 
 describe('the heat capacity of a room', () => {
+  it('gives the habitat 4,104,250 J/K at the initial air', () => {
+    const habitat = air(101_300, 293, 120);
+    expect(
+      Math.abs(heatCapacity(habitat, 4_000_000) - 4_104_250),
+    ).toBeLessThanOrEqual(1);
+  });
+
   it('adds each gas at its molar heat capacity', () => {
     const one = { O2: 1, N2: 1, CO2: 1, H2O: 1, volatiles: 1 };
     const sum = GASES.reduce((total, gas) => total + CV[gas], 0);
