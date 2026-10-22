@@ -1,12 +1,17 @@
 import { NexusError } from '@nexusdi/core';
+import { InterceptorError } from '@nexusdi/interceptors';
+import { interceptorsText } from '@nexusdi/interceptors/text';
 import {
   BadCommandError,
   type ICommandDesk,
+  InterlockError,
   PowerBudgetError,
 } from '@nexusdi/meridian-systems';
+import { shipText } from '@nexusdi/meridian-systems/text';
 import { describe, expect, it } from 'vitest';
 
 import { answerCommand } from '../src/bridge/commands';
+import { refusalOf, SHIP_TEXT } from '../src/bridge/refusal';
 
 /** A desk whose submit() calls `answer`. */
 const desk = (answer: () => { tick: number }): ICommandDesk => ({
@@ -80,5 +85,43 @@ describe('answerCommand', () => {
   it('rethrows an error that is not a NexusError', () => {
     const bug = new Error('the handler broke');
     expect(() => answerCommand(refuse(bug), {})).toThrow(bug);
+  });
+});
+
+describe('refusalOf', () => {
+  it('reads the ship text and the interceptor text from SHIP_TEXT', () => {
+    expect(SHIP_TEXT).toEqual([shipText, interceptorsText]);
+  });
+
+  it('words an InterlockError with the difference and the limit', () => {
+    const error = new InterlockError({
+      door: 'habitat-airlock',
+      difference: 70_585,
+      limit: 5_000,
+    });
+    expect(refusalOf(error)).toEqual({
+      code: 'MERIDIAN_INTERLOCK',
+      message:
+        'The habitat-airlock door holds 70,585 Pa of difference, above the 5,000 Pa interlock.',
+      fix: 'bring both sides within 5,000 Pa of each other with a pump or a vent, then open the door.',
+    });
+  });
+
+  it('words an InterceptorError with the interceptor text', () => {
+    const error = new InterceptorError({
+      code: 'NEXUS_INTERCEPTOR_LIFETIME',
+      reason: null,
+      token: 'Audit',
+      target: null,
+      method: null,
+      state: null,
+      detail: ['scoped'],
+    });
+    expect(refusalOf(error)).toEqual({
+      code: 'NEXUS_INTERCEPTOR_LIFETIME',
+      message:
+        'the interceptor Audit is scoped, and interceptors are singletons.',
+      fix: 'remove its lifetime, and read request data from call.instance.',
+    });
   });
 });

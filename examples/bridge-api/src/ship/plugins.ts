@@ -9,6 +9,7 @@ import {
 } from '@nexusdi/interceptors';
 import { shipNotes } from '@nexusdi/meridian-systems';
 
+import { SHIP_TEXT } from '../bridge/refusal';
 import { AUDIT_LOG, AuditTrail, type IAuditLog } from './audit-trail.module';
 import { NAV_CHARTS } from './contracts';
 
@@ -25,9 +26,10 @@ class NavAudit implements Interceptor {
 }
 
 /**
- * The demo app's plugins: the audit interceptor always; errors() and
- * devtools() in development, where `shipNotes` labels each simulation
- * provider in graph() with its system.
+ * The demo app's plugins: the audit interceptor always; errors() with
+ * SHIP_TEXT and devtools() in development, where `shipNotes` labels each
+ * simulation provider in graph() with its system. No refusal body depends on
+ * errors(), since refusalOf reads SHIP_TEXT itself.
  */
 export function bridgePlugins(
   options: { dev?: boolean; trace?: (event: TraceEvent) => void } = {},
@@ -38,7 +40,9 @@ export function bridgePlugins(
       register: [NavAudit],
       bindings: [{ token: NAV_CHARTS, class: [NavAudit] }],
     }),
-    ...(options.dev ? [errors(), devtools({ annotate: [shipNotes] })] : []),
+    ...(options.dev
+      ? [errors({ text: SHIP_TEXT }), devtools({ annotate: [shipNotes] })]
+      : []),
     ...(options.trace ? [trace(options.trace)] : []),
   ];
 }
