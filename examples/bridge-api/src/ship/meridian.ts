@@ -1,6 +1,7 @@
 import { defineModule } from '@nexusdi/core';
 import { meridianSystems, type SimOptions } from '@nexusdi/meridian-systems';
 
+import { AlarmPanel } from './alarm-panel.module';
 import { AuditTrail } from './audit-trail.module';
 import { BridgeApi } from './bridge-api.module';
 import type { SimMode } from './contracts';
@@ -28,6 +29,7 @@ export function meridian(relayUrl: string, setup: ShipSetup = SEEDED) {
       tactical(relayUrl),
       BridgeApi,
       AuditTrail,
+      AlarmPanel,
       meridianSystems(setup.sim),
       SimDriver.forRoot({ mode: setup.mode }),
     ],
@@ -41,6 +43,7 @@ export function offlineMeridian(setup: ShipSetup = SEEDED) {
       OfflineTactical,
       BridgeApi,
       AuditTrail,
+      AlarmPanel,
       meridianSystems(setup.sim),
       SimDriver.forRoot({ mode: setup.mode }),
     ],

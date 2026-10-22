@@ -121,6 +121,7 @@ describe('the bridge API graph', () => {
     const bridgeModules = [
       'BridgeApi',
       'AuditTrail',
+      'AlarmPanel',
       'OfflineTactical',
       'SimDriver',
     ];
