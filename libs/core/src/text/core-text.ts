@@ -3,7 +3,7 @@ import type {
   ErrorTextKit,
   ErrorTextPack,
 } from '../blueprint/views.js';
-import { describeThrown } from '../errors/describe-thrown.js';
+import { describeCause } from '../errors/describe-thrown.js';
 import { issueLine } from '../errors/line.js';
 import type {
   AmbiguousProviderError,
@@ -46,12 +46,12 @@ type Builder<E> = (error: E) => ErrorText;
 const text = (message: string): ErrorText => ({ message });
 
 /**
- * Writes a wrapped cause for a message and indents its continuation lines
- * four spaces, so a formatted cause's lines sit under its first line and
+ * Writes a wrapped cause for a message, a foreign cause cut at 500
+ * characters, and indents its continuation lines four spaces, so a formatted cause's lines sit under its first line and
  * apart from the wrapper's two-space lines.
  */
 const causeText = (cause: unknown): string =>
-  describeThrown(cause).split('\n').join('\n    ');
+  describeCause(cause).split('\n').join('\n    ');
 
 function nearMissHint(token: string, module: string, miss: NearMiss): string {
   switch (miss.kind) {

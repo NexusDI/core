@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-import { Nexus, Token, defineModule } from '@nexusdi/core';
+import { ModuleOptionsError, Nexus, Token, defineModule } from '@nexusdi/core';
 
 import { FIXTURES, runCli } from '../test-support/run.js';
 import { describeFailure } from './profile.js';
@@ -328,6 +328,21 @@ describe('nexusdi profile exit codes (spec 9.5)', () => {
 });
 
 describe('describeFailure', () => {
+  it('prints a short cause that only the last word of the message matches', () => {
+    const error = new Error('relay link down', { cause: new Error('down') });
+    expect(describeFailure(error)).toBe(
+      'relay link down\n  caused by Error: down',
+    );
+  });
+
+  it('prints an error with a symbol message', () => {
+    const error = new Error('x');
+    Object.defineProperty(error, 'message', { value: Symbol('m') });
+    expect(describeFailure(new Error('outer', { cause: error }))).toBe(
+      'outer\n  caused by Error: Symbol(m)',
+    );
+  });
+
   it("skips a NexusError cause that core's one-line message ends with", async () => {
     const OPTIONS = new Token<{ seed: number }>('SimOptions');
     const Simulation = defineModule({
@@ -348,12 +363,18 @@ describe('describeFailure', () => {
   });
 
   it('skips a formatted NexusError cause the first line ends with', () => {
-    const cause = Object.assign(
-      new Error('[NEXUS_X] Simulation refused:\n  seed: expected 1 to 10'),
-      { name: 'ModuleOptionsError' },
+    const cause = new ModuleOptionsError({
+      code: 'NEXUS_INVALID_MODULE_OPTIONS',
+      module: 'Simulation',
+      issues: [],
+    });
+    Reflect.set(
+      cause,
+      'message',
+      '[NEXUS_INVALID_MODULE_OPTIONS] Simulation refused:\n  seed: expected 1 to 10',
     );
     const error = new Error(
-      '[NEXUS_PROVIDER_FAILED] SimOptions failed: [NEXUS_X] Simulation refused:\n      seed: expected 1 to 10',
+      '[NEXUS_PROVIDER_FAILED] SimOptions failed: [NEXUS_INVALID_MODULE_OPTIONS] Simulation refused:\n      seed: expected 1 to 10',
       { cause },
     );
     expect(describeFailure(error)).toBe(error.message);
