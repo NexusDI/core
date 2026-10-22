@@ -108,6 +108,18 @@ describe('the bridge API graph', () => {
     ]) {
       expect(notes[`${token} in Safety`]).toEqual(['system: Safety']);
     }
+    expect(notes['ShipSystems in OfflineComms']).toEqual([
+      'system: OfflineComms',
+      'phase: 6',
+    ]);
+    for (const token of ['CommsArray', 'PowerConsumers', 'CommandHandlers']) {
+      expect(notes[`${token} in OfflineComms`]).toEqual([
+        'system: OfflineComms',
+      ]);
+    }
+    expect(notes['NavCharts in OfflineTactical']).toEqual([
+      'system: OfflineTactical',
+    ]);
 
     // The bridge registers the interlock and the flight recorder in its
     // interceptors plugin, outside every ship system.
@@ -122,7 +134,6 @@ describe('the bridge API graph', () => {
       'BridgeApi',
       'AuditTrail',
       'AlarmPanel',
-      'OfflineTactical',
       'SimDriver',
     ];
     const ids = modules

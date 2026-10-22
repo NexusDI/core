@@ -5,7 +5,10 @@ export {
   UnknownCompartmentError,
   type BadCommandReason,
 } from './errors';
-export { meridianSystems } from './meridian-systems.module';
+export {
+  meridianSystems,
+  type MeridianSystemsOptions,
+} from './meridian-systems.module';
 export type {
   AtmosphereReading,
   HeaterSetpoint,
@@ -13,6 +16,12 @@ export type {
   LifeSupportSetpoints,
   PumpMode,
 } from './physics/atmosphere';
+export type {
+  CommsMessage,
+  CommsRecord,
+  CommsSetpoints,
+  CommsStatus,
+} from './physics/comms';
 export { doorPressures, PRESSURE_INTERLOCK } from './physics/doors';
 export { GASES, pressure, type Gas } from './physics/gas';
 export type { LoadRecord, PowerLoad, PowerRecord } from './physics/power';
@@ -34,6 +43,14 @@ export { readShip } from './simulation/read-ship';
 export { roundSnapshot } from './simulation/round-snapshot';
 export * from './telemetry/contracts';
 export { shipNotes } from './notes';
+export {
+  COMMS_ARRAY,
+  COMMS_OPTIONS,
+  type CommsOptions,
+  type ICommsArray,
+  type ISubspaceLink,
+  SUBSPACE_LINK,
+} from './systems/comms/contracts';
 export {
   type IPowerConsumer,
   type IPowerRouter,
@@ -64,3 +81,9 @@ export {
   type IMasterAlarm,
   MASTER_ALARM,
 } from './systems/safety/contracts';
+export {
+  type Course,
+  type INavCharts,
+  NAV_CHARTS,
+} from './systems/tactical/contracts';
+export { BUNDLED_CHARTS } from './systems/tactical/star-charts';

@@ -1,13 +1,14 @@
-import { defineModule, provide } from '@nexusdi/core';
-
 import {
   COMMS_OPTIONS,
-  SUBSPACE_LINK,
   type CommsOptions,
   type ISubspaceLink,
 } from './contracts';
 
-class SubspaceRelay implements ISubspaceLink {
+/**
+ * The subspace link over the fleet's HTTP relay. `NAV_CHARTS`'s factory calls
+ * it once at startup, and no tick reads it.
+ */
+export class SubspaceRelay implements ISubspaceLink {
   static deps = [COMMS_OPTIONS] as const;
   constructor(private readonly options: CommsOptions) {}
   async receive<T>(channel: string): Promise<T> {
@@ -23,10 +24,3 @@ class SubspaceRelay implements ISubspaceLink {
     return (await res.json()) as T;
   }
 }
-
-export const Comms = defineModule({
-  name: 'Comms',
-  options: COMMS_OPTIONS,
-  providers: [provide(SUBSPACE_LINK, { useClass: SubspaceRelay })],
-  exports: [SUBSPACE_LINK],
-});

@@ -67,6 +67,12 @@
           "priority": 2,
           "demand": 0,
           "allocated": 0
+        },
+        {
+          "id": "comms",
+          "priority": 3,
+          "demand": 0,
+          "allocated": 0
         }
       ],
       "shed": []
@@ -219,6 +225,12 @@
         {
           "id": "shields",
           "priority": 2,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "comms",
+          "priority": 3,
           "demand": 0,
           "allocated": 0
         }
@@ -375,6 +387,12 @@
           "priority": 2,
           "demand": 0,
           "allocated": 0
+        },
+        {
+          "id": "comms",
+          "priority": 3,
+          "demand": 0,
+          "allocated": 0
         }
       ],
       "shed": []
@@ -529,6 +547,12 @@
           "priority": 2,
           "demand": 0,
           "allocated": 0
+        },
+        {
+          "id": "comms",
+          "priority": 3,
+          "demand": 0,
+          "allocated": 0
         }
       ],
       "shed": []
@@ -681,6 +705,12 @@
         {
           "id": "shields",
           "priority": 2,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "comms",
+          "priority": 3,
           "demand": 0,
           "allocated": 0
         }

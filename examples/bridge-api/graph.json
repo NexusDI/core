@@ -6,10 +6,9 @@
       "global": false,
       "imports": [
         "m1",
+        "m2",
         "m3",
         "m4",
-        "m5",
-        "m6",
         "m12",
         "m13"
       ],
@@ -17,59 +16,41 @@
     },
     {
       "id": "m1",
-      "name": "Tactical",
-      "global": false,
-      "imports": [
-        "m2"
-      ],
-      "exports": [
-        "p0"
-      ]
-    },
-    {
-      "id": "m2",
-      "name": "Comms",
-      "global": false,
-      "imports": [],
-      "exports": [
-        "p1"
-      ]
-    },
-    {
-      "id": "m3",
       "name": "BridgeApi",
       "global": false,
       "imports": [],
       "exports": [
-        "p3",
-        "p4"
+        "p0",
+        "p1"
       ]
     },
     {
-      "id": "m4",
+      "id": "m2",
       "name": "AuditTrail",
       "global": false,
       "imports": [],
       "exports": [
-        "p5"
+        "p2"
       ]
     },
     {
-      "id": "m5",
+      "id": "m3",
       "name": "AlarmPanel",
       "global": true,
       "imports": [
-        "m4"
+        "m2"
       ],
       "exports": [
-        "p6"
+        "p3"
       ]
     },
     {
-      "id": "m6",
+      "id": "m4",
       "name": "MeridianSystems",
       "global": true,
       "imports": [
+        "m5",
+        "m6",
         "m7",
         "m8",
         "m9",
@@ -77,87 +58,125 @@
         "m11"
       ],
       "exports": [
-        "p7",
-        "p15",
-        "p8",
+        "p4",
+        "p12",
+        "p5",
+        "m7",
+        "m8",
         "m9",
         "m10",
         "m11"
       ]
     },
     {
-      "id": "m7",
+      "id": "m5",
       "name": "Simulation",
       "global": true,
       "imports": [],
       "exports": [
-        "p14",
-        "p9",
-        "p10",
         "p11",
-        "p12",
-        "p13"
+        "p6",
+        "p7",
+        "p8",
+        "p9",
+        "p10"
       ]
     },
     {
-      "id": "m8",
+      "id": "m6",
       "name": "Telemetry",
       "global": false,
       "imports": [],
       "exports": [
-        "p15"
+        "p12"
       ]
     },
     {
-      "id": "m9",
+      "id": "m7",
       "name": "Engineering",
       "global": false,
       "imports": [],
       "exports": [
+        "p13",
+        "p15",
         "p16",
+        "p17",
+        "p22",
+        "p29",
+        "p33",
         "p18",
-        "p19",
-        "p20",
-        "p25",
-        "p32",
-        "p21",
-        "p27",
-        "p33"
+        "p24",
+        "p30",
+        "p35"
       ]
     },
     {
-      "id": "m10",
+      "id": "m8",
       "name": "LifeSupport",
       "global": false,
       "imports": [],
       "exports": [
-        "p22",
-        "p23",
-        "p24",
+        "p19",
         "p20",
-        "p25",
-        "p32",
-        "p26",
         "p21",
-        "p27",
-        "p33"
+        "p17",
+        "p22",
+        "p29",
+        "p33",
+        "p23",
+        "p34",
+        "p18",
+        "p24",
+        "p30",
+        "p35"
       ]
     },
     {
-      "id": "m11",
+      "id": "m9",
       "name": "Safety",
       "global": false,
       "imports": [],
       "exports": [
-        "p29",
-        "p30",
-        "p31",
-        "p20",
-        "p25",
-        "p32",
-        "p21",
+        "p26",
         "p27",
-        "p33"
+        "p28",
+        "p17",
+        "p22",
+        "p29",
+        "p33",
+        "p18",
+        "p24",
+        "p30",
+        "p35"
+      ]
+    },
+    {
+      "id": "m10",
+      "name": "Comms",
+      "global": false,
+      "imports": [],
+      "exports": [
+        "p31",
+        "p32",
+        "p17",
+        "p22",
+        "p29",
+        "p33",
+        "p23",
+        "p34",
+        "p18",
+        "p24",
+        "p30",
+        "p35"
+      ]
+    },
+    {
+      "id": "m11",
+      "name": "Tactical",
+      "global": false,
+      "imports": [],
+      "exports": [
+        "p37"
       ]
     },
     {
@@ -166,7 +185,7 @@
       "global": false,
       "imports": [],
       "exports": [
-        "p34"
+        "p38"
       ]
     },
     {
@@ -174,7 +193,7 @@
       "name": "interceptors",
       "global": false,
       "imports": [
-        "m4"
+        "m2"
       ],
       "exports": []
     }
@@ -182,44 +201,8 @@
   "providers": [
     {
       "id": "p0",
-      "token": "NavCharts",
-      "module": "m1",
-      "lifetime": "singleton",
-      "kind": "factory",
-      "eager": true,
-      "async": null,
-      "notes": [],
-      "implementation": null,
-      "internal": false
-    },
-    {
-      "id": "p1",
-      "token": "SubspaceLink",
-      "module": "m2",
-      "lifetime": "singleton",
-      "kind": "class",
-      "eager": true,
-      "async": null,
-      "notes": [],
-      "implementation": "SubspaceRelay",
-      "internal": false
-    },
-    {
-      "id": "p2",
-      "token": "CommsOptions",
-      "module": "m2",
-      "lifetime": null,
-      "kind": "value",
-      "eager": true,
-      "async": null,
-      "notes": [],
-      "implementation": null,
-      "internal": false
-    },
-    {
-      "id": "p3",
       "token": "Mission",
-      "module": "m3",
+      "module": "m1",
       "lifetime": "scoped",
       "kind": "factory",
       "eager": false,
@@ -229,9 +212,9 @@
       "internal": false
     },
     {
-      "id": "p4",
+      "id": "p1",
       "token": "FlightLog",
-      "module": "m3",
+      "module": "m1",
       "lifetime": "scoped",
       "kind": "class",
       "eager": true,
@@ -241,9 +224,9 @@
       "internal": false
     },
     {
-      "id": "p5",
+      "id": "p2",
       "token": "AuditLog",
-      "module": "m4",
+      "module": "m2",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -253,9 +236,9 @@
       "internal": false
     },
     {
-      "id": "p6",
+      "id": "p3",
       "token": "AlarmSinks",
-      "module": "m5",
+      "module": "m3",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -265,9 +248,9 @@
       "internal": false
     },
     {
-      "id": "p7",
+      "id": "p4",
       "token": "TickLoop",
-      "module": "m6",
+      "module": "m4",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -277,9 +260,9 @@
       "internal": false
     },
     {
-      "id": "p8",
+      "id": "p5",
       "token": "CommandDesk",
-      "module": "m6",
+      "module": "m4",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -289,9 +272,9 @@
       "internal": false
     },
     {
-      "id": "p9",
+      "id": "p6",
       "token": "SimClock",
-      "module": "m7",
+      "module": "m5",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -301,9 +284,9 @@
       "internal": false
     },
     {
-      "id": "p10",
+      "id": "p7",
       "token": "RandomSource",
-      "module": "m7",
+      "module": "m5",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -313,9 +296,9 @@
       "internal": false
     },
     {
-      "id": "p11",
+      "id": "p8",
       "token": "ShipState",
-      "module": "m7",
+      "module": "m5",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -325,9 +308,9 @@
       "internal": false
     },
     {
-      "id": "p12",
+      "id": "p9",
       "token": "DeckPlan",
-      "module": "m7",
+      "module": "m5",
       "lifetime": null,
       "kind": "value",
       "eager": true,
@@ -337,9 +320,9 @@
       "internal": false
     },
     {
-      "id": "p13",
+      "id": "p10",
       "token": "Compartment",
-      "module": "m7",
+      "module": "m5",
       "lifetime": "scoped",
       "kind": "factory",
       "eager": false,
@@ -349,9 +332,9 @@
       "internal": false
     },
     {
-      "id": "p14",
+      "id": "p11",
       "token": "SimOptions",
-      "module": "m7",
+      "module": "m5",
       "lifetime": null,
       "kind": "value",
       "eager": true,
@@ -361,9 +344,9 @@
       "internal": false
     },
     {
-      "id": "p15",
+      "id": "p12",
       "token": "TelemetryFeed",
-      "module": "m8",
+      "module": "m6",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -373,9 +356,9 @@
       "internal": false
     },
     {
-      "id": "p16",
+      "id": "p13",
       "token": "ReactorCore",
-      "module": "m9",
+      "module": "m7",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -385,9 +368,9 @@
       "internal": false
     },
     {
-      "id": "p17",
+      "id": "p14",
       "token": "CoolantLoop",
-      "module": "m9",
+      "module": "m7",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -397,9 +380,9 @@
       "internal": false
     },
     {
-      "id": "p18",
+      "id": "p15",
       "token": "PowerRouter",
-      "module": "m9",
+      "module": "m7",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -409,9 +392,9 @@
       "internal": false
     },
     {
-      "id": "p19",
+      "id": "p16",
       "token": "ShieldGrid",
-      "module": "m9",
+      "module": "m7",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -421,9 +404,9 @@
       "internal": false
     },
     {
-      "id": "p20",
+      "id": "p17",
       "token": "ShipSystems",
-      "module": "m9",
+      "module": "m7",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -433,9 +416,9 @@
       "internal": false
     },
     {
-      "id": "p21",
+      "id": "p18",
       "token": "CommandHandlers",
-      "module": "m9",
+      "module": "m7",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -445,9 +428,9 @@
       "internal": false
     },
     {
-      "id": "p22",
+      "id": "p19",
       "token": "AtmosphereProbe",
-      "module": "m10",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -457,9 +440,9 @@
       "internal": false
     },
     {
-      "id": "p23",
+      "id": "p20",
       "token": "AtmosphereSensor",
-      "module": "m10",
+      "module": "m8",
       "lifetime": "transient",
       "kind": "class",
       "eager": true,
@@ -469,9 +452,9 @@
       "internal": false
     },
     {
-      "id": "p24",
+      "id": "p21",
       "token": "AtmosphereControl",
-      "module": "m10",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -481,9 +464,9 @@
       "internal": false
     },
     {
-      "id": "p25",
+      "id": "p22",
       "token": "ShipSystems",
-      "module": "m10",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -493,9 +476,9 @@
       "internal": false
     },
     {
-      "id": "p26",
+      "id": "p23",
       "token": "PowerConsumers",
-      "module": "m10",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -505,9 +488,9 @@
       "internal": false
     },
     {
-      "id": "p27",
+      "id": "p24",
       "token": "CommandHandlers",
-      "module": "m10",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -517,9 +500,9 @@
       "internal": false
     },
     {
-      "id": "p28",
+      "id": "p25",
       "token": "LifeSupportOptions",
-      "module": "m10",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "factory",
       "eager": true,
@@ -529,9 +512,9 @@
       "internal": false
     },
     {
-      "id": "p29",
+      "id": "p26",
       "token": "BlastDoors",
-      "module": "m11",
+      "module": "m9",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -541,9 +524,9 @@
       "internal": false
     },
     {
-      "id": "p30",
+      "id": "p27",
       "token": "FireSuppression",
-      "module": "m11",
+      "module": "m9",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -553,9 +536,9 @@
       "internal": false
     },
     {
-      "id": "p31",
+      "id": "p28",
       "token": "MasterAlarm",
-      "module": "m11",
+      "module": "m9",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -565,9 +548,9 @@
       "internal": false
     },
     {
-      "id": "p32",
+      "id": "p29",
       "token": "ShipSystems",
-      "module": "m11",
+      "module": "m9",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -577,9 +560,9 @@
       "internal": false
     },
     {
-      "id": "p33",
+      "id": "p30",
       "token": "CommandHandlers",
-      "module": "m11",
+      "module": "m9",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -589,7 +572,91 @@
       "internal": false
     },
     {
+      "id": "p31",
+      "token": "SubspaceLink",
+      "module": "m10",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "SubspaceRelay",
+      "internal": false
+    },
+    {
+      "id": "p32",
+      "token": "CommsArray",
+      "module": "m10",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "PhasedArray",
+      "internal": false
+    },
+    {
+      "id": "p33",
+      "token": "ShipSystems",
+      "module": "m10",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "CommsPhysics",
+      "internal": false
+    },
+    {
       "id": "p34",
+      "token": "PowerConsumers",
+      "module": "m10",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "CommsPower",
+      "internal": false
+    },
+    {
+      "id": "p35",
+      "token": "CommandHandlers",
+      "module": "m10",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "CommsCommands",
+      "internal": false
+    },
+    {
+      "id": "p36",
+      "token": "CommsOptions",
+      "module": "m10",
+      "lifetime": null,
+      "kind": "value",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "p37",
+      "token": "NavCharts",
+      "module": "m11",
+      "lifetime": "singleton",
+      "kind": "factory",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "p38",
       "token": "SimDriver",
       "module": "m12",
       "lifetime": "singleton",
@@ -601,7 +668,7 @@
       "internal": false
     },
     {
-      "id": "p35",
+      "id": "p39",
       "token": "DriverOptions",
       "module": "m12",
       "lifetime": null,
@@ -613,7 +680,7 @@
       "internal": false
     },
     {
-      "id": "p36",
+      "id": "p40",
       "token": "NavAudit",
       "module": "m13",
       "lifetime": "singleton",
@@ -625,7 +692,7 @@
       "internal": false
     },
     {
-      "id": "p37",
+      "id": "p41",
       "token": "FlightRecorder",
       "module": "m13",
       "lifetime": "singleton",
@@ -637,7 +704,7 @@
       "internal": false
     },
     {
-      "id": "p38",
+      "id": "p42",
       "token": "PressureInterlock",
       "module": "m13",
       "lifetime": "singleton",
@@ -649,7 +716,7 @@
       "internal": false
     },
     {
-      "id": "p39",
+      "id": "p43",
       "token": "RequestScopes",
       "module": "m13",
       "lifetime": null,
@@ -661,7 +728,7 @@
       "internal": false
     },
     {
-      "id": "p40",
+      "id": "p44",
       "token": "interceptors registry",
       "module": "m13",
       "lifetime": "singleton",
@@ -673,7 +740,7 @@
       "internal": false
     },
     {
-      "id": "p41",
+      "id": "p45",
       "token": "interceptors guard",
       "module": "m13",
       "lifetime": "singleton",
@@ -700,292 +767,312 @@
   "edges": [
     {
       "from": "p0",
-      "to": "p1",
+      "to": "request",
       "kind": "required"
     },
     {
       "from": "p1",
-      "to": "p2",
+      "to": "p0",
       "kind": "required"
     },
     {
       "from": "p3",
-      "to": "request",
+      "to": "p2",
       "kind": "required"
     },
     {
       "from": "p4",
-      "to": "p3",
+      "to": "p6",
       "kind": "required"
     },
     {
-      "from": "p6",
-      "to": "p5",
+      "from": "p4",
+      "to": "p8",
       "kind": "required"
     },
     {
-      "from": "p7",
-      "to": "p9",
+      "from": "p4",
+      "to": "p7",
       "kind": "required"
     },
     {
-      "from": "p7",
-      "to": "p11",
-      "kind": "required"
-    },
-    {
-      "from": "p7",
-      "to": "p10",
-      "kind": "required"
-    },
-    {
-      "from": "p7",
-      "to": "p20",
+      "from": "p4",
+      "to": "p17",
       "kind": "all"
     },
     {
-      "from": "p7",
-      "to": "p25",
+      "from": "p4",
+      "to": "p22",
       "kind": "all"
     },
     {
-      "from": "p7",
-      "to": "p32",
+      "from": "p4",
+      "to": "p29",
       "kind": "all"
     },
     {
-      "from": "p8",
-      "to": "p21",
-      "kind": "all"
-    },
-    {
-      "from": "p8",
-      "to": "p27",
-      "kind": "all"
-    },
-    {
-      "from": "p8",
+      "from": "p4",
       "to": "p33",
       "kind": "all"
     },
     {
-      "from": "p9",
-      "to": "p14",
+      "from": "p5",
+      "to": "p18",
+      "kind": "all"
+    },
+    {
+      "from": "p5",
+      "to": "p24",
+      "kind": "all"
+    },
+    {
+      "from": "p5",
+      "to": "p30",
+      "kind": "all"
+    },
+    {
+      "from": "p5",
+      "to": "p35",
+      "kind": "all"
+    },
+    {
+      "from": "p6",
+      "to": "p11",
+      "kind": "required"
+    },
+    {
+      "from": "p7",
+      "to": "p11",
+      "kind": "required"
+    },
+    {
+      "from": "p8",
+      "to": "p9",
       "kind": "required"
     },
     {
       "from": "p10",
-      "to": "p14",
-      "kind": "required"
-    },
-    {
-      "from": "p11",
-      "to": "p12",
-      "kind": "required"
-    },
-    {
-      "from": "p13",
       "to": "request",
       "kind": "required"
     },
     {
-      "from": "p15",
-      "to": "p7",
+      "from": "p12",
+      "to": "p4",
+      "kind": "required"
+    },
+    {
+      "from": "p12",
+      "to": "p8",
+      "kind": "required"
+    },
+    {
+      "from": "p12",
+      "to": "p9",
+      "kind": "required"
+    },
+    {
+      "from": "p13",
+      "to": "p8",
       "kind": "required"
     },
     {
       "from": "p15",
-      "to": "p11",
+      "to": "p8",
       "kind": "required"
     },
     {
       "from": "p15",
-      "to": "p12",
+      "to": "p16",
+      "kind": "lazy"
+    },
+    {
+      "from": "p15",
+      "to": "p23",
+      "kind": "all"
+    },
+    {
+      "from": "p15",
+      "to": "p34",
+      "kind": "all"
+    },
+    {
+      "from": "p16",
+      "to": "p8",
       "kind": "required"
     },
     {
       "from": "p16",
-      "to": "p11",
+      "to": "p15",
       "kind": "required"
     },
     {
-      "from": "p18",
-      "to": "p11",
-      "kind": "required"
-    },
-    {
-      "from": "p18",
-      "to": "p19",
-      "kind": "lazy"
-    },
-    {
-      "from": "p18",
-      "to": "p26",
-      "kind": "all"
-    },
-    {
-      "from": "p19",
-      "to": "p11",
-      "kind": "required"
-    },
-    {
-      "from": "p19",
-      "to": "p18",
-      "kind": "required"
-    },
-    {
-      "from": "p20",
-      "to": "p16",
-      "kind": "required"
-    },
-    {
-      "from": "p20",
-      "to": "p17",
-      "kind": "required"
-    },
-    {
-      "from": "p20",
-      "to": "p18",
-      "kind": "required"
-    },
-    {
-      "from": "p21",
-      "to": "p16",
-      "kind": "required"
-    },
-    {
-      "from": "p21",
-      "to": "p19",
-      "kind": "required"
-    },
-    {
-      "from": "p22",
-      "to": "p10",
-      "kind": "required"
-    },
-    {
-      "from": "p22",
-      "to": "p28",
-      "kind": "required"
-    },
-    {
-      "from": "p22",
-      "to": "p12",
-      "kind": "required"
-    },
-    {
-      "from": "p23",
+      "from": "p17",
       "to": "p13",
       "kind": "required"
     },
     {
-      "from": "p23",
-      "to": "p11",
-      "kind": "required"
-    },
-    {
-      "from": "p23",
-      "to": "p22",
-      "kind": "required"
-    },
-    {
-      "from": "p24",
-      "to": "p11",
-      "kind": "required"
-    },
-    {
-      "from": "p25",
-      "to": "p28",
-      "kind": "required"
-    },
-    {
-      "from": "p25",
-      "to": "p12",
-      "kind": "required"
-    },
-    {
-      "from": "p26",
-      "to": "p28",
-      "kind": "required"
-    },
-    {
-      "from": "p26",
-      "to": "p12",
-      "kind": "required"
-    },
-    {
-      "from": "p27",
-      "to": "p24",
-      "kind": "required"
-    },
-    {
-      "from": "p28",
-      "to": "p12",
-      "kind": "required"
-    },
-    {
-      "from": "p29",
-      "to": "p11",
-      "kind": "required"
-    },
-    {
-      "from": "p30",
-      "to": "p11",
-      "kind": "required"
-    },
-    {
-      "from": "p31",
-      "to": "p7",
-      "kind": "required"
-    },
-    {
-      "from": "p31",
-      "to": "p6",
-      "kind": "all"
-    },
-    {
-      "from": "p32",
-      "to": "p12",
-      "kind": "required"
-    },
-    {
-      "from": "p32",
-      "to": "p22",
-      "kind": "required"
-    },
-    {
-      "from": "p33",
-      "to": "p29",
-      "kind": "required"
-    },
-    {
-      "from": "p33",
-      "to": "p30",
-      "kind": "required"
-    },
-    {
-      "from": "p34",
-      "to": "p7",
-      "kind": "required"
-    },
-    {
-      "from": "p34",
+      "from": "p17",
       "to": "p14",
       "kind": "required"
     },
     {
-      "from": "p34",
-      "to": "p35",
+      "from": "p17",
+      "to": "p15",
       "kind": "required"
     },
     {
-      "from": "p36",
-      "to": "p5",
+      "from": "p18",
+      "to": "p13",
+      "kind": "required"
+    },
+    {
+      "from": "p18",
+      "to": "p16",
+      "kind": "required"
+    },
+    {
+      "from": "p19",
+      "to": "p7",
+      "kind": "required"
+    },
+    {
+      "from": "p19",
+      "to": "p25",
+      "kind": "required"
+    },
+    {
+      "from": "p19",
+      "to": "p9",
+      "kind": "required"
+    },
+    {
+      "from": "p20",
+      "to": "p10",
+      "kind": "required"
+    },
+    {
+      "from": "p20",
+      "to": "p8",
+      "kind": "required"
+    },
+    {
+      "from": "p20",
+      "to": "p19",
+      "kind": "required"
+    },
+    {
+      "from": "p21",
+      "to": "p8",
+      "kind": "required"
+    },
+    {
+      "from": "p22",
+      "to": "p25",
+      "kind": "required"
+    },
+    {
+      "from": "p22",
+      "to": "p9",
+      "kind": "required"
+    },
+    {
+      "from": "p23",
+      "to": "p25",
+      "kind": "required"
+    },
+    {
+      "from": "p23",
+      "to": "p9",
+      "kind": "required"
+    },
+    {
+      "from": "p24",
+      "to": "p21",
+      "kind": "required"
+    },
+    {
+      "from": "p25",
+      "to": "p9",
+      "kind": "required"
+    },
+    {
+      "from": "p26",
+      "to": "p8",
+      "kind": "required"
+    },
+    {
+      "from": "p27",
+      "to": "p8",
+      "kind": "required"
+    },
+    {
+      "from": "p28",
+      "to": "p4",
+      "kind": "required"
+    },
+    {
+      "from": "p28",
+      "to": "p3",
+      "kind": "all"
+    },
+    {
+      "from": "p29",
+      "to": "p9",
+      "kind": "required"
+    },
+    {
+      "from": "p29",
+      "to": "p19",
+      "kind": "required"
+    },
+    {
+      "from": "p30",
+      "to": "p26",
+      "kind": "required"
+    },
+    {
+      "from": "p30",
+      "to": "p27",
+      "kind": "required"
+    },
+    {
+      "from": "p31",
+      "to": "p36",
+      "kind": "required"
+    },
+    {
+      "from": "p32",
+      "to": "p8",
+      "kind": "required"
+    },
+    {
+      "from": "p32",
+      "to": "p31",
+      "kind": "optional"
+    },
+    {
+      "from": "p33",
+      "to": "p32",
+      "kind": "required"
+    },
+    {
+      "from": "p34",
+      "to": "p32",
+      "kind": "required"
+    },
+    {
+      "from": "p35",
+      "to": "p32",
       "kind": "required"
     },
     {
       "from": "p37",
-      "to": "p39",
+      "to": "p31",
+      "kind": "required"
+    },
+    {
+      "from": "p38",
+      "to": "p4",
       "kind": "required"
     },
     {
@@ -995,22 +1082,42 @@
     },
     {
       "from": "p38",
-      "to": "p12",
+      "to": "p39",
       "kind": "required"
     },
     {
       "from": "p40",
-      "to": "p36",
+      "to": "p2",
       "kind": "required"
     },
     {
-      "from": "p40",
-      "to": "p37",
+      "from": "p41",
+      "to": "p43",
       "kind": "required"
     },
     {
-      "from": "p40",
-      "to": "p38",
+      "from": "p42",
+      "to": "p8",
+      "kind": "required"
+    },
+    {
+      "from": "p42",
+      "to": "p9",
+      "kind": "required"
+    },
+    {
+      "from": "p44",
+      "to": "p40",
+      "kind": "required"
+    },
+    {
+      "from": "p44",
+      "to": "p41",
+      "kind": "required"
+    },
+    {
+      "from": "p44",
+      "to": "p42",
       "kind": "required"
     }
   ]

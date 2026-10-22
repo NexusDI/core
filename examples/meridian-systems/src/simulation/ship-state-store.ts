@@ -6,6 +6,7 @@ import {
   type LifeSupportSetpoints,
   type PumpMode,
 } from '../physics/atmosphere';
+import { COMMS_LOAD } from '../physics/comms';
 import { AIR, molesAt } from '../physics/gas';
 import { allocatePower, DEFLECTOR_GRID } from '../physics/power';
 import type { SafetyRecord, SafetySetpoints } from '../physics/safety';
@@ -322,6 +323,7 @@ function initialSnapshot(deck: DeckPlan): ShipSnapshot {
   const power = allocatePower(0, [
     { ...LIFE_SUPPORT_LOAD, demand: 0 },
     { ...DEFLECTOR_GRID, demand: 0 },
+    { ...COMMS_LOAD, demand: 0 },
   ]);
   return Object.freeze({
     tick: 0,
