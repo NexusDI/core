@@ -59,8 +59,11 @@ sends crew commands to the ship. Its action reads `BRIDGE_LINK` with
 `di.inject`, and `BRIDGE_LINK.command(cmd)` posts the command to
 bridge-api's `POST /commands`. The page holds a throttle form and a shields
 form, and shows the answer to the last command: the tick that applies it, or
-the refusal's message and its `Fix:` line. The gauges wait for the telemetry
-increment (G0b), so the page reads no ship state.
+the refusal's message and its `Fix:` line. Its loader reads the ship through
+`BRIDGE_LINK.snapshot()` for four gauges: the reactor level, the electric
+output, the coolant temperature and the power the shields draw. React Router
+reloads them after each command. A backend that fails gives
+`Gauges offline`, and the forms stay.
 
 `command(cmd)` resolves a 202 to `{ accepted: true, tick }` and a 400 or a
 409 to `{ accepted: false, status, code, message, fix? }`, and rejects any

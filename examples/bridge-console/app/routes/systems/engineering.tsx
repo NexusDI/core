@@ -1,3 +1,4 @@
+import type { ShipReading } from '@nexusdi/meridian-systems';
 import { Form } from 'react-router';
 
 import { BRIDGE_LINK, type CommandAnswer } from '../../bridge/bridge-link';
@@ -31,6 +32,36 @@ export const action: (args: Route.ActionArgs) => Promise<CommandAnswer> =
     },
   );
 
+/** The ship for the gauges, or null when the backend fails. */
+export const loader: (args: Route.LoaderArgs) => Promise<ShipReading | null> =
+  di.inject({ link: BRIDGE_LINK }, ({ link }) =>
+    link.snapshot().catch(() => null),
+  );
+
+const megawatts = (watts: number) => `${watts / 1e6} MW`;
+
+/** The reactor level, its electric output, the coolant and the shields' power. */
+function Gauges({ ship }: { ship: ShipReading | null }) {
+  if (ship === null) return <p>Gauges offline</p>;
+  const shields = ship.power.loads.find((load) => load.id === 'shields');
+  const gauges = [
+    ['Reactor level', String(ship.reactor.level)],
+    ['Electric output', megawatts(ship.reactor.electric)],
+    ['Coolant', `${ship.coolant.temperature} K`],
+    ['Shields', megawatts(shields?.allocated ?? 0)],
+  ];
+  return (
+    <dl aria-label="Engineering gauges" className="grid grid-cols-2 gap-1">
+      {gauges.map(([name, value]) => (
+        <div key={name} className="contents">
+          <dt>{name}</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 /** The answer to the last command: its tick, or the refusal and its fix. */
 function LastAnswer({ answer }: { answer: CommandAnswer }) {
   if (answer.accepted)
@@ -43,9 +74,15 @@ function LastAnswer({ answer }: { answer: CommandAnswer }) {
   );
 }
 
-export default function Engineering({ actionData }: Route.ComponentProps) {
+export default function Engineering({
+  loaderData,
+  actionData,
+}: Route.ComponentProps) {
   return (
     <>
+      <Section>
+        <Gauges ship={loaderData} />
+      </Section>
       <Section>
         <h2 className="text-2xl font-semibold mb-4 dark:text-white">Reactor</h2>
         <Form method="post" className="flex gap-2 items-center">
