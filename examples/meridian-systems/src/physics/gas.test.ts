@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import deck from '../../deck/meridian.deck.json';
-import { CV } from './constants';
+import { CV, KAPPA } from './constants';
 import {
   AIR,
+  exchange,
   GASES,
   heatCapacity,
+  mix,
   molesAt,
+  parcel,
   pressure,
   saturationPressure,
   totalMoles,
@@ -165,6 +168,106 @@ describe('a transfer between rooms', () => {
     const moved = transfer(air(1, 293, 1), air(1, 293, 1), 1, 0.5);
     expect(Object.isFrozen(moved.source)).toBe(true);
     expect(Object.isFrozen(moved.target.moles)).toBe(true);
+  });
+});
+
+describe('a parcel and a mix', () => {
+  it('splits each gas by the fraction at the air temperature', () => {
+    const room = air(60_000, 310, 12);
+    const { kept, moved } = parcel(room, 0.3);
+    expect(kept.temperature).toBe(310);
+    expect(moved.temperature).toBe(310);
+    for (const gas of GASES) {
+      expect(moved.moles[gas]).toBe(0.3 * room.moles[gas]);
+      expect(kept.moles[gas]).toBe(room.moles[gas] - moved.moles[gas]);
+    }
+  });
+
+  it('gives what transfer gives when the parcel is mixed into the target', () => {
+    const source = air(60_000, 310, 12);
+    const target = air(110_000, 285, 120);
+    const { kept, moved } = parcel(source, 0.3);
+    const mixed = mix(target, 4_000_000, moved);
+    const reference = transfer(source, target, 4_000_000, 0.3);
+    expect(kept).toEqual(reference.source);
+    expect(mixed).toEqual(reference.target);
+  });
+
+  it('freezes what it returns', () => {
+    const { kept, moved } = parcel(air(1, 293, 1), 0.5);
+    expect(Object.isFrozen(kept.moles)).toBe(true);
+    expect(Object.isFrozen(moved)).toBe(true);
+    expect(Object.isFrozen(mix(air(1, 293, 1), 1, moved).moles)).toBe(true);
+  });
+});
+
+describe('an exchange through a door', () => {
+  // The bridge-habitat door of the deck, one tick of 0.5 s.
+  const [bridge, habitat] = [60, 120];
+  const [bridgeStructure, habitatStructure] = [2_000_000, 4_000_000];
+  const f = 1 - Math.exp((-0.5 * 1.5) / (KAPPA * (bridge + habitat)));
+  const fromA = (f * habitat) / (bridge + habitat);
+  const fromB = (f * bridge) / (bridge + habitat);
+  const swap = (a: Air, b: Air) =>
+    exchange(a, b, bridgeStructure, habitatStructure, fromA, fromB);
+
+  it('moves the net moles of the spec to 1e-12', () => {
+    const a = air(100_000, 293, bridge);
+    const b = air(50_000, 293, habitat);
+    const next = swap(a, b);
+    for (const gas of GASES) {
+      const target =
+        ((a.moles[gas] + b.moles[gas]) * bridge) / (bridge + habitat);
+      const net = f * (target - a.moles[gas]);
+      expect(
+        Math.abs(next.a.moles[gas] - (a.moles[gas] + net)) / a.moles[gas],
+      ).toBeLessThan(1e-12);
+      expect(
+        Math.abs(next.b.moles[gas] - (b.moles[gas] - net)) / b.moles[gas],
+      ).toBeLessThan(1e-12);
+    }
+  });
+
+  it('runs as a transfer when one side sends nothing', () => {
+    const a = air(60_000, 310, bridge);
+    const b = air(110_000, 285, habitat);
+    const next = exchange(a, b, bridgeStructure, habitatStructure, fromA, 0);
+    const reference = transfer(a, b, habitatStructure, fromA);
+    expect(next.b).toEqual(reference.target);
+    expect(next.a.moles).toEqual(reference.source.moles);
+    expect(
+      Math.abs(next.a.temperature - a.temperature) / a.temperature,
+    ).toBeLessThan(1e-15);
+  });
+
+  it('trades heat and CO2 between a hot bridge and the habitat', () => {
+    let a: Air = {
+      moles: { ...air(101_300, 330, bridge).moles, CO2: 50 },
+      temperature: 330,
+    };
+    let b = air(101_300, 293, habitat);
+    const moles = GASES.map((gas) => a.moles[gas] + b.moles[gas]);
+    const total = energy(a, bridgeStructure) + energy(b, habitatStructure);
+    for (let tick = 0; tick < 200; tick += 1) {
+      const next = swap(a, b);
+      a = next.a;
+      b = next.b;
+    }
+    GASES.forEach((gas, i) => {
+      const after = a.moles[gas] + b.moles[gas];
+      expect(Math.abs(after - moles[i]) / moles[i]).toBeLessThan(1e-12);
+    });
+    const after = energy(a, bridgeStructure) + energy(b, habitatStructure);
+    expect(Math.abs(after - total) / total).toBeLessThan(1e-12);
+    expect(a.moles.CO2 / bridge).toBeCloseTo(0.28887, 5);
+    expect(b.moles.CO2 / habitat).toBeCloseTo(0.28887, 5);
+  });
+
+  it('freezes what it returns', () => {
+    const next = swap(air(1, 293, bridge), air(1, 293, habitat));
+    expect(Object.isFrozen(next)).toBe(true);
+    expect(Object.isFrozen(next.a.moles)).toBe(true);
+    expect(Object.isFrozen(next.b)).toBe(true);
   });
 });
 
