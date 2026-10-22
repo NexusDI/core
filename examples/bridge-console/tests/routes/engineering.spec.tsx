@@ -145,7 +145,7 @@ describe('the engineering gauges', () => {
   test('read the idle reactor at tick 0', async ({ nexus }) => {
     await using scope = await scopeOf(nexus);
     await renderPage(scope);
-    expect(await gauges()).toEqual(['0', '0 MW', '500 K', '0 MW']);
+    expect(await gauges()).toEqual(['0.00', '0.0 MW', '500.0 K', '0.0 MW']);
   });
 
   test('read the reactor, the coolant and the shields from the snapshot', async () => {
@@ -178,7 +178,23 @@ describe('the engineering gauges', () => {
     }
     await using scope = await scopeWith(BusyLink, built);
     await renderPage(scope);
-    expect(await gauges()).toEqual(['0.18', '217.8 MW', '502.5 K', '200 MW']);
+    expect(await gauges()).toEqual(['0.18', '217.8 MW', '502.5 K', '200.0 MW']);
+  });
+
+  test('group the thousands of the full reactor output', async () => {
+    const full: ShipReading = {
+      ...shipAtStart,
+      reactor: { level: 1, thermal: 3.63e9, electric: 1.21e9, tripped: false },
+      power: { output: 1.21e9, loads: [], shed: [] },
+    };
+    class FullLink extends FakeBridgeLink {
+      override async snapshot() {
+        return full;
+      }
+    }
+    await using scope = await scopeWith(FullLink, built);
+    await renderPage(scope);
+    expect((await gauges())[1]).toBe('1,210.0 MW');
   });
 
   test('say they are offline when the backend fails, and keep the forms', async () => {
