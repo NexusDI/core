@@ -62,8 +62,8 @@ describe('the bridge API graph', () => {
       plugins: bridgePlugins({ dev: true }),
     });
     const { modules, providers } = graph(ship);
-    // ShipSystems and CommandHandlers have a provider in Engineering and one
-    // in LifeSupport, so a note is keyed by token and module.
+    // ShipSystems and CommandHandlers have a provider in Engineering, one in
+    // LifeSupport and one in Safety, so a note is keyed by token and module.
     const moduleName = new Map(modules.map((m) => [m.id, m.name]));
     const notes = Object.fromEntries(
       providers.map((p) => [
@@ -96,6 +96,18 @@ describe('the bridge API graph', () => {
     expect(notes['AtmosphereProbe in LifeSupport']).toEqual([
       'system: LifeSupport',
     ]);
+    expect(notes['ShipSystems in Safety']).toEqual([
+      'system: Safety',
+      'phase: 5',
+    ]);
+    for (const token of [
+      'CommandHandlers',
+      'BlastDoors',
+      'FireSuppression',
+      'MasterAlarm',
+    ]) {
+      expect(notes[`${token} in Safety`]).toEqual(['system: Safety']);
+    }
 
     const bridgeModules = [
       'BridgeApi',

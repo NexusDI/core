@@ -13,7 +13,7 @@ describe('the ship shutdown', () => {
     vi.useRealTimers();
   });
 
-  it('stops the driver and the telemetry feed before the reactor scrams', async () => {
+  it('stops the driver and the tick listeners before the reactor scrams', async () => {
     const events: TraceEvent[] = [];
     const ship = await Nexus.create(
       offlineMeridian({ sim: { seed: 7, dt: 0.5 }, mode: 'live' }),
@@ -26,8 +26,7 @@ describe('the ship shutdown', () => {
 
     await ship[Symbol.asyncDispose]();
 
-    // G3 adds its tokens to this sequence.
-    const order = ['SimDriver', 'TelemetryFeed', 'ReactorCore'];
+    const order = ['SimDriver', 'MasterAlarm', 'TelemetryFeed', 'ReactorCore'];
     const disposed = events.flatMap((event) =>
       event.type === 'dispose:instance' && order.includes(event.token)
         ? [event.token]

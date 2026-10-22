@@ -9,8 +9,8 @@
         "m3",
         "m4",
         "m5",
-        "m10",
-        "m11"
+        "m11",
+        "m12"
       ],
       "exports": []
     },
@@ -61,14 +61,16 @@
         "m6",
         "m7",
         "m8",
-        "m9"
+        "m9",
+        "m10"
       ],
       "exports": [
         "p6",
         "p14",
         "p7",
         "m8",
-        "m9"
+        "m9",
+        "m10"
       ]
     },
     {
@@ -105,8 +107,10 @@
         "p18",
         "p19",
         "p24",
+        "p31",
         "p20",
-        "p26"
+        "p26",
+        "p32"
       ]
     },
     {
@@ -120,22 +124,41 @@
         "p23",
         "p19",
         "p24",
+        "p31",
         "p25",
         "p20",
-        "p26"
+        "p26",
+        "p32"
       ]
     },
     {
       "id": "m10",
-      "name": "SimDriver",
+      "name": "Safety",
       "global": false,
       "imports": [],
       "exports": [
-        "p28"
+        "p28",
+        "p29",
+        "p30",
+        "p19",
+        "p24",
+        "p31",
+        "p20",
+        "p26",
+        "p32"
       ]
     },
     {
       "id": "m11",
+      "name": "SimDriver",
+      "global": false,
+      "imports": [],
+      "exports": [
+        "p33"
+      ]
+    },
+    {
+      "id": "m12",
       "name": "interceptors",
       "global": false,
       "imports": [
@@ -483,8 +506,68 @@
     },
     {
       "id": "p28",
-      "token": "SimDriver",
+      "token": "BlastDoors",
       "module": "m10",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "BlastDoorControl",
+      "internal": false
+    },
+    {
+      "id": "p29",
+      "token": "FireSuppression",
+      "module": "m10",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "InertGasSuppression",
+      "internal": false
+    },
+    {
+      "id": "p30",
+      "token": "MasterAlarm",
+      "module": "m10",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "MasterAlarm",
+      "internal": false
+    },
+    {
+      "id": "p31",
+      "token": "ShipSystems",
+      "module": "m10",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "SafetyPhysics",
+      "internal": false
+    },
+    {
+      "id": "p32",
+      "token": "CommandHandlers",
+      "module": "m10",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "SafetyCommands",
+      "internal": false
+    },
+    {
+      "id": "p33",
+      "token": "SimDriver",
+      "module": "m11",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -494,9 +577,9 @@
       "internal": false
     },
     {
-      "id": "p29",
+      "id": "p34",
       "token": "DriverOptions",
-      "module": "m10",
+      "module": "m11",
       "lifetime": null,
       "kind": "value",
       "eager": true,
@@ -506,9 +589,9 @@
       "internal": false
     },
     {
-      "id": "p30",
+      "id": "p35",
       "token": "NavAudit",
-      "module": "m11",
+      "module": "m12",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -518,9 +601,9 @@
       "internal": false
     },
     {
-      "id": "p31",
+      "id": "p36",
       "token": "interceptors registry",
-      "module": "m11",
+      "module": "m12",
       "lifetime": "singleton",
       "kind": "factory",
       "eager": true,
@@ -530,9 +613,9 @@
       "internal": false
     },
     {
-      "id": "p32",
+      "id": "p37",
       "token": "interceptors guard",
-      "module": "m11",
+      "module": "m12",
       "lifetime": "singleton",
       "kind": "factory",
       "eager": true,
@@ -601,6 +684,11 @@
       "kind": "all"
     },
     {
+      "from": "p6",
+      "to": "p31",
+      "kind": "all"
+    },
+    {
       "from": "p7",
       "to": "p20",
       "kind": "all"
@@ -608,6 +696,11 @@
     {
       "from": "p7",
       "to": "p26",
+      "kind": "all"
+    },
+    {
+      "from": "p7",
+      "to": "p32",
       "kind": "all"
     },
     {
@@ -767,27 +860,62 @@
     },
     {
       "from": "p28",
-      "to": "p6",
+      "to": "p10",
       "kind": "required"
     },
     {
-      "from": "p28",
-      "to": "p13",
-      "kind": "required"
-    },
-    {
-      "from": "p28",
-      "to": "p29",
+      "from": "p29",
+      "to": "p10",
       "kind": "required"
     },
     {
       "from": "p30",
-      "to": "p5",
+      "to": "p6",
       "kind": "required"
     },
     {
       "from": "p31",
-      "to": "p30",
+      "to": "p11",
+      "kind": "required"
+    },
+    {
+      "from": "p31",
+      "to": "p21",
+      "kind": "required"
+    },
+    {
+      "from": "p32",
+      "to": "p28",
+      "kind": "required"
+    },
+    {
+      "from": "p32",
+      "to": "p29",
+      "kind": "required"
+    },
+    {
+      "from": "p33",
+      "to": "p6",
+      "kind": "required"
+    },
+    {
+      "from": "p33",
+      "to": "p13",
+      "kind": "required"
+    },
+    {
+      "from": "p33",
+      "to": "p34",
+      "kind": "required"
+    },
+    {
+      "from": "p35",
+      "to": "p5",
+      "kind": "required"
+    },
+    {
+      "from": "p36",
+      "to": "p35",
       "kind": "required"
     }
   ]

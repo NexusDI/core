@@ -8,6 +8,7 @@ import { Simulation } from './simulation/simulation.module';
 import { Engineering } from './systems/engineering/engineering.module';
 import { LifeSupport } from './systems/life-support/life-support.module';
 import { readCalibration } from './systems/life-support/read-calibration';
+import { Safety } from './systems/safety/safety.module';
 import { TELEMETRY } from './telemetry/contracts';
 import { Telemetry } from './telemetry/telemetry.module';
 
@@ -31,6 +32,7 @@ export function meridianSystems(options: SimOptions) {
       Telemetry,
       Engineering,
       ConfiguredLifeSupport,
+      Safety,
     ],
     providers: [
       // all(SHIP_SYSTEMS) reads this module's own providers plus the exports of
@@ -44,13 +46,15 @@ export function meridianSystems(options: SimOptions) {
     // SHIELD_GRID. COOLANT_LOOP stays inside Engineering. Re-exporting
     // LifeSupport hands the root ATMOSPHERE_PROBE, ATMOSPHERE_SENSOR and
     // ATMOSPHERE_CONTROL, and puts its POWER_CONSUMERS entry where
-    // Engineering's router reads it.
+    // Engineering's router reads it. Re-exporting Safety hands the root
+    // BLAST_DOORS, FIRE_SUPPRESSION and MASTER_ALARM.
     exports: [
       TICK_LOOP,
       TELEMETRY,
       COMMAND_DESK,
       Engineering,
       ConfiguredLifeSupport,
+      Safety,
     ],
   });
 }

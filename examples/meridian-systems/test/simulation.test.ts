@@ -56,7 +56,7 @@ describe('meridianSystems', () => {
       expect.objectContaining({
         code: 'MERIDIAN_BAD_COMMAND',
         reason: 'system',
-        expected: 'engineering and life-support',
+        expected: 'engineering, life-support and safety',
       }),
     );
   });
