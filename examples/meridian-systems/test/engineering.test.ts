@@ -1,6 +1,7 @@
 import { Nexus } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
+import * as packageRoot from '../src/index';
 import { meridianSystems } from '../src/meridian-systems.module';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
 import { SHIP_STATE, TICK_LOOP } from '../src/simulation/contracts';
@@ -31,6 +32,13 @@ describe('Engineering', () => {
     expect(ship.get(POWER_ROUTER)).toBeDefined();
     expect(ship.get(REACTOR).output).toBe(0);
     expect(ship.get(SHIELD_GRID)).toBeDefined();
+  });
+
+  it('leaves the coolant loop out of the package root', () => {
+    expect(Object.keys(packageRoot)).toEqual(
+      expect.arrayContaining(['REACTOR', 'POWER_ROUTER', 'SHIELD_GRID']),
+    );
+    expect(packageRoot).not.toHaveProperty('COOLANT_LOOP');
   });
 
   it('raises the shields once the reactor climbs past 200 MW, and sheds them as it falls', async () => {

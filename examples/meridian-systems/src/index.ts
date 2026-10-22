@@ -18,4 +18,11 @@ export { readShip } from './simulation/read-ship';
 export { roundSnapshot } from './simulation/round-snapshot';
 export * from './telemetry/contracts';
 export { shipNotes } from './notes';
-export * from './systems/engineering/contracts';
+export {
+  type IPowerRouter,
+  type IReactorCore,
+  type IShieldGrid,
+  POWER_ROUTER,
+  REACTOR,
+  SHIELD_GRID,
+} from './systems/engineering/contracts';
