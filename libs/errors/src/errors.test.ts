@@ -281,6 +281,28 @@ describe('errors', () => {
       );
     });
 
+    it('cuts a foreign cause at 500 characters in the provider text', async () => {
+      const LINK = new Token<object>('SubspaceLink');
+      const error = (await rejected(
+        Nexus.create(
+          defineModule({
+            name: 'Root',
+            providers: [
+              provide(LINK, {
+                useFactory: () => {
+                  throw new Error('x'.repeat(1000));
+                },
+              }),
+            ],
+          }),
+          { plugins: [errors()] },
+        ),
+      )) as Error;
+      expect(error.message).toBe(
+        `[NEXUS_PROVIDER_FAILED] SubspaceLink (module Root) failed: ${`Error: ${'x'.repeat(1000)}`.slice(0, 500)}…`,
+      );
+    });
+
     it('formats the schema rejection of a forRootAsync() factory with errors()', async () => {
       const Simulation = defineModule({
         name: 'Simulation',

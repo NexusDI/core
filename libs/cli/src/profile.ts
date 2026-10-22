@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { isNexusError } from '@nexusdi/core';
 import type { ProfileReport, Profiler } from '@nexusdi/devtools';
 
 import type { ProfileCommand } from './args.js';
@@ -50,26 +51,47 @@ export function describeFailure(error: unknown): string {
   const lines: string[] = [];
   let current: unknown = error;
   for (let depth = 0; current !== undefined && depth < 5; depth++) {
-    const text =
-      current instanceof Error
-        ? `${current.name}: ${current.message}`
-        : String(current);
-    // Core's one-line message and the errors() text both end the first
-    // line with the cause, a NexusError cause by its message alone; print
-    // that cause once.
-    const head = (lines.at(-1) ?? '').split('\n', 1)[0];
-    const message =
-      current instanceof Error ? String(current.message).split('\n', 1)[0] : '';
-    if (depth === 0)
-      lines.push(current instanceof Error ? current.message : text);
-    else if (
-      !head.endsWith(`: ${text}`) &&
-      !(message !== '' && head.endsWith(` ${message}`))
-    )
-      lines.push(`  caused by ${text}`);
+    const text = describeValue(current);
+    if (depth === 0) lines.push(messageOf(current) ?? text);
+    else {
+      // Core's one-line message (` Cause: `) and the errors() text
+      // (`failed: `) both end the first line with the cause's first line: a
+      // NexusError by its message, any other error as `Name: message`.
+      // Print a cause that the first line ends with once.
+      const head = (lines.at(-1) ?? '').split('\n', 1)[0] ?? '';
+      const quoted = isNexusError(current)
+        ? (messageOf(current) ?? text)
+        : text;
+      if (!head.endsWith(`: ${quoted.split('\n', 1)[0] ?? ''}`))
+        lines.push(`  caused by ${text}`);
+    }
     current = current instanceof Error ? current.cause : undefined;
   }
   return lines.join('\n');
+}
+
+/** An error's message as a string, or undefined when it is no error or the read throws. */
+function messageOf(value: unknown): string | undefined {
+  try {
+    return value instanceof Error ? String(value.message) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** `Name: message` for an error, the string form of anything else, never throwing. */
+function describeValue(value: unknown): string {
+  try {
+    return value instanceof Error
+      ? `${String(value.name)}: ${String(value.message)}`
+      : String(value);
+  } catch {
+    try {
+      return Object.prototype.toString.call(value);
+    } catch {
+      return '[unprintable]';
+    }
+  }
 }
 
 async function readReports(

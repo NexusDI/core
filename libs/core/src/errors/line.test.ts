@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { layoutText } from '../text/index.js';
-import { DOCS_URL, lineOf } from './line.js';
+import { describeThrown } from './describe-thrown.js';
+import { DOCS_URL, issueLine, lineOf } from './line.js';
+import { ModuleOptionsError } from './module-options-error.js';
 
 describe('layoutText', () => {
   it('writes the code in brackets before the message', () => {
@@ -119,12 +121,68 @@ describe('lineOf', () => {
     );
     expect(lineOf('X', {}, DOCS_URL, {})).toBe(`${DOCS_URL}X`);
   });
-  it('prints a null path segment, and leaves out issues with a path that is not an array', () => {
+  it('prints a null path segment, and an issue whose path is not an array by its message', () => {
     expect(lineOf('X', { issues: [{ message: 'm', path: [null, 'a'] }] })).toBe(
       `issues=null.a: m. ${DOCS_URL}X`,
     );
     expect(lineOf('X', { issues: [{ message: 'm', path: 'a' }] })).toBe(
-      `${DOCS_URL}X`,
+      `issues=m. ${DOCS_URL}X`,
+    );
+  });
+
+  it('prints ? for a path segment that throws when read, and keeps the other issues', () => {
+    const segments: unknown[] = [
+      { key: Object.create(null) },
+      {
+        get key(): never {
+          throw new Error('key getter');
+        },
+      },
+      new Proxy(
+        {},
+        {
+          get: () => {
+            throw new Error('trap');
+          },
+        },
+      ),
+    ];
+    for (const segment of segments) {
+      const error = new ModuleOptionsError({
+        code: 'NEXUS_INVALID_MODULE_OPTIONS',
+        module: 'M',
+        issues: [
+          { message: 'm', path: [segment as PropertyKey, 'a'] },
+          { message: 'n', path: ['b'] },
+        ],
+      });
+      expect(error.message).toBe(
+        `[NEXUS_INVALID_MODULE_OPTIONS] module=M issues=?.a: m; b: n. ${DOCS_URL}NEXUS_INVALID_MODULE_OPTIONS`,
+      );
+    }
+    expect(issueLine({ message: 'm', path: [undefined as never] })).toBe(
+      'undefined: m',
+    );
+    expect(issueLine({ message: 'm', path: [Object.create(null)] })).toBe(
+      'undefined: m',
+    );
+  });
+
+  it('cuts a foreign cause at 500 characters and keeps a NexusError cause whole', () => {
+    const head = `${DOCS_URL}X Cause: `;
+    expect(
+      lineOf('X', {}, DOCS_URL, { cause: new Error('x'.repeat(1000)) }),
+    ).toBe(`${head}${`Error: ${'x'.repeat(1000)}`.slice(0, 500)}…`);
+    expect(lineOf('X', {}, DOCS_URL, { cause: 'y'.repeat(500) })).toBe(
+      `${head}${'y'.repeat(500)}`,
+    );
+    const inner = new ModuleOptionsError({
+      code: 'NEXUS_INVALID_MODULE_OPTIONS',
+      module: 'z'.repeat(1000),
+      issues: [],
+    });
+    expect(lineOf('X', {}, DOCS_URL, { cause: inner })).toBe(
+      `${head}${inner.message}`,
     );
   });
 
@@ -146,5 +204,45 @@ describe('lineOf', () => {
       expect(line.startsWith(`${DOCS_URL}X Cause: `)).toBe(true);
       expect(line.length).toBeGreaterThan(`${DOCS_URL}X Cause: `.length);
     }
+  });
+});
+
+describe('describeThrown', () => {
+  it('returns text for values whose reads throw', () => {
+    const throwingName = new Error('e');
+    Object.defineProperty(throwingName, 'name', {
+      get() {
+        throw new Error('g');
+      },
+    });
+    const objectMessage = new Error('e');
+    Object.defineProperty(objectMessage, 'message', {
+      value: Object.create(null),
+    });
+    const values: unknown[] = [
+      Symbol('s'),
+      Object.create(null),
+      {
+        toString: () => {
+          throw new Error('x');
+        },
+      },
+      new Proxy(
+        {},
+        {
+          get: () => {
+            throw new Error('trap');
+          },
+          getPrototypeOf: () => {
+            throw new Error('p');
+          },
+        },
+      ),
+      Object.assign(new Error('e'), { name: Symbol('n') }),
+      throwingName,
+      objectMessage,
+    ];
+    for (const value of values)
+      expect(typeof describeThrown(value)).toBe('string');
   });
 });

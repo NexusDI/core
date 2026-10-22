@@ -1,4 +1,4 @@
-import { describeThrown } from './describe-thrown.js';
+import { describeCause, safely } from './describe-thrown.js';
 import type { SchemaIssue } from './module-options-error.js';
 
 /** The docs page of each code. */
@@ -24,32 +24,46 @@ function oneLine(value: string): string {
   );
 }
 
+/** A path segment's text: a `{ key }` segment's key, or `?` when reading it throws. */
+const segmentText = (segment: unknown): string =>
+  safely(
+    () =>
+      String(
+        segment !== null && typeof segment === 'object'
+          ? (segment as { key: unknown }).key
+          : segment,
+      ),
+    '?',
+  );
+
 /**
  * Writes an issue, such as a schema issue, as `path: message`, or as the
- * message alone when it has no path. A `{ key }` segment prints its key.
+ * message alone when it has no path. A `{ key }` segment prints its key. A
+ * segment or message that throws when read prints `?`, and a path that is
+ * not an array counts as none, because a NexusError's constructor calls it.
  */
 export function issueLine(issue: SchemaIssue): string {
-  const keys = (issue.path ?? []).map((segment) =>
-    String(
-      segment !== null && typeof segment === 'object' ? segment.key : segment,
-    ),
+  const keys = safely(
+    () => (Array.isArray(issue.path) ? issue.path.map(segmentText) : []),
+    ['?'],
   );
-  return keys.length === 0
-    ? issue.message
-    : `${keys.join('.')}: ${issue.message}`;
+  const message = safely(() => String(issue.message), '?');
+  return keys.length === 0 ? message : `${keys.join('.')}: ${message}`;
 }
 
 /**
  * True for an item lineOf prints with issueLine: an object, not an Error,
- * with a string message and no path or an array path.
+ * with a string message. False when reading the item throws.
  */
 const isIssue = (item: unknown): item is SchemaIssue =>
-  typeof item === 'object' &&
-  item !== null &&
-  !(item instanceof Error) &&
-  typeof (item as { message?: unknown }).message === 'string' &&
-  ((item as { path?: unknown }).path === undefined ||
-    Array.isArray((item as { path?: unknown }).path));
+  safely(
+    () =>
+      typeof item === 'object' &&
+      item !== null &&
+      !(item instanceof Error) &&
+      typeof (item as { message?: unknown }).message === 'string',
+    false,
+  );
 
 /** How many issues the one-line message prints before `(and N more)`. */
 const LINE_ISSUES = 3;
@@ -60,7 +74,7 @@ const LINE_ISSUES = 3;
  * link under `docs`. A non-empty array of issues (objects with a string
  * message that are not Errors) prints its first three as `path: message`,
  * joined by `; `. A cause in `options` follows the link as `Cause: ` and
- * its text. A line break inside a value is escaped. No text per code, so
+ * its text, a foreign cause's cut at 500 characters. A line break inside a value is escaped. No text per code, so
  * the bundle carries none.
  */
 export function lineOf(
@@ -89,7 +103,7 @@ export function lineOf(
   const head = parts.length === 0 ? '' : `${parts.join(' ')}. `;
   const cause =
     options !== undefined && 'cause' in options
-      ? ` Cause: ${oneLine(describeThrown(options.cause))}`
+      ? ` Cause: ${oneLine(describeCause(options.cause))}`
       : '';
   return `${head}${docs}${code}${cause}`;
 }
