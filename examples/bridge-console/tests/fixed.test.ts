@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { fixed } from '../app/bridge/fixed';
+import { fixed, kilopascals } from '../app/bridge/fixed';
 
 describe('fixed', () => {
   it("rounds a float's noise away", () => {
@@ -26,5 +26,13 @@ describe('fixed', () => {
 
   it('groups a negative value after its sign', () => {
     expect(fixed(-1234.5, 1)).toBe('-1,234.5');
+  });
+});
+
+describe('kilopascals', () => {
+  it('writes pascals as kPa to the digits it is given', () => {
+    expect(kilopascals(101204.28596604968, 1)).toBe('101.2 kPa');
+    expect(kilopascals(21253, 2)).toBe('21.25 kPa');
+    expect(kilopascals(0, 1)).toBe('0.0 kPa');
   });
 });

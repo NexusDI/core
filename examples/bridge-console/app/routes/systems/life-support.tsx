@@ -6,30 +6,13 @@ import type {
 import { Form } from 'react-router';
 
 import { BRIDGE_LINK, type CommandAnswer } from '../../bridge/bridge-link';
-import { fixed } from '../../bridge/fixed';
+import { fixed, kilopascals } from '../../bridge/fixed';
 import { Button, Section } from '../../components';
 import { di } from '../../nexus.server';
 import type { Route } from './+types/life-support';
+import { COMPARTMENTS } from './compartments';
 import { systemAction } from './system-action.server';
 import { ControlSection, Gauges, SystemPage } from './system-page';
-
-/**
- * Each compartment's name on the page. The console imports only types from
- * the simulation, so the names sit here, and `satisfies` checks that the page
- * names every compartment of the deck and no other.
- */
-const COMPARTMENT_NAMES = {
-  bridge: 'Bridge',
-  habitat: 'Habitat',
-  'reactor-bay': 'Reactor bay',
-  airlock: 'Airlock',
-} as const satisfies Record<CompartmentId, string>;
-
-/** The compartments in the deck's order, each with its name. */
-const COMPARTMENTS = Object.entries(COMPARTMENT_NAMES) as readonly (readonly [
-  CompartmentId,
-  string,
-])[];
 
 /**
  * What the page reads: the ship snapshot and each compartment's analyzer
@@ -69,9 +52,6 @@ export const loader: (args: Route.LoaderArgs) => Promise<LifeSupportReading> =
       air: Object.fromEntries(await reads) as LifeSupportReading['air'],
     };
   });
-
-const kilopascals = (pascals: number, digits: number) =>
-  `${fixed(pascals / 1000, digits)} kPa`;
 
 /**
  * One compartment: the air its gas analyzer reads, and the heater power the
