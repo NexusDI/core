@@ -295,7 +295,7 @@ The snapshot carries the safety records:
 
 ### The Airlock Drill
 
-The airlock drill cycles the airlock under the interlock with the commands life support and Safety already take. G4 adds no command and no module. The crew starts at tick 0 with a throttle of 0.01, life support `online` and `pump evacuate`, and the ship then runs this schedule:
+The airlock drill cycles the airlock under the interlock with the commands life support and Safety already take. The drill adds no command and no module. The crew starts at tick 0 with a throttle of 0.01, life support `online` and `pump evacuate`, and the ship then runs this schedule:
 
 1. At tick 288 the pump has stalled with the airlock at 9,089 Pa, and the interlock refuses `airlock-outer` and `habitat-airlock`. The crew queues `pump off` and `vent open true`, which apply at tick 289.
 2. The vent takes the airlock under 5,000 Pa. At tick 316 the interlock still refuses the outer door at 5,072 Pa. At tick 317 it passes it at 4,967 Pa, and `open airlock-outer` applies at tick 318.
