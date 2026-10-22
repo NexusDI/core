@@ -35,12 +35,25 @@ const HOST_GLOBALS = [
   'Atomics',
 ].map((name) => ({ name, message: REPLAY }));
 
-/** Refuses every specifier but a relative path and the names in `allowed`. */
+const TYPES_ONLY = '@nexusdi/interceptors';
+
+const escape = (name) => name.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+
+/**
+ * Refuses every specifier but a relative path and the names in `allowed`.
+ * `@nexusdi/interceptors` passes as `import type` alone: a value import
+ * would load the package, which the library declares as an optional peer.
+ */
 const onlyRelativeAnd = (...allowed) => ({
   patterns: [
     {
-      regex: `^(?!\\.{1,2}/|(${allowed.map((name) => name.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')).join('|')})$)`,
+      regex: `^(?!\\.{1,2}/|(${[...allowed, TYPES_ONLY].map(escape).join('|')})$)`,
       message: `${REPLAY} A file under src imports relative paths and ${allowed.join(', ')} alone.`,
+    },
+    {
+      regex: `^${escape(TYPES_ONLY)}$`,
+      allowTypeImports: true,
+      message: `${REPLAY} A file under src imports ${TYPES_ONLY} as import type alone.`,
     },
   ],
 });
@@ -55,7 +68,14 @@ export default [
     // tools/repo-checks/src/meridian-purity.test.ts pins each entry.
     files: ['src/**/*.ts'],
     rules: {
-      'no-restricted-imports': ['error', onlyRelativeAnd('@nexusdi/core')],
+      // The base rule cannot tell import type from import.
+      'no-restricted-imports': 'off',
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        onlyRelativeAnd('@nexusdi/core'),
+      ],
+      // import { type A } keeps a bare import of the package at runtime.
+      '@typescript-eslint/no-import-type-side-effects': 'error',
       'no-restricted-globals': ['error', ...HOST_GLOBALS],
       'no-restricted-properties': [
         'error',
@@ -92,7 +112,7 @@ export default [
   {
     files: ['src/**/*.test.ts'],
     rules: {
-      'no-restricted-imports': [
+      '@typescript-eslint/no-restricted-imports': [
         'error',
         // A test reads shipText through explain(), as an errors() call does.
         onlyRelativeAnd('@nexusdi/core', '@nexusdi/errors', 'vitest'),

@@ -21,9 +21,18 @@
   "dependencies": {
     "@nexusdi/core": "*"
   },
+  "peerDependencies": {
+    "@nexusdi/interceptors": "*"
+  },
+  "peerDependenciesMeta": {
+    "@nexusdi/interceptors": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@nexusdi/devtools": "*",
     "@nexusdi/errors": "*",
+    "@nexusdi/interceptors": "*",
     "@nexusdi/vitest": "*"
   },
   "nx": {
