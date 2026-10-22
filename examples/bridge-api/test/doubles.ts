@@ -1,11 +1,13 @@
-import type {
-  Alarm,
-  IAlarmSink,
-  IAtmosphereProbe,
-  IAtmosphereSensor,
-  ITelemetryFeed,
-  ShipReading,
-  TelemetrySink,
+import {
+  type Alarm,
+  BUNDLED_CHARTS,
+  type IAlarmSink,
+  type IAtmosphereProbe,
+  type IAtmosphereSensor,
+  type ISubspaceLink,
+  type ITelemetryFeed,
+  type ShipReading,
+  type TelemetrySink,
 } from '@nexusdi/meridian-systems';
 
 import type { IFlightLog, INavCharts } from '../src/ship/contracts';
@@ -72,5 +74,12 @@ export class MemoryAlarmSink implements IAlarmSink {
   }
   clear(alarm: Alarm, tick: number) {
     this.heard.push({ call: 'clear', alarm, tick });
+  }
+}
+
+/** A subspace link that answers the bundled charts, so a linked ship starts with no network. */
+export class LoopbackLink implements ISubspaceLink {
+  async receive<T>(): Promise<T> {
+    return BUNDLED_CHARTS as T;
   }
 }
