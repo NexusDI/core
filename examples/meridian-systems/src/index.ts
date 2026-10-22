@@ -1,6 +1,7 @@
 export {
   BadCommandError,
   PowerBudgetError,
+  UnknownCompartmentError,
   type BadCommandReason,
 } from './errors';
 export { meridianSystems } from './meridian-systems.module';

@@ -41,9 +41,23 @@ export class BadCommandError extends errorBase<
   BadCommandFields
 >('MERIDIAN_BAD_COMMAND', 'BadCommandError', DOCS) {}
 
+interface UnknownCompartmentFields {
+  /** The compartment id the request named; absent when it named none. */
+  readonly compartment?: string;
+  /** The compartments of the deck, in words. */
+  readonly expected: string;
+}
+
+/** A request named a compartment the deck does not have, or named none. */
+export class UnknownCompartmentError extends errorBase<
+  'MERIDIAN_UNKNOWN_COMPARTMENT',
+  UnknownCompartmentFields
+>('MERIDIAN_UNKNOWN_COMPARTMENT', 'UnknownCompartmentError', DOCS) {}
+
 declare module '@nexusdi/core' {
   interface NexusErrorByCode {
     MERIDIAN_POWER_BUDGET: PowerBudgetError;
     MERIDIAN_BAD_COMMAND: BadCommandError;
+    MERIDIAN_UNKNOWN_COMPARTMENT: UnknownCompartmentError;
   }
 }
