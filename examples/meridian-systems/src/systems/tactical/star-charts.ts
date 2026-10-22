@@ -1,4 +1,9 @@
-import type { Course, INavCharts, ISubspaceLink } from './contracts';
+import charts from '../../../deck/charts.json' with { type: 'json' };
+import type { ISubspaceLink } from '../comms/contracts';
+import type { Course, INavCharts } from './contracts';
+
+/** The chart table the ship carries: a heading for each star it charts. */
+export const BUNDLED_CHARTS: Readonly<Record<string, number>> = charts;
 
 export class StarCharts implements INavCharts {
   /** Downloads the chart table over the subspace link. Does I/O, so a Worker builds it on the first request (spec 9.2). */

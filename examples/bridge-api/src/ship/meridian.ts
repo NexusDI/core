@@ -1,12 +1,15 @@
 import { defineModule } from '@nexusdi/core';
-import { meridianSystems, type SimOptions } from '@nexusdi/meridian-systems';
+import {
+  meridianSystems,
+  type MeridianSystemsOptions,
+  type SimOptions,
+} from '@nexusdi/meridian-systems';
 
 import { AlarmPanel } from './alarm-panel.module';
 import { AuditTrail } from './audit-trail.module';
 import { BridgeApi } from './bridge-api.module';
 import type { SimMode } from './contracts';
 import { SimDriver } from './sim-driver.module';
-import { OfflineTactical, tactical } from './tactical.module';
 
 export const DEFAULT_RELAY_URL = 'https://relay.meridian.invalid';
 
@@ -22,32 +25,32 @@ export interface ShipSetup {
  */
 export const SEEDED: ShipSetup = { sim: { seed: 7, dt: 0.5 }, mode: 'manual' };
 
-export function meridian(relayUrl: string, setup: ShipSetup = SEEDED) {
+/** The root named `name`: the bridge's modules over the ship's systems. */
+function bridgeShip(
+  name: string,
+  systems: MeridianSystemsOptions,
+  mode: SimMode,
+) {
   return defineModule({
-    name: 'Meridian',
+    name,
     imports: [
-      tactical(relayUrl),
       BridgeApi,
       AuditTrail,
       AlarmPanel,
-      meridianSystems(setup.sim),
-      SimDriver.forRoot({ mode: setup.mode }),
+      meridianSystems(systems),
+      SimDriver.forRoot({ mode }),
     ],
   });
 }
 
+/** The ship linked to the relay at `relayUrl`, which downloads its charts at startup. */
+export function meridian(relayUrl: string, setup: ShipSetup = SEEDED) {
+  return bridgeShip('Meridian', { ...setup.sim, relayUrl }, setup.mode);
+}
+
+/** The ship with no subspace link, over the bundled charts. */
 export function offlineMeridian(setup: ShipSetup = SEEDED) {
-  return defineModule({
-    name: 'OfflineMeridian',
-    imports: [
-      OfflineTactical,
-      BridgeApi,
-      AuditTrail,
-      AlarmPanel,
-      meridianSystems(setup.sim),
-      SimDriver.forRoot({ mode: setup.mode }),
-    ],
-  });
+  return bridgeShip('OfflineMeridian', setup.sim, setup.mode);
 }
 
 /** The graph the CLI draws and the check test compiles. */
