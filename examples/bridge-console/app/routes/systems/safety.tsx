@@ -11,6 +11,7 @@ import {
   CommandSelect,
   ControlSection,
   Gauges,
+  ItemList,
   SnapshotOffline,
   SystemPage,
 } from './system-page';
@@ -63,15 +64,11 @@ function SafetyGauges({ ship }: { ship: ShipReading }) {
   return (
     <>
       <ControlSection title="Alarms">
-        {alarms.length === 0 ? (
-          <p>No alarms</p>
-        ) : (
-          <ul aria-label="Alarms">
-            {alarms.map(({ code, subject }) => (
-              <li key={`${code} ${subject}`}>{`${code} in ${subject}`}</li>
-            ))}
-          </ul>
-        )}
+        <ItemList
+          label="Alarms"
+          none="No alarms"
+          items={alarms.map(({ code, subject }) => `${code} in ${subject}`)}
+        />
       </ControlSection>
       <ControlSection title="Doors">
         {DOOR_IDS.map((id) => (

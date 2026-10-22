@@ -30,6 +30,29 @@ export function Gauges({
   );
 }
 
+/**
+ * A list of text lines with `label` as its accessible name, or the paragraph
+ * `none` when `items` is empty.
+ */
+export function ItemList({
+  label,
+  none,
+  items,
+}: {
+  label: string;
+  none: string;
+  items: readonly string[];
+}) {
+  if (items.length === 0) return <p>{none}</p>;
+  return (
+    <ul aria-label={label}>
+      {items.map((item) => (
+        <li key={item}>{item}</li>
+      ))}
+    </ul>
+  );
+}
+
 /** The section a page shows in place of its gauges when the ship snapshot fails. */
 export function SnapshotOffline() {
   return (
