@@ -72,8 +72,8 @@ describe('BadCommandError', () => {
   });
 
   it('links its one-line message to the README anchor of its code', () => {
-    expect(badCommand().message).toMatch(
-      new RegExp(`\\. ${DOCS.replace(/[.?/]/g, '\\$&')}MERIDIAN_BAD_COMMAND$`),
+    expect(badCommand().message.endsWith(`. ${DOCS}MERIDIAN_BAD_COMMAND`)).toBe(
+      true,
     );
   });
 });
