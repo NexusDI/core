@@ -5,9 +5,10 @@
  * from `systemAction` in system-action.server.ts.
  */
 import type { ReactNode } from 'react';
+import { Form } from 'react-router';
 
 import type { CommandAnswer } from '../../bridge/bridge-link';
-import { Section } from '../../components';
+import { Button, Section } from '../../components';
 
 /** A list of named gauges, each a name and its rounded value, with `label` as its accessible name. */
 export function Gauges({
@@ -26,6 +27,15 @@ export function Gauges({
         </div>
       ))}
     </dl>
+  );
+}
+
+/** The section a page shows in place of its gauges when the ship snapshot fails. */
+export function SnapshotOffline() {
+  return (
+    <Section>
+      <p>Ship snapshot offline</p>
+    </Section>
   );
 }
 
@@ -92,5 +102,44 @@ export function SystemPage({
         </Section>
       )}
     </>
+  );
+}
+
+/**
+ * A form of a select named `id` that lists `options`, with one button for
+ * each of two commands. The first command is the primary button.
+ */
+export function CommandSelect({
+  id,
+  label,
+  options,
+  commands,
+}: {
+  id: string;
+  label: string;
+  options: readonly string[];
+  commands: readonly [
+    readonly [value: string, text: string],
+    readonly [value: string, text: string],
+  ];
+}) {
+  const [[first, firstText], [second, secondText]] = commands;
+  return (
+    <Form method="post" className="flex gap-2 items-center">
+      <label htmlFor={id}>{label}</label>
+      <select id={id} name={id} defaultValue={options[0]}>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+      <Button type="submit" name="command" value={first}>
+        {firstText}
+      </Button>
+      <Button type="submit" name="command" value={second} variant="outline">
+        {secondText}
+      </Button>
+    </Form>
   );
 }
