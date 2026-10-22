@@ -1,0 +1,17 @@
+{
+  "resolution": { "temperature": 0.01, "pressure": 1 },
+  "compartments": {
+    "bridge": {
+      "noise": { "temperature": 0.05, "pressure": 20, "partial": 5 }
+    },
+    "habitat": {
+      "noise": { "temperature": 0.05, "pressure": 20, "partial": 5 }
+    },
+    "reactor-bay": {
+      "noise": { "temperature": 0.05, "pressure": 20, "partial": 5 }
+    },
+    "airlock": {
+      "noise": { "temperature": 0.05, "pressure": 20, "partial": 5 }
+    }
+  }
+}
