@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react';
 import { useService } from '@nexusdi/react';
 import type { ShipReading } from '@nexusdi/meridian-systems';
 
+import { fixed } from '../bridge/fixed';
 import { TELEMETRY_CLIENT } from '../bridge/telemetry-client';
 
 /**
  * The ship's tick, ship time and habitat air. It starts from the loader's
  * reading, so the server and the first browser render agree, then follows
- * the telemetry stream after hydration. `null` shows the ship offline.
+ * the telemetry stream after hydration. `null` shows the ship offline. The
+ * temperature shows in whole kelvin and the pressure to 0.1 kPa, through
+ * `fixed`, so the text keeps one precision as the air changes.
  */
 export function StatusStrip({ ship: first }: { ship: ShipReading | null }) {
   const telemetry = useService(TELEMETRY_CLIENT);
@@ -29,10 +32,10 @@ export function StatusStrip({ ship: first }: { ship: ShipReading | null }) {
           <Reading term="Tick">{ship.tick}</Reading>
           <Reading term="Ship time">{`${ship.time} s`}</Reading>
           <Reading term="Habitat temperature">
-            {`${ship.compartments.habitat.temperature} K`}
+            {`${fixed(ship.compartments.habitat.temperature, 0)} K`}
           </Reading>
           <Reading term="Habitat pressure">
-            {`${(ship.compartments.habitat.pressure / 1000).toPrecision(4)} kPa`}
+            {`${fixed(ship.compartments.habitat.pressure / 1000, 1)} kPa`}
           </Reading>
         </dl>
       )}
