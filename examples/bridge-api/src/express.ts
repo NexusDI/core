@@ -14,7 +14,9 @@ import {
 } from '@nexusdi/meridian-systems';
 import express, { type ErrorRequestHandler, type Request } from 'express';
 
+import { answerAtmosphere } from './bridge/atmosphere';
 import { answerCommand } from './bridge/commands';
+import { compartmentOf } from './bridge/compartment-of';
 import { readJson } from './bridge/json-body';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { telemetryReadable } from './bridge/telemetry-readable';
@@ -28,12 +30,16 @@ export function createBridge(
   options: BridgeOptions = {},
 ) {
   const di = nexus(ship, {
-    request: (req) => ({
-      mission: {
-        id: req.get('x-mission-id') ?? 'survey-7',
-        target: 'Kepler-442b',
-      },
-    }),
+    request: (req) => {
+      const compartment = compartmentOf(req.path);
+      return {
+        mission: {
+          id: req.get('x-mission-id') ?? 'survey-7',
+          target: 'Kepler-442b',
+        },
+        ...(compartment === undefined ? {} : { compartment }),
+      };
+    },
     scopes: options.scopes,
     log: options.log,
   });
@@ -43,7 +49,11 @@ export function createBridge(
   const body = (req: Request) =>
     readJson(req.get('content-type'), req.body as string | undefined);
 
+  // Routes match in their own case and refuse a trailing slash, as Hono and
+  // Fastify match them.
   const bridge = express();
+  bridge.set('case sensitive routing', true);
+  bridge.set('strict routing', true);
   bridge.get('/health', (_req, res) => {
     res.send('ok');
   });
@@ -96,6 +106,10 @@ export function createBridge(
       },
     ),
   );
+  bridge.get('/compartments/:id/atmosphere', async (req, res) => {
+    const answer = answerAtmosphere(await di.scope(req));
+    res.status(answer.status).json(answer.body);
+  });
   bridge.get(
     '/telemetry',
     di.inject({ feed: TELEMETRY }, ({ feed }, _req, res) => {
@@ -148,6 +162,11 @@ export function createBridge(
   const empty: ErrorRequestHandler = (error, _req, res, _next) => {
     res.status((error as { status?: number }).status ?? 500).end();
   };
+  // A path no route matches answers an empty 404, so no answer repeats the
+  // path, as Express's default page would.
+  bridge.use((_req, res) => {
+    res.status(404).end();
+  });
   bridge.use(empty);
   return bridge;
 }

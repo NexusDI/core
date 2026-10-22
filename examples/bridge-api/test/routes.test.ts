@@ -4,6 +4,7 @@ import type { AddressInfo } from 'node:net';
 import { Nexus } from '@nexusdi/core';
 import { graph } from '@nexusdi/devtools';
 import {
+  ATMOSPHERE_SENSOR,
   DECK_PLAN,
   readShip,
   SHIP_STATE,
@@ -21,7 +22,7 @@ import { AUDIT_LOG } from '../src/ship/audit-trail.module';
 import { SIM_DRIVER } from '../src/ship/contracts';
 import { OfflineMeridian, offlineMeridian } from '../src/ship/meridian';
 import { bridgePlugins } from '../src/ship/plugins';
-import { RecordingFeed } from './doubles';
+import { FailingSensor, RecordingFeed } from './doubles';
 import { events } from './sse';
 import { test } from './fixtures';
 
@@ -463,6 +464,101 @@ describe.each(['hono', 'express', 'fastify'] as const)(
       } finally {
         vi.useRealTimers();
       }
+    });
+  },
+);
+
+describe.each(['hono', 'express', 'fastify'] as const)(
+  'the atmosphere route on %s',
+  (framework) => {
+    const call = calls[framework];
+
+    /** What an analyzer in `compartment` reads at the ship's current tick. */
+    async function readingOf(ship: Nexus, compartment: string) {
+      await using scope = await ship.createScope({
+        request: {
+          mission: { id: 'survey-7', target: 'Kepler-442b' },
+          compartment,
+        },
+      });
+      return scope.get(ATMOSPHERE_SENSOR).read();
+    }
+
+    test.for(['habitat', 'airlock'])(
+      'GET /compartments/%s/atmosphere answers the reading at tick 0',
+      async (compartment, { nexus }) => {
+        const { status, body } = await call(
+          nexus,
+          'GET',
+          `/compartments/${compartment}/atmosphere`,
+        );
+        expect(status).toBe(200);
+        expect(body).toMatchObject({ compartment, tick: 0 });
+        expect(body).toEqual(await readingOf(nexus, compartment));
+      },
+    );
+
+    test('GET /compartments/galley/atmosphere answers 404 with the text', async ({
+      nexus,
+    }) => {
+      expect(
+        await call(nexus, 'GET', '/compartments/galley/atmosphere'),
+      ).toEqual({
+        status: 404,
+        body: {
+          code: 'MERIDIAN_UNKNOWN_COMPARTMENT',
+          message:
+            "No compartment is named 'galley'. The deck has bridge, habitat, reactor-bay and airlock.",
+          fix: 'read /compartments/<id>/atmosphere with one of the compartments above.',
+        },
+      });
+    });
+
+    test('GET /compartments/%68abitat/atmosphere answers 404, since the id stays encoded', async ({
+      nexus,
+    }) => {
+      const { status, body } = await call(
+        nexus,
+        'GET',
+        '/compartments/%68abitat/atmosphere',
+      );
+      expect(status).toBe(404);
+      expect(body).toMatchObject({
+        code: 'MERIDIAN_UNKNOWN_COMPARTMENT',
+        message: expect.stringContaining("'%68abitat'"),
+      });
+    });
+
+    test.for([
+      '/Compartments/habitat/atmosphere',
+      '/compartments/habitat/Atmosphere',
+      '/compartments/habitat/atmosphere/',
+    ])(
+      'GET %s answers an empty 404, as no route matches it',
+      async (path, { nexus }) => {
+        expect(await call(nexus, 'GET', path)).toEqual({
+          status: 404,
+          body: undefined,
+        });
+      },
+    );
+
+    test('an unknown route answers an empty 404 that echoes no path', async ({
+      nexus,
+    }) => {
+      expect(await call(nexus, 'GET', `/${'x'.repeat(2_000)}`)).toEqual({
+        status: 404,
+        body: undefined,
+      });
+    });
+
+    test('a sensor that throws answers an empty 500', async () => {
+      await using ship = await createTestingContainer(OfflineMeridian)
+        .override(ATMOSPHERE_SENSOR, { useClass: FailingSensor })
+        .create();
+      expect(
+        await call(ship, 'GET', '/compartments/habitat/atmosphere'),
+      ).toEqual({ status: 500, body: undefined });
     });
   },
 );

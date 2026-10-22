@@ -1,4 +1,5 @@
 import type {
+  IAtmosphereSensor,
   ITelemetryFeed,
   ShipReading,
   TelemetrySink,
@@ -36,5 +37,12 @@ export class RecordingFeed implements ITelemetryFeed {
     return () => {
       this.sinks.delete(sink);
     };
+  }
+}
+
+/** An analyzer whose read() throws a plain Error, as a bug in a sensor would. */
+export class FailingSensor implements IAtmosphereSensor {
+  read(): never {
+    throw new Error('the analyzer failed');
   }
 }

@@ -13,7 +13,9 @@ import { bodyLimit } from 'hono/body-limit';
 import { HTTPException } from 'hono/http-exception';
 import { streamSSE } from 'hono/streaming';
 
+import { answerAtmosphere } from './bridge/atmosphere';
 import { answerCommand } from './bridge/commands';
+import { compartmentOf } from './bridge/compartment-of';
 import { readJson } from './bridge/json-body';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { SSE_HEADERS, telemetryStream } from './bridge/telemetry-stream';
@@ -37,12 +39,18 @@ export function createBridge(
   options: BridgeOptions = {},
 ) {
   const di = nexus(ship, {
-    request: (c) => ({
-      mission: {
-        id: c.req.header('x-mission-id') ?? 'survey-7',
-        target: 'Kepler-442b',
-      },
-    }),
+    request: (c) => {
+      // c.req.path decodes percent escapes, and Express and Fastify read the
+      // path as sent, so Hono reads the raw pathname from the URL.
+      const compartment = compartmentOf(new URL(c.req.url).pathname);
+      return {
+        mission: {
+          id: c.req.header('x-mission-id') ?? 'survey-7',
+          target: 'Kepler-442b',
+        },
+        ...(compartment === undefined ? {} : { compartment }),
+      };
+    },
     scopes: options.scopes,
     log: options.log,
   });
@@ -102,6 +110,10 @@ export function createBridge(
           ({ state, deck }, c) => c.json(readShip(state.snapshot(), deck)),
         ),
       )
+      .get('/compartments/:id/atmosphere', async (c) => {
+        const { status, body } = answerAtmosphere(await di.scope(c));
+        return c.json(body, status);
+      })
       .get(
         '/telemetry',
         di.inject({ feed: TELEMETRY }, ({ feed }, c) =>
@@ -146,6 +158,9 @@ export function createBridge(
         '/commands',
         di.inject({ state: SHIP_STATE }, ({ state }, c) => c.json(state.log())),
       )
+      // A path no route matches answers an empty 404, as Express and
+      // Fastify answer it, so no answer repeats the path.
+      .notFound((c) => c.body(null, 404))
       // The adapter's HTTPException keeps its 500 or 503 (spec 4.3); the
       // handler's own errors answer an empty 500.
       .onError((error, c) =>
