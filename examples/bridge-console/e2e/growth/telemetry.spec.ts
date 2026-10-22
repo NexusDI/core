@@ -11,7 +11,7 @@ test("follows the ship's telemetry in the status strip on /diagnostics", async (
   request,
 }) => {
   const seen = problems(page);
-  // The API server keeps its ship across retries, so the case starts from
+  // The growth cases share the API server's ship, so the case starts from
   // the tick the ship holds now. The idle ship keeps its habitat air.
   const { tick } = (await (
     await request.get(`${bridgeApi}/sim`)

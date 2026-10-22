@@ -81,12 +81,13 @@ ignores `e2e/growth/`, so the gating run opens no telemetry stream.
 
 `npx nx run @nexusdi/bridge-console:e2e-growth` builds the console, starts
 both servers on ports 4220 and 4221, and runs `e2e/growth/` with
-`playwright.e2e-growth.config.mts`. The first case starts from the ship's
-current tick, since the backend keeps its ship across retries. It reads that
-tick from the backend, opens `/diagnostics` and finds the tick in the strip.
-It posts 600 ticks to the backend's `/sim/advance` and reads a tick 600
-higher, its ship time, 293 K and 101.3 kPa from the live stream with no
-reload. The second case finds `Simulation`, `MeridianSystems` and
+`playwright.e2e-growth.config.mts`. The cases share the backend's manual
+ship, so the config runs them one at a time with no retry, and each reads
+the state it needs. The first case starts from the ship's current tick. It
+reads that tick from the backend, opens `/diagnostics` and finds the tick in
+the strip. It posts 600 ticks to the backend's `/sim/advance` and reads a
+tick 600 higher, its ship time, 293 K and 101.3 kPa from the live stream
+with no reload. The second case finds `Simulation`, `MeridianSystems` and
 `Telemetry` on `/diagnostics`, with `system: Telemetry` on the feed. The
 third, `e2e/growth/engineering.spec.ts`, reads the ship's tick from the
 backend, raises the shields at the idle reactor and reads the
