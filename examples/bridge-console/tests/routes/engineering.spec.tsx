@@ -150,20 +150,22 @@ describe('the engineering gauges', () => {
 
   test('read the reactor, the coolant and the shields from the snapshot', async () => {
     // Seed 7 at tick 18, after a throttle of 1 at tick 0 and a shields raise
-    // at tick 17, which the router fits once the output passes 200 MW.
+    // at tick 17, which the router fits once the output passes 200 MW. The
+    // numbers are the ship's own floats. bridge-api's readShip rounds them to
+    // four digits, and the page must read right without it.
     const busy: ShipReading = {
       ...shipAtStart,
       tick: 18,
       time: 9,
       reactor: {
-        level: 0.18,
-        thermal: 653.4e6,
-        electric: 217.8e6,
+        level: 0.18000000000000002,
+        thermal: 653400000.0000001,
+        electric: 217800000.00000003,
         tripped: false,
       },
-      coolant: { temperature: 502.5 },
+      coolant: { temperature: 502.49791096128916 },
       power: {
-        output: 217.8e6,
+        output: 217800000.00000003,
         loads: [
           { id: 'shields', priority: 2, demand: 200e6, allocated: 200e6 },
         ],
