@@ -139,6 +139,37 @@ interlock refuses shows the `MERIDIAN_INTERLOCK` message and its `Fix:`
 line. `tests/routes/safety.spec.tsx` runs the page on `nexusTest` with
 `fakeBridgeLink`, fed unrounded floats in the shape seed 7 gives.
 
+## The Comms Page
+
+`/systems/comms` sits in the ship layout beside the other system pages, and the
+root layout's nav links it as `Comms`, after `Safety`. The page shows the
+phased array and the messages it received. Its loader reads the snapshot alone
+through `snapshotLoader`, since the snapshot holds every comms field the page
+shows. A failed snapshot shows `Ship snapshot offline` in place of the
+gauges and the messages, and the button stays.
+
+- Comms lists four gauges. `Status` is the array's status: `standby`,
+  `no subspace link`, `no power` or `awaiting reply`. `Hail queued` is `Yes` or
+  `No`. `Last hail sent` is `tick N`, or `none` before the first send.
+  `Array power` is the allocated power of the `comms` load in MW to 0.1,
+  through `megawatts()` and `fixed()`, so it reads `5.0 MW` on the tick the array
+  sends and `0.0 MW` on every other tick.
+- Messages lists each message as `<from>: <text> (tick N)`, such as
+  `fleet traffic control: sector clear (tick 5)`, or `No messages`. The list
+  is `ItemList({ label, none, items })` in `system-page.tsx`, which the safety
+  page's alarms use too.
+
+One button, `Hail fleet traffic control`, posts `command=hail` through
+`systemAction('comms', {})` and `BRIDGE_LINK.command(cmd)`. The page shows the
+answer as the other pages do: `Queued for tick N`. A hail queues even when the
+array cannot send it. On a bridge-api with no relay, the status reads
+`no subspace link` and the flag stays `Yes`.
+`tests/routes/comms.spec.tsx` runs the page on `nexusTest` with
+`fakeBridgeLink`. It reads the gauges at tick 0, on the tick the array sends,
+while it waits for the reply, after a hail the router shed, on the tick of the
+reply and on a ship with no link. It also reads the message list and the three
+headings. It also reads the offline snapshot, and posts a hail that queues for tick 1.
+
 ## The Airlock Page
 
 `/airlock` sits in the ship layout and the root layout's nav links it as
@@ -228,8 +259,17 @@ starts the fill with the vent shut, and the inner door stays refused. After
 opens `habitat-airlock`, which reads `survey-7: opened habitat-airlock`. After
 20 ticks the inner door reads `Open` with its sides within 0.5 kPa. The case
 ends with `No alarms` on `/systems/safety` and no console error. The
-`chromium` project ignores the life-support, safety and airlock cases. Those
-three cases share their helpers in `e2e/growth/ship.ts`.
+`chromium` project ignores the life-support, safety, airlock and comms
+cases. Those four cases share their helpers in `e2e/growth/ship.ts`.
+
+`e2e/growth/comms.spec.ts` runs in a fifth project, `comms`, that depends on
+`airlock`. The backend's ship has no subspace link, so the hail stays queued
+for good, and the case runs after every other case. It reads the ship's tick
+from the backend and opens `/systems/comms`, where the status reads `standby`
+and the hail flag `No`. The case clicks `Hail fleet traffic control` and reads
+`Queued for tick` with the next tick. It posts 10 ticks to the backend and
+reloads. The page then reads `no subspace link`, `Yes`, `none` and `0.0 MW`,
+and `No messages`, with no console error.
 
 Only the non-required `demo-growth` CI job runs `e2e-growth` (ship systems
 spec, section 14).
