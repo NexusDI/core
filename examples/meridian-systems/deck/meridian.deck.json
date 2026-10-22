@@ -6,6 +6,7 @@
       "conductance": 90,
       "structureHeatCapacity": 2000000,
       "occupants": 2,
+      "floodCharge": 1000,
       "equipment": ["heater", "scrubber", "oxygen"]
     },
     {
@@ -14,6 +15,7 @@
       "conductance": 150,
       "structureHeatCapacity": 4000000,
       "occupants": 4,
+      "floodCharge": 2000,
       "equipment": ["heater", "scrubber", "oxygen"]
     },
     {
@@ -22,7 +24,8 @@
       "conductance": 110,
       "structureHeatCapacity": 6000000,
       "occupants": 0,
-      "coolantConductance": 2
+      "coolantConductance": 2,
+      "floodCharge": 1330
     },
     {
       "id": "airlock",

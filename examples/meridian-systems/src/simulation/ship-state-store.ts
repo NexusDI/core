@@ -8,6 +8,7 @@ import {
 } from '../physics/atmosphere';
 import { AIR, molesAt } from '../physics/gas';
 import { allocatePower, DEFLECTOR_GRID } from '../physics/power';
+import type { SafetyRecord, SafetySetpoints } from '../physics/safety';
 import { LITHIUM_LOOP } from '../physics/thermal';
 import type {
   DeepPartial,
@@ -23,6 +24,8 @@ import {
   type CompartmentState,
   DECK_PLAN,
   type DeckPlan,
+  DOOR_IDS,
+  type DoorId,
   type IShipState,
   type ShipSnapshot,
 } from './contracts';
@@ -162,6 +165,88 @@ function checkEquipment(room: CompartmentPlan): void {
   }
 }
 
+/** Refuses a flood charge that is not a positive finite number of moles. */
+function checkFloodCharge(room: CompartmentPlan): void {
+  const charge = room.floodCharge;
+  if (charge === undefined) return;
+  if (!Number.isFinite(charge) || charge <= 0) {
+    throw new Error(
+      `The deck plan gives compartment '${room.id}' a floodCharge of ${charge}. A charge is a positive finite number of moles.`,
+    );
+  }
+}
+
+/** A compartment id or `space`. */
+function isSide(id: string): boolean {
+  return id === 'space' || (COMPARTMENT_IDS as readonly string[]).includes(id);
+}
+
+/**
+ * Refuses a deck whose doors differ from `DOOR_IDS`, or a door whose
+ * `between` does not hold two distinct sides, each a compartment id or
+ * `space`.
+ */
+function checkDoors(deck: DeckPlan): void {
+  const seen = new Set<string>();
+  for (const door of deck.doors) {
+    if (!(DOOR_IDS as readonly string[]).includes(door.id)) {
+      throw new Error(`The deck plan names an unknown door '${door.id}'.`);
+    }
+    if (seen.has(door.id)) {
+      throw new Error(`The deck plan names door '${door.id}' twice.`);
+    }
+    seen.add(door.id);
+    const [a, b] = door.between;
+    const sides = door.between.length === 2 && a !== b;
+    if (!sides || !door.between.every(isSide)) {
+      throw new Error(
+        `The deck plan gives door '${door.id}' the sides ${JSON.stringify(door.between)}. A door joins two compartments, or one compartment and space.`,
+      );
+    }
+  }
+  for (const id of DOOR_IDS) {
+    if (!seen.has(id)) throw new Error(`The deck plan has no door '${id}'.`);
+  }
+}
+
+/**
+ * Every door shut, and the flood valve and the drill flag of each room with
+ * a flood charge off. No room burns and no alarm is active; each charged
+ * room's flood count starts at 0.
+ */
+function initialSafety(
+  rooms: Readonly<Record<CompartmentId, CompartmentPlan>>,
+): {
+  setpoints: SafetySetpoints<CompartmentId, DoorId>;
+  record: SafetyRecord<CompartmentId>;
+} {
+  const doors = {} as Record<DoorId, boolean>;
+  for (const id of DOOR_IDS) doors[id] = false;
+  const floods: Partial<Record<CompartmentId, boolean>> = {};
+  const drills: Partial<Record<CompartmentId, boolean>> = {};
+  const fires = {} as Record<CompartmentId, number>;
+  const flooded: Partial<Record<CompartmentId, number>> = {};
+  for (const id of COMPARTMENT_IDS) {
+    fires[id] = 0;
+    if (rooms[id].floodCharge === undefined) continue;
+    floods[id] = false;
+    drills[id] = false;
+    flooded[id] = 0;
+  }
+  return {
+    setpoints: Object.freeze({
+      doors: Object.freeze(doors),
+      floods: Object.freeze(floods),
+      drills: Object.freeze(drills),
+    }),
+    record: Object.freeze({
+      fires: Object.freeze(fires),
+      flooded: Object.freeze(flooded),
+      alarms: Object.freeze([]),
+    }),
+  };
+}
+
 /**
  * Life support offline, with one setpoint for each device a room lists:
  * heaters on at the deck's initial temperature, scrubbers and oxygen
@@ -218,7 +303,9 @@ function initialSnapshot(deck: DeckPlan): ShipSnapshot {
     }
     seen.add(room.id);
     checkEquipment(room);
+    checkFloodCharge(room);
   }
+  checkDoors(deck);
   const rooms = {} as Record<CompartmentId, CompartmentPlan>;
   const compartments = {} as Record<CompartmentId, CompartmentState>;
   for (const id of COMPARTMENT_IDS) {
@@ -231,6 +318,7 @@ function initialSnapshot(deck: DeckPlan): ShipSnapshot {
     });
   }
   const lifeSupport = initialLifeSupport(rooms, temperature);
+  const safety = initialSafety(rooms);
   const power = allocatePower(0, [
     { ...LIFE_SUPPORT_LOAD, demand: 0 },
     { ...DEFLECTOR_GRID, demand: 0 },
@@ -252,10 +340,12 @@ function initialSnapshot(deck: DeckPlan): ShipSnapshot {
       shed: Object.freeze(power.shed),
     }),
     lifeSupport: lifeSupport.record,
+    safety: safety.record,
     setpoints: Object.freeze({
       reactor: Object.freeze({ throttle: 0 }),
       shields: Object.freeze({ raised: false }),
       lifeSupport: lifeSupport.setpoints,
+      safety: safety.setpoints,
     }),
   });
 }

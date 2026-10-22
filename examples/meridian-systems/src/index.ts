@@ -16,6 +16,12 @@ export type {
 export { GASES, pressure, type Gas } from './physics/gas';
 export type { LoadRecord, PowerLoad, PowerRecord } from './physics/power';
 export type {
+  Alarm,
+  AlarmCode,
+  SafetyRecord,
+  SafetySetpoints,
+} from './physics/safety';
+export type {
   CoolantRating,
   CoolantRecord,
   ReactorRating,

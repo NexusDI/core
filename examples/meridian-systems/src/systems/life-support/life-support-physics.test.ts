@@ -18,6 +18,7 @@ const tick: TickContext = {
   tick: 1,
   dt: 0.5,
   rng: new SeededRandom({ seed: 7 }),
+  start: new ShipStateStore(plan).snapshot(),
 };
 
 /** The deck's initial ship, online, with the habitat at 290 K and the loads `shed`. */

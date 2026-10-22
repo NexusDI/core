@@ -1,6 +1,7 @@
 import { MultiToken, Token } from '@nexusdi/core';
 import type { LifeSupportSetpoints } from '../physics/atmosphere';
-import type { CompartmentId } from './contracts';
+import type { SafetySetpoints } from '../physics/safety';
+import type { CompartmentId, DoorId } from './contracts';
 
 /** What the crew asks of each system. A system steps toward its setpoint each tick. */
 export interface Setpoints {
@@ -10,6 +11,7 @@ export interface Setpoints {
   };
   readonly shields: { readonly raised: boolean };
   readonly lifeSupport: LifeSupportSetpoints<CompartmentId>;
+  readonly safety: SafetySetpoints<CompartmentId, DoorId>;
 }
 
 /**
