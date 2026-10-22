@@ -66,6 +66,9 @@ export function telemetryStream(
     {
       start() {
         if (shutdown?.aborted) return close('ship offline');
+        // The listener goes on first, so a feed that closes the sink inside
+        // subscribe removes it again.
+        shutdown?.addEventListener('abort', stop, { once: true });
         unsubscribe = feed.subscribe({
           next(frame) {
             if (ended || offline !== undefined) return;
@@ -74,7 +77,6 @@ export function telemetryStream(
           },
           close,
         });
-        shutdown?.addEventListener('abort', stop, { once: true });
       },
       async pull(controller) {
         while (latest === undefined && offline === undefined && !ended) {

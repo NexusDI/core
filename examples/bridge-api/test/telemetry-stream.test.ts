@@ -173,6 +173,26 @@ describe('telemetryStream', () => {
     expect(await read(offline)).toBe(sse('offline', 'ship offline'));
   });
 
+  it('leaves no shutdown listener on a stream the feed closes during subscribe', async () => {
+    const unsubscribe = vi.fn();
+    const closed: ITelemetryFeed = {
+      subscribe(sink) {
+        sink.close('ship offline');
+        return unsubscribe;
+      },
+    };
+    const shutdown = new AbortController();
+    const add = vi.spyOn(shutdown.signal, 'addEventListener');
+    const remove = vi.spyOn(shutdown.signal, 'removeEventListener');
+    const reader = telemetryStream(closed, shutdown.signal).getReader();
+    expect(await read(reader)).toBe(sse('offline', 'ship offline'));
+    expect(remove.mock.calls.map(([, listener]) => listener)).toEqual(
+      add.mock.calls.map(([, listener]) => listener),
+    );
+    shutdown.abort();
+    expect(unsubscribe).not.toHaveBeenCalled();
+  });
+
   it('names the event-stream type and turns off proxy transforms', () => {
     expect(SSE_HEADERS).toEqual({
       'content-type': 'text/event-stream',
