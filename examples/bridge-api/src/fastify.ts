@@ -147,10 +147,13 @@ export async function createBridge(
     scoped.post(
       '/commands',
       { bodyLimit: SIM_BODY_LIMIT },
-      di.inject({ desk: COMMAND_DESK }, async ({ desk }, req, reply) => {
-        const answer = answerCommand(desk, body(req));
-        return reply.code(answer.status).send(answer.body);
-      }),
+      di.inject(
+        { desk: COMMAND_DESK, log: FLIGHT_LOG },
+        async ({ desk, log }, req, reply) => {
+          const answer = answerCommand(desk, body(req), log);
+          return reply.code(answer.status).send(answer.body);
+        },
+      ),
     );
     scoped.get(
       '/commands',

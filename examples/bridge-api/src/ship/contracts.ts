@@ -1,4 +1,4 @@
-import { Token } from '@nexusdi/core';
+import { type Scope, Token } from '@nexusdi/core';
 import type { ShipSnapshot } from '@nexusdi/meridian-systems';
 
 export interface Mission {
@@ -25,6 +25,11 @@ export interface CommsOptions {
   readonly relayUrl: string;
 }
 
+/** The scope of the request in flight, such as the one `nodeScopes()` runs. */
+export interface IScopeSource {
+  current(): Scope | undefined;
+}
+
 /** `live` advances the ship on a wall clock timer, `manual` only when asked. */
 export type SimMode = 'live' | 'manual';
 export interface DriverOptions {
@@ -46,3 +51,4 @@ export const SUBSPACE_LINK = new Token<ISubspaceLink>('SubspaceLink');
 export const COMMS_OPTIONS = new Token<CommsOptions>('CommsOptions');
 export const DRIVER_OPTIONS = new Token<DriverOptions>('DriverOptions');
 export const SIM_DRIVER = new Token<ISimDriver>('SimDriver');
+export const REQUEST_SCOPES = new Token<IScopeSource>('RequestScopes');

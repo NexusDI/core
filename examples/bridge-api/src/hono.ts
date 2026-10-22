@@ -146,13 +146,17 @@ export function createBridge(
       .post(
         '/commands',
         limit,
-        di.inject({ desk: COMMAND_DESK }, async ({ desk }, c) => {
-          const { status, body } = answerCommand(
-            desk,
-            readJson(c.req.header('content-type'), await c.req.text()),
-          );
-          return c.json(body, status);
-        }),
+        di.inject(
+          { desk: COMMAND_DESK, log: FLIGHT_LOG },
+          async ({ desk, log }, c) => {
+            const { status, body } = answerCommand(
+              desk,
+              readJson(c.req.header('content-type'), await c.req.text()),
+              log,
+            );
+            return c.json(body, status);
+          },
+        ),
       )
       .get(
         '/commands',

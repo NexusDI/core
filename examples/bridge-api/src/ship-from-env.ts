@@ -1,6 +1,6 @@
 import { Nexus } from '@nexusdi/core';
 
-import type { SimMode } from './ship/contracts';
+import type { IScopeSource, SimMode } from './ship/contracts';
 import { meridian, offlineMeridian, type ShipSetup } from './ship/meridian';
 import { bridgePlugins } from './ship/plugins';
 
@@ -36,15 +36,16 @@ export const isDev = (env: Env): boolean => env.NODE_ENV !== 'production';
 /**
  * The container the Node servers start: the relay graph when RELAY_URL is
  * set, the offline graph otherwise, with errors() and devtools() outside
- * production.
+ * production. The flight recorder reads the request scope from `scopes`, the
+ * same ones the entry hands the bridge.
  */
-export function shipFromEnv(): Promise<Nexus> {
+export function shipFromEnv(scopes?: IScopeSource): Promise<Nexus> {
   const setup = setupFromEnv();
   const root = process.env.RELAY_URL
     ? meridian(process.env.RELAY_URL, setup)
     : offlineMeridian(setup);
   return Nexus.create(root, {
-    plugins: bridgePlugins({ dev: isDev(process.env) }),
+    plugins: bridgePlugins({ dev: isDev(process.env), scopes }),
   });
 }
 

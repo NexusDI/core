@@ -2,9 +2,17 @@ import { EventEmitter, once } from 'node:events';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
+import { COMMAND_DESK } from '@nexusdi/meridian-systems';
+import { nodeScopes } from '@nexusdi/node';
 import { describe, expect, it, vi } from 'vitest';
 
-import { isDev, setupFromEnv, stopOnSigterm } from '../src/ship-from-env';
+import {
+  isDev,
+  setupFromEnv,
+  shipFromEnv,
+  stopOnSigterm,
+} from '../src/ship-from-env';
+import { FLIGHT_LOG } from '../src/ship/contracts';
 
 describe('setupFromEnv', () => {
   it('runs a live ship on seed 7 at dt 0.5 when no variable is set', () => {
@@ -47,6 +55,30 @@ describe('setupFromEnv', () => {
         message: expect.stringMatching(/SIM_MODE.*'live'.*'manual'/s),
       }),
     );
+  });
+});
+
+describe('shipFromEnv', () => {
+  it('hands its scopes to the flight recorder', async () => {
+    vi.stubEnv('SIM_MODE', 'manual');
+    vi.stubEnv('RELAY_URL', '');
+    try {
+      const scopes = nodeScopes();
+      await using ship = await shipFromEnv(scopes);
+      await using scope = await ship.createScope({
+        request: { mission: { id: 'survey-7', target: 'Kepler-442b' } },
+      });
+      scopes.run(scope, () =>
+        ship
+          .get(COMMAND_DESK)
+          .submit({ system: 'safety', action: 'close', door: 'airlock-outer' }),
+      );
+      expect(scope.get(FLIGHT_LOG).entries()).toEqual([
+        'survey-7: closed airlock-outer',
+      ]);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
 

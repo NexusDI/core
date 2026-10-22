@@ -1,6 +1,7 @@
 import type { AddressInfo } from 'node:net';
 
 import { graph } from '@nexusdi/devtools';
+import { nodeScopes } from '@nexusdi/node';
 
 import { createBridge } from './fastify';
 import {
@@ -11,9 +12,12 @@ import {
   stopOnSigterm,
 } from './ship-from-env';
 
-const ship = await shipFromEnv();
+// The bridge runs each request in its scope, and the flight recorder reads it.
+const scopes = nodeScopes();
+const ship = await shipFromEnv(scopes);
 const shutdown = new AbortController();
 const bridge = await createBridge(ship, {
+  scopes,
   graph: isDev(process.env) ? () => graph(ship) : undefined,
   shutdown: shutdown.signal,
 });

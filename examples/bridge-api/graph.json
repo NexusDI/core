@@ -602,6 +602,42 @@
     },
     {
       "id": "p36",
+      "token": "FlightRecorder",
+      "module": "m12",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "FlightRecorder",
+      "internal": false
+    },
+    {
+      "id": "p37",
+      "token": "PressureInterlock",
+      "module": "m12",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "PressureInterlock",
+      "internal": false
+    },
+    {
+      "id": "p38",
+      "token": "RequestScopes",
+      "module": "m12",
+      "lifetime": null,
+      "kind": "value",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "p39",
       "token": "interceptors registry",
       "module": "m12",
       "lifetime": "singleton",
@@ -613,7 +649,7 @@
       "internal": false
     },
     {
-      "id": "p37",
+      "id": "p40",
       "token": "interceptors guard",
       "module": "m12",
       "lifetime": "singleton",
@@ -915,7 +951,32 @@
     },
     {
       "from": "p36",
+      "to": "p38",
+      "kind": "required"
+    },
+    {
+      "from": "p37",
+      "to": "p10",
+      "kind": "required"
+    },
+    {
+      "from": "p37",
+      "to": "p11",
+      "kind": "required"
+    },
+    {
+      "from": "p39",
       "to": "p35",
+      "kind": "required"
+    },
+    {
+      "from": "p39",
+      "to": "p36",
+      "kind": "required"
+    },
+    {
+      "from": "p39",
+      "to": "p37",
       "kind": "required"
     }
   ]
