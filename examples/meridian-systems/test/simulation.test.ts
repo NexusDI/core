@@ -4,7 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { meridianSystems } from '../src/meridian-systems.module';
 import { GASES, pressure } from '../src/physics/gas';
 import { COMMAND_DESK } from '../src/simulation/commands';
+import { UnknownCompartmentError } from '../src/errors';
 import {
+  COMPARTMENT,
   DECK_PLAN,
   type SimOptions,
   TICK_LOOP,
@@ -57,6 +59,37 @@ describe('meridianSystems', () => {
         expected: 'engineering',
       }),
     );
+  });
+});
+
+describe('COMPARTMENT', () => {
+  it('reads the compartment of the request a scope carries', async () => {
+    await using ship = await Nexus.create(
+      meridianSystems({ seed: 7, dt: 0.5 }),
+    );
+    await using scope = await ship.createScope({
+      request: { compartment: 'habitat' },
+    });
+    expect(scope.get(COMPARTMENT)).toBe('habitat');
+  });
+
+  it('opens a scope whose request names no compartment and refuses only the get', async () => {
+    await using ship = await Nexus.create(
+      meridianSystems({ seed: 7, dt: 0.5 }),
+    );
+    await using scope = await ship.createScope({ request: {} });
+    let refused: unknown;
+    try {
+      scope.get(COMPARTMENT);
+    } catch (error) {
+      refused = error;
+    }
+    // Core rethrows a NexusError from a sync factory as it is, with no
+    // ProviderError around it.
+    expect(refused).toBeInstanceOf(UnknownCompartmentError);
+    expect({ ...(refused as UnknownCompartmentError) }).toStrictEqual({
+      expected: 'bridge, habitat, reactor-bay and airlock',
+    });
   });
 });
 
