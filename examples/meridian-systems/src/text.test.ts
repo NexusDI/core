@@ -2,7 +2,11 @@ import type { NexusError } from '@nexusdi/core';
 import { explain } from '@nexusdi/errors';
 import { describe, expect, it } from 'vitest';
 
-import { BadCommandError, PowerBudgetError } from './errors';
+import {
+  BadCommandError,
+  PowerBudgetError,
+  UnknownCompartmentError,
+} from './errors';
 import { ENGINEERING_ACTIONS } from './systems/engineering/engineering-commands';
 import { formatNumber, shipText } from './text';
 
@@ -100,5 +104,40 @@ describe('shipText', () => {
       expected: ENGINEERING_ACTIONS,
     });
     expect(explain(error, { text: [shipText] })).toBeUndefined();
+  });
+
+  it('words MERIDIAN_UNKNOWN_COMPARTMENT for an id the deck does not have', () => {
+    const error = new UnknownCompartmentError({
+      compartment: 'galley',
+      expected: 'bridge, habitat, reactor-bay and airlock',
+    });
+    expect(render(error)).toBe(
+      [
+        "[MERIDIAN_UNKNOWN_COMPARTMENT] No compartment is named 'galley'. The deck has bridge, habitat, reactor-bay and airlock.",
+        '  Fix: read /compartments/<id>/atmosphere with one of the compartments above.',
+      ].join('\n'),
+    );
+  });
+
+  it('shows at most 32 characters of a long compartment id', () => {
+    const error = new UnknownCompartmentError({
+      compartment: 'x'.repeat(5_000),
+      expected: 'bridge, habitat, reactor-bay and airlock',
+    });
+    expect(explain(error, { text: [shipText] })?.message).toBe(
+      `No compartment is named '${'x'.repeat(32)}...'. The deck has bridge, habitat, reactor-bay and airlock.`,
+    );
+  });
+
+  it('words MERIDIAN_UNKNOWN_COMPARTMENT for a request that names none', () => {
+    const error = new UnknownCompartmentError({
+      expected: 'bridge, habitat, reactor-bay and airlock',
+    });
+    expect(render(error)).toBe(
+      [
+        '[MERIDIAN_UNKNOWN_COMPARTMENT] The request names no compartment. The deck has bridge, habitat, reactor-bay and airlock.',
+        '  Fix: read /compartments/<id>/atmosphere with one of the compartments above.',
+      ].join('\n'),
+    );
   });
 });

@@ -4,6 +4,7 @@ import type {
   BadCommandError,
   BadCommandReason,
   PowerBudgetError,
+  UnknownCompartmentError,
 } from './errors';
 
 /** Every place in an integer's digits where a thousands comma goes. */
@@ -23,6 +24,16 @@ export function formatNumber(value: number, digits: number): string {
   const grouped = whole.replace('-', '').replace(THOUSANDS, ',');
   return `${sign}${grouped}${trimmed === '' ? '' : `.${trimmed}`}`;
 }
+
+/** The longest stretch of a request's compartment id the text repeats. */
+const ID_SHOWN = 32;
+
+/**
+ * `id` cut to its first 32 characters, with `...` after a cut, since the id
+ * comes from a request path of any length.
+ */
+const shownId = (id: string): string =>
+  id.length > ID_SHOWN ? `${id.slice(0, ID_SHOWN)}...` : id;
 
 /** Watts as megawatts to one decimal. */
 const megawatts = (watts: number): string => formatNumber(watts / 1e6, 1);
@@ -64,4 +75,11 @@ export const shipText = {
     Object.hasOwn(BAD_COMMAND, error.reason)
       ? BAD_COMMAND[error.reason](error)
       : undefined,
+  MERIDIAN_UNKNOWN_COMPARTMENT: (error: UnknownCompartmentError) => ({
+    message:
+      error.compartment === undefined
+        ? `The request names no compartment. The deck has ${error.expected}.`
+        : `No compartment is named '${shownId(error.compartment)}'. The deck has ${error.expected}.`,
+    fix: 'read /compartments/<id>/atmosphere with one of the compartments above.',
+  }),
 } satisfies ErrorTextPack;
