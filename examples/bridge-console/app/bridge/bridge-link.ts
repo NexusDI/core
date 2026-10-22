@@ -8,7 +8,12 @@ import {
 
 import type { NexusGraph } from '@nexusdi/devtools';
 // A type import: the console holds no simulation code.
-import type { ShipCommand, ShipReading } from '@nexusdi/meridian-systems';
+import type {
+  AtmosphereReading,
+  CompartmentId,
+  ShipCommand,
+  ShipReading,
+} from '@nexusdi/meridian-systems';
 
 import type { Course } from './contracts';
 
@@ -28,6 +33,12 @@ export interface IBridgeLink {
   course(to: string): Promise<{ course: Course; entries: readonly string[] }>;
   /** The ship now, with each compartment's pressure, from `GET /sim`. */
   snapshot(): Promise<ShipReading>;
+  /**
+   * The gas analyzer's reading of `compartment`, from
+   * `GET /compartments/:id/atmosphere`. A compartment the deck lacks answers
+   * 404, and the call rejects.
+   */
+  atmosphere(compartment: string): Promise<AtmosphereReading<CompartmentId>>;
   /** The body of `GET /telemetry`, a stream of server-sent events. */
   telemetry(): Promise<ReadableStream<Uint8Array>>;
   /**
@@ -72,6 +83,12 @@ class BridgeApiLink implements IBridgeLink {
   }
   async snapshot() {
     return (await (await this.#get('sim')).json()) as ShipReading;
+  }
+  async atmosphere(compartment: string) {
+    const res = await this.#get(
+      `compartments/${encodeURIComponent(compartment)}/atmosphere`,
+    );
+    return (await res.json()) as AtmosphereReading<CompartmentId>;
   }
   async telemetry() {
     const res = await this.#get('telemetry');

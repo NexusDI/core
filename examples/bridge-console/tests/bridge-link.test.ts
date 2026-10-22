@@ -231,6 +231,47 @@ describe('the bridge link', () => {
   });
 });
 
+describe("the bridge link's atmosphere reads", () => {
+  it("returns the habitat analyzer's reading at tick 0", async () => {
+    await using bridge = await linkTo(base);
+    // Seed 7's analyzer at tick 0: the true air plus its noise, rounded to
+    // the calibration's resolution of 0.01 K and 1 Pa.
+    expect(await bridge.link.atmosphere('habitat')).toEqual({
+      compartment: 'habitat',
+      tick: 0,
+      temperature: 293.04,
+      pressure: 101_286,
+      partial: { O2: 21_272, N2: 79_014, CO2: 44, H2O: 912, volatiles: 62 },
+    });
+    expect(paths.at(-1)).toBe('/compartments/habitat/atmosphere');
+    expect(missions.at(-1)).toBe('survey-9');
+  });
+
+  it('encodes the compartment in the path', async () => {
+    await using bridge = await linkTo(base);
+    await expect(bridge.link.atmosphere('reactor bay')).rejects.toThrow(
+      'bridge-api answered 404 for /compartments/reactor%20bay/atmosphere',
+    );
+    expect(paths.at(-1)).toBe('/compartments/reactor%20bay/atmosphere');
+  });
+
+  it('rejects a compartment the deck lacks with the 404', async () => {
+    await using bridge = await linkTo(base);
+    await expect(bridge.link.atmosphere('galley')).rejects.toThrow(
+      'bridge-api answered 404 for /compartments/galley/atmosphere',
+    );
+  });
+
+  it('cancels the body of a 404 it rejects', async () => {
+    await using answer = answerWith(404);
+    await using bridge = await linkTo(base);
+    await expect(bridge.link.atmosphere('galley')).rejects.toThrow(
+      'bridge-api answered 404 for /compartments/galley/atmosphere',
+    );
+    expect(answer.cancelled).toBe(true);
+  });
+});
+
 describe("the bridge link's commands", () => {
   // The backend runs manual, so no tick passes between two commands.
   it('gives the tick that applies an accepted command', async () => {
