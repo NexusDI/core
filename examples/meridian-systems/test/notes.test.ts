@@ -64,6 +64,30 @@ describe('shipNotes', () => {
     }
   });
 
+  it('labels the engineering ship system with its phase and the reactor without one', () => {
+    const graph = inspect(meridianSystems({ seed: 7, dt: 0.5 }), {
+      annotate: [shipNotes],
+    });
+    const notesOf = (implementation: string) =>
+      graph.providers.find(
+        (provider) => provider.implementation === implementation,
+      )?.notes;
+    expect(notesOf('EngineeringPhysics')).toEqual([
+      'system: Engineering',
+      'phase: 1',
+    ]);
+    expect(notesOf('FusionReactor')).toEqual(['system: Engineering']);
+  });
+
+  it('gives no phase note to a ship system class without a static phase', () => {
+    const byModule = notesByModule(
+      inspect(ShipUnderTest, { annotate: [shipNotes] }),
+    );
+    expect(byModule.ProbeSystems.flat()).not.toContainEqual(
+      expect.stringMatching(/^phase: /),
+    );
+  });
+
   it('gives no note to a root without TICK_LOOP', () => {
     const Root = defineModule({
       name: 'Root',
