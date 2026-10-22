@@ -35,6 +35,14 @@ const HOST_GLOBALS = [
   'Atomics',
 ].map((name) => ({ name, message: REPLAY }));
 
+/** The relay file, the one file under src that calls fetch. */
+const RELAY = 'src/systems/comms/subspace-relay.ts';
+
+const FETCH = {
+  name: 'fetch',
+  message: `A tick does no I/O, so ${RELAY} alone calls fetch.`,
+};
+
 const TYPES_ONLY = '@nexusdi/interceptors';
 
 const escape = (name) => name.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
@@ -76,7 +84,7 @@ export default [
       ],
       // import { type A } keeps a bare import of the package at runtime.
       '@typescript-eslint/no-import-type-side-effects': 'error',
-      'no-restricted-globals': ['error', ...HOST_GLOBALS],
+      'no-restricted-globals': ['error', ...HOST_GLOBALS, FETCH],
       'no-restricted-properties': [
         'error',
         { object: 'Math', property: 'random', message: REPLAY },
@@ -107,6 +115,14 @@ export default [
           message: `${REPLAY} A file under src reads no constructor property.`,
         },
       ],
+    },
+  },
+  {
+    // NAV_CHARTS's factory downloads the charts over the relay once at
+    // startup, so the relay alone reaches the network.
+    files: [RELAY],
+    rules: {
+      'no-restricted-globals': ['error', ...HOST_GLOBALS],
     },
   },
   {
