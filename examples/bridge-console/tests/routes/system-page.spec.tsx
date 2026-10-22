@@ -5,6 +5,7 @@ import { commandFrom } from '../../app/routes/systems/system-action.server';
 import {
   ControlSection,
   Gauges,
+  ItemList,
   SystemPage,
 } from '../../app/routes/systems/system-page';
 import { built } from '../support/testing-di';
@@ -128,6 +129,21 @@ describe('the system page pieces', () => {
     expect(
       [...list.querySelectorAll('dd')].map((dd) => dd.textContent),
     ).toEqual(['0.50', '300.0 K']);
+  });
+
+  it('lists the items under their accessible name', () => {
+    render(<ItemList label="Alarms" none="No alarms" items={['A', 'B']} />);
+    const list = screen.getByRole('list', { name: 'Alarms' });
+    expect(
+      [...list.querySelectorAll('li')].map((item) => item.textContent),
+    ).toEqual(['A', 'B']);
+    expect(screen.queryByText('No alarms')).toBeNull();
+  });
+
+  it('says none in place of an empty list', () => {
+    render(<ItemList label="Alarms" none="No alarms" items={[]} />);
+    expect(screen.getByText('No alarms')).toBeDefined();
+    expect(screen.queryByRole('list')).toBeNull();
   });
 
   it('heads a control section with its title', () => {
