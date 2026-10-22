@@ -1,7 +1,8 @@
 # Meridian ship systems
 
-Status: proposed, 2026-10-21. The owner answered Q1 on 2026-10-21 (section 14). The
-tech lead settles the rest. The G1 rulings and the decisions of the G1 run amend sections 3 to 10, and section 15 lists the rulings.
+Status: proposed, 2026-10-21. The owner answered Q1 on 2026-10-21 (section 14). The tech
+lead settles the rest. The G1 and G2 rulings and the decisions of their runs amend
+sections 3 to 13, and section 15 lists the rulings.
 
 Packages: no published package is added or changed. New private project:
 `examples/meridian-systems` (`@nexusdi/meridian-systems`), a library the growth track
@@ -74,7 +75,7 @@ Two constraints pull against that:
 
 ```text
 examples/meridian-systems/
-  src/physics/          pure functions: gas.ts, thermal.ts, power.ts, motion.ts, rng.ts
+  src/physics/          pure functions: gas.ts, atmosphere.ts, thermal.ts, power.ts, motion.ts, rng.ts
   src/meridian-systems.module.ts   the aggregate MeridianSystems, which binds TICK_LOOP and COMMAND_DESK
   src/simulation/       the Simulation module: clock, random source, state, the loop class,
                         the command contracts and the command desk class
@@ -83,7 +84,8 @@ examples/meridian-systems/
   src/text.ts           shipText, at the ./text subpath
   src/telemetry/        the Telemetry module: the feed's contracts and SnapshotFeed
   src/notes.ts          shipNotes, a devtools graph annotator
-  deck/meridian.deck.json   the deck plan: compartments, volumes, doors, initial gas
+  deck/meridian.deck.json   the deck plan: compartments, volumes, doors, equipment, initial gas
+  deck/sensors.calibration.json   the gas analyzers' noise and resolution (G2)
 ```
 
 The library's entry exports one aggregate, `meridianSystems({ seed, dt })`, which returns
@@ -93,17 +95,21 @@ system module, binds `TICK_LOOP` and `COMMAND_DESK` (section 3.2), and exports b
 each system module, so `bridge-api`'s `Meridian` imports one module and a growth
 increment adds its system inside the library. From G1 the aggregate exports `TICK_LOOP`,
 `COMMAND_DESK` and `Engineering`, whose re-export hands the root `REACTOR`, `POWER_ROUTER`
-and `SHIELD_GRID`. `Simulation` is global, so its tokens reach
+and `SHIELD_GRID`. From G2 it imports one instance,
+`LifeSupport.forRootAsync({ deps: [DECK_PLAN], useFactory: readCalibration })`, held in a
+`const`, and re-exports that instance. The re-export hands the root `ATMOSPHERE_SENSOR`
+and `ATMOSPHERE_CONTROL` and puts LifeSupport's `POWER_CONSUMERS` entry where
+Engineering's router reads it. `Simulation` is global, so its tokens reach
 the root without the aggregate exporting them. `FtlDrive`
 stays out of the aggregate, since it joins with `load()`.
 
 `.fallowrc.jsonc` gains entries for the library, so `fallow dead-code` keeps the files
-nothing imports. G0 adds `e2e/**/*.ts` and `vitest.e2e-growth.config.ts` (the
-`e2e-growth` target runs them by path) and `e2e/golden/*.json` (the snapshot matcher reads
-it). G1 adds `src/text.ts` (the `./text` subpath). `bridge-api`'s command route imports
-it, so it needs no entry.
-`Simulation` imports `deck/meridian.deck.json` with `with { type: 'json' }`, so the deck
-needs no entry.
+nothing imports. G0 adds `e2e/**/*.ts` and `vitest.e2e-growth.config.ts` (the `e2e-growth`
+target runs them by path) and `e2e/golden/*.json` (the snapshot matcher reads it). G1 adds
+`src/text.ts` (the `./text` subpath). `bridge-api`'s command route imports it, so it needs
+no entry. `Simulation` imports `deck/meridian.deck.json` with `with { type: 'json' }`, so
+the deck needs no entry, and `readCalibration` imports `deck/sensors.calibration.json` the
+same way.
 
 `bridge-api` imports the aggregate and runs the simulation. The bridge console and
 the federation stations import types only (`import type`), so no simulation code reaches
@@ -120,7 +126,7 @@ for the role, and one class bound with `useClass` (docs §7.3). Names in the exi
 | `Simulation`      | the kernel                         | `SIM_OPTIONS`, `SIM_CLOCK`, `RNG`, `SHIP_STATE`, `DECK_PLAN`, `COMPARTMENT`                                | `Simulation.forRoot({ seed, dt })`, `global`     | growth G0; `COMPARTMENT` in G2                      |
 | `MeridianSystems` | the tick loop and the command desk | `TICK_LOOP`, `TELEMETRY`, `COMMAND_DESK`, and each system module it imports                                | `meridianSystems({ seed, dt })`, `global`        | growth G0; `TELEMETRY` in G0b; `COMMAND_DESK` in G1 |
 | `Engineering`     | reactor and power                  | `REACTOR`, `POWER_ROUTER`, `SHIELD_GRID`, `SHIP_SYSTEMS`, `COMMAND_HANDLERS`; `COOLANT_LOOP` stays private | none                                             | in §7.1; the simulation's form is G1                |
-| `LifeSupport`     | atmosphere                         | `ATMOSPHERE_SENSOR`, `ATMOSPHERE_CONTROL`                                                                  | `LifeSupport.forRootAsync({ deps, useFactory })` | growth G2                                           |
+| `LifeSupport`     | atmosphere                         | `ATMOSPHERE_SENSOR`, `ATMOSPHERE_CONTROL`, `SHIP_SYSTEMS`, `POWER_CONSUMERS`, `COMMAND_HANDLERS`           | `LifeSupport.forRootAsync({ deps, useFactory })` | growth G2                                           |
 | `Safety`          | doors, fire, alarms                | `BLAST_DOORS`, `FIRE_SUPPRESSION`, `MASTER_ALARM`, `ALARM_SINKS`                                           | none                                             | growth G3                                           |
 | `Comms`           | comms                              | `SUBSPACE_LINK`, `COMMS_ARRAY`                                                                             | `Comms.forRoot({ frequency, transport, ... })`   | in `bridge-api`; moves in G5                        |
 | `Propulsion`      | the main drive                     | `MAIN_DRIVE`                                                                                               | none                                             | growth G6                                           |
@@ -133,14 +139,21 @@ for the role, and one class bound with `useClass` (docs §7.3). Names in the exi
 | `AuditTrail`      | the audit store                    | `AUDIT_LOG`                                                                                                | none                                             | in §7.1; `bridge-api` renames it in 0.4             |
 
 `TICK_LOOP` is bound in the aggregate `MeridianSystems`, which is global. A module's
-`all()` reads the module's own providers plus the exports of its imports and of the global modules
-(`libs/core/src/blueprint/visibility.ts`), so a loop bound in `Simulation` never sees a
-system that a sibling module imports. Each system module exports `SHIP_SYSTEMS`, and the
-aggregate imports every system module, so its loop sees each one. `COMMAND_DESK` reads
-`all(COMMAND_HANDLERS)`, so it sits in the aggregate beside the loop for the same reason.
-`COMPUTER` stays in the docs regions of §7.1. No simulated system reads it, so
-`Engineering` binds none. `Simulation` stays global and binds `SIM_OPTIONS`, `SIM_CLOCK`, `RNG`,
-`SHIP_STATE` and `DECK_PLAN`.
+`all()` reads the module's own providers plus the exports of its imports and of the global
+modules (`libs/core/src/blueprint/visibility.ts`), so a loop bound in `Simulation` never
+sees a system that a sibling module imports. Each system module exports `SHIP_SYSTEMS`,
+and the aggregate imports every system module, so its loop sees each one. `COMMAND_DESK`
+reads `all(COMMAND_HANDLERS)`, so it sits in the aggregate beside the loop for the same
+reason. `COMPUTER` stays in the docs regions of §7.1. No simulated system reads it, so
+`Engineering` binds none. `Simulation` stays global and binds `SIM_OPTIONS`, `SIM_CLOCK`,
+`RNG`, `SHIP_STATE`, `DECK_PLAN` and, from G2, `COMPARTMENT`.
+
+A system adds its power load through the contribution point `POWER_CONSUMERS` (G2), a
+`MultiToken<IPowerConsumer>` in `src/systems/engineering/contracts.ts`.
+`IPowerConsumer` has one member, `draw(ship: ShipSnapshot): PowerLoad`. `PlasmaRouter`
+takes `all(POWER_CONSUMERS)` inside `Engineering`, and that `all()` reads LifeSupport's
+contribution through the global `MeridianSystems`, which re-exports LifeSupport. G6 and
+G8 contribute their loads the same way.
 
 `Meridian`, the root in `bridge-api`, imports `meridianSystems(...)`, `BridgeApi` and
 `AuditTrail`, which together hold every module above except `FtlDrive`. It also imports
@@ -159,42 +172,49 @@ share a module.
 The interfaces and their classes, by module. Every class takes interfaces in its
 constructor and declares tokens in `static deps`.
 
-| Interface            | Token                                                                     | Class                                  | Lifetime  | Deps                                                   |
-| -------------------- | ------------------------------------------------------------------------- | -------------------------------------- | --------- | ------------------------------------------------------ |
-| `ISimClock`          | `SIM_CLOCK = new Token<ISimClock>('SimClock')`                            | `FixedStepClock`                       | singleton | `[SIM_OPTIONS]`                                        |
-| `IRandomSource`      | `RNG = new Token<IRandomSource>('RandomSource')`                          | `SeededRandom`                         | singleton | `[SIM_OPTIONS]`                                        |
-| `IShipState`         | `SHIP_STATE = new Token<IShipState>('ShipState')`                         | `ShipStateStore`                       | singleton | `[DECK_PLAN]`                                          |
-| `IShipSystem`        | `SHIP_SYSTEMS = new MultiToken<IShipSystem>('ShipSystems')`               | one class per system                   | singleton | each system's own                                      |
-| `ITickLoop`          | `TICK_LOOP = new Token<ITickLoop>('TickLoop')`                            | `FixedStepLoop`                        | singleton | `[SIM_CLOCK, SHIP_STATE, RNG, all(SHIP_SYSTEMS)]`      |
-| `DeckPlan`           | `DECK_PLAN = new Token<DeckPlan>('DeckPlan')`                             | the deck file, a value                 | value     | none                                                   |
-| `CompartmentId`      | `COMPARTMENT = new Token<CompartmentId>('Compartment')`                   | a factory over `REQUEST`               | scoped    | `[REQUEST]`                                            |
-| `IReactorCore`       | `REACTOR` (§7.1)                                                          | `FusionReactor`                        | singleton | `[SHIP_STATE]`                                         |
-| `ICoolantLoop`       | `COOLANT_LOOP = new Token<ICoolantLoop>('CoolantLoop')`                   | `RadiatorLoop`                         | singleton | none                                                   |
-| `IPowerRouter`       | `POWER_ROUTER` (§7.1)                                                     | `PlasmaRouter`                         | singleton | `[SHIP_STATE, lazy(SHIELD_GRID)]`                      |
-| `IShieldGrid`        | `SHIELD_GRID` (§7.1)                                                      | `DeflectorGrid`                        | singleton | `[SHIP_STATE, POWER_ROUTER]`                           |
-| `IShipSystem`        | `SHIP_SYSTEMS`, Engineering's contribution                                | `EngineeringPhysics`                   | singleton | `[REACTOR, COOLANT_LOOP, POWER_ROUTER]`                |
-| `ICommandHandler`    | `COMMAND_HANDLERS = new MultiToken<ICommandHandler>('CommandHandlers')`   | `EngineeringCommands`                  | singleton | `[REACTOR, SHIELD_GRID]`                               |
-| `ICommandDesk`       | `COMMAND_DESK = new Token<ICommandDesk>('CommandDesk')`                   | `CommandDesk`                          | singleton | `[all(COMMAND_HANDLERS)]`                              |
-| `IAtmosphereSensor`  | `ATMOSPHERE_SENSOR = new Token<IAtmosphereSensor>('AtmosphereSensor')`    | `GasAnalyzer`                          | transient | `[COMPARTMENT, SHIP_STATE, RNG, LIFE_SUPPORT_OPTIONS]` |
-| `IAtmosphereControl` | `ATMOSPHERE_CONTROL = new Token<IAtmosphereControl>('AtmosphereControl')` | `EnvironmentalController`              | singleton | `[SHIP_STATE]`                                         |
-| `IBlastDoors`        | `BLAST_DOORS = new Token<IBlastDoors>('BlastDoors')`                      | `BlastDoorControl`                     | singleton | `[SHIP_STATE]`                                         |
-| `IFireSuppression`   | `FIRE_SUPPRESSION = new Token<IFireSuppression>('FireSuppression')`       | `InertGasSuppression`                  | singleton | `[SHIP_STATE]`                                         |
-| `IAlarmSink`         | `ALARM_SINKS = new MultiToken<IAlarmSink>('AlarmSinks')`                  | `TelemetryAlarmSink`, `AuditAlarmSink` | singleton | `[TELEMETRY]`, `[AUDIT_LOG]`                           |
-| `IMasterAlarm`       | `MASTER_ALARM = new Token<IMasterAlarm>('MasterAlarm')`                   | `MasterAlarm`                          | singleton | `[TICK_LOOP, all(ALARM_SINKS)]`                        |
-| `ICommsArray`        | `COMMS_ARRAY = new Token<ICommsArray>('CommsArray')`                      | `PhasedArray`                          | singleton | `[SHIP_STATE, optional(SUBSPACE_LINK)]`                |
-| `IMainDrive`         | `MAIN_DRIVE = new Token<IMainDrive>('MainDrive')`                         | `PlasmaDrive`                          | singleton | `[SHIP_STATE]`                                         |
-| `IThrusters`         | `THRUSTERS = new Token<IThrusters>('Thrusters')`                          | `RcsThrusters`                         | singleton | `[SHIP_STATE]`                                         |
-| `IHelm`              | `HELM = new Token<IHelm>('Helm')`                                         | `HelmControl`                          | singleton | `[THRUSTERS, MAIN_DRIVE, NAV_CHARTS]`                  |
-| `IFtlDrive`          | `FTL_DRIVE = new Token<IFtlDrive>('FtlDrive')`                            | `JumpDrive`                            | singleton | `[TICK_LOOP, SHIP_STATE, NAV_CHARTS, POWER_ROUTER]`    |
-| `IWeaponMount`       | `WEAPON_MOUNT = new Token<IWeaponMount>('WeaponMount')`                   | `RailgunMount`                         | singleton | `[SHIP_STATE, RNG]`                                    |
-| `ITelemetryFeed`     | `TELEMETRY = new Token<ITelemetryFeed>('TelemetryFeed')`                  | `SnapshotFeed`                         | singleton | `[TICK_LOOP, SHIP_STATE, DECK_PLAN]`                   |
-| `ITelemetryClient`   | `TELEMETRY_CLIENT = new Token<ITelemetryClient>('TelemetryClient')`       | `EventSourceTelemetry`                 | singleton | none; the console's `TelemetryClient` module           |
+| Interface            | Token                                                                     | Class                                  | Lifetime  | Deps                                                              |
+| -------------------- | ------------------------------------------------------------------------- | -------------------------------------- | --------- | ----------------------------------------------------------------- |
+| `ISimClock`          | `SIM_CLOCK = new Token<ISimClock>('SimClock')`                            | `FixedStepClock`                       | singleton | `[SIM_OPTIONS]`                                                   |
+| `IRandomSource`      | `RNG = new Token<IRandomSource>('RandomSource')`                          | `SeededRandom`                         | singleton | `[SIM_OPTIONS]`                                                   |
+| `IShipState`         | `SHIP_STATE = new Token<IShipState>('ShipState')`                         | `ShipStateStore`                       | singleton | `[DECK_PLAN]`                                                     |
+| `IShipSystem`        | `SHIP_SYSTEMS = new MultiToken<IShipSystem>('ShipSystems')`               | one class per system                   | singleton | each system's own                                                 |
+| `ITickLoop`          | `TICK_LOOP = new Token<ITickLoop>('TickLoop')`                            | `FixedStepLoop`                        | singleton | `[SIM_CLOCK, SHIP_STATE, RNG, all(SHIP_SYSTEMS)]`                 |
+| `DeckPlan`           | `DECK_PLAN = new Token<DeckPlan>('DeckPlan')`                             | the deck file, a value                 | value     | none                                                              |
+| `CompartmentId`      | `COMPARTMENT = new Token<CompartmentId>('Compartment')`                   | `compartmentOfRequest`, a factory      | scoped    | `[REQUEST]`, `eager: false`                                       |
+| `IReactorCore`       | `REACTOR` (§7.1)                                                          | `FusionReactor`                        | singleton | `[SHIP_STATE]`                                                    |
+| `ICoolantLoop`       | `COOLANT_LOOP = new Token<ICoolantLoop>('CoolantLoop')`                   | `RadiatorLoop`                         | singleton | none                                                              |
+| `IPowerRouter`       | `POWER_ROUTER` (§7.1)                                                     | `PlasmaRouter`                         | singleton | `[SHIP_STATE, lazy(SHIELD_GRID), all(POWER_CONSUMERS)]`           |
+| `IPowerConsumer`     | `POWER_CONSUMERS = new MultiToken<IPowerConsumer>('PowerConsumers')`      | one class per system                   | singleton | each system's own                                                 |
+| `IShieldGrid`        | `SHIELD_GRID` (§7.1)                                                      | `DeflectorGrid`                        | singleton | `[SHIP_STATE, POWER_ROUTER]`                                      |
+| `IShipSystem`        | `SHIP_SYSTEMS`, Engineering's contribution                                | `EngineeringPhysics`                   | singleton | `[REACTOR, COOLANT_LOOP, POWER_ROUTER]`                           |
+| `ICommandHandler`    | `COMMAND_HANDLERS = new MultiToken<ICommandHandler>('CommandHandlers')`   | `EngineeringCommands`                  | singleton | `[REACTOR, SHIELD_GRID]`                                          |
+| `ICommandDesk`       | `COMMAND_DESK = new Token<ICommandDesk>('CommandDesk')`                   | `CommandDesk`                          | singleton | `[all(COMMAND_HANDLERS)]`                                         |
+| `IAtmosphereSensor`  | `ATMOSPHERE_SENSOR = new Token<IAtmosphereSensor>('AtmosphereSensor')`    | `GasAnalyzer`                          | transient | `[COMPARTMENT, SHIP_STATE, RNG, LIFE_SUPPORT_OPTIONS, DECK_PLAN]` |
+| `IAtmosphereControl` | `ATMOSPHERE_CONTROL = new Token<IAtmosphereControl>('AtmosphereControl')` | `EnvironmentalController`              | singleton | `[SHIP_STATE]`                                                    |
+| `IShipSystem`        | `SHIP_SYSTEMS`, LifeSupport's contribution                                | `LifeSupportPhysics`                   | singleton | `[LIFE_SUPPORT_OPTIONS, DECK_PLAN]`                               |
+| `IPowerConsumer`     | `POWER_CONSUMERS`, LifeSupport's contribution                             | `LifeSupportPower`                     | singleton | `[LIFE_SUPPORT_OPTIONS, DECK_PLAN]`                               |
+| `ICommandHandler`    | `COMMAND_HANDLERS`, LifeSupport's contribution                            | `LifeSupportCommands`                  | singleton | `[ATMOSPHERE_CONTROL]`                                            |
+| `IBlastDoors`        | `BLAST_DOORS = new Token<IBlastDoors>('BlastDoors')`                      | `BlastDoorControl`                     | singleton | `[SHIP_STATE]`                                                    |
+| `IFireSuppression`   | `FIRE_SUPPRESSION = new Token<IFireSuppression>('FireSuppression')`       | `InertGasSuppression`                  | singleton | `[SHIP_STATE]`                                                    |
+| `IAlarmSink`         | `ALARM_SINKS = new MultiToken<IAlarmSink>('AlarmSinks')`                  | `TelemetryAlarmSink`, `AuditAlarmSink` | singleton | `[TELEMETRY]`, `[AUDIT_LOG]`                                      |
+| `IMasterAlarm`       | `MASTER_ALARM = new Token<IMasterAlarm>('MasterAlarm')`                   | `MasterAlarm`                          | singleton | `[TICK_LOOP, all(ALARM_SINKS)]`                                   |
+| `ICommsArray`        | `COMMS_ARRAY = new Token<ICommsArray>('CommsArray')`                      | `PhasedArray`                          | singleton | `[SHIP_STATE, optional(SUBSPACE_LINK)]`                           |
+| `IMainDrive`         | `MAIN_DRIVE = new Token<IMainDrive>('MainDrive')`                         | `PlasmaDrive`                          | singleton | `[SHIP_STATE]`                                                    |
+| `IThrusters`         | `THRUSTERS = new Token<IThrusters>('Thrusters')`                          | `RcsThrusters`                         | singleton | `[SHIP_STATE]`                                                    |
+| `IHelm`              | `HELM = new Token<IHelm>('Helm')`                                         | `HelmControl`                          | singleton | `[THRUSTERS, MAIN_DRIVE, NAV_CHARTS]`                             |
+| `IFtlDrive`          | `FTL_DRIVE = new Token<IFtlDrive>('FtlDrive')`                            | `JumpDrive`                            | singleton | `[TICK_LOOP, SHIP_STATE, NAV_CHARTS, POWER_ROUTER]`               |
+| `IWeaponMount`       | `WEAPON_MOUNT = new Token<IWeaponMount>('WeaponMount')`                   | `RailgunMount`                         | singleton | `[SHIP_STATE, RNG]`                                               |
+| `ITelemetryFeed`     | `TELEMETRY = new Token<ITelemetryFeed>('TelemetryFeed')`                  | `SnapshotFeed`                         | singleton | `[TICK_LOOP, SHIP_STATE, DECK_PLAN]`                              |
+| `ITelemetryClient`   | `TELEMETRY_CLIENT = new Token<ITelemetryClient>('TelemetryClient')`       | `EventSourceTelemetry`                 | singleton | none; the console's `TelemetryClient` module                      |
 
 `MeridianSystems` binds `TICK_LOOP` and `COMMAND_DESK`, and `Simulation` binds the clock,
 the random source, the state and the deck plan (section 3.2). `Engineering` binds the
 reactor, the coolant loop, the router and the grid, and contributes `EngineeringPhysics`
 and `EngineeringCommands`. The interfaces and tokens of Engineering live in
 `src/systems/engineering/contracts.ts`, and each class in its own file beside it.
+`LifeSupport` binds the analyzer and the panel, and contributes `LifeSupportPhysics`,
+`LifeSupportPower` and `LifeSupportCommands`. Its interfaces and tokens live in
+`src/systems/life-support/contracts.ts` beside `LIFE_SUPPORT_ACTIONS`.
 `Telemetry` binds `TELEMETRY`, and `SnapshotFeed` takes `SHIP_STATE` and `DECK_PLAN`
 beside the loop, so a new sink reads the current snapshot at once and every frame carries
 each compartment's pressure. `TELEMETRY_CLIENT` belongs to the bridge console, whose
@@ -224,14 +244,48 @@ plain data shape keeps its name with no prefix, as §7.1's `Mission`, `Diagnosti
 `CompartmentReading`, `TickListener`, `SimOptions` and `LifeSupportOptions`.
 
 Options tokens, each the value of a configurable module: `SIM_OPTIONS` (`SimOptions`:
-`seed`, `dt`) and `LIFE_SUPPORT_OPTIONS` (`LifeSupportOptions`: the sensor calibration and
-the scrubber, heater and pump ratings).
+`seed`, `dt`) and `LIFE_SUPPORT_OPTIONS` (`LifeSupportOptions`: `calibration`, the
+analyzers' `SensorCalibration`, and `ratings`, the `LifeSupportRatings` of the heaters,
+scrubbers, electrolysers, pump and vent). `readCalibration(deck)`
+(`src/systems/life-support/read-calibration.ts`) is the factory of `forRootAsync`. It is
+`async` with nothing to await, since the calibration file is a static import, and its
+docblock says that a ship that reads a device awaits it there. It throws a plain `Error`
+when a deck compartment has no calibration entry, and returns
+`{ calibration, ratings: LIFE_SUPPORT_RATINGS }`.
+
+`GasAnalyzer` samples its compartment in its constructor, and `read()` answers that
+sample, so the transient lifetime matters: two `get()` calls around an `advance(1)` read
+two ticks, and a second `read()` of one analyzer repeats. Its arithmetic is the pure
+`readAtmosphere(air, plan, compartment, tick, calibration, draw)` in
+`src/physics/atmosphere.ts`, with `draw` the `next` of
+``rng.fork(`AtmosphereSensor:${compartment}:${tick}`)``. It draws the temperature, the
+pressure and then each gas in `GASES` order, and each value is
+`max(0, true + (2u − 1) · noise)`, rounded to its resolution through `toFixed`. The floor
+keeps a vented airlock's reading at 0 or above. An `AtmosphereReading` is
+`{ compartment, tick, temperature, pressure, partial }` in K and Pa. The calibration file
+is
+`{ resolution: { temperature: 0.01, pressure: 1 }, compartments: { <id>: { noise: { temperature: 0.05, pressure: 20, partial: 5 } } } }`.
 
 A controller class (`EnvironmentalController`, `BlastDoorControl` and the rest) holds no
 physics. Its methods check the command against the current snapshot and queue a setpoint
-on `SHIP_STATE`. The physics reads the setpoints in the next tick. So the interceptors of
-section 6.1 wrap a method that does one visible thing, and the reader sees the interlock
-apart from the physics.
+on `SHIP_STATE`. `IAtmosphereControl` has `online()`,
+`heater(compartment, { on?, target? })`, `scrubber(compartment, on)`,
+`oxygen(compartment, on)`, `vent(compartment, open)` and `pump(compartment, mode)`, each
+returning `QueuedCommand`. Each device method checks `Object.hasOwn` on that device's
+setpoint record and throws `BadCommandError` (`reason: 'argument'`,
+`system: 'life-support'`, `expected: LIFE_SUPPORT_ACTIONS`) when the compartment has no
+such device.
+
+`LifeSupportCommands` serves `life-support`. `online` takes no argument; `heater` takes a
+string `compartment` and at least one of a boolean `on` and a finite `target` from 283 K
+to 303 K; `scrubber` and `oxygen` take a `compartment` and a boolean `on`; `vent` takes a
+`compartment` and a boolean `open`; `pump` takes a `compartment` and a `mode` of `off`,
+`evacuate` or `fill`. `LIFE_SUPPORT_ACTIONS` reads "online with no arguments, heater with
+a compartment and on true or false or a target from 283 to 303 K, scrubber and oxygen with
+a compartment and on true or false, vent with a compartment and open true or false, and
+pump with a compartment and mode off, evacuate or fill". The physics reads the setpoints
+in the next tick. So the interceptors of section 6.1 wrap a method that does one visible
+thing, and the reader sees the interlock apart from the physics.
 
 Engineering's physics class, `EngineeringPhysics`, takes `REACTOR`, `COOLANT_LOOP` and
 `POWER_ROUTER` (`static deps = [REACTOR, COOLANT_LOOP, POWER_ROUTER] as const`). It reads the ratings
@@ -263,23 +317,53 @@ export const LifeSupport = defineModule({
     }),
     provide(ATMOSPHERE_CONTROL, { useClass: EnvironmentalController }),
     provide(SHIP_SYSTEMS, { useClass: LifeSupportPhysics }),
+    provide(POWER_CONSUMERS, { useClass: LifeSupportPower }),
+    provide(COMMAND_HANDLERS, { useClass: LifeSupportCommands }),
   ],
-  exports: [ATMOSPHERE_SENSOR, ATMOSPHERE_CONTROL, SHIP_SYSTEMS],
+  exports: [
+    ATMOSPHERE_SENSOR,
+    ATMOSPHERE_CONTROL,
+    SHIP_SYSTEMS,
+    POWER_CONSUMERS,
+    COMMAND_HANDLERS,
+  ],
 });
 
-class LifeSupportPhysics implements IShipSystem {
-  static deps = [LIFE_SUPPORT_OPTIONS] as const;
+// examples/meridian-systems/src/systems/life-support/life-support-physics.ts
+export class LifeSupportPhysics implements IShipSystem {
+  static deps = [LIFE_SUPPORT_OPTIONS, DECK_PLAN] as const;
+  static readonly phase: Phase = 4;
   readonly name = 'LifeSupport';
-  readonly phase = 4;
-  constructor(private readonly options: LifeSupportOptions) {}
-  step(ship: ShipSnapshot, tick: TickContext): ShipSnapshot {
-    return stepAtmosphere(ship, this.options, tick); // src/physics/gas.ts
+  readonly phase = LifeSupportPhysics.phase;
+  constructor(
+    private readonly options: LifeSupportOptions,
+    private readonly deck: DeckPlan,
+  ) {}
+  step(ship: ShipSnapshot, { dt }: TickContext): ShipSnapshot {
+    const setpoints = ship.setpoints.lifeSupport;
+    if (!setpoints.online) return ship;
+    const result = stepAtmosphere({
+      compartments: ship.compartments,
+      rooms: this.deck.compartments,
+      setpoints,
+      coolantTemperature: ship.coolant.temperature,
+      shed: ship.power.shed.includes(LIFE_SUPPORT_LOAD.id),
+      dt,
+      ratings: this.options.ratings,
+    }); // src/physics/atmosphere.ts
+    return Object.freeze({
+      ...ship,
+      compartments: result.compartments,
+      lifeSupport: result.lifeSupport,
+    });
   }
 }
 ```
 
-The file holds tokens, providers and one delegation. `stepAtmosphere` lives in
-`src/physics/` with its own unit tests (section 8.1).
+The module file holds tokens, providers and imports, and the physics class one
+delegation. `stepAtmosphere` lives in `src/physics/` with its own unit tests (section
+8.1). The class's comment states that no phase 2 or 3 system changes the compartments in
+G2, so the devices draw what the router allocated in phase 1.
 
 ## 4. The simulation kernel
 
@@ -300,10 +384,14 @@ number rounded to four significant digits.
 
 1. Apply the queued commands to the setpoints. Changes queued between two ticks apply
    together at the next tick, and the log keeps one entry per tick.
-   `SHIP_STATE.queue(change)` merges a `SetpointChange` field by field over the one
-   pending change, the later value winning, and answers `{ tick }`, the tick that
-   applies it. A throttle change and a shields change queued in one tick both apply,
-   and of two throttle changes the later applies. The loop calls
+   `SHIP_STATE.queue(change)` merges a `SetpointChange` over the one pending change,
+   the later value winning, and answers `{ tick }`, the tick that applies it. From G2,
+   `SetpointChange` is `DeepPartial<Setpoints>`, and one recursive `mergeFrozen(base,
+change)` merges plain objects key by key at every level: it skips undefined, replaces
+   primitives and arrays, and freezes every level of the result. A throttle change and a
+   shields change queued in one tick both apply, and of two throttle changes the later
+   applies. A habitat heater target of 295 K and a habitat heater `on: false` queued in
+   one tick apply as `{ on: false, target: 295 }`, and the bridge heater stays as it was. The loop calls
    `SHIP_STATE.applyQueued(tick)`, which merges the pending change over the setpoints,
    logs it as one `{ tick, change }`, commits the result and returns the snapshot the
    systems step on. `log()` keeps the newest 1,000 entries, one per tick that applied a
@@ -389,7 +477,7 @@ quantity is SI: moles, kelvin, pascals, cubic metres, watts, joules.
 | `σ`      | 5.67 × 10⁻⁸ W/(m²·K⁴)                                          | Stefan-Boltzmann constant              |
 | `dt`     | 0.5 s                                                          | the fixed step                         |
 | `T_hull` | 260 K                                                          | the hull's inner skin                  |
-| `κ`      | 0.02 s/m                                                       | the door exchange constant             |
+| `κ`      | 0.02 s/m                                                       | the door and vent exchange constant    |
 
 The deck plan holds four compartments and four doors:
 
@@ -404,6 +492,51 @@ Doors: `bridge-habitat` (1.5 m²), `habitat-reactor-bay` (1.5 m²), `habitat-air
 (1.2 m²) and `airlock-outer` (1.2 m², to space). Each compartment starts at 293 K and
 101.3 kPa: 21 % O₂, 78 % N₂, 0.04 % CO₂, 0.9 % H₂O, the rest volatiles.
 
+From G2 a compartment's plan has three optional fields: `equipment`, entries of
+`LIFE_SUPPORT_DEVICES = ['heater', 'scrubber', 'oxygen', 'vent', 'pump']`;
+`pumpReservoir`, the compartment its pump fills from and empties into; and
+`coolantConductance` in W/K (section 5.2). The `bridge` and the `habitat` list
+`["heater", "scrubber", "oxygen"]`, the `reactor-bay` has `"coolantConductance": 2`, and
+the `airlock` lists `["vent", "pump"]` with `"pumpReservoir": "habitat"`. `ShipStateStore`
+throws a plain `Error`, as it does for ids, for an unknown or repeated device, a pump with
+no reservoir or a reservoir with no pump, and a reservoir that is unknown or the pump's
+own compartment.
+
+`Setpoints` gains `lifeSupport` in G2, with one key for each compartment whose plan lists
+the device:
+
+```ts
+export type PumpMode = 'off' | 'evacuate' | 'fill';
+readonly lifeSupport: {
+  readonly online: boolean;
+  readonly heaters: Readonly<Partial<Record<CompartmentId, { readonly on: boolean; readonly target: number }>>>;
+  readonly scrubbers: Readonly<Partial<Record<CompartmentId, boolean>>>;
+  readonly oxygen: Readonly<Partial<Record<CompartmentId, boolean>>>;
+  /** True while the vent to space is open. */
+  readonly vents: Readonly<Partial<Record<CompartmentId, boolean>>>;
+  readonly pumps: Readonly<Partial<Record<CompartmentId, PumpMode>>>;
+};
+```
+
+At tick 0 life support is offline, the heaters are on at 293 K, the scrubbers and the
+generators are on, `vents.airlock` is false and `pumps.airlock` is `'off'`. `evacuate`
+moves the compartment's gas into its reservoir, and `fill` moves reservoir gas into the
+compartment. `ShipSnapshot` gains the record `lifeSupport: { heaters }`, the power each
+heater put into its room on the tick in W, 0 at start. `CompartmentState` keeps its
+shape, and the pressures and `power.loads` show the pump and the vent.
+
+The ratings sit in `src/physics/atmosphere.ts`, gathered in `LIFE_SUPPORT_RATINGS`:
+
+| Constant          | Fields                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------ |
+| `ELECTRIC_HEATER` | `gain` 10,000 W/K, `max` 10,000 W                                                          |
+| `CO2_SCRUBBER`    | `flow` 0.05 m³/s, `power` 1,200 W, `humidity` 0.4                                          |
+| `ELECTROLYSER`    | `gain` 2 × 10⁻⁵ mol/(s·Pa), `max` 0.01 mol/s, `energy` 600,000 J/mol, `setpoint` 21,000 Pa |
+| `TRANSFER_PUMP`   | `rate` 0.2 m³/s, `base` 400 W, `efficiency` 0.6, `maxRise` 101,300 Pa                      |
+| `SPACE_VENT`      | `area` 0.01 m²                                                                             |
+
+`src/physics/constants.ts` holds `KAPPA` and `CV` beside `R`.
+
 ### 5.2 Pressure and temperature per compartment
 
 A compartment holds `n_g` moles of each gas `g`, at temperature `T`, in volume `V`. The
@@ -415,8 +548,16 @@ p_g = n_g · R · T / V                      partial pressure of gas g
 C   = C_struct + Σ_g n_g · c_v,g           heat capacity, J/K
 ```
 
-The air in a compartment holds about 5 % of the compartment's heat capacity, so the
-structure damps the temperature and a heater changes it over minutes.
+The air holds 2.5 % of the heat capacity in the bridge and the habitat, 1.1 % in the
+reactor bay and 2.0 % in the airlock, so the structure damps the temperature and a heater
+changes it over minutes. The habitat's `C` at the initial air is 4,104,250 J/K.
+
+Life support starts offline. While `setpoints.lifeSupport.online` is false,
+`LifeSupportPhysics.step` returns the ship unchanged, so no gas, heat, vent or pump term
+runs and the deck holds its initial air. The action `online` takes no argument and
+queues `{ lifeSupport: { online: true } }`. G2 has no action that sets it back, since no
+ship can stop metabolism and hull loss. Device commands queue while offline, and their
+setpoints act from the first online tick.
 
 Each tick, the heat balance is explicit Euler:
 
@@ -424,11 +565,24 @@ Each tick, the heat balance is explicit Euler:
 T' = T + dt · (Q_heater + Q_occupants + Q_fire + Q_bay − G · (T − T_hull)) / C
 ```
 
-`Q_occupants` is 100 W per occupant. `Q_bay` is the coolant loop's leak into the reactor
-bay, and zero elsewhere. The law this section first gave,
-`0.002 · A_rad · ε · σ · (T_c⁴ − T_bay⁴)`, puts 4.82 MW into the bay at full output, about
-2,700 times the 1.8 kW the proposed law gives. G1 applies no heat to a compartment, and G2
-sets the law, with the proposal `Q_bay = 2 W/K · (T_c − T_bay)`.
+`Q_occupants` is 100 W per occupant. `C` comes from the start-of-tick moles. `Q_bay` is
+the coolant loop's leak into each compartment whose plan has `coolantConductance`, the
+reactor bay alone in the deck, and zero elsewhere:
+
+```text
+Q_bay = UA · (T_c − T)                         UA = coolantConductance = 2 W/K
+```
+
+The loop's pipe runs 40 m through the bay at 0.3 m across, which gives 37.7 m² of
+surface. A vacuum jacket with U ≈ 0.05 W/(m²·K) gives 1.9 W/K, rounded to 2. The law
+reads `ship.coolant.temperature` and applies while life support is online. The figure
+lives in the deck, since `LITHIUM_LOOP` sits behind Engineering's private `COOLANT_LOOP`.
+The radiators sit outside the hull and radiate to space, so the law this section first
+gave, `0.002 · A_rad · ε · σ · (T_c⁴ − T_bay⁴)` (4.82 MW at full output), reaches no
+compartment. The loop's own balance leaves the leak out: it is 7.4 × 10⁻⁷ of the loop's
+heat at full output, and at idle a 414 W drain would pull the loop under the 500 K
+standby that G1 ruling 6 pins. With hull loss alone the bay settles at 264.3 K beside a
+500 K loop and at 276.5 K beside a 1,185.6 K loop, with a time constant of 15.05 h.
 
 The bridge and the habitat each have a thermostat, a proportional controller on a 10 kW
 heater:
@@ -438,49 +592,110 @@ Q_heater = clamp(K_t · (T_set − T), 0, Q_max)      T_set = 293 K, K_t = 10 kW
 ```
 
 A command sets `T_set` or turns the heater off. In the habitat the loss near 293 K is
-150 × 32.5 ≈ 4,880 W, and the four occupants give 400 W, so the heater settles at about
-4,480 W and the room at 292.55 K, 0.45 K under the setpoint (the offset of a proportional
-controller). The loop gain per tick, `K_t · dt / C = 1.25 × 10⁻³`, keeps the explicit step
-far from oscillation.
+150 × 32.5 ≈ 4,880 W, and the four occupants give 400 W, so the heater settles at
+4,482 W and the room at 292.552 K, 0.45 K under the setpoint (the offset of a
+proportional controller). The bridge settles at 292.725 K and 2,745 W. The loop gain per
+tick, `K_t · dt / C`, is 1.22 × 10⁻³ in the habitat and 2.44 × 10⁻³ in the bridge, which
+keeps the explicit step far from oscillation. Only heater power heats a room: the model
+drops the heat of the scrubbers, the generators and the pump, and the pump's compression
+work.
 
 ### 5.3 Metabolism, scrubbers, oxygen
 
-Per occupant per second: −3.04 × 10⁻⁴ mol O₂, +2.63 × 10⁻⁴ mol CO₂ and +1.6 × 10⁻³ mol
-H₂O (0.84 kg O₂, 1.0 kg CO₂ and 2.5 kg water a day). Each compartment off-gasses
-1 × 10⁻⁶ mol/s of volatiles.
+Per occupant per second: −3.038 × 10⁻⁴ mol O₂, +2.630 × 10⁻⁴ mol CO₂ and
++1.606 × 10⁻³ mol H₂O (0.84 kg O₂, 1.0 kg CO₂ and 2.5 kg water a day). Each compartment
+off-gasses 1 × 10⁻⁶ mol/s of volatiles.
 
-A scrubber with flow `S_s` (0.05 m³/s at 1.2 kW) removes a fixed fraction of the CO₂,
-water and volatiles each tick, which stays stable at any step:
+A scrubber with flow `S_s` (0.05 m³/s at 1.2 kW) removes a fixed fraction of the CO₂ and
+the volatiles each tick, which stays stable at any step:
 
 ```text
-n_g' = n_g · exp(−dt · S_s / V)            for g in CO₂, H₂O, volatiles
+n_g' = n_g · exp(−dt · S_s / V)            for g in CO₂, volatiles
 ```
 
-The water term runs only above the humidity setpoint (40 % relative humidity at `T`).
+Water falls by the same fraction while it stands above the humidity setpoint, and stops
+there:
+
+```text
+n_set   = 0.4 · p_sat(T) · V / (R · T)
+p_sat   = 610.94 · exp(17.625 · (T − 273.15) / (T − 30.11))      Magnus, 2,312 Pa at 293 K
+n_H₂O' = max(n_set, n_H₂O · exp(−dt · S_s / V))      while n_H₂O > n_set
+```
+
+In the habitat the CO₂ climbs from 40.5 Pa toward its equilibrium of 2.5245 mol
+(51.25 Pa) and reads 48.8 Pa after an hour online, and the relative humidity holds at
+40.00 %. The model has no condensation. A room with no scrubber gains humidity as it
+cools: the airlock reads 57.55 % after an hour online, and over days it passes 100 %. No
+G2 or G3 alarm reads humidity.
+
 The oxygen generator (electrolysis, 6 kW at full rate) adds
 
 ```text
-ṅ_O₂ = clamp(k_o · (p_set − p_O₂), 0, ṅ_max)      k_o = 2 × 10⁻⁵ mol/(s·Pa), ṅ_max = 0.05 mol/s, p_set = 21 kPa
+ṅ_O₂ = clamp(k_o · (p_set − p_O₂), 0, ṅ_max)      k_o = 2 × 10⁻⁵ mol/(s·Pa), ṅ_max = 0.01 mol/s, p_set = 21 kPa
 ```
+
+at 600 kJ per mol O₂, about 95 % efficient against the 571.6 kJ higher heating value of
+the two moles of water that give one mole of O₂. The full rate draws 6,000 W. The
+generator takes its water from the ship's tank and none from the room. The habitat's
+generator settles 60.8 Pa under 21 kPa and draws 729.1 W there, and the bridge's
+364.6 W. The initial 21,273 Pa sits above the setpoint, so the habitat's generator first
+runs about 2.7 h after online.
 
 ### 5.4 Vents and pumps
 
 A vent of area `A_v` open to space removes the same fraction of every gas:
 
 ```text
-n_g' = n_g · exp(−dt · A_v / (κ · V))
+n_g' = n_g · exp(−dt · A_v / (κ · V))          ventFraction(area, volume, dt)
 ```
+
+The vent keeps the temperature: the model drops the cooling of the gas that stays. A vent
+is a valve, so it draws no power and runs on a shed tick. The airlock's 0.01 m² vent
+removes 2.0618 % a tick (`1 − exp(−1/48)`, τ = 24 s), and a full airlock falls under
+100 Pa at tick 333 (166.1 s).
 
 A pump moves gas from `a` to `b` at volume rate `S_p` (0.2 m³/s). It moves the fraction
-`m = min(1, S_p · dt / V_a)` of each gas in `a`, and the moved gas carries its energy
-`Σ m · n_a,g · c_v,g · T_a` into `b`. Its electric draw is
+`m = min(1, S_p · dt / V_a)` of each gas in `a` (0.008333 of the airlock, 8.333 × 10⁻⁴ of
+the habitat), through `transfer(source, target, targetStructure, fraction)` in
+`src/physics/gas.ts`. The moved gas carries its energy into `b`, whose temperature becomes
 
 ```text
-P_pump = 400 W + S_p · max(0, P_b − P_a) / 0.6
+T_b' = (C_b · T_b + Σ_g Δn_g · c_v,g · T_a) / (C_b + Σ_g Δn_g · c_v,g)      C_b = C_struct + Σ_g n_b,g · c_v,g
 ```
 
-so a pump that empties the airlock into the habitat (the Stationeers airlock cycle) works
-harder as the airlock empties.
+and `a` keeps its temperature, so each gas's moles and the total `Σ C · T` stay the same.
+Its electric draw is
+
+```text
+rise   = P_b − P_a                             from the start-of-tick snapshot
+P_pump = 400 W + S_p · clamp(rise, 0, 101,300 Pa) / 0.6
+```
+
+from 400 W at no rise to 34,166.67 W at 101,300 Pa or more, while its mode is not `off`.
+The pump moves gas only while `rise < maxRise` (101,300 Pa). A stalled pump keeps drawing
+34,166.67 W until the crew turns it off, and it moves no gas, so the airlock keeps every
+gas but the volatiles, which grow by off-gassing. A pump that empties the airlock into the
+habitat (the Stationeers airlock cycle) works harder as the airlock empties.
+
+Inside `stepAtmosphere`, each compartment first takes its own step from the
+start-of-tick state (metabolism and off-gassing, the generator, the scrubber, the heat
+balance). Every open vent runs next, then every running pump that has not stalled, in
+`COMPARTMENT_IDS` order.
+
+A tick whose `power.shed` holds `life-support` runs no heater, scrubber, generator or
+pump. Metabolism, hull loss, the bay leak and an open vent still run.
+
+These figures come from node. The pump alone, with no metabolism or hull loss, empties the
+airlock from the initial air until it stalls at tick 288, with the airlock at 9,174 Pa and
+the habitat at 110,513 Pa. A vent then takes the airlock under 100 Pa in 217 ticks. The
+pump alone fills the airlock from 100 Pa to within 5 kPa of the habitat in 109 ticks at
+400 W. In the full model at throttle 0.01, with `online` and `pump airlock evacuate` at
+tick 0, the airlock reads 37,096 Pa and the habitat 107,681 Pa at tick 120. The first
+stalled tick is 289, with the airlock at 9,089 Pa, the habitat at 110,427 Pa and life
+support asking 39,304 W. With the pump off and the vent open from tick 290, the airlock
+reads under 100 Pa at tick 506. The pump empties the airlock at −1.69 kPa/s at the start,
+under the 2 kPa/s `DECOMPRESSION` threshold, and a vent on a full airlock starts at −4.18
+kPa/s, above it.
 
 ### 5.5 Gas mixing through an open door
 
@@ -524,8 +739,9 @@ T_c' = T_c + dt · (P_th − P_e + Σ_i h_i · P_i + Q_pulse − λ · ε · σ 
 
 At idle λ is 0, and the loop holds 500 K exactly. `h_i` is the share of consumer `i`'s
 allocated power that ends in the loop: 0.25 for the shield grid in G1. Later increments
-add 0.4 for the main drive, 0.25 for a railgun shot, 0.1 for the FTL spool and 0 for life
-support, whose heat stays in the compartments. `Q_pulse` is a one-tick heat pulse from a
+add 0.4 for the main drive, 0.25 for a railgun shot and 0.1 for the FTL spool. G2 adds 0
+for life support: a heater's power heats its room, and the model drops the heat of the
+other devices. `Q_pulse` is a one-tick heat pulse from a
 shot or a jump. `T_bg` is 4 K. At full output and no load, λ is 1 and the loop settles at
 
 ```text
@@ -558,7 +774,7 @@ the router moves on to the next.
 
 | Priority | Consumer                 | Demand at full |
 | -------- | ------------------------ | -------------- |
-| 1        | life support (all rooms) | up to 40 kW    |
+| 1        | life support (all rooms) | up to 69 kW    |
 | 2        | `SHIELD_GRID`            | 200 MW         |
 | 3        | comms                    | 5 MW           |
 | 4        | helm thrusters           | 20 MW          |
@@ -566,7 +782,10 @@ the router moves on to the next.
 | 6        | weapons capacitor        | 300 MW         |
 | 7        | FTL spool                | 900 MW         |
 
-The sum at full is above 1.21 GW. Priorities 1 to 4 take about 225 MW. With the main drive
+Life support's demand at full is 68.57 kW: two heaters at 20 kW, two scrubbers at 2.4 kW,
+two generators at 12 kW and the pump at 34.17 kW. The airlock pump-down peaks at 39.3 kW
+in the full model. The sum at full is above 1.21 GW. Priorities 1 to 4 take 225.07 MW,
+and 84.93 MW remain beside the main drive and the weapons capacitor. With the main drive
 burning, 385 MW remain: the weapons capacitor fits and the FTL spool never does, so the
 router sheds the spool. With the drive cut, 985 MW remain, and the spool fits only while
 the weapons capacitor draws nothing. So a pilot who wants to jump cuts the drive and lets
@@ -591,8 +810,22 @@ moments:
 The shield grid draws 200 MW at priority 2, so it fits once the reactor level reaches
 0.1653. A throttle of 1 queued at tick 0 gives level 0.16 and 193.6 MW after 16 ticks,
 where a raise answers `MERIDIAN_POWER_BUDGET`, and 205.7 MW after 17, where a raise
-queues for tick 18. G1 binds the grid as the router's one load, and later increments add
-theirs.
+queues for tick 18. G1 binds the grid as the router's one load. From G2 the router takes
+`all(POWER_CONSUMERS)` beside the grid, and `loads(ship)` returns the shields load, then
+each consumer's draw in registration order.
+
+`LifeSupportPower` draws `{ id: 'life-support', priority: 1, demand, heatShare: 0 }`.
+`demand` comes from the pure `lifeSupportDemand` in `src/physics/atmosphere.ts`: 0 W
+offline; otherwise each heater that is on at `clamp(K_t · (T_set − T), 0, Q_max)`, each
+scrubber that is on at 1,200 W, each generator that is on at its rate times 600 kJ/mol,
+and each pump whose mode is not `off` at `P_pump`. `LifeSupportPhysics` runs the devices
+from the same function, so the router and phase 4 see one figure. No life-support command
+diverts. The tick-0 power record lists the 0 W `life-support` load, which sorts first.
+
+Life support runs on the reactor, and G2 has no battery. At throttle 0 the reactor gives
+no power, so the router sheds `life-support` from the first online tick. Every powered
+scenario queues `engineering throttle 0.01` beside `online` at tick 0. Level 0.01 gives
+12.1 MW from tick 1, 176 times the 68.6 kW maximum, and the coolant settles at 514.1 K.
 
 ### 5.8 Propulsion and manoeuvring
 
@@ -692,10 +925,10 @@ package has a row. "When" is the increment that brings the row, and 0.4 means th
 | Interface-first tokens and `useClass`      | `@nexusdi/core`                                         | every system: `provide(ATMOSPHERE_SENSOR, { useClass: GasAnalyzer })`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | a ship swaps hardware behind a fixed interface; a test swaps a fake behind the same token                         | `bridge-api`          | G0               |
 | Modules, imports and exports               | `@nexusdi/core`                                         | one module per system; `Engineering` exports `POWER_ROUTER` and keeps `COOLANT_LOOP` to itself                                                                                                                                                                                                                                                                                                                                                                                                                                                           | a system is a bulkhead: other systems see its panel and never its pipes                                           | `bridge-api`          | G1               |
 | Global module and `forRoot`                | `@nexusdi/core`                                         | `Simulation.forRoot({ seed: 7, dt: 0.5 })` is global, so every system and a loaded module see the clock and the state                                                                                                                                                                                                                                                                                                                                                                                                                                    | every system needs the ship's clock; an import in each module would be noise                                      | `bridge-api`          | G0               |
-| `forRootAsync` calibration                 | `@nexusdi/core`                                         | `LifeSupport.forRootAsync({ deps: [DECK_PLAN], useFactory: async (deck) => readCalibration(deck) })` reads the sensor calibration before the first tick                                                                                                                                                                                                                                                                                                                                                                                                  | sensors read nothing true until they are calibrated, and the calibration comes from a file                        | `bridge-api`          | G2               |
-| Compartment-scoped atmosphere              | `@nexusdi/core`                                         | `GET /compartments/:id/atmosphere` opens a request scope whose `REQUEST` names the compartment; `COMPARTMENT` is scoped over `REQUEST`                                                                                                                                                                                                                                                                                                                                                                                                                   | a reading belongs to one room; the scope carries the room so no method takes it as an argument                    | `bridge-api`          | G2               |
-| Transient sensor reads                     | `@nexusdi/core`                                         | `ATMOSPHERE_SENSOR` is transient: each `get()` builds a `GasAnalyzer` that draws its noise from ``rng.fork(`AtmosphereSensor:${compartment}:${tick}`)``                                                                                                                                                                                                                                                                                                                                                                                                  | a sensor read is a sample of one tick; reads in two ticks differ, and a cached sensor would hide a leak           | `bridge-api`          | G2               |
-| Multi providers and `all()`                | `@nexusdi/core`                                         | `SHIP_SYSTEMS` collects each system's physics; `MASTER_ALARM` reads `all(ALARM_SINKS)`                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | a ship adds a system or an alarm panel without editing the loop or the alarm                                      | `bridge-api`          | G0, G3           |
+| `forRootAsync` calibration                 | `@nexusdi/core`                                         | `LifeSupport.forRootAsync({ deps: [DECK_PLAN], useFactory: readCalibration })` reads the analyzers' noise and resolution from `deck/sensors.calibration.json` before the first tick; the aggregate imports and re-exports that one instance                                                                                                                                                                                                                                                                                                              | sensors read nothing true until they are calibrated, and the calibration comes from a file                        | `bridge-api`          | G2               |
+| Compartment-scoped atmosphere              | `@nexusdi/core`                                         | `GET /compartments/:id/atmosphere` opens a request scope whose `REQUEST` names the compartment; the library augments `NexusRequest` with `compartment?: string`, and `COMPARTMENT` is scoped over `REQUEST` with `eager: false`; an unknown id answers 404 with `MERIDIAN_UNKNOWN_COMPARTMENT`                                                                                                                                                                                                                                                           | a reading belongs to one room; the scope carries the room so no method takes it as an argument                    | `bridge-api`          | G2               |
+| Transient sensor reads                     | `@nexusdi/core`                                         | `ATMOSPHERE_SENSOR` is transient: each `get()` builds a `GasAnalyzer` that samples its compartment at construction and draws its noise from ``rng.fork(`AtmosphereSensor:${compartment}:${tick}`)``                                                                                                                                                                                                                                                                                                                                                      | a sensor read is a sample of one tick; reads in two ticks differ, and a cached sensor would hide a leak           | `bridge-api`          | G2               |
+| Multi providers and `all()`                | `@nexusdi/core`                                         | `SHIP_SYSTEMS` collects each system's physics; `PlasmaRouter` reads `all(POWER_CONSUMERS)` for each system's load; `MASTER_ALARM` reads `all(ALARM_SINKS)`                                                                                                                                                                                                                                                                                                                                                                                               | a ship adds a system, a power load or an alarm panel without editing the loop, the router or the alarm            | `bridge-api`          | G0, G2, G3       |
 | `optional()`                               | `@nexusdi/core`                                         | `PhasedArray` takes `optional(SUBSPACE_LINK)`; the offline graph has no link, and comms reports `no subspace link` and keeps its queue                                                                                                                                                                                                                                                                                                                                                                                                                   | a ship flies out of relay range; comms degrades and the ship runs                                                 | `bridge-api`          | G5               |
 | `lazy()` edges                             | `@nexusdi/core`                                         | `PlasmaRouter` takes `lazy(SHIELD_GRID)` and `DeflectorGrid` takes `POWER_ROUTER`, the §7.1 cycle: `PlasmaRouter.loads()` reads the grid's draw through the thunk on every tick, and `DeflectorGrid.raise()` asks `POWER_ROUTER.divert()` to fit its load                                                                                                                                                                                                                                                                                                | the grid draws from the router and the router sheds the grid; the cycle is physical                               | `bridge-api`          | G1               |
 | `load()` of a section                      | `@nexusdi/core`                                         | `ship.load(FtlDrive)` on the first `POST /ftl/spool`; `JumpDrive.onInit()` attaches its physics to the loop                                                                                                                                                                                                                                                                                                                                                                                                                                              | the FTL drive is the biggest module and most voyages never jump                                                   | `bridge-api`          | G7               |
@@ -710,9 +943,9 @@ package has a row. "When" is the increment that brings the row, and 0.4 means th
 | A text pack from outside the core packages | `@nexusdi/errors`                                       | `@nexusdi/meridian-systems/text` exports `shipText` for the `MERIDIAN_*` codes, registered as `errors({ text: [shipText, interceptorsText] })`                                                                                                                                                                                                                                                                                                                                                                                                           | the simulation owns its codes and their words (P1, P2) through the public points any package outside NexusDI uses | `bridge-api`          | G3               |
 | Devtools graph                             | `@nexusdi/devtools`                                     | `devtools({ annotate: [shipNotes] })` labels each provider with its system, and each `SHIP_SYSTEMS` class with its static phase; the console's diagnostics page draws `graph(ship)`                                                                                                                                                                                                                                                                                                                                                                      | an engineer reads the ship's wiring by system                                                                     | `bridge-api`, console | G0b              |
 | Trace                                      | `@nexusdi/devtools`                                     | `trace()` records the dispose events the shutdown test asserts                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | the dispose order is a fact a test can read                                                                       | `bridge-api`          | G1               |
-| Profiler on the startup graph              | `@nexusdi/devtools`, `@nexusdi/cli`                     | `nexusdi profile src/ship/meridian.ts#Meridian` shows the two async startup steps, the `NAV_CHARTS` download and the `LifeSupport` calibration, on the critical path                                                                                                                                                                                                                                                                                                                                                                                     | a ship that takes long to start needs to know which system it waits on                                            | `bridge-api`          | G2               |
+| Profiler on the startup graph              | `@nexusdi/devtools`, `@nexusdi/cli`                     | `nexusdi profile src/ship/meridian.ts#OfflineMeridian` shows the `LifeSupport` calibration, the `LifeSupportOptions` factory, as the async startup step; `test/profile.test.ts` finds it through `profile()`; the `NAV_CHARTS` download of `Meridian` joins the profile in G5                                                                                                                                                                                                                                                                            | a ship that takes long to start needs to know which system it waits on                                            | `bridge-api`          | G2, G5           |
 | Graph CLI                                  | `@nexusdi/cli`                                          | the `graph` target draws `graph.json` with every system and `--load src/systems/ftl#FtlDrive`, and fails on a diff                                                                                                                                                                                                                                                                                                                                                                                                                                       | a system added without its wiring reviewed fails CI                                                               | `bridge-api`          | 0.4, G7          |
-| Testing container and overrides            | `@nexusdi/testing`                                      | `override(ATMOSPHERE_SENSOR, { useClass: FailingSensor })` raises `SENSOR_FAULT`; `overrideModule(FtlDrive, SimulatedFtlDrive, { lazy: true })` stubs the loaded drive                                                                                                                                                                                                                                                                                                                                                                                   | a test breaks one sensor and watches the alarm; a test of the helm does not spool a real drive                    | `bridge-api`          | 0.4, G2          |
+| Testing container and overrides            | `@nexusdi/testing`                                      | `override(ATMOSPHERE_SENSOR, { useClass: FailingSensor })` answers an empty 500 on the atmosphere route in G2 and raises `SENSOR_FAULT` from G3; `overrideModule(FtlDrive, SimulatedFtlDrive, { lazy: true })` stubs the loaded drive                                                                                                                                                                                                                                                                                                                    | a test breaks one sensor and watches the alarm; a test of the helm does not spool a real drive                    | `bridge-api`          | 0.4, G2, G3      |
 | Vitest fixtures                            | `@nexusdi/vitest`                                       | `nexusTest(base, Meridian, { setup })` gives each test a ship at seed 7; `test.override` changes the seed or the sensors per suite                                                                                                                                                                                                                                                                                                                                                                                                                       | each test gets a fresh ship and the fixture disposes it, so a timer or listener never leaks into the next test    | `bridge-api`, console | 0.4, G0          |
 | React provider, `useService` and sections  | `@nexusdi/react`                                        | the console's system pages are `lazySection`s inside `SectionBoundary`; `useService(TELEMETRY_CLIENT)` reads the stream                                                                                                                                                                                                                                                                                                                                                                                                                                  | a bridge shows the panel for the system in front of it, loaded when opened                                        | console               | 0.4, G0b         |
 | React Router request scopes                | `@nexusdi/react-router`                                 | the console's loaders read `BRIDGE_LINK` with `di.inject`; the command form's action posts through it; `/course/:to` streams a deferred loader                                                                                                                                                                                                                                                                                                                                                                                                           | each console request carries its mission to the backend                                                           | console               | 0.4, G1          |
@@ -755,28 +988,53 @@ singletons, so `NEXUS_INTERCEPTOR_LIFETIME` never applies.
 ```ts
 // bridge-api, the Hono entry
 const di = nexus(ship, {
-  request: (c) => ({
-    mission: {
-      id: c.req.header('x-mission-id') ?? 'survey-7',
-      target: 'Kepler-442b',
-    },
-    compartment: compartmentOf(new URL(c.req.url).pathname), // '/compartments/habitat/...' -> 'habitat'
-  }),
+  request: (c) => {
+    // c.req.path decodes percent escapes, so Hono reads the raw pathname.
+    const compartment = compartmentOf(new URL(c.req.url).pathname); // '/compartments/habitat/...' -> 'habitat'
+    return {
+      mission: {
+        id: c.req.header('x-mission-id') ?? 'survey-7',
+        target: 'Kepler-442b',
+      },
+      ...(compartment === undefined ? {} : { compartment }),
+    };
+  },
 });
-app.get(
-  '/compartments/:id/atmosphere',
-  di.inject({ sensor: ATMOSPHERE_SENSOR }, ({ sensor }, c) =>
-    c.json(sensor.read()),
-  ),
-);
+app.get('/compartments/:id/atmosphere', async (c) => {
+  const { status, body } = answerAtmosphere(await di.scope(c));
+  return c.json(body, status);
+});
+
+// bridge-api, src/bridge/atmosphere.ts
+export function answerAtmosphere(scope: SensorScope): AtmosphereReply {
+  try {
+    return { status: 200, body: scope.get(ATMOSPHERE_SENSOR).read() };
+  } catch (error) {
+    if (!(error instanceof UnknownCompartmentError)) throw error;
+    return { status: 404, body: refusalOf(error) };
+  }
+}
 ```
 
 The request mapper runs in `nexus()`'s middleware, which `.use()` installs before the
 router matches `/compartments/:id`, so `c.req.param('id')` is not set yet. The mapper
-reads the compartment from the path itself. `request.d.ts` adds
-`compartment?: CompartmentId` to `NexusRequest` beside `mission`. A
-request outside `/compartments/` that asks for `COMPARTMENT` gets
-`MERIDIAN_UNKNOWN_COMPARTMENT` from the factory.
+reads the compartment from the path itself. `compartmentOf(path)`
+(`src/bridge/compartment-of.ts`) matches `^/compartments/([^/?#]+)` and leaves the id
+encoded. Express passes `req.path` and Fastify `req.url`, and both read the path as sent.
+The library owns the request field: `src/simulation/contracts.ts` augments
+`NexusRequest` with `compartment?: string` beside `COMPARTMENT`, and the factory
+`compartmentOfRequest` narrows it to a `CompartmentId`. It throws
+`UnknownCompartmentError` (fields `compartment?: string`, left out for a request that
+names none, and `expected: string`) for a missing or unknown id. The binding has
+`eager: false`, so a scope whose request names no compartment opens, and only a `get` of
+`COMPARTMENT` or of the sensor throws.
+
+Core rethrows a `NexusError` from a synchronous construct unwrapped, so
+`scope.get(ATMOSPHERE_SENSOR)` throws `UnknownCompartmentError` itself, and
+`answerAtmosphere` matches it by `instanceof` on the class the library exports (P1). Any
+other throw is a bug, and the framework answers it with an empty 500. `refusalOf` lives in
+`src/bridge/refusal.ts`, which the command and atmosphere routes share. The airlock
+answers 200 at any pressure.
 
 ### 6.3 The FTL drive as a loaded section
 
@@ -809,12 +1067,13 @@ declare module '@nexusdi/core' {
 
 `shipText` formats numbers with its own `formatNumber`, which rounds and groups thousands
 with a comma by a regular expression, so the text is the same on every runtime and locale
-(`toLocaleString` is not). Five codes: `MERIDIAN_INTERLOCK` (a door across a pressure difference),
-`MERIDIAN_POWER_BUDGET` (a command whose demand the router cannot meet, such as a shields
-raise above the reactor's output or a spool with the reactor under 90 %),
+(`toLocaleString` is not). Five codes: `MERIDIAN_INTERLOCK` (a door across a pressure
+difference), `MERIDIAN_POWER_BUDGET` (a command whose demand the router cannot meet, such
+as a shields raise above the reactor's output or a spool with the reactor under 90 %),
 `MERIDIAN_BAD_COMMAND` (a command the desk or its system cannot read),
 `MERIDIAN_FTL_NOT_SPOOLED` (a jump before the spool is full) and
-`MERIDIAN_UNKNOWN_COMPARTMENT`. `shipText` holds their text:
+`MERIDIAN_UNKNOWN_COMPARTMENT` (a request that names no compartment or one the deck lacks,
+G2). `shipText` holds their text:
 
 ```text
 [MERIDIAN_INTERLOCK] The habitat-airlock door holds 98,410 Pa of difference, above the 5,000 Pa interlock.
@@ -822,13 +1081,16 @@ raise above the reactor's output or a spool with the reactor under 90 %),
 ```
 
 G1 adds the two codes it raises. `PowerBudgetError` carries the load's `consumer` id and,
-in W, its `demand` and the `available` power. Its text reads "The shields load needs 200 MW, and the router has
-193.6 MW free beside the loads above it." `BadCommandError` carries a `reason` (`envelope`,
-`system`, `action` or `argument`) with the command's `system` and `action` and the
-`expected` shape in words, and `shipText` words each reason. `bridge-api` tells them apart
-with `instanceof BadCommandError`. Each error links to an
-explicit anchor in the library's README, such as `#MERIDIAN_POWER_BUDGET`. G3 registers
-`shipText` in `errors({ text })`.
+in W, its `demand` and the `available` power. Its text reads "The shields load needs 200
+MW, and the router has 193.6 MW free beside the loads above it." `BadCommandError` carries
+a `reason` (`envelope`, `system`, `action` or `argument`) with the command's `system` and
+`action` and the `expected` shape in words, and `shipText` words each reason. `bridge-api`
+tells them apart with `instanceof BadCommandError`. G2 adds `UnknownCompartmentError`,
+whose text reads "No compartment is named 'galley'. The deck has bridge, habitat,
+reactor-bay and airlock." or "The request names no compartment. The deck has bridge,
+habitat, reactor-bay and airlock.", with the fix "read /compartments/<id>/atmosphere with
+one of the compartments above." Each error links to an explicit anchor in the library's
+README, such as `#MERIDIAN_POWER_BUDGET`. G3 registers `shipText` in `errors({ text })`.
 
 Against P1 to P5: the simulation owns its codes, their classes and their text (P1). It
 extends core's open `NexusErrorByCode` by augmentation (P2). It reaches core through
@@ -852,7 +1114,7 @@ they do today.
 | `GET /telemetry`                                        | SSE: one ship reading at once, then one per tick                                                                                                                                                                                                           | G0b  |
 | `POST /commands`                                        | `{ system, action, ...args }` through `COMMAND_DESK`; 202 with `{ tick }`, 400 for a `BadCommandError`, 409 for any other `NexusError`, each refusal with `{ code, message, fix? }` from `explain(error, { text: [shipText] })`; an empty 413 above 100 kB | G1   |
 | `GET /commands`                                         | the command log, oldest first: one `{ tick, change }` per tick for the newest 1,000 ticks that applied a change                                                                                                                                            | G1   |
-| `GET /compartments/:id/atmosphere`                      | one transient sensor read in a compartment scope                                                                                                                                                                                                           | G2   |
+| `GET /compartments/:id/atmosphere`                      | one transient sensor read in a compartment scope: 200 with the `AtmosphereReading`, 404 with the refusal for `MERIDIAN_UNKNOWN_COMPARTMENT`, an empty 500 for any other throw                                                                              | G2   |
 | `POST /ftl/spool`, `POST /ftl/jump`                     | loads `FtlDrive` on the first call                                                                                                                                                                                                                         | G7   |
 | `GET /graph`                                            | `graph(ship)` with the ship notes, in development; 404 otherwise                                                                                                                                                                                           | G0b  |
 
@@ -888,19 +1150,37 @@ tick 0, advance 600 ticks to tick 600, 300 s, 293 K and 101.3 kPa, and read a fi
 telemetry frame at tick 0 before the client cancels. The edge runtime has no growth leg,
 and the gating legs keep their current routes.
 
+G2's growth case, `e2e/growth/life-support.e2e.ts`, runs on the three Node servers over a
+manual ship on seed 7. It posts `engineering throttle 0.01` and `life-support online`
+(202, tick 1) and reads the habitat at tick 0. After 600 ticks the habitat reads within
+0.1 K of 292.765 K, and `GET /sim` gives its heater 2,346 W. It then posts
+`pump airlock evacuate` (202, tick 601) and advances 120 ticks. At tick 720 the airlock's
+reading holds that tick and a pressure from 36,950 to 37,100 Pa (model 37,023 Pa; seed 7's
+reading 37,033 Pa), and `GET /sim` gives the habitat from 107,000 to 108,000 Pa (model
+107,590.6 Pa). `/compartments/galley/atmosphere` answers 404 with the text. The routes
+test reads 200 for `habitat` and `airlock` on each framework, 404 with
+`MERIDIAN_UNKNOWN_COMPARTMENT` for `galley` and for the encoded `%68abitat`, and an empty
+500 from a ship whose `ATMOSPHERE_SENSOR` is `FailingSensor`. `test/profile.test.ts`
+profiles `OfflineMeridian` and finds the `LifeSupportOptions` factory as its one async
+build step. `check.test.ts` keys the graph's notes by token and module, since
+`ShipSystems` and `CommandHandlers` have a provider in `Engineering` and one in
+`LifeSupport` (`PowerConsumers` has one, in `LifeSupport`), and reads
+`['system: LifeSupport', 'phase: 4']` on LifeSupport's physics.
+
 ### 7.2 The bridge console
 
 The console's server calls `bridge-api` over HTTP, and the browser calls the console only
 (demo spec 6.3).
 
-| Route                                             | What it shows                                                                                                         | When      |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------- |
-| `/`, `/sectors/:sector`, `/course/:to`, `/charts` | the demo plan's routes                                                                                                | 0.4       |
-| `/telemetry`                                      | a resource route that relays `bridge-api`'s SSE with `no-transform`; 503 when the backend fails                       | G0b       |
-| `/systems/engineering`                            | a static route with four gauges from `snapshot()`, the throttle and shields forms, and the answer to the last command | G1        |
-| `/systems/engineering` action                     | posts the command through `BRIDGE_LINK`; a 400 or a 409 renders the text and the fix                                  | G1        |
-| `/systems/:system`                                | one `lazySection` per system in `SectionBoundary`: gauges and a command form                                          | after G0b |
-| `/diagnostics`                                    | `graph(ship)` from `GET /graph`, each module with its providers and their notes                                       | G0b       |
+| Route                                             | What it shows                                                                                                                                                 | When      |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| `/`, `/sectors/:sector`, `/course/:to`, `/charts` | the demo plan's routes                                                                                                                                        | 0.4       |
+| `/telemetry`                                      | a resource route that relays `bridge-api`'s SSE with `no-transform`; 503 when the backend fails                                                               | G0b       |
+| `/systems/engineering`                            | a static route with four gauges from `snapshot()`, the throttle and shields forms, and the answer to the last command                                         | G1        |
+| `/systems/engineering` action                     | posts the command through `BRIDGE_LINK`; a 400 or a 409 renders the text and the fix                                                                          | G1        |
+| `/systems/life-support`                           | a static route with each compartment's analyzer gauges and heater power, the online, habitat thermostat and airlock forms, and the answer to the last command | G2        |
+| `/systems/:system`                                | one `lazySection` per system in `SectionBoundary`: gauges and a command form                                                                                  | after G0b |
+| `/diagnostics`                                    | `graph(ship)` from `GET /graph`, each module with its providers and their notes                                                                               | G0b       |
 
 `BRIDGE_LINK` gains three methods in G0b: `snapshot(): Promise<ShipReading>` (`GET /sim`),
 `telemetry(): Promise<ReadableStream<Uint8Array>>` (the body of `GET /telemetry`, with the
@@ -910,7 +1190,22 @@ in G1 with `POST /commands`. `command(cmd)` resolves to `{ accepted: true, tick 
 `{ accepted: false, status, code, message, fix? }`, and rejects any other status. The
 engineering page's loader reads `snapshot()` for four gauges, the reactor level, the
 electric output, the coolant temperature and the shields' allocation, and the page has no
-`lazySection` in G1. Its growth case runs in the console's `e2e-growth` target under
+`lazySection` in G1.
+
+`BRIDGE_LINK` gains `atmosphere(compartment)` in G2 with
+`GET /compartments/:id/atmosphere`; a 404 rejects. The life-support page's loader reads
+`snapshot()` and `atmosphere(id)` for the four compartments in parallel, and a call that
+fails shows its part offline. The gauges round to a fixed precision: the temperature to
+0.1 K, the pressure to 0.1 kPa, the O₂ and CO₂ partial pressures to 0.01 kPa, and the
+heater power from `snapshot()` to whole watts. The forms post `online`, a habitat `heater`
+target, and the airlock `pump` mode and `vent` open or shut. `fixed()` lives in
+`app/bridge/fixed.ts`, which both system pages and the ship layout's status strip import.
+Every console gauge shows an SI unit: K, W, MW, Pa or kPa for a pressure or a partial
+pressure, and mol for an amount, never ppm, percent or an imperial unit. The page has no
+`lazySection`, and the `lazySection` form of `/systems/:system` stays deferred (section
+13).
+
+The engineering page's growth case runs in the console's `e2e-growth` target under
 `playwright.e2e-growth.config.mts`, and the gating config ignores `e2e/growth/`. The
 console takes the types by `import type` only. Its double `fakeBridgeLink` gains the same
 methods, so the route tests stay on `nexusTest`.
@@ -919,10 +1214,11 @@ The ship layout, `app/routes/ship-layout.tsx`, wraps `/diagnostics` and, from G1
 `/systems/*`. Its loader returns `snapshot()`, or null when the backend fails, and
 `shouldRevalidate` returns false. The root layout stays unchanged, so a page outside the
 ship layout opens no `EventSource`. The layout's `StatusStrip` renders the tick, the ship
-time and the habitat's temperature and pressure in kPa from the reading, or `Telemetry
-offline` for null. After hydration it subscribes through `useService(TELEMETRY_CLIENT)`,
-whose `EventSourceTelemetry` opens `/telemetry` in `subscribe` only and closes it on an
-`offline` event or an error, with no reconnect.
+time and the habitat's temperature in whole kelvin and its pressure to 0.1 kPa from the
+reading, both through `fixed()`, or `Telemetry offline` for null. After hydration it
+subscribes through `useService(TELEMETRY_CLIENT)`, whose `EventSourceTelemetry` opens
+`/telemetry` in `subscribe` only and closes it on an `offline` event or an error, with no
+reconnect.
 
 The `/telemetry` route answers 503 when the backend's stream fails. `/diagnostics` groups
 the graph's providers under the module that owns them and prints each one's notes
@@ -963,19 +1259,19 @@ The growth track holds the rich systems. Each increment:
 
 The suggested order, each step depending only on G0 and the steps it names:
 
-| Step | Increment                                                                                                                                                                                                                                                                            | Needs  |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
-| G0   | the kernel: `examples/meridian-systems`, `Simulation`, `MeridianSystems`, the deck plan, the driver, `GET /sim` and `POST /sim/advance`                                                                                                                                              | none   |
-| G0b  | telemetry and diagnostics: `Telemetry`, tick listeners, `GET /telemetry`, `GET /graph` with `shipNotes`, `BRIDGE_LINK.snapshot()`, `telemetry()` and `graph()`, the console's status strip and `/diagnostics`, the section 9 bundle check, and the workerd, Deno and Bun smoke cases | G0     |
-| G1   | `Engineering`: reactor, coolant loop, power budget, `/commands`, `BRIDGE_LINK.command(cmd)`, the engineering page                                                                                                                                                                    | G0     |
-| G2   | `LifeSupport`: per-compartment atmosphere, scrubbers, heaters, vents, pumps, sensors, calibration                                                                                                                                                                                    | G0     |
-| G3   | `Safety`: blast doors, the interlock, door mixing, fire, suppression, alarms                                                                                                                                                                                                         | G2     |
-| G4   | the airlock cycle: the pump and vent drill across `habitat`, `airlock` and space                                                                                                                                                                                                     | G3     |
-| G5   | `Comms` and `Tactical` move into the library, with `COMMS_ARRAY` and the optional link                                                                                                                                                                                               | G0     |
-| G6   | `Propulsion` and `Helm`                                                                                                                                                                                                                                                              | G1, G5 |
-| G7   | `FtlDrive`, loaded with `load()`                                                                                                                                                                                                                                                     | G1, G6 |
-| G8   | `Weapons`                                                                                                                                                                                                                                                                            | G1     |
-| G9   | the engineering and life-support stations, the contract tokens, helm orders from `command`                                                                                                                                                                                           | G1, G2 |
+| Step | Increment                                                                                                                                                                                                                                                                                | Needs  |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| G0   | the kernel: `examples/meridian-systems`, `Simulation`, `MeridianSystems`, the deck plan, the driver, `GET /sim` and `POST /sim/advance`                                                                                                                                                  | none   |
+| G0b  | telemetry and diagnostics: `Telemetry`, tick listeners, `GET /telemetry`, `GET /graph` with `shipNotes`, `BRIDGE_LINK.snapshot()`, `telemetry()` and `graph()`, the console's status strip and `/diagnostics`, the section 9 bundle check, and the workerd, Deno and Bun smoke cases     | G0     |
+| G1   | `Engineering`: reactor, coolant loop, power budget, `/commands`, `BRIDGE_LINK.command(cmd)`, the engineering page                                                                                                                                                                        | G0     |
+| G2   | `LifeSupport`: per-compartment atmosphere, heaters, scrubbers, oxygen generators, the airlock vent and pump, the transient analyzers and their calibration, `COMPARTMENT`, `POWER_CONSUMERS`, `GET /compartments/:id/atmosphere`, `BRIDGE_LINK.atmosphere(id)` and the life-support page | G0, G1 |
+| G3   | `Safety`: blast doors, the interlock, door mixing, fire, suppression, alarms                                                                                                                                                                                                             | G2     |
+| G4   | the airlock drill: the pump and vent cycle across `habitat`, `airlock` and space through the doors                                                                                                                                                                                       | G3     |
+| G5   | `Comms` and `Tactical` move into the library, with `COMMS_ARRAY` and the optional link                                                                                                                                                                                                   | G0     |
+| G6   | `Propulsion` and `Helm`                                                                                                                                                                                                                                                                  | G1, G5 |
+| G7   | `FtlDrive`, loaded with `load()`                                                                                                                                                                                                                                                         | G1, G6 |
+| G8   | `Weapons`                                                                                                                                                                                                                                                                                | G1     |
+| G9   | the engineering and life-support stations, the contract tokens, helm orders from `command`                                                                                                                                                                                               | G1, G2 |
 
 G1 to G3 come first because they carry the owner's Stationeers picture (air, power,
 doors) and the most features of section 6. G5, G6 and G8 can run in parallel with them.
@@ -988,9 +1284,25 @@ The physics tests import `src/physics/*` and no NexusDI code:
 
 - `gas.test.ts`: `P = nRT/V` for the habitat's initial state is 101.3 kPa ± 0.1 %; an open
   door conserves every gas's moles to 1 × 10⁻⁹ relative; two rooms at 100 kPa and 50 kPa
-  converge within 1 % after 10 τ; a vent removes `1 − exp(−dt·A/(κV))` per tick.
-- `thermal.test.ts`: with its thermostat at 293 K, the habitat settles between 292.4 K and
-  292.7 K within an hour of ticks and stays there; the coolant loop at full output settles at 1,186 K ± 5 K; the trip fires at
+  converge within 1 % after 10 τ (G3). From G2: the habitat's heat capacity is
+  4,104,250 J/K at the initial air; Magnus gives 2,312 Pa at 293 K; `ventFraction(0.01,
+12, 0.5)` removes 0.020618, and a full airlock under a vent falls under 100 Pa at tick
+  333; `transfer` conserves each gas's moles and `Σ C · T` to 1 × 10⁻¹² relative, and a
+  transfer between rooms at one temperature leaves both at it.
+- `atmosphere.test.ts` (G2): metabolism and off-gassing per §5.3; the habitat scrubber
+  holds the CO₂ at 2.5245 mol (51.248 Pa at 293 K) and the humidity at 40.00 %; the
+  generator settles 60.8 Pa under 21 kPa at 729 W; the bay holds 264.3 K beside a 500 K
+  loop; `lifeSupportDemand` is 0 offline; `pumpDraw(0)` is 400 W and
+  `pumpDraw(101_300)` and `pumpDraw(200_000)` are 34,166.67 W; the airlock's pump
+  fraction is 0.008333; the pump alone stalls at tick 288 with the airlock at
+  9,174 Pa ± 1 Pa and the habitat at 110,513 Pa ± 1 Pa; a stalled pump moves no gas and
+  keeps drawing; a shed tick runs no device and no pump and still vents; offline, every
+  compartment stays as it was; `readAtmosphere` repeats for one compartment and tick,
+  draws in its order, rounds to each resolution, reads no field under 0 in an airlock at
+  50 Pa, and refuses a compartment the calibration lacks.
+- `thermal.test.ts`: with its thermostat at 293 K, the habitat stays between 292.4 K and
+  292.7 K from tick 2,400 to tick 7,200 (model 292.552 K), and the bridge settles at
+  292.726 K ± 0.05 K at 2,745 W (model 292.725 K); the coolant loop at full output settles at 1,186 K ± 5 K; the trip fires at
   1,450 K.
 - `power.test.ts`: the router fills by priority and sheds a consumer whose demand does
   not fit, with a property test over random demands that the allocation never exceeds
@@ -1025,8 +1337,11 @@ test.override('nexusSetup', [
 
 `ShipUnderTest` is a root that imports `Simulation.forRoot` and the systems under test.
 It is global, and binds `TICK_LOOP` as `MeridianSystems` does.
-The suite above asserts that ten ticks raise `SENSOR_FAULT` in every sink of
-`all(ALARM_SINKS)`, with `MemoryAlarmSink` added to the multi token by the test.
+From G3 the suite above asserts that ten ticks raise `SENSOR_FAULT` in every sink of
+`all(ALARM_SINKS)`, with `MemoryAlarmSink` added to the multi token by the test. In G2,
+`FailingSensor implements IAtmosphereSensor` (its `read()` throws a plain `Error`) sits in
+`bridge-api`'s `test/doubles.ts`, and one routes case per framework overrides
+`ATMOSPHERE_SENSOR` with it and reads an empty 500.
 `nexusSetup` is the fixture `nexusTest` exposes for the builder steps on `release/0.4`.
 Other suites: `overrideModule(FtlDrive, SimulatedFtlDrive, { lazy: true })`
 for the helm, and a shutdown test that reads `trace()`'s dispose events and asserts the
@@ -1036,6 +1351,19 @@ driver, the feed, the alarm and the reactor in that order. G1 writes it in `brid
 and G3 add their tokens to the sequence. The library's `test/engineering.test.ts` builds
 `meridianSystems()` with `Nexus.create` and checks the scram and that the root cannot get
 `COOLANT_LOOP`.
+
+G2's `test/life-support.test.ts` builds `meridianSystems({ seed: 7, dt: 0.5 })` and checks
+that `Nexus.check` passes; that the root reads `ATMOSPHERE_CONTROL`, and
+`ATMOSPHERE_SENSOR` in a scope whose request names `habitat`; that a scope naming
+`galley` throws `UnknownCompartmentError` on `get`; that two `get()` calls around an
+`advance(1)` read two ticks; and that `online` at throttle 0 sheds `life-support`. At
+throttle 0.01 with `online` and `pump airlock evacuate` at tick 0, the airlock reads from
+36,900 to 37,300 Pa at tick 120. Once the start-of-tick rise reaches 101,300 Pa, every
+airlock gas but the volatiles holds exactly for ten ticks while the `life-support` load
+asks at least 34,166 W. A `heater` on `airlock` and a `pump` on `habitat` each answer
+`MERIDIAN_BAD_COMMAND` with reason `argument`, and after 7,200 ticks at throttle 0.01 the
+habitat rounds to 292.6 K. `test/simulation.test.ts` reads `COMPARTMENT` in a scope whose
+request names `habitat`, and a scope with none opens and fails only on `get`.
 
 ### 8.3 E2E on a seeded simulation
 
@@ -1048,7 +1376,15 @@ Every e2e server starts with `SIM_MODE=manual SIM_SEED=7`. A case drives ticks w
 3. A golden file per scenario, `e2e/golden/<scenario>.seed-7.json`, with the snapshot at
    chosen ticks. A test rewrites it with `-u`, and its diff is reviewed like
    `graph.json`'s. The goldens run in the library's `e2e-growth` target, and
-   `npx nx run @nexusdi/meridian-systems:e2e-growth -- -u` rewrites them.
+   `npx nx run @nexusdi/meridian-systems:e2e-growth -- -u` rewrites them. G2 adds
+   `lifeSupport`, `setpoints.lifeSupport` and the 0 W `life-support` load to the idle
+   golden, whose `tick`, `time` and `compartments` stay byte-identical, and adds
+   `e2e/golden/life-support.seed-7.json`: `engineering throttle 0.01` and
+   `life-support online` at tick 0, snapshots at ticks 1, 600 and 7,200, and no pump. The
+   model gives the habitat 292.765 K and its heater 2,346 W at tick 600. At tick 7,200 it
+   gives the habitat 292.552 K, 4,482 W, 101,007 Pa, CO₂ 48.8 Pa and 40.00 % relative
+   humidity, the bridge 292.725 K at 2,745 W, the airlock 286.71 K at 57.55 % and the bay
+   291.17 K, from the coolant's climb to 514.1 K.
 
 The goldens run on Node only, and on the version `.nvmrc` names: the golden suite reads
 `.nvmrc` and fails, naming both versions, when `process.versions.node` differs. A golden
@@ -1077,7 +1413,12 @@ starts from the current tick, since the backend keeps its ship across retries. I
 the ship's tick from `GET /sim`, finds it in the strip on `/diagnostics`, posts 600 ticks
 to the backend and reads a tick 600 higher, its ship time, 293 K and 101.3 kPa from the
 stream. The second case finds `Simulation`, `MeridianSystems` and `Telemetry` on
-`/diagnostics`, with `system: Telemetry` on the feed.
+`/diagnostics`, with `system: Telemetry` on the feed. From G2,
+`e2e/growth/life-support.spec.ts` sets throttle 0.01, brings life support online, posts
+600 ticks and reads the habitat analyzer from 292.5 K to 292.8 K and 101.0 kPa to
+101.2 kPa, and a heater from 2,000 W to 5,000 W. `online` is one-way on the shared
+manual ship, so the config runs that case in a second project, `life-support`, which
+depends on `chromium`.
 
 ## 9. Risks
 
@@ -1100,36 +1441,37 @@ stream. The second case finds `Simulation`, `MeridianSystems` and `Telemetry` on
 These rows go to `spec/docs-site` with the demo plan's PR G, after the demo apps' own
 rows. Until they reach that branch, no docs page uses them.
 
-| Interface            | Token                                                                             | Class                                                     | Lifetime  | Bound in, with deps                                                    |
-| -------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------- | --------- | ---------------------------------------------------------------------- |
-| `ISimClock`          | `SIM_CLOCK`, described `'SimClock'`                                               | `FixedStepClock`                                          | singleton | `Simulation`, `[SIM_OPTIONS]`                                          |
-| `IRandomSource`      | `RNG`, described `'RandomSource'`                                                 | `SeededRandom`                                            | singleton | `Simulation`, `[SIM_OPTIONS]`                                          |
-| `IShipState`         | `SHIP_STATE`, described `'ShipState'`                                             | `ShipStateStore`                                          | singleton | `Simulation`, `[DECK_PLAN]`                                            |
-| `ITickLoop`          | `TICK_LOOP`, described `'TickLoop'`                                               | `FixedStepLoop`                                           | singleton | `MeridianSystems`, `[SIM_CLOCK, SHIP_STATE, RNG, all(SHIP_SYSTEMS)]`   |
-| `IShipSystem`        | `SHIP_SYSTEMS`, a `MultiToken<IShipSystem>`                                       | one physics class per system                              | singleton | each system module                                                     |
-| `DeckPlan`           | `DECK_PLAN`                                                                       | the deck file                                             | value     | `Simulation`                                                           |
-| `CompartmentId`      | `COMPARTMENT`                                                                     | a factory over `REQUEST`                                  | scoped    | `Simulation`, `[REQUEST]`                                              |
-| `ICoolantLoop`       | `COOLANT_LOOP`, described `'CoolantLoop'`                                         | `RadiatorLoop`                                            | singleton | `Engineering`, no deps; not exported                                   |
-| `ICommandHandler`    | `COMMAND_HANDLERS`, a `MultiToken<ICommandHandler>` described `'CommandHandlers'` | one handler class per system; `EngineeringCommands` in G1 | singleton | each system module; `Engineering`, `[REACTOR, SHIELD_GRID]`            |
-| `ICommandDesk`       | `COMMAND_DESK`, described `'CommandDesk'`                                         | `CommandDesk`                                             | singleton | `MeridianSystems`, `[all(COMMAND_HANDLERS)]`                           |
-| `IAtmosphereSensor`  | `ATMOSPHERE_SENSOR`                                                               | `GasAnalyzer`                                             | transient | `LifeSupport`, `[COMPARTMENT, SHIP_STATE, RNG, LIFE_SUPPORT_OPTIONS]`  |
-| `IAtmosphereControl` | `ATMOSPHERE_CONTROL`                                                              | `EnvironmentalController`                                 | singleton | `LifeSupport`, `[SHIP_STATE]`                                          |
-| `IBlastDoors`        | `BLAST_DOORS`                                                                     | `BlastDoorControl`                                        | singleton | `Safety`, `[SHIP_STATE]`; wrapped by `PressureInterlock`               |
-| `IFireSuppression`   | `FIRE_SUPPRESSION`                                                                | `InertGasSuppression`                                     | singleton | `Safety`, `[SHIP_STATE]`                                               |
-| `IAlarmSink`         | `ALARM_SINKS`, a `MultiToken<IAlarmSink>`                                         | `TelemetryAlarmSink`, `AuditAlarmSink`                    | singleton | `Safety`                                                               |
-| `IMasterAlarm`       | `MASTER_ALARM`                                                                    | `MasterAlarm`                                             | singleton | `Safety`, `[TICK_LOOP, all(ALARM_SINKS)]`                              |
-| `ICommsArray`        | `COMMS_ARRAY`                                                                     | `PhasedArray`                                             | singleton | `Comms`, `[SHIP_STATE, optional(SUBSPACE_LINK)]`                       |
-| `IMainDrive`         | `MAIN_DRIVE`                                                                      | `PlasmaDrive`                                             | singleton | `Propulsion`, `[SHIP_STATE]`                                           |
-| `IThrusters`         | `THRUSTERS`                                                                       | `RcsThrusters`                                            | singleton | `Helm`, `[SHIP_STATE]`                                                 |
-| `IHelm`              | `HELM`                                                                            | `HelmControl`                                             | singleton | `Helm`, `[THRUSTERS, MAIN_DRIVE, NAV_CHARTS]`                          |
-| `IFtlDrive`          | `FTL_DRIVE`                                                                       | `JumpDrive`                                               | singleton | `FtlDrive`, `[TICK_LOOP, SHIP_STATE, NAV_CHARTS, POWER_ROUTER]`        |
-| `IWeaponMount`       | `WEAPON_MOUNT`                                                                    | `RailgunMount`                                            | singleton | `Weapons`, `[SHIP_STATE, RNG]`                                         |
-| `ITelemetryFeed`     | `TELEMETRY`, described `'TelemetryFeed'`                                          | `SnapshotFeed`                                            | singleton | `Telemetry`, `[TICK_LOOP, SHIP_STATE, DECK_PLAN]`                      |
-| `ITelemetryClient`   | `TELEMETRY_CLIENT`, described `'TelemetryClient'`                                 | `EventSourceTelemetry`                                    | singleton | the console's `TelemetryClient`, no deps                               |
-| `ISimDriver`         | `SIM_DRIVER`                                                                      | `WallClockDriver`                                         | singleton | `bridge-api`'s `SimDriver`, `[TICK_LOOP, SIM_OPTIONS, DRIVER_OPTIONS]` |
-| `SimOptions`         | `SIM_OPTIONS`                                                                     | the `forRoot()` value                                     | none      | `Simulation`                                                           |
-| `DriverOptions`      | `DRIVER_OPTIONS`                                                                  | the `forRoot()` value                                     | none      | `bridge-api`'s `SimDriver`                                             |
-| `LifeSupportOptions` | `LIFE_SUPPORT_OPTIONS`                                                            | the `forRootAsync()` value                                | none      | `LifeSupport`                                                          |
+| Interface            | Token                                                                             | Class                                                           | Lifetime  | Bound in, with deps                                                              |
+| -------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------- | --------- | -------------------------------------------------------------------------------- |
+| `ISimClock`          | `SIM_CLOCK`, described `'SimClock'`                                               | `FixedStepClock`                                                | singleton | `Simulation`, `[SIM_OPTIONS]`                                                    |
+| `IRandomSource`      | `RNG`, described `'RandomSource'`                                                 | `SeededRandom`                                                  | singleton | `Simulation`, `[SIM_OPTIONS]`                                                    |
+| `IShipState`         | `SHIP_STATE`, described `'ShipState'`                                             | `ShipStateStore`                                                | singleton | `Simulation`, `[DECK_PLAN]`                                                      |
+| `ITickLoop`          | `TICK_LOOP`, described `'TickLoop'`                                               | `FixedStepLoop`                                                 | singleton | `MeridianSystems`, `[SIM_CLOCK, SHIP_STATE, RNG, all(SHIP_SYSTEMS)]`             |
+| `IShipSystem`        | `SHIP_SYSTEMS`, a `MultiToken<IShipSystem>`                                       | one physics class per system                                    | singleton | each system module                                                               |
+| `DeckPlan`           | `DECK_PLAN`                                                                       | the deck file                                                   | value     | `Simulation`                                                                     |
+| `CompartmentId`      | `COMPARTMENT`, described `'Compartment'`                                          | `compartmentOfRequest`, a factory over `REQUEST`                | scoped    | `Simulation`, `[REQUEST]`, `eager: false`                                        |
+| `ICoolantLoop`       | `COOLANT_LOOP`, described `'CoolantLoop'`                                         | `RadiatorLoop`                                                  | singleton | `Engineering`, no deps; not exported                                             |
+| `ICommandHandler`    | `COMMAND_HANDLERS`, a `MultiToken<ICommandHandler>` described `'CommandHandlers'` | one handler class per system; `EngineeringCommands` in G1       | singleton | each system module; `Engineering`, `[REACTOR, SHIELD_GRID]`                      |
+| `ICommandDesk`       | `COMMAND_DESK`, described `'CommandDesk'`                                         | `CommandDesk`                                                   | singleton | `MeridianSystems`, `[all(COMMAND_HANDLERS)]`                                     |
+| `IAtmosphereSensor`  | `ATMOSPHERE_SENSOR`, described `'AtmosphereSensor'`                               | `GasAnalyzer`                                                   | transient | `LifeSupport`, `[COMPARTMENT, SHIP_STATE, RNG, LIFE_SUPPORT_OPTIONS, DECK_PLAN]` |
+| `IAtmosphereControl` | `ATMOSPHERE_CONTROL`, described `'AtmosphereControl'`                             | `EnvironmentalController`                                       | singleton | `LifeSupport`, `[SHIP_STATE]`                                                    |
+| `IPowerConsumer`     | `POWER_CONSUMERS`, a `MultiToken<IPowerConsumer>` described `'PowerConsumers'`    | one class per system that draws power; `LifeSupportPower` in G2 | singleton | each system module; `LifeSupport`, `[LIFE_SUPPORT_OPTIONS, DECK_PLAN]`           |
+| `IBlastDoors`        | `BLAST_DOORS`                                                                     | `BlastDoorControl`                                              | singleton | `Safety`, `[SHIP_STATE]`; wrapped by `PressureInterlock`                         |
+| `IFireSuppression`   | `FIRE_SUPPRESSION`                                                                | `InertGasSuppression`                                           | singleton | `Safety`, `[SHIP_STATE]`                                                         |
+| `IAlarmSink`         | `ALARM_SINKS`, a `MultiToken<IAlarmSink>`                                         | `TelemetryAlarmSink`, `AuditAlarmSink`                          | singleton | `Safety`                                                                         |
+| `IMasterAlarm`       | `MASTER_ALARM`                                                                    | `MasterAlarm`                                                   | singleton | `Safety`, `[TICK_LOOP, all(ALARM_SINKS)]`                                        |
+| `ICommsArray`        | `COMMS_ARRAY`                                                                     | `PhasedArray`                                                   | singleton | `Comms`, `[SHIP_STATE, optional(SUBSPACE_LINK)]`                                 |
+| `IMainDrive`         | `MAIN_DRIVE`                                                                      | `PlasmaDrive`                                                   | singleton | `Propulsion`, `[SHIP_STATE]`                                                     |
+| `IThrusters`         | `THRUSTERS`                                                                       | `RcsThrusters`                                                  | singleton | `Helm`, `[SHIP_STATE]`                                                           |
+| `IHelm`              | `HELM`                                                                            | `HelmControl`                                                   | singleton | `Helm`, `[THRUSTERS, MAIN_DRIVE, NAV_CHARTS]`                                    |
+| `IFtlDrive`          | `FTL_DRIVE`                                                                       | `JumpDrive`                                                     | singleton | `FtlDrive`, `[TICK_LOOP, SHIP_STATE, NAV_CHARTS, POWER_ROUTER]`                  |
+| `IWeaponMount`       | `WEAPON_MOUNT`                                                                    | `RailgunMount`                                                  | singleton | `Weapons`, `[SHIP_STATE, RNG]`                                                   |
+| `ITelemetryFeed`     | `TELEMETRY`, described `'TelemetryFeed'`                                          | `SnapshotFeed`                                                  | singleton | `Telemetry`, `[TICK_LOOP, SHIP_STATE, DECK_PLAN]`                                |
+| `ITelemetryClient`   | `TELEMETRY_CLIENT`, described `'TelemetryClient'`                                 | `EventSourceTelemetry`                                          | singleton | the console's `TelemetryClient`, no deps                                         |
+| `ISimDriver`         | `SIM_DRIVER`                                                                      | `WallClockDriver`                                               | singleton | `bridge-api`'s `SimDriver`, `[TICK_LOOP, SIM_OPTIONS, DRIVER_OPTIONS]`           |
+| `SimOptions`         | `SIM_OPTIONS`                                                                     | the `forRoot()` value                                           | none      | `Simulation`                                                                     |
+| `DriverOptions`      | `DRIVER_OPTIONS`                                                                  | the `forRoot()` value                                           | none      | `bridge-api`'s `SimDriver`                                                       |
+| `LifeSupportOptions` | `LIFE_SUPPORT_OPTIONS`                                                            | the `forRootAsync()` value                                      | none      | `LifeSupport`                                                                    |
 
 `ITickLoop` gains `listen(listener: TickListener)`, which returns an idempotent
 unsubscribe, with `type TickListener = (ship: ShipSnapshot) => void`. Beside the table,
@@ -1139,11 +1481,13 @@ the library exports `readShip(ship, deck)`, which returns a `ShipReading` with a
 Changed rows: `IReactorCore` gains "in the simulation, `[SHIP_STATE]`; `output` is the
 electric output in GW, 1.21 GW at full; `throttle(level)` queues the setpoint; its
 disposer is the scram". `IPowerRouter` gains `SHIP_STATE` beside `lazy(SHIELD_GRID)` in
-the simulation, with `loads(ship)` and `divert(load)`. `IShieldGrid` gains
-`[SHIP_STATE, POWER_ROUTER]` in the simulation, with `draw(ship)` and the
-`raise()` and `lower()` commands. `IShipSystem` gains `EngineeringPhysics`, Engineering's contribution, with
-`[REACTOR, COOLANT_LOOP, POWER_ROUTER]`. `COMPUTER` keeps its §7.1 row for the docs
-regions, and the simulation binds none.
+the simulation, and `all(POWER_CONSUMERS)` from G2, with `loads(ship)` and `divert(load)`.
+`IShieldGrid` gains `[SHIP_STATE, POWER_ROUTER]` in the simulation, with `draw(ship)` and
+the `raise()` and `lower()` commands. `IShipSystem` gains `EngineeringPhysics`,
+Engineering's contribution, with `[REACTOR, COOLANT_LOOP, POWER_ROUTER]`, and
+`LifeSupportPhysics`, LifeSupport's, with `[LIFE_SUPPORT_OPTIONS, DECK_PLAN]`.
+`ICommandHandler` gains `LifeSupportCommands`, with `[ATMOSPHERE_CONTROL]`. `COMPUTER`
+keeps its §7.1 row for the docs regions, and the simulation binds none.
 
 ### 10.2 Proposed §7.1 rows, other things
 
@@ -1151,7 +1495,7 @@ regions, and the simulation binds none.
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | The simulation         | `examples/meridian-systems`: the system modules and the physics. `bridge-api` runs it. A tick is `0.5 s` of ship time; the seed of every test is 7.                                                                                                                                                                                                                                                                                             |
 | A ship system          | A module that contributes one `IShipSystem` to `SHIP_SYSTEMS`: `Engineering`, `LifeSupport`, `Safety`, `Comms`, `Propulsion`, `Helm`, `FtlDrive`, `Weapons`.                                                                                                                                                                                                                                                                                    |
-| A compartment          | `bridge`, `habitat`, `reactor-bay`, `airlock`.                                                                                                                                                                                                                                                                                                                                                                                                  |
+| A compartment          | `bridge`, `habitat`, `reactor-bay`, `airlock`; `COMPARTMENT` is the one a request names.                                                                                                                                                                                                                                                                                                                                                        |
 | A door                 | `bridge-habitat`, `habitat-reactor-bay`, `habitat-airlock`, `airlock-outer`.                                                                                                                                                                                                                                                                                                                                                                    |
 | A snapshot             | `ShipSnapshot`, the frozen state of one tick; `SHIP_STATE.snapshot()`.                                                                                                                                                                                                                                                                                                                                                                          |
 | A ship reading         | `ShipReading`, a rounded snapshot with each compartment's pressure; `readShip(ship, deck)`. The routes and the telemetry frames send it.                                                                                                                                                                                                                                                                                                        |
@@ -1159,13 +1503,14 @@ regions, and the simulation binds none.
 | A command              | `ShipCommand`, `{ system, action, ...args }`: `{ system: 'engineering', action: 'throttle', level: 1 }`. `COMMAND_DESK` hands it to its system's handler, which queues a `SetpointChange` on `SHIP_STATE` for the next tick. The desk answers a `QueuedCommand`, `{ tick }`. Changes queued between two ticks apply together at the next tick, and the log keeps one entry per tick, a `LoggedChange`, `{ tick, change }`, holding their merge. |
 | An interlock           | `PressureInterlock`, an interceptor on `BLAST_DOORS.open`.                                                                                                                                                                                                                                                                                                                                                                                      |
 | An alarm               | `HYPOXIA`, `CO2_HIGH`, `PRESSURE_LOW`, `TEMPERATURE`, `FIRE`, `COOLANT_HIGH`, `REACTOR_TRIP`, `LOAD_SHED`, `DECOMPRESSION`, `SENSOR_FAULT`.                                                                                                                                                                                                                                                                                                     |
-| The ship's error codes | `MERIDIAN_INTERLOCK`, `MERIDIAN_POWER_BUDGET`, `MERIDIAN_BAD_COMMAND`, `MERIDIAN_FTL_NOT_SPOOLED`, `MERIDIAN_UNKNOWN_COMPARTMENT`, with `InterlockError`, `PowerBudgetError`, `BadCommandError` and the text pack `shipText`.                                                                                                                                                                                                                   |
-| A rating               | The fixed figures of a part, beside its pure functions in `src/physics/`: `ReactorRating` (`FUSION_REACTOR`) and `CoolantRating` (`LITHIUM_LOOP`).                                                                                                                                                                                                                                                                                              |
-| A record               | One part's state in the snapshot: `ReactorRecord`, `CoolantRecord`, `PowerRecord` with its `LoadRecord`s, and `Setpoints`.                                                                                                                                                                                                                                                                                                                      |
+| The ship's error codes | `MERIDIAN_INTERLOCK`, `MERIDIAN_POWER_BUDGET`, `MERIDIAN_BAD_COMMAND`, `MERIDIAN_FTL_NOT_SPOOLED`, `MERIDIAN_UNKNOWN_COMPARTMENT`, with `InterlockError`, `PowerBudgetError`, `BadCommandError`, `UnknownCompartmentError` and the text pack `shipText`.                                                                                                                                                                                        |
+| A rating               | The fixed figures of a part, beside its pure functions in `src/physics/`: `ReactorRating` (`FUSION_REACTOR`), `CoolantRating` (`LITHIUM_LOOP`), and from G2 the `LifeSupportRatings` (`LIFE_SUPPORT_RATINGS`) of `ELECTRIC_HEATER`, `CO2_SCRUBBER`, `ELECTROLYSER`, `TRANSFER_PUMP` and `SPACE_VENT`.                                                                                                                                           |
+| A record               | One part's state in the snapshot: `ReactorRecord`, `CoolantRecord`, `PowerRecord` with its `LoadRecord`s, `LifeSupportRecord` from G2, and `Setpoints` with `LifeSupportSetpoints`.                                                                                                                                                                                                                                                             |
 | A load                 | `PowerLoad`, `{ id, priority, demand, heatShare }`, a consumer that asks the router for power on a tick.                                                                                                                                                                                                                                                                                                                                        |
-| A system's classes     | `<System>Physics` for its `IShipSystem` and `<System>Commands` for its `ICommandHandler`: `EngineeringPhysics`, `EngineeringCommands`.                                                                                                                                                                                                                                                                                                          |
+| A device               | An entry of a compartment's `equipment`: `heater`, `scrubber`, `oxygen`, `vent`, `pump`. An `AtmosphereReading` is one analyzer sample; `PumpMode` is `off`, `evacuate` or `fill`.                                                                                                                                                                                                                                                              |
+| A system's classes     | `<System>Physics` for its `IShipSystem`, `<System>Commands` for its `ICommandHandler` and `<System>Power` for its `IPowerConsumer`: `EngineeringPhysics`, `EngineeringCommands`, `LifeSupportPhysics`, `LifeSupportCommands`, `LifeSupportPower`.                                                                                                                                                                                               |
 | A station              | A remote of the federation app that shows one system: `cartography`, `command`, `engineering`, `life-support`. Its section is `<Name>Station` from G9 on.                                                                                                                                                                                                                                                                                       |
-| Simulation doubles     | `FailingSensor implements IAtmosphereSensor`, `MemoryAlarmSink implements IAlarmSink`, `SimulatedFtlDrive` (a module), `ShipUnderTest` (a test root).                                                                                                                                                                                                                                                                                           |
+| Simulation doubles     | `FailingSensor implements IAtmosphereSensor` (`bridge-api`'s `test/doubles.ts` in G2), `MemoryAlarmSink implements IAlarmSink`, `SimulatedFtlDrive` (a module), `ShipUnderTest` (a test root).                                                                                                                                                                                                                                                  |
 | Ship notes             | `shipNotes`, a `GraphAnnotator` that labels each provider of the module that binds `TICK_LOOP`, and of every module it imports transitively, `system: <module name>`; the `phase: <n>` label joins in G1.                                                                                                                                                                                                                                       |
 
 The weapons module is `Weapons`. `Tactical` keeps navigation and the survey drone. None of
@@ -1211,6 +1556,22 @@ The 0.4 minimum is the demo plan with section 11's amendments. Each growth incre
 its own short plan in `specs/plans/` when it starts, cut from the step of section 7.4,
 with one PR per increment and the demo plan's review gates.
 
+G2 names what it leaves to later increments:
+
+- G3: door mixing (section 5.5), the alarms, `SENSOR_FAULT` with the failing-sensor
+  alarm suite, and whether `DECOMPRESSION` fires for an unoccupied airlock under a vent
+  (−4.18 kPa/s; the pump starts at −1.69 kPa/s).
+- G3: a synchronous tick cannot read the request-scoped sensor, since `ATMOSPHERE_SENSOR`
+  takes the scoped `COMPARTMENT` and `createScope` is async. G2 keeps the reading in the
+  pure `readAtmosphere`, so G3 can evaluate the alarms on the snapshot. G3's architect
+  decides how a test breaks a sensor the tick reads, such as a singleton
+  `Token<IAtmosphereProbe>` that the tick and `GasAnalyzer` share.
+- G4: the airlock drill scenario (pump down, vent, outer door, refill, interlock) and its
+  golden.
+- After G0b: the console's `lazySection` form of `/systems/:system`.
+- No increment plans a condensation model (section 5.3), the cooling of the gas under a
+  vent (section 5.4), or the heat of any device but the heaters (sections 5.2 and 5.6).
+
 ## 14. Owner question
 
 Q1. Where do the growth track's e2e cases run in CI?
@@ -1242,44 +1603,64 @@ library's `e2e-growth` target holds the goldens, and `demo-growth` runs it too.
 
 ## 15. Owner decision log
 
-| Date       | Decision                                                                                                                                                                                                                                                                                                                                                                                                             | Source                  |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| 2026-10-21 | The ship is modelled on Stationeers, with the eight systems of decision 1                                                                                                                                                                                                                                                                                                                                            | owner, decision 1       |
-| 2026-10-21 | A deterministic, seeded, fixed-step simulation on the backend; the console streams telemetry and commands                                                                                                                                                                                                                                                                                                            | owner, decision 2       |
-| 2026-10-21 | The full domain designed now; a 0.4 minimum gates 0.4.0, and the rich systems form a growth track                                                                                                                                                                                                                                                                                                                    | owner, decision 3       |
-| 2026-10-21 | Q1: growth increments merge green; their unit tests and graph check gate in `main` and the release verify step; their e2e runs in the non-required `demo-growth` job until a green RC cycle promotes it                                                                                                                                                                                                              | owner                   |
-| 2026-10-21 | `TICK_LOOP` is bound in the global aggregate `MeridianSystems`, since `all()` reads only what its module can see; `Simulation` stays global with the other kernel tokens                                                                                                                                                                                                                                             | tech lead, G0 ruling 1  |
-| 2026-10-21 | G0 is the kernel with `GET /sim` and `POST /sim/advance`; G0b takes telemetry, `/graph`, `shipNotes`, the console's strip and `/diagnostics`, the bundle check and the runtime smoke case; `BRIDGE_LINK.command` moves to G1                                                                                                                                                                                         | tech lead, G0 ruling 2  |
-| 2026-10-21 | `meridianSystems(options: SimOptions)` takes `{ seed, dt }`; G5 widens it with `relayUrl`                                                                                                                                                                                                                                                                                                                            | tech lead, G0 ruling 3  |
-| 2026-10-21 | The command queue and `attach()`/`detach()` wait for G1 and G7, and `COMPARTMENT` for G2; `DECK_PLAN`, the deck file and the initial air are in G0                                                                                                                                                                                                                                                                   | tech lead, G0 ruling 4  |
-| 2026-10-21 | The driver's mode belongs to `bridge-api`: `SimDriver.forRoot({ mode })`; the static graphs run manual, and `setupFromEnv` defaults to live                                                                                                                                                                                                                                                                          | tech lead, G0 ruling 5  |
-| 2026-10-21 | `bridge-api`'s graph check is a case in `test/check.test.ts`; the `graph` target stays the writer of `graph.json`                                                                                                                                                                                                                                                                                                    | tech lead, G0 ruling 6  |
-| 2026-10-21 | The golden runs in the library's `e2e-growth` target, pinned to `.nvmrc`'s Node; a `test` case asserts rounded idle values that hold on any Node                                                                                                                                                                                                                                                                     | tech lead, G0 ruling 7  |
-| 2026-10-21 | Tick listeners: `ITickLoop.listen` returns an idempotent unsubscribe; listeners run after the commit in subscription order through `callAll`, which throws one error or an `AggregateError`; a listener must not call `advance()`                                                                                                                                                                                    | tech lead, G0b ruling 1 |
-| 2026-10-21 | Telemetry: `TELEMETRY` binds `SnapshotFeed` in `Telemetry`, which listens in `onInit`, sends the current reading at subscribe, closes every sink with `ship offline` on dispose, and joins the aggregate's imports and exports                                                                                                                                                                                       | tech lead, G0b ruling 2 |
-| 2026-10-21 | `GET /telemetry` frames `snapshot` and `offline` events, keeps only the latest unsent frame, and sends no heartbeat; `stopOnSigterm` closes each Node entry's server and ends the streams through a shutdown signal, and the ship disposes after the server closes                                                                                                                                                   | tech lead, G0b ruling 3 |
-| 2026-10-21 | `GET /graph` answers the annotated graph in development and 404 otherwise; `shipNotes` labels each ship provider with its system, and the phase label waits for G1                                                                                                                                                                                                                                                   | tech lead, G0b ruling 4 |
-| 2026-10-21 | The console reads `snapshot()`, `telemetry()` and `graph()` through `BRIDGE_LINK`, follows the stream through `TELEMETRY_CLIENT` in the ship layout's status strip, and draws `/diagnostics`                                                                                                                                                                                                                         | tech lead, G0b ruling 5 |
-| 2026-10-21 | The console's growth e2e runs in its own `e2e-growth` target on ports 4220 and 4221, and the gating config ignores `**/growth/**`                                                                                                                                                                                                                                                                                    | tech lead, G0b ruling 6 |
-| 2026-10-21 | `bridge-api`'s `e2e-growth` runs the growth cases on workerd, Deno and Bun after its Vitest suite; `demo-growth` installs the pinned Deno and Bun; no edge leg                                                                                                                                                                                                                                                       | tech lead, G0b ruling 7 |
-| 2026-10-21 | The bundle check greps the console's and the stations' builds for the descriptions of six simulation tokens, and it gates                                                                                                                                                                                                                                                                                            | tech lead, G0b ruling 8 |
-| 2026-10-22 | `readShip(ship, deck)` returns a `ShipReading` with each compartment's pressure; `SnapshotFeed` takes `DECK_PLAN`, and `/sim` and the telemetry frames carry the reading; `ShipSnapshot` and the golden stay unchanged                                                                                                                                                                                               | tech lead, G0b ruling 9 |
-| 2026-10-21 | `Engineering` binds `REACTOR` (`FusionReactor`, `[SHIP_STATE]`), the private `COOLANT_LOOP` (`RadiatorLoop`, no deps), `POWER_ROUTER` (`PlasmaRouter`, `[SHIP_STATE, lazy(SHIELD_GRID)]`) and `SHIELD_GRID` (`DeflectorGrid`, `[SHIP_STATE, POWER_ROUTER]`) and contributes `EngineeringPhysics` and `EngineeringCommands`; it exports every token but `COOLANT_LOOP`, and `COMPUTER` stays in the docs regions only | tech lead, G1 ruling 1  |
-| 2026-10-21 | Commands reach their system through the multi token `COMMAND_HANDLERS`; `CommandDesk` (`[all(COMMAND_HANDLERS)]`) is bound to `COMMAND_DESK` in `MeridianSystems` beside `TICK_LOOP`, so `bridge-api` names no system                                                                                                                                                                                                | tech lead, G1 ruling 2  |
-| 2026-10-21 | `SHIP_STATE` queues setpoint changes and applies them in queue order at step 1 of the next tick; `GET /commands` answers the log of the newest 1,000, which never holds a refused command                                                                                                                                                                                                                            | tech lead, G1 ruling 3  |
-| 2026-10-21 | `PlasmaRouter.loads(ship)` reads the grid through `lazy(SHIELD_GRID)` on every tick; `DeflectorGrid.raise()` calls `PlasmaRouter.divert(load)`, which runs the tick's `allocatePower` at the current electric output and throws `PowerBudgetError` when the result sheds the load                                                                                                                                    | tech lead, G1 ruling 4  |
-| 2026-10-21 | G1 adds no alarm set, and `Safety` raises the alarms in G3 from the engineering records (`reactor.tripped`, `coolant.temperature`, `power.shed`); `EngineeringPhysics` writes the throttle setpoint to 0 on a trip                                                                                                                                                                                                   | tech lead, G1 ruling 5  |
-| 2026-10-21 | The coolant loop starts at 500 K, above lithium's melting point, behind radiator louvres with `λ = clamp((T_c − 500 K) / 50 K, 0, 1)`; the idle loop holds 500 K exactly                                                                                                                                                                                                                                             | tech lead, G1 ruling 6  |
-| 2026-10-21 | The shield grid's heat share is 0.25; G1 applies no heat to a compartment, and G2 sets the corrected `Q_bay` law of section 5.2                                                                                                                                                                                                                                                                                      | tech lead, G1 ruling 7  |
-| 2026-10-21 | G1 raises `MERIDIAN_POWER_BUDGET` and `MERIDIAN_BAD_COMMAND` and exports `shipText` at `./text`; `POST /commands` answers a `BadCommandError` with 400 and any other `NexusError` with 409, each with `explain(error, { text: [shipText] })`, and `errors({ text })` registration stays in G3                                                                                                                        | tech lead, G1 ruling 8  |
-| 2026-10-21 | The console gains `BRIDGE_LINK.command(cmd)` and the static route `/systems/engineering` with its forms and the last answer, no gauges and no `lazySection`; its growth case runs under `playwright.growth.config.mts`                                                                                                                                                                                               | tech lead, G1 ruling 9  |
-| 2026-10-21 | `FusionReactor[Symbol.dispose]()` is the scram; the shutdown test asserts `SimDriver` before `ReactorCore` in `trace()`'s `dispose:instance` events, and G0b and G3 add their tokens                                                                                                                                                                                                                                 | tech lead, G1 ruling 10 |
-| 2026-10-21 | `C_c` is 8.34 × 10⁸ J/K and the time constant 102 s at 1,186 K (56 s at the trip); a full-throttle heat-up from 500 K to 1,100 K takes 340 s, and the trip test feeds 1,450 K to the pure function, since the alarm and the trip are out of reach in G1                                                                                                                                                              | tech lead, G1 ruling 11 |
-| 2026-10-21 | Records and ratings live beside their pure functions in `src/physics/`; `src/systems/engineering/contracts.ts` holds Engineering's interfaces and tokens, and `src/simulation/commands.ts` holds the setpoint types and the command contracts                                                                                                                                                                        | tech lead, G1 ruling 12 |
-| 2026-10-22 | `SHIP_STATE` holds one pending `SetpointChange`; `queue(change)` merges each change over it field by field, the later value winning, into a new frozen object, so changes queued between two ticks apply together at the next tick, and the log keeps one entry per tick, whose newest 1,000 `GET /commands` answers                                                                                                 | tech lead, G1 ruling 13 |
-| 2026-10-22 | Each `IShipSystem` class declares `static readonly phase`, which its instance field reads; `ShipSystemClass` types it, and `shipNotes` adds `phase: <n>` only to a `SHIP_SYSTEMS` class provider whose static passes the 1 to 6 guard                                                                                                                                                                                | tech lead, G1 ruling 14 |
+| Date       | Decision                                                                                                                                                                                                                                                                                                                                                                                                             | Source                   |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| 2026-10-21 | The ship is modelled on Stationeers, with the eight systems of decision 1                                                                                                                                                                                                                                                                                                                                            | owner, decision 1        |
+| 2026-10-21 | A deterministic, seeded, fixed-step simulation on the backend; the console streams telemetry and commands                                                                                                                                                                                                                                                                                                            | owner, decision 2        |
+| 2026-10-21 | The full domain designed now; a 0.4 minimum gates 0.4.0, and the rich systems form a growth track                                                                                                                                                                                                                                                                                                                    | owner, decision 3        |
+| 2026-10-21 | Q1: growth increments merge green; their unit tests and graph check gate in `main` and the release verify step; their e2e runs in the non-required `demo-growth` job until a green RC cycle promotes it                                                                                                                                                                                                              | owner                    |
+| 2026-10-21 | `TICK_LOOP` is bound in the global aggregate `MeridianSystems`, since `all()` reads only what its module can see; `Simulation` stays global with the other kernel tokens                                                                                                                                                                                                                                             | tech lead, G0 ruling 1   |
+| 2026-10-21 | G0 is the kernel with `GET /sim` and `POST /sim/advance`; G0b takes telemetry, `/graph`, `shipNotes`, the console's strip and `/diagnostics`, the bundle check and the runtime smoke case; `BRIDGE_LINK.command` moves to G1                                                                                                                                                                                         | tech lead, G0 ruling 2   |
+| 2026-10-21 | `meridianSystems(options: SimOptions)` takes `{ seed, dt }`; G5 widens it with `relayUrl`                                                                                                                                                                                                                                                                                                                            | tech lead, G0 ruling 3   |
+| 2026-10-21 | The command queue and `attach()`/`detach()` wait for G1 and G7, and `COMPARTMENT` for G2; `DECK_PLAN`, the deck file and the initial air are in G0                                                                                                                                                                                                                                                                   | tech lead, G0 ruling 4   |
+| 2026-10-21 | The driver's mode belongs to `bridge-api`: `SimDriver.forRoot({ mode })`; the static graphs run manual, and `setupFromEnv` defaults to live                                                                                                                                                                                                                                                                          | tech lead, G0 ruling 5   |
+| 2026-10-21 | `bridge-api`'s graph check is a case in `test/check.test.ts`; the `graph` target stays the writer of `graph.json`                                                                                                                                                                                                                                                                                                    | tech lead, G0 ruling 6   |
+| 2026-10-21 | The golden runs in the library's `e2e-growth` target, pinned to `.nvmrc`'s Node; a `test` case asserts rounded idle values that hold on any Node                                                                                                                                                                                                                                                                     | tech lead, G0 ruling 7   |
+| 2026-10-21 | Tick listeners: `ITickLoop.listen` returns an idempotent unsubscribe; listeners run after the commit in subscription order through `callAll`, which throws one error or an `AggregateError`; a listener must not call `advance()`                                                                                                                                                                                    | tech lead, G0b ruling 1  |
+| 2026-10-21 | Telemetry: `TELEMETRY` binds `SnapshotFeed` in `Telemetry`, which listens in `onInit`, sends the current reading at subscribe, closes every sink with `ship offline` on dispose, and joins the aggregate's imports and exports                                                                                                                                                                                       | tech lead, G0b ruling 2  |
+| 2026-10-21 | `GET /telemetry` frames `snapshot` and `offline` events, keeps only the latest unsent frame, and sends no heartbeat; `stopOnSigterm` closes each Node entry's server and ends the streams through a shutdown signal, and the ship disposes after the server closes                                                                                                                                                   | tech lead, G0b ruling 3  |
+| 2026-10-21 | `GET /graph` answers the annotated graph in development and 404 otherwise; `shipNotes` labels each ship provider with its system, and the phase label waits for G1                                                                                                                                                                                                                                                   | tech lead, G0b ruling 4  |
+| 2026-10-21 | The console reads `snapshot()`, `telemetry()` and `graph()` through `BRIDGE_LINK`, follows the stream through `TELEMETRY_CLIENT` in the ship layout's status strip, and draws `/diagnostics`                                                                                                                                                                                                                         | tech lead, G0b ruling 5  |
+| 2026-10-21 | The console's growth e2e runs in its own `e2e-growth` target on ports 4220 and 4221, and the gating config ignores `**/growth/**`                                                                                                                                                                                                                                                                                    | tech lead, G0b ruling 6  |
+| 2026-10-21 | `bridge-api`'s `e2e-growth` runs the growth cases on workerd, Deno and Bun after its Vitest suite; `demo-growth` installs the pinned Deno and Bun; no edge leg                                                                                                                                                                                                                                                       | tech lead, G0b ruling 7  |
+| 2026-10-21 | The bundle check greps the console's and the stations' builds for the descriptions of six simulation tokens, and it gates                                                                                                                                                                                                                                                                                            | tech lead, G0b ruling 8  |
+| 2026-10-22 | `readShip(ship, deck)` returns a `ShipReading` with each compartment's pressure; `SnapshotFeed` takes `DECK_PLAN`, and `/sim` and the telemetry frames carry the reading; `ShipSnapshot` and the golden stay unchanged                                                                                                                                                                                               | tech lead, G0b ruling 9  |
+| 2026-10-21 | `Engineering` binds `REACTOR` (`FusionReactor`, `[SHIP_STATE]`), the private `COOLANT_LOOP` (`RadiatorLoop`, no deps), `POWER_ROUTER` (`PlasmaRouter`, `[SHIP_STATE, lazy(SHIELD_GRID)]`) and `SHIELD_GRID` (`DeflectorGrid`, `[SHIP_STATE, POWER_ROUTER]`) and contributes `EngineeringPhysics` and `EngineeringCommands`; it exports every token but `COOLANT_LOOP`, and `COMPUTER` stays in the docs regions only | tech lead, G1 ruling 1   |
+| 2026-10-21 | Commands reach their system through the multi token `COMMAND_HANDLERS`; `CommandDesk` (`[all(COMMAND_HANDLERS)]`) is bound to `COMMAND_DESK` in `MeridianSystems` beside `TICK_LOOP`, so `bridge-api` names no system                                                                                                                                                                                                | tech lead, G1 ruling 2   |
+| 2026-10-21 | `SHIP_STATE` queues setpoint changes and applies them in queue order at step 1 of the next tick; `GET /commands` answers the log of the newest 1,000, which never holds a refused command                                                                                                                                                                                                                            | tech lead, G1 ruling 3   |
+| 2026-10-21 | `PlasmaRouter.loads(ship)` reads the grid through `lazy(SHIELD_GRID)` on every tick; `DeflectorGrid.raise()` calls `PlasmaRouter.divert(load)`, which runs the tick's `allocatePower` at the current electric output and throws `PowerBudgetError` when the result sheds the load                                                                                                                                    | tech lead, G1 ruling 4   |
+| 2026-10-21 | G1 adds no alarm set, and `Safety` raises the alarms in G3 from the engineering records (`reactor.tripped`, `coolant.temperature`, `power.shed`); `EngineeringPhysics` writes the throttle setpoint to 0 on a trip                                                                                                                                                                                                   | tech lead, G1 ruling 5   |
+| 2026-10-21 | The coolant loop starts at 500 K, above lithium's melting point, behind radiator louvres with `λ = clamp((T_c − 500 K) / 50 K, 0, 1)`; the idle loop holds 500 K exactly                                                                                                                                                                                                                                             | tech lead, G1 ruling 6   |
+| 2026-10-21 | The shield grid's heat share is 0.25; G1 applies no heat to a compartment, and G2 sets the corrected `Q_bay` law of section 5.2                                                                                                                                                                                                                                                                                      | tech lead, G1 ruling 7   |
+| 2026-10-21 | G1 raises `MERIDIAN_POWER_BUDGET` and `MERIDIAN_BAD_COMMAND` and exports `shipText` at `./text`; `POST /commands` answers a `BadCommandError` with 400 and any other `NexusError` with 409, each with `explain(error, { text: [shipText] })`, and `errors({ text })` registration stays in G3                                                                                                                        | tech lead, G1 ruling 8   |
+| 2026-10-21 | The console gains `BRIDGE_LINK.command(cmd)` and the static route `/systems/engineering` with its forms and the last answer, no gauges and no `lazySection`; its growth case runs under `playwright.e2e-growth.config.mts`                                                                                                                                                                                           | tech lead, G1 ruling 9   |
+| 2026-10-21 | `FusionReactor[Symbol.dispose]()` is the scram; the shutdown test asserts `SimDriver` before `ReactorCore` in `trace()`'s `dispose:instance` events, and G0b and G3 add their tokens                                                                                                                                                                                                                                 | tech lead, G1 ruling 10  |
+| 2026-10-21 | `C_c` is 8.34 × 10⁸ J/K and the time constant 102 s at 1,186 K (56 s at the trip); a full-throttle heat-up from 500 K to 1,100 K takes 340 s, and the trip test feeds 1,450 K to the pure function, since the alarm and the trip are out of reach in G1                                                                                                                                                              | tech lead, G1 ruling 11  |
+| 2026-10-21 | Records and ratings live beside their pure functions in `src/physics/`; `src/systems/engineering/contracts.ts` holds Engineering's interfaces and tokens, and `src/simulation/commands.ts` holds the setpoint types and the command contracts                                                                                                                                                                        | tech lead, G1 ruling 12  |
+| 2026-10-22 | `SHIP_STATE` holds one pending `SetpointChange`; `queue(change)` merges each change over it field by field, the later value winning, into a new frozen object, so changes queued between two ticks apply together at the next tick, and the log keeps one entry per tick, whose newest 1,000 `GET /commands` answers                                                                                                 | tech lead, G1 ruling 13  |
+| 2026-10-22 | Each `IShipSystem` class declares `static readonly phase`, which its instance field reads; `ShipSystemClass` types it, and `shipNotes` adds `phase: <n>` only to a `SHIP_SYSTEMS` class provider whose static passes the 1 to 6 guard                                                                                                                                                                                | tech lead, G1 ruling 14  |
+| 2026-10-22 | Life support starts offline: `setpoints.lifeSupport.online` is false, the action `online` takes no argument and has no reverse, and `LifeSupportPhysics.step` returns the ship unchanged while offline; device commands queue and act from the first online tick                                                                                                                                                     | tech lead, G2 ruling 1   |
+| 2026-10-22 | Systems contribute their loads through `POWER_CONSUMERS` (`IPowerConsumer.draw(ship)`), which `PlasmaRouter` reads with `all()`; `LifeSupportPower` draws `life-support` at priority 1 from the pure `lifeSupportDemand`, which phase 4 reads too; a shed tick runs no heater, scrubber, generator or pump, and the tick-0 record lists the 0 W load                                                                 | tech lead, G2 ruling 2   |
+| 2026-10-22 | The deck plan lists each compartment's `equipment`, the airlock's `pumpReservoir` and the bay's `coolantConductance`; `Setpoints.lifeSupport` holds one key per listed device, `SetpointChange` is `DeepPartial<Setpoints>` merged by one recursive `mergeFrozen`, and `IAtmosphereControl` and `LifeSupportCommands` refuse a device a compartment lacks with `BadCommandError`; vents and pumps stay in G2         | tech lead, G2 ruling 3   |
+| 2026-10-22 | The ratings live in `LIFE_SUPPORT_RATINGS`: the electrolyser runs at 0.01 mol/s and 600 kJ/mol (6 kW), life support asks up to 68.57 kW (§5.7 "up to 69 kW"), the air holds 2.5 % of the habitat's heat capacity, the loop gain is 1.22 × 10⁻³, and the scrubber dries to 40 % by Magnus; only heater power heats a room                                                                                             | tech lead, G2 ruling 4   |
+| 2026-10-22 | The bay leak is `Q_bay = UA · (T_c − T)` with `coolantConductance: 2` W/K in the deck, applied while online; the loop's own balance leaves it out                                                                                                                                                                                                                                                                    | tech lead, G2 ruling 5   |
+| 2026-10-22 | A vent keeps `exp(−dt · A / (κ · V))` of every gas and its temperature; `transfer` moves a share of each gas and conserves moles and `Σ C · T`; the pump moves `min(1, rate · dt / V)` while the start-of-tick rise stays under 101,300 Pa and draws 400 W to 34,166.67 W, stalled or not; vents run after each room's own step, then pumps                                                                          | tech lead, G2 ruling 6   |
+| 2026-10-22 | The library augments `NexusRequest` with `compartment?: string`; `COMPARTMENT` is a scoped factory over `REQUEST` with `eager: false` that throws `UnknownCompartmentError`; `bridge-api`'s mappers read the path through `compartmentOf`, `answerAtmosphere` answers 404 with the refusal, and `refusalOf` moves to `src/bridge/refusal.ts`                                                                         | tech lead, G2 ruling 7   |
+| 2026-10-22 | Core rethrows a `NexusError` from a synchronous construct unwrapped, so `scope.get(ATMOSPHERE_SENSOR)` throws `UnknownCompartmentError` itself and `answerAtmosphere` matches it by `instanceof`; this corrects ruling 7, which expected a `ProviderError` with the error on `cause`                                                                                                                                 | controller, G2 ruling 7a |
+| 2026-10-22 | `GasAnalyzer` (transient, `[COMPARTMENT, SHIP_STATE, RNG, LIFE_SUPPORT_OPTIONS, DECK_PLAN]`) samples at construction through the pure `readAtmosphere`, with noise from its fork and each value floored at 0; `readCalibration(deck)` is the async factory of the aggregate's one `LifeSupport.forRootAsync` instance                                                                                                | tech lead, G2 ruling 8   |
+| 2026-10-22 | `ShipSnapshot` gains `lifeSupport.heaters` and `setpoints.lifeSupport`; the idle golden gains those records and the 0 W load with `tick`, `time` and `compartments` byte-identical, and `life-support.seed-7.json` pins ticks 1, 600 and 7,200 at throttle 0.01                                                                                                                                                      | tech lead, G2 ruling 9   |
+| 2026-10-22 | `bridge-api`'s growth case pumps the airlock from tick 601 and reads at tick 720 an airlock from 36,950 to 37,100 Pa, a habitat from 107 to 108 kPa from `/sim`, and the reading's tick 720                                                                                                                                                                                                                          | tech lead, G2 ruling 9a  |
+| 2026-10-22 | `bridge-api` serves `GET /compartments/:id/atmosphere` on three frameworks with its routes, check, profiler and growth cases; the console gains `BRIDGE_LINK.atmosphere(id)` and the static `/systems/life-support` with fixed-precision gauges, the online, thermostat and airlock forms, and one growth case                                                                                                       | tech lead, G2 ruling 10  |
+| 2026-10-22 | A cold reactor sheds life support, and G2 has no battery; every powered scenario queues `engineering throttle 0.01` beside `online`                                                                                                                                                                                                                                                                                  | tech lead, G2 ruling 11  |
+| 2026-10-22 | G1's tests read the shields load by id and expect `'engineering and life-support'`, and the typed `ShipReading` doubles gain the life-support records                                                                                                                                                                                                                                                                | tech lead, G2 ruling 12  |
+| 2026-10-22 | G2 names its deferrals in section 13: door mixing, alarms, `SENSOR_FAULT` and `DECOMPRESSION` for G3, the airlock drill for G4, and no condensation, vent cooling or device heat but the heaters                                                                                                                                                                                                                     | tech lead, G2 ruling 13  |
+| 2026-10-22 | A synchronous tick cannot read the request-scoped sensor; G2 keeps the pure `readAtmosphere` for G3                                                                                                                                                                                                                                                                                                                  | tech lead, G2 ruling 14  |
+| 2026-10-22 | The console's growth suite runs the life-support case in a second Playwright project that depends on the chromium project, since `online` is one-way on the shared manual ship (`playwright.e2e-growth.config.mts`); `telemetry.spec.ts` stays as G0b left it                                                                                                                                                        | tech lead, G2 ruling 15  |
+| 2026-10-22 | The status strip prints the habitat temperature in whole kelvin and the pressure to 0.1 kPa through `fixed()`, and every console gauge shows an SI unit (Pa or kPa for pressures and partial pressures, mol for amounts; no ppm, percent or imperial unit); this overrides the tech lead's call to leave the strip for #182, and closes #182                                                                         | owner                    |
 
 The owner made the rows whose source is "owner". The architect proposed the "tech lead"
 rows and the tech lead decided them, as `specs/plans/2026-10-21-meridian-g0-kernel.md`,
-`specs/plans/2026-10-21-meridian-g0b-telemetry.md` and
-`specs/plans/2026-10-21-meridian-g1-engineering.md` record under their rulings.
+`specs/plans/2026-10-21-meridian-g0b-telemetry.md`,
+`specs/plans/2026-10-21-meridian-g1-engineering.md` and
+`specs/plans/2026-10-21-meridian-g2-lifesupport.md` record under their rulings. The
+controller corrected G2 ruling 7 with 7a on a fact of core's behaviour.
