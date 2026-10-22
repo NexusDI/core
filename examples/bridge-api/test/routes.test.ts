@@ -8,6 +8,7 @@ import {
   DECK_PLAN,
   readShip,
   SHIP_STATE,
+  type ShipReading,
   TELEMETRY,
 } from '@nexusdi/meridian-systems';
 import { nodeScopes, type NodeScopes } from '@nexusdi/node';
@@ -480,16 +481,16 @@ describe.each(['hono', 'express', 'fastify'] as const)(
   },
 );
 
+/** A ship whose plugins read `scopes`, which the bridge runs too, as the Node entries build them. */
+const scopedShip = (scopes: NodeScopes) =>
+  Nexus.create(OfflineMeridian, { plugins: bridgePlugins({ scopes }) });
+
 describe.each(['hono', 'express', 'fastify'] as const)(
   'the door commands on %s',
   (framework) => {
     const call = calls[framework];
     const door = (action: 'open' | 'close', id: string) =>
       json({ system: 'safety', action, door: id });
-
-    /** A ship whose plugins read `scopes`, which the bridge runs too, as the Node entries build them. */
-    const scopedShip = (scopes: NodeScopes) =>
-      Nexus.create(OfflineMeridian, { plugins: bridgePlugins({ scopes }) });
 
     test('POST /commands answers the flight log entry of an opened door', async () => {
       const scopes = nodeScopes();
@@ -559,6 +560,91 @@ describe.each(['hono', 'express', 'fastify'] as const)(
       ).toEqual({
         status: 202,
         body: { tick: 1, flightLog: ['survey-7: closed airlock-outer'] },
+      });
+    });
+  },
+);
+
+describe.each(['hono', 'express', 'fastify'] as const)(
+  'the safety commands on %s',
+  (framework) => {
+    const call = calls[framework];
+    const SAFETY =
+      'open and close with a door of bridge-habitat, habitat-reactor-bay, habitat-airlock or airlock-outer, and flood and drill with a compartment of bridge, habitat or reactor-bay';
+    const refused = (action: string) => ({
+      status: 400,
+      body: {
+        code: 'MERIDIAN_BAD_COMMAND',
+        message: `safety ${action} got an argument it cannot use. It takes ${SAFETY}.`,
+        fix: 'send the arguments in the ranges above.',
+      },
+    });
+
+    test('POST /commands answers 400 naming the doors for a door the deck lacks', async ({
+      nexus,
+    }) => {
+      const galley = json({ system: 'safety', action: 'open', door: 'galley' });
+      expect(await call(nexus, 'POST', '/commands', galley)).toEqual(
+        refused('open'),
+      );
+      expect(nexus.get(SHIP_STATE).log()).toEqual([]);
+    });
+
+    test.for(['flood', 'drill'])(
+      'POST /commands answers 400 for %s of the airlock, which holds no charge',
+      async (action, { nexus }) => {
+        const airlock = json({
+          system: 'safety',
+          action,
+          compartment: 'airlock',
+        });
+        expect(await call(nexus, 'POST', '/commands', airlock)).toEqual(
+          refused(action),
+        );
+        expect(nexus.get(SHIP_STATE).log()).toEqual([]);
+      },
+    );
+
+    test('POST /commands queues a drill at tick 0 and records no flight log entry', async () => {
+      const scopes = nodeScopes();
+      await using ship = await scopedShip(scopes);
+      const drill = json({
+        system: 'safety',
+        action: 'drill',
+        compartment: 'habitat',
+      });
+      expect(await call(ship, 'POST', '/commands', drill, { scopes })).toEqual({
+        status: 202,
+        body: { tick: 1 },
+      });
+    });
+
+    test('GET /sim at tick 0 shows no alarm and every door and drill false', async ({
+      nexus,
+    }) => {
+      const { status, body } = await call(nexus, 'GET', '/sim');
+      expect(status).toBe(200);
+      const ship = body as ShipReading;
+      expect(ship.safety.alarms).toEqual([]);
+      expect(ship.setpoints.safety.doors).toEqual({
+        'bridge-habitat': false,
+        'habitat-reactor-bay': false,
+        'habitat-airlock': false,
+        'airlock-outer': false,
+      });
+      expect(ship.setpoints.safety.drills).toEqual({
+        bridge: false,
+        habitat: false,
+        'reactor-bay': false,
+      });
+    });
+
+    test('GET /safety answers an empty 404, as safety rides /commands and /sim', async ({
+      nexus,
+    }) => {
+      expect(await call(nexus, 'GET', '/safety')).toEqual({
+        status: 404,
+        body: undefined,
       });
     });
   },
