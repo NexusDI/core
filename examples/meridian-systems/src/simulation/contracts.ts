@@ -1,5 +1,6 @@
 import { MultiToken, Token } from '@nexusdi/core';
 import type { LifeSupportRecord, RoomPlan } from '../physics/atmosphere';
+import type { DoorPlan } from '../physics/doors';
 import type { Gas } from '../physics/gas';
 import type { PowerRecord } from '../physics/power';
 import type { CoolantRecord, ReactorRecord } from '../physics/thermal';
@@ -73,13 +74,7 @@ export interface ShipReading extends Omit<ShipSnapshot, 'compartments'> {
  */
 export type CompartmentPlan = RoomPlan;
 
-export interface DoorPlan {
-  readonly id: string;
-  /** Two compartment ids, or one and `space`. */
-  readonly between: readonly string[];
-  /** Square metres. */
-  readonly area: number;
-}
+export type { DoorPlan } from '../physics/doors';
 
 /** The shape of `deck/meridian.deck.json`. */
 export interface DeckPlan {
