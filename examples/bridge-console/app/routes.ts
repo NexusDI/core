@@ -16,6 +16,7 @@ export default [
       route('systems/engineering', 'routes/systems/engineering.tsx'),
       route('systems/life-support', 'routes/systems/life-support.tsx'),
       route('systems/safety', 'routes/systems/safety.tsx'),
+      route('systems/comms', 'routes/systems/comms.tsx'),
       route('airlock', 'routes/airlock.tsx'),
     ]),
   ]),
