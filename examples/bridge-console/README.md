@@ -21,7 +21,11 @@ The pages about the running ship sit in the ship layout,
 `app/routes/ship-layout.tsx`, inside the root layout. Its loader reads the
 ship once through `BRIDGE_LINK.snapshot()` (`GET /sim` on the backend), or
 null when the backend fails, and `shouldRevalidate` returns false, so a
-navigation never reloads it.
+navigation never reloads it. The layout shares that loader with the
+engineering and safety pages: `snapshotLoader` in
+`app/routes/snapshot-loader.server.ts`. React Router drops each loader from
+the client bundle, and the `.server` suffix fails the client build if client
+code imports the module.
 
 - `StatusStrip` renders the tick, the ship time, and the habitat's
   temperature in whole kelvin and pressure to 0.1 kPa from the loader's
@@ -66,9 +70,11 @@ output, the coolant temperature and the power the shields draw. React Router
 reloads them after each command. A backend that fails gives
 `Gauges offline`, and the forms stay.
 
-`command(cmd)` resolves a 202 to `{ accepted: true, tick }` and a 400 or a
-409 to `{ accepted: false, status, code, message, fix? }`, and rejects any
-other status. The console imports `ShipCommand` from
+`command(cmd)` resolves a 202 to `{ accepted: true, tick }`, with the
+`flightLog` entries when the body carries them, and a 400 or a 409 to
+`{ accepted: false, status, code, message, fix? }`, and rejects any other
+status. The answer prints one line under `Queued for tick N` per flight-log
+entry. The console imports `ShipCommand` from
 `@nexusdi/meridian-systems` with `import type`, so no simulation code reaches
 its bundle. `tests/routes/engineering.spec.tsx` runs the page on `nexusTest`
 with `fakeBridgeLink`, whose idle reactor refuses a shields raise and queues
@@ -89,9 +95,9 @@ Each compartment shows its analyzer's tick, temperature to 0.1 K, pressure to
 0.1 kPa, and O₂ and CO₂ partial pressures to 0.01 kPa. The bridge and the
 habitat also show their heater power from the snapshot, in whole watts. The
 analyzer adds its own noise, so its temperature differs from the snapshot's
-true air. Both system pages write their figures through `fixed()` in
+true air. The system pages write their figures through `fixed()` in
 `app/bridge/fixed.ts`, which rounds to a fixed number of decimals and groups
-the thousands.
+the thousands, and their pressures through `kilopascals()` beside it.
 
 The forms post life-support commands through `BRIDGE_LINK.command(cmd)`: one
 brings life support online, one sets the habitat heater's target from 283 K
@@ -102,6 +108,36 @@ a crew that brings it online at an idle reactor reads its heaters at
 0 W until a throttle above 0 gives power. `tests/routes/life-support.spec.tsx`
 runs the page on `nexusTest` with `fakeBridgeLink`, fed seed 7's readings at
 ticks 0 and 600.
+
+## The Safety Page
+
+`/systems/safety` sits in the ship layout beside the other system pages, and
+the root layout's nav links it as `Safety`. The page shows the alarms Safety
+raises and the doors and rooms it runs. Its loader reads the snapshot alone
+through `snapshotLoader`, since the alarms, the fires, the floods and the door
+setpoints all sit in it. A failed snapshot shows `Ship snapshot offline`.
+
+- Alarms lists each active alarm as `<code> in <subject>`, such as
+  `FIRE in reactor-bay`, or `No alarms`.
+- Doors shows each of the four doors `Open` or `Shut`, with the pressure on
+  each side to 0.1 kPa. The outer door's far side reads `Space` at
+  0.0 kPa. The console imports only types from the simulation, so the page
+  holds its own table of each door's sides, and `satisfies` checks that it
+  names every `DoorId`.
+- Fire suppression shows each room with a flood charge: the fire intensity
+  to two decimals, or `none`, and the flood released in whole mol, beside the
+  temperature in whole K.
+
+Two forms post safety commands through `BRIDGE_LINK.command(cmd)`. The door
+form holds a select of the four doors and the buttons `Open door` and
+`Close door`. The room form lists the rooms with a flood charge and holds
+`Flood` and `Drill`. It shows only when the snapshot loaded, since its rooms
+come from the snapshot. The page shows the answer to the last command as the
+other pages do, and an accepted door command adds its flight-log line, such
+as `survey-7: opened bridge-habitat`, under `Queued for tick N`. An open the
+interlock refuses shows the `MERIDIAN_INTERLOCK` message and its `Fix:`
+line. `tests/routes/safety.spec.tsx` runs the page on `nexusTest` with
+`fakeBridgeLink`, fed unrounded floats in the shape seed 7 gives.
 
 ## Testing the Console
 
@@ -131,9 +167,20 @@ analyzers at the new tick, and reads the habitat from 292.5 K to 292.8 K, from
 101.0 kPa to 101.2 kPa and a heater from 2,000 W to 5,000 W, with no console
 error. Life support has no offline command, so the config runs this case in a
 second Playwright project, `life-support`, that depends on the `chromium`
-project and runs after every case that reads the idle ship. Only the
-non-required `demo-growth` CI job runs `e2e-growth` (ship systems spec,
-section 14).
+project and runs after every case that reads the idle ship.
+
+`e2e/growth/safety.spec.ts` runs in a third project, `safety`, that depends
+on `life-support`. It reads the ship's tick from the backend. It opens
+`bridge-habitat` and reads `Queued for tick` with the next tick and
+`survey-7: opened bridge-habitat`. The outer door answers the interlock text
+with the difference the airlock holds, and the exact `Fix:` line. It closes
+`bridge-habitat`, reads `survey-7: closed bridge-habitat`, posts one tick to
+the backend and finds the door `Shut`. A drill of the reactor bay reads
+`FIRE in reactor-bay` after one tick, and after a flood and 70 ticks the
+page reads `No alarms`, with no console error. The flood leaves the bay too
+poor in oxygen for a second drill fire, so the case runs once, after every
+case that reads the unflooded ship. Only the non-required `demo-growth` CI
+job runs `e2e-growth` (ship systems spec, section 14).
 
 Next, read [the command desk](../meridian-systems/README.md#the-command-desk)
-for how the ship hands these commands to Engineering and LifeSupport.
+for how the ship hands these commands to each ship system.
