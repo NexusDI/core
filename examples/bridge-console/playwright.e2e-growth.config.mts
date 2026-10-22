@@ -16,7 +16,7 @@ export default defineConfig({
   retries: 0,
   use: {
     baseURL: `http://127.0.0.1:${GROWTH_PORTS.console}`,
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
   },
   webServer: webServers(GROWTH_PORTS),
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
