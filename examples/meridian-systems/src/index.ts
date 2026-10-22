@@ -20,9 +20,11 @@ export { roundSnapshot } from './simulation/round-snapshot';
 export * from './telemetry/contracts';
 export { shipNotes } from './notes';
 export {
+  type IPowerConsumer,
   type IPowerRouter,
   type IReactorCore,
   type IShieldGrid,
+  POWER_CONSUMERS,
   POWER_ROUTER,
   REACTOR,
   SHIELD_GRID,
