@@ -23,7 +23,7 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: /(life-support|safety|airlock)\.spec\.ts/,
+      testIgnore: /(life-support|safety|airlock|comms)\.spec\.ts/,
     },
     // Life support's online command is one-way on the shared manual ship, so
     // its case runs after every case that reads the idle ship.
@@ -49,6 +49,14 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
       testMatch: /airlock\.spec\.ts/,
       dependencies: ['safety'],
+    },
+    // The hail stays queued on the shared ship for good, because the ship has
+    // no subspace link, so the comms case runs after every other case.
+    {
+      name: 'comms',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /comms\.spec\.ts/,
+      dependencies: ['airlock'],
     },
   ],
 });
