@@ -3,8 +3,10 @@ import { defineModule, provide } from '@nexusdi/core';
 import { COMMAND_HANDLERS } from '../../simulation/commands';
 import { SHIP_SYSTEMS } from '../../simulation/contracts';
 import { POWER_CONSUMERS } from '../engineering/contracts';
+import { CalibratedProbe } from './calibrated-probe';
 import {
   ATMOSPHERE_CONTROL,
+  ATMOSPHERE_PROBE,
   ATMOSPHERE_SENSOR,
   LIFE_SUPPORT_OPTIONS,
 } from './contracts';
@@ -14,11 +16,12 @@ import { LifeSupportCommands } from './life-support-commands';
 import { LifeSupportPhysics } from './life-support-physics';
 import { LifeSupportPower } from './life-support-power';
 
-/** The air of every compartment, stepped in phase 4, its analyzers and its panel. */
+/** The air of every compartment, stepped in phase 4, its probe, its analyzers and its panel. */
 export const LifeSupport = defineModule({
   name: 'LifeSupport',
   options: LIFE_SUPPORT_OPTIONS,
   providers: [
+    provide(ATMOSPHERE_PROBE, { useClass: CalibratedProbe }),
     // Transient: each get() samples the scope's compartment at the current tick.
     provide(ATMOSPHERE_SENSOR, {
       useClass: GasAnalyzer,
@@ -30,6 +33,7 @@ export const LifeSupport = defineModule({
     provide(COMMAND_HANDLERS, { useClass: LifeSupportCommands }),
   ],
   exports: [
+    ATMOSPHERE_PROBE,
     ATMOSPHERE_SENSOR,
     ATMOSPHERE_CONTROL,
     SHIP_SYSTEMS,

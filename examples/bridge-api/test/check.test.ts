@@ -93,6 +93,9 @@ describe('the bridge API graph', () => {
     expect(notes['PowerConsumers in LifeSupport']).toEqual([
       'system: LifeSupport',
     ]);
+    expect(notes['AtmosphereProbe in LifeSupport']).toEqual([
+      'system: LifeSupport',
+    ]);
 
     const bridgeModules = [
       'BridgeApi',
