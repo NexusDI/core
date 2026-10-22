@@ -24,7 +24,8 @@ null when the backend fails, and `shouldRevalidate` returns false, so a
 navigation never reloads it.
 
 - `StatusStrip` renders the tick, the ship time, and the habitat's
-  temperature and pressure in kPa from the loader's `ShipReading`, or
+  temperature in whole kelvin and pressure to 0.1 kPa from the loader's
+  `ShipReading`, through `fixed()`, or
   `Telemetry offline` for null. After hydration it subscribes through
   `useService(TELEMETRY_CLIENT)` and follows each frame. It shows
   `Telemetry offline` when the stream ends or fails, and unsubscribes on
@@ -73,6 +74,35 @@ its bundle. `tests/routes/engineering.spec.tsx` runs the page on `nexusTest`
 with `fakeBridgeLink`, whose idle reactor refuses a shields raise and queues
 any other command for tick 1.
 
+## The Life-Support Page
+
+`/systems/life-support` sits in the ship layout beside the engineering page
+and shows the air of each compartment as its gas analyzer reads it. Its
+loader reads `BRIDGE_LINK.snapshot()` and `BRIDGE_LINK.atmosphere(id)` for
+the four compartments, all in parallel. `atmosphere(id)` calls
+bridge-api's `GET /compartments/:id/atmosphere`, so each read opens a request
+scope on the backend whose compartment comes from the path, and a 404
+rejects. A read that fails shows `Analyzer offline` for its compartment, and
+a failed snapshot shows `Ship snapshot offline`. The rest of the page stays.
+
+Each compartment shows its analyzer's tick, temperature to 0.1 K, pressure to
+0.1 kPa, and O₂ and CO₂ partial pressures to 0.01 kPa. The bridge and the
+habitat also show their heater power from the snapshot, in whole watts. The
+analyzer adds its own noise, so its temperature differs from the snapshot's
+true air. Both system pages write their figures through `fixed()` in
+`app/bridge/fixed.ts`, which rounds to a fixed number of decimals and groups
+the thousands.
+
+The forms post life-support commands through `BRIDGE_LINK.command(cmd)`: one
+brings life support online, one sets the habitat heater's target from 283 K
+to 303 K, and the airlock's pair sets the pump mode (`off`, `evacuate` or
+`fill`) and opens or shuts the vent. The page shows the answer to the last
+command, as the engineering page does. Life support runs on the reactor, so
+a crew that brings it online at an idle reactor reads its heaters at
+0 W until a throttle above 0 gives power. `tests/routes/life-support.spec.tsx`
+runs the page on `nexusTest` with `fakeBridgeLink`, fed seed 7's readings at
+ticks 0 and 600.
+
 ## Testing the Console
 
 `npx nx run @nexusdi/bridge-console:e2e` starts both servers itself and
@@ -92,8 +122,18 @@ with no reload. The second case finds `Simulation`, `MeridianSystems` and
 third, `e2e/growth/engineering.spec.ts`, reads the ship's tick from the
 backend, raises the shields at the idle reactor and reads the
 `MERIDIAN_POWER_BUDGET` text, then sets the throttle and reads
-`Queued for tick` with the next tick. Only the non-required `demo-growth` CI
-job runs `e2e-growth` (ship systems spec, section 14).
+`Queued for tick` with the next tick.
 
-Next, read [the command desk](../meridian-systems/README.md#the-command-desk) for how
-the ship hands these commands to Engineering.
+`e2e/growth/life-support.spec.ts` sets the throttle to 0.01 on the engineering
+page and brings life support online, and each form answers `Queued for tick`
+with the next tick. It posts 600 ticks to the backend, reloads, finds four
+analyzers at the new tick, and reads the habitat from 292.5 K to 292.8 K, from
+101.0 kPa to 101.2 kPa and a heater from 2,000 W to 5,000 W, with no console
+error. Life support has no offline command, so the config runs this case in a
+second Playwright project, `life-support`, that depends on the `chromium`
+project and runs after every case that reads the idle ship. Only the
+non-required `demo-growth` CI job runs `e2e-growth` (ship systems spec,
+section 14).
+
+Next, read [the command desk](../meridian-systems/README.md#the-command-desk)
+for how the ship hands these commands to Engineering and LifeSupport.
