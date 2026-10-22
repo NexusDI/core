@@ -3,6 +3,7 @@ import type { ErrorText, ErrorTextPack } from '@nexusdi/core';
 import type {
   BadCommandError,
   BadCommandReason,
+  InterlockError,
   PowerBudgetError,
   UnknownCompartmentError,
 } from './errors';
@@ -81,5 +82,9 @@ export const shipText = {
         ? `The request names no compartment. The deck has ${error.expected}.`
         : `No compartment is named '${shownId(error.compartment)}'. The deck has ${error.expected}.`,
     fix: 'read /compartments/<id>/atmosphere with one of the compartments above.',
+  }),
+  MERIDIAN_INTERLOCK: (error: InterlockError) => ({
+    message: `The ${error.door} door holds ${formatNumber(error.difference, 0)} Pa of difference, above the ${formatNumber(error.limit, 0)} Pa interlock.`,
+    fix: `bring both sides within ${formatNumber(error.limit, 0)} Pa of each other with a pump or a vent, then open the door.`,
   }),
 } satisfies ErrorTextPack;

@@ -246,9 +246,9 @@ The library's ESLint config keeps the simulation reproducible. A file under `src
 
 ## The Errors the Ship Raises
 
-The library raises three codes of its own through core's `errorBase`, and augments `NexusErrorByCode` with each, so `isNexusError(error, 'MERIDIAN_POWER_BUDGET')` narrows to the class. Each one-line message ends with a link to its section below.
+The library raises four codes of its own through core's `errorBase`, and augments `NexusErrorByCode` with each, so `isNexusError(error, 'MERIDIAN_POWER_BUDGET')` narrows to the class. Each one-line message ends with a link to its section below.
 
-`@nexusdi/meridian-systems/text` exports `shipText`, the text pack of the three codes. `explain(error, { text: [shipText] })` from `@nexusdi/errors` returns the message and the fix, and `bridge-api` answers a refused command with them. Without the pack, an error keeps core's one-line message. `shipText` formats its numbers with its own `formatNumber`, so the text is the same on every host and locale.
+`@nexusdi/meridian-systems/text` exports `shipText`, the text pack of the four codes. `explain(error, { text: [shipText] })` from `@nexusdi/errors` returns the message and the fix, and `bridge-api` answers a refused command with them. Without the pack, an error keeps core's one-line message. `shipText` formats its numbers with its own `formatNumber`, so the text is the same on every host and locale.
 
 <a id="MERIDIAN_POWER_BUDGET"></a>
 
@@ -303,6 +303,23 @@ Fix: read /compartments/<id>/atmosphere with one of the compartments above.
 ```
 
 For a request that names no compartment, the text reads "The request names no compartment. The deck has bridge, habitat, reactor-bay and airlock." To clear it, read one of the compartments `expected` lists. `bridge-api` answers it with 404.
+
+<a id="MERIDIAN_INTERLOCK"></a>
+
+### MERIDIAN_INTERLOCK
+
+`InterlockError` says that a command asked to open a door with more pressure across it than the interlock allows. `door` holds the id of the door, such as `habitat-airlock`. `difference` holds the pressure difference across it in Pa, rounded, and `limit` holds the largest difference the interlock lets a door open across, in Pa.
+
+The one-line message and the text of `shipText`:
+
+```text
+[MERIDIAN_INTERLOCK] door=habitat-airlock difference=70585 limit=5000. https://github.com/NexusDI/core/tree/main/examples/meridian-systems#MERIDIAN_INTERLOCK
+
+The habitat-airlock door holds 70,585 Pa of difference, above the 5,000 Pa interlock.
+Fix: bring both sides within 5,000 Pa of each other with a pump or a vent, then open the door.
+```
+
+To clear it, run a pump or a vent until the two sides are within `limit` of each other, then open the door. `bridge-api` answers it with 409.
 
 ## Testing the Ship
 

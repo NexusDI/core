@@ -3,6 +3,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import {
   BadCommandError,
+  InterlockError,
   PowerBudgetError,
   UnknownCompartmentError,
 } from './errors';
@@ -116,5 +117,40 @@ describe('UnknownCompartmentError', () => {
         `. ${DOCS}MERIDIAN_UNKNOWN_COMPARTMENT`,
       ),
     ).toBe(true);
+  });
+});
+
+const interlock = () =>
+  new InterlockError({
+    door: 'habitat-airlock',
+    difference: 70_585,
+    limit: 5_000,
+  });
+
+describe('InterlockError', () => {
+  it('carries its code, its name and its fields', () => {
+    const error = interlock();
+    expect(error).toBeInstanceOf(NexusError);
+    expect(error.code).toBe('MERIDIAN_INTERLOCK');
+    expect(error.name).toBe('InterlockError');
+    expect({ ...error }).toEqual({
+      door: 'habitat-airlock',
+      difference: 70_585,
+      limit: 5_000,
+    });
+  });
+
+  it('narrows through isNexusError by its code', () => {
+    const error: unknown = interlock();
+    expect(isNexusError(error, 'MERIDIAN_INTERLOCK')).toBe(true);
+    expect(isNexusError(error, 'MERIDIAN_BAD_COMMAND')).toBe(false);
+    if (isNexusError(error, 'MERIDIAN_INTERLOCK'))
+      expectTypeOf(error).toEqualTypeOf<InterlockError>();
+  });
+
+  it('links its one-line message to the README anchor of its code', () => {
+    expect(interlock().message).toBe(
+      `[MERIDIAN_INTERLOCK] door=habitat-airlock difference=70585 limit=5000. ${DOCS}MERIDIAN_INTERLOCK`,
+    );
   });
 });
