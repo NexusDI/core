@@ -53,3 +53,13 @@ export {
   LIFE_SUPPORT_OPTIONS,
   type LifeSupportOptions,
 } from './systems/life-support/contracts';
+export {
+  ALARM_SINKS,
+  BLAST_DOORS,
+  FIRE_SUPPRESSION,
+  type IAlarmSink,
+  type IBlastDoors,
+  type IFireSuppression,
+  type IMasterAlarm,
+  MASTER_ALARM,
+} from './systems/safety/contracts';

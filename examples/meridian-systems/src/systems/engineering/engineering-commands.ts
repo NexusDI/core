@@ -1,4 +1,7 @@
-import { BadCommandError } from '../../errors';
+import {
+  commandRefusal,
+  flagArgument,
+} from '../../simulation/command-arguments';
 import type {
   ICommandHandler,
   QueuedCommand,
@@ -24,6 +27,8 @@ export class EngineeringCommands implements ICommandHandler {
 
   readonly system = 'engineering';
 
+  private readonly refuse = commandRefusal(this.system, ENGINEERING_ACTIONS);
+
   constructor(
     private readonly reactor: IReactorCore,
     private readonly shields: IShieldGrid,
@@ -34,29 +39,16 @@ export class EngineeringCommands implements ICommandHandler {
       case 'throttle': {
         const { level } = command;
         if (typeof level !== 'number' || !(level >= 0 && level <= 1)) {
-          throw this.refuse(command, 'argument');
+          throw this.refuse(command.action);
         }
         return this.reactor.throttle(level);
       }
-      case 'shields': {
-        const { raised } = command;
-        if (typeof raised !== 'boolean') throw this.refuse(command, 'argument');
-        return raised ? this.shields.raise() : this.shields.lower();
-      }
+      case 'shields':
+        return flagArgument(command, 'raised', this.refuse)
+          ? this.shields.raise()
+          : this.shields.lower();
       default:
-        throw this.refuse(command, 'action');
+        throw this.refuse(command.action, 'action');
     }
-  }
-
-  private refuse(
-    command: ShipCommand,
-    reason: 'action' | 'argument',
-  ): BadCommandError {
-    return new BadCommandError({
-      reason,
-      system: this.system,
-      action: command.action,
-      expected: ENGINEERING_ACTIONS,
-    });
   }
 }
