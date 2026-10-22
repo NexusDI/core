@@ -17,9 +17,16 @@ import type {
 
 import type { Course } from './contracts';
 
-/** What bridge-api answers a command: the tick that applies it, or its refusal. */
+/**
+ * What bridge-api answers a command: the tick that applies it and, when the
+ * request's flight log holds entries, those entries, or its refusal.
+ */
 export type CommandAnswer =
-  | { readonly accepted: true; readonly tick: number }
+  | {
+      readonly accepted: true;
+      readonly tick: number;
+      readonly flightLog?: readonly string[];
+    }
   | {
       readonly accepted: false;
       readonly status: 400 | 409;
@@ -116,8 +123,13 @@ class BridgeApiLink implements IBridgeLink {
       signal: this.request.signal,
     });
     if (res.status === 202) {
-      const { tick } = (await res.json()) as { tick: number };
-      return { accepted: true, tick };
+      const { tick, flightLog } = (await res.json()) as {
+        tick: number;
+        flightLog?: readonly string[];
+      };
+      return flightLog === undefined
+        ? { accepted: true, tick }
+        : { accepted: true, tick, flightLog };
     }
     if (res.status === 400 || res.status === 409) {
       const refusal = (await res.json()) as {

@@ -287,6 +287,41 @@ describe("the bridge link's commands", () => {
     expect(missions.at(-1)).toBe('survey-9');
   });
 
+  it('carries the flight log the backend answers with the tick', async () => {
+    using fetch = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        Response.json(
+          { tick: 4, flightLog: ['survey-9: opened bridge-habitat'] },
+          { status: 202 },
+        ),
+      );
+    await using bridge = await linkTo(base);
+    expect(
+      await bridge.link.command({
+        system: 'safety',
+        action: 'open',
+        door: 'bridge-habitat',
+      }),
+    ).toStrictEqual({
+      accepted: true,
+      tick: 4,
+      flightLog: ['survey-9: opened bridge-habitat'],
+    });
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it('leaves the flight log out when the backend answers none', async () => {
+    using fetch = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(Response.json({ tick: 4 }, { status: 202 }));
+    await using bridge = await linkTo(base);
+    expect(
+      await bridge.link.command({ system: 'engineering', action: 'throttle' }),
+    ).toStrictEqual({ accepted: true, tick: 4 });
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
   it('gives the refusal of a load the reactor cannot power, with its fix', async () => {
     await using bridge = await linkTo(base);
     expect(
