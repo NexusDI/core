@@ -149,20 +149,21 @@ describe('the engineering gauges', () => {
   });
 
   test('read the reactor, the coolant and the shields from the snapshot', async () => {
-    // Tick 17 after a throttle of 1, with the shields raised.
+    // Seed 7 at tick 18, after a throttle of 1 at tick 0 and a shields raise
+    // at tick 17, which the router fits once the output passes 200 MW.
     const busy: ShipReading = {
       ...shipAtStart,
-      tick: 17,
-      time: 8.5,
+      tick: 18,
+      time: 9,
       reactor: {
-        level: 0.17,
-        thermal: 617.1e6,
-        electric: 205.7e6,
+        level: 0.18,
+        thermal: 653.4e6,
+        electric: 217.8e6,
         tripped: false,
       },
-      coolant: { temperature: 512.3 },
+      coolant: { temperature: 502.5 },
       power: {
-        output: 205.7e6,
+        output: 217.8e6,
         loads: [
           { id: 'shields', priority: 2, demand: 200e6, allocated: 200e6 },
         ],
@@ -177,7 +178,7 @@ describe('the engineering gauges', () => {
     }
     await using scope = await scopeWith(BusyLink, built);
     await renderPage(scope);
-    expect(await gauges()).toEqual(['0.17', '205.7 MW', '512.3 K', '200 MW']);
+    expect(await gauges()).toEqual(['0.18', '217.8 MW', '502.5 K', '200 MW']);
   });
 
   test('say they are offline when the backend fails, and keep the forms', async () => {
