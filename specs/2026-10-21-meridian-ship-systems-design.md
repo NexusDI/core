@@ -770,7 +770,10 @@ stalled tick is 289, with the airlock at 9,089 Pa, the habitat at 110,427 Pa and
 support asking 39,304 W. With the pump off and the vent open from tick 290, the airlock
 reads under 100 Pa at tick 506. The pump empties the airlock at −1.69 kPa/s at the start,
 under the 2 kPa/s `DECOMPRESSION` threshold, and a vent on a full airlock starts at −4.18
-kPa/s, above it.
+kPa/s, above it. In G4's drill, with the interlock registered, the vent from tick 289 takes
+the stalled airlock from 9,089 Pa under 5 kPa at tick 317, and the outer door from tick 318
+takes it under 100 Pa at tick 319. The fill from tick 338 then brings it within 5 kPa of the
+habitat at tick 446.
 
 ### 5.5 Gas mixing through an open door
 
@@ -872,8 +875,11 @@ the router moves on to the next.
 | 7        | FTL spool                | 900 MW         |
 
 Life support's demand at full is 68.57 kW: two heaters at 20 kW, two scrubbers at 2.4 kW,
-two generators at 12 kW and the pump at 34.17 kW. The airlock pump-down peaks at 39.3 kW
-in the full model. The sum at full is above 1.21 GW. Priorities 1 to 4 take 225.07 MW,
+two generators at 12 kW and the pump at 34.17 kW. Life support asks 39.3 kW at the first
+stalled tick of a pump-down from tick 0, 34.17 kW of it for the pump. A stalled pump keeps
+its 34.17 kW while it runs, and the rest of life support climbs, to 41.0 kW in all at
+tick 600. The model gives 39,303.6 W at tick 289, 39,382.1 W at tick 300 and 41,027.4 W at
+tick 600. The sum at full is above 1.21 GW. Priorities 1 to 4 take 225.07 MW,
 and 84.93 MW remain beside the main drive and the weapons capacitor. With the main drive
 burning, 385 MW remain: the weapons capacitor fits and the FTL spool never does, so the
 router sheds the spool. With the drive cut, 985 MW remain, and the spool fits only while
@@ -1045,7 +1051,10 @@ While `DECOMPRESSION` is active, Safety writes `setpoints.safety.doors` false on
 for each door whose `between` names the room, and the command log holds no entry from it.
 The airlock cycles by design (a vent at −4.18 kPa/s, the outer door opened at the 5 kPa
 limit at −9.18 kPa/s) and has no occupant, so it raises no atmosphere alarm, and G4's drill
-can vent it through the outer door. The idle ship over 600 ticks, the life-support golden
+can vent it through the outer door. The drill opens the outer door at 4,967 Pa with the
+vent open, and the airlock falls at −9,135.3 Pa/s on the door's first tick. The drill
+raises no alarm in any room: the habitat falls at −184.6 Pa/s at worst, on the first fill
+tick, against the −2,000 Pa/s limit. The idle ship over 600 ticks, the life-support golden
 scenario over 7,200 ticks, G2's `bridge-api` scenario to tick 720 and G1's engineering
 scenario raise no alarm. G2's unit case of `online` at throttle 0 raises
 `LOAD_SHED life-support`, which it does not assert against.
@@ -1349,7 +1358,8 @@ entries pass the option when `isDev(process.env)` holds, that is unless `NODE_EN
 (`vitest.workers-growth.config.ts`), and on Deno and Bun through
 `scripts/runtime-leg.mjs --entry=test/runtime/growth.ts`. The cases read `GET /sim` at
 tick 0, advance 600 ticks to tick 600, 300 s, 293 K and 101.3 kPa, and read a first
-telemetry frame at tick 0 before the client cancels. The edge runtime has no growth leg,
+telemetry frame at tick 0 before the client cancels. From G4 a fourth case,
+`airlockDrill`, runs the airlock drill on each leg. The edge runtime has no growth leg,
 and the gating legs keep their current routes.
 
 G2's growth case, `e2e/growth/life-support.e2e.ts`, runs on the three Node servers over a
@@ -1408,6 +1418,41 @@ reads
 reads at tick 130 no fire, no alarm, the valve shut and the habitat from 142,000 to
 143,500 Pa.
 
+G4 adds no route and no command. The airlock drill uses four routes: `POST /commands`,
+`GET /sim`, `POST /sim/advance` and `GET /commands`. `test/routes.test.ts` gains
+`the airlock commands on %s` on `scopedShip` for the three frameworks. Its first case posts
+`close airlock-outer`, which answers 202
+`{ tick: 1, flightLog: ['survey-7: closed airlock-outer'] }`, then `vent airlock open false`
+and `pump airlock fill`, which answer `{ tick: 1 }`. After one tick `GET /commands` holds the
+one merged entry
+`{ tick: 1, change: { safety: { doors: { 'airlock-outer': false } }, lifeSupport: { vents: { airlock: false }, pumps: { airlock: 'fill' } } } }`.
+Its second case posts `vent habitat open true`, which answers 400 `MERIDIAN_BAD_COMMAND`
+since the habitat has no vent, and the log stays empty. No earlier gating test of the bridge
+sent a vent or a pump.
+
+`airlockDrill` joins `growthCases` in `test/runtime/growth-cases.ts` as the fourth case, and
+`e2e/growth/airlock.e2e.ts` runs it on the three Node servers, so one case runs on six
+runtimes. From tick 0 it starts the reactor and life support as G2's case does and pumps
+the airlock down for 300 ticks. At tick 300 the airlock reads from 8,500 to 9,500 Pa (model
+9,089 Pa), and `open airlock-outer` answers 409 `MERIDIAN_INTERLOCK`. Once `pump off` and
+`vent open true` have run 40 ticks, the airlock reads from 3,500 to 4,500 Pa (model
+3,949 Pa), and the open answers 202
+`{ tick: 341, flightLog: ['survey-7: opened airlock-outer'] }`. At tick 360 the airlock
+reads under 100 Pa with the outer door open. The case then shuts the outer door
+and the vent and starts the fill for tick 361, and `open habitat-airlock` answers 409.
+After 114 fill ticks the two rooms read within 2,500 Pa of each other (model 410 Pa), and
+`pump off` and `open habitat-airlock` queue for tick 475, the open with its flight-log line.
+At tick 494 the inner door stands open with the two rooms within 500 Pa (model 100 Pa), and
+`GET /commands` lists entries at ticks 1, 301, 341, 361 and 475. Every read of `GET /sim`
+finds no alarm.
+
+`test/runtime/growth.ts` and `test/worker/growth/sim.test.ts` build each ship as
+`worker.offline.ts` does: one `nodeScopes()` per case, passed to `bridgePlugins({ scopes })`
+and to `createBridge(ship, { scopes })`, so the interlock and the flight recorder run on
+workerd, Deno and Bun. The three earlier cases keep their code and assertions, and no route
+they call reaches an interceptor. The graph does not change, so `check.test.ts` and
+`graph.json` stay as they are.
+
 ### 7.2 The bridge console
 
 The console's server calls `bridge-api` over HTTP, and the browser calls the console only
@@ -1421,6 +1466,7 @@ The console's server calls `bridge-api` over HTTP, and the browser calls the con
 | `/systems/engineering` action                     | posts the command through `BRIDGE_LINK`; a 400 or a 409 renders the text and the fix                                                                                                          | G1        |
 | `/systems/life-support`                           | a static route with each compartment's analyzer gauges and heater power, the online, habitat thermostat and airlock forms, and the answer to the last command                                 | G2        |
 | `/systems/safety`                                 | a static route with the alarms, each door and the pressure on its sides, each charged room's fire and flood with its temperature, the door and room forms, and the answer to the last command | G3        |
+| `/airlock`                                        | a static route with the airlock's pump mode and vent, its two doors with the pressure on each side, a form for each command, and the answer to the last command                               | G4        |
 | `/systems/:system`                                | one `lazySection` per system in `SectionBoundary`: gauges and a command form                                                                                                                  | after G0b |
 | `/diagnostics`                                    | `graph(ship)` from `GET /graph`, each module with its providers and their notes                                                                                                               | G0b       |
 
@@ -1459,13 +1505,35 @@ posts `open` or `close` from "Open door" and "Close door", and the room form `fl
 A refusal shows its message and `Fix:` line, and an accepted door command its flight-log
 line.
 
+G4 adds the airlock panel at `/airlock`, inside the ship layout, with a nav link beside the
+safety one. The panel sits outside `/systems/`, whose paths name a ship system and where
+`/systems/:system` waits for the `lazySection` form. Its loader reads `snapshot()` alone,
+and the page shows the ship offline when the call fails. Its Airlock section shows the pump
+mode (`off`, `evacuate` or `fill`) and the vent Open or Shut, and its Doors section shows
+`habitat-airlock` and `airlock-outer` as the safety page does. `Door` and its helpers move
+to `app/routes/systems/doors.tsx`, which the safety page imports, and `CommandSelect` moves
+to `system-page.tsx`. The pump and vent forms move from the life-support page to
+`AirlockControls` in `app/routes/systems/airlock-controls.tsx`, which both pages render, and
+the panel's door select lists the two airlock doors alone. The life-support and safety route
+tests pass unchanged.
+
+The panel's action is
+`systemAction(AIRLOCK_SYSTEMS, { compartment: 'text', mode: 'text', open: 'boolean', door: 'text' })`,
+where `AIRLOCK_SYSTEMS` names the system of each action: `pump` and `vent` post to
+`life-support`, and `open` and `close` to `safety`. `systemAction` and `commandFrom` take
+`SystemOf`, `string | Readonly<Record<string, string>>`. `commandFrom` reads a record with
+`Object.hasOwn(system, action)`, so an action outside the record, `constructor` among
+them, posts an empty system, which the desk refuses with `MERIDIAN_BAD_COMMAND`. The doc
+comments of `system-page.tsx` and `system-action.server.ts` say the pages under `/systems`
+and the airlock panel share them.
+
 The engineering page's growth case runs in the console's `e2e-growth` target under
 `playwright.e2e-growth.config.mts`, and the gating config ignores `e2e/growth/`. The
 console takes the types by `import type` only. Its double `fakeBridgeLink` gains the same
 methods, so the route tests stay on `nexusTest`.
 
-The ship layout, `app/routes/ship-layout.tsx`, wraps `/diagnostics` and, from G1,
-`/systems/*`. Its loader returns `snapshot()`, or null when the backend fails, and
+The ship layout, `app/routes/ship-layout.tsx`, wraps `/diagnostics`, from G1 `/systems/*`
+and from G4 `/airlock`. Its loader returns `snapshot()`, or null when the backend fails, and
 `shouldRevalidate` returns false. The root layout stays unchanged, so a page outside the
 ship layout opens no `EventSource`. The layout's `StatusStrip` renders the tick, the ship
 time and the habitat's temperature in whole kelvin and its pressure to 0.1 kPa from the
@@ -1511,6 +1579,10 @@ The growth track holds the rich systems. Each increment:
 - runs its e2e cases in the non-required `demo-growth` job, which never blocks, until a
   green RC cycle moves them into the gating `demo-apps` job (section 14).
 
+G4 adds no module and no physics: it runs G2's and G3's commands as the airlock drill, with
+its golden, a module test, a case on each runtime and the console's airlock panel, and
+`graph.json` stays as it is.
+
 The suggested order, each step depending only on G0 and the steps it names:
 
 | Step | Increment                                                                                                                                                                                                                                                                                | Needs  |
@@ -1520,7 +1592,7 @@ The suggested order, each step depending only on G0 and the steps it names:
 | G1   | `Engineering`: reactor, coolant loop, power budget, `/commands`, `BRIDGE_LINK.command(cmd)`, the engineering page                                                                                                                                                                        | G0     |
 | G2   | `LifeSupport`: per-compartment atmosphere, heaters, scrubbers, oxygen generators, the airlock vent and pump, the transient analyzers and their calibration, `COMPARTMENT`, `POWER_CONSUMERS`, `GET /compartments/:id/atmosphere`, `BRIDGE_LINK.atmosphere(id)` and the life-support page | G0, G1 |
 | G3   | `Safety`: blast doors, the interlock, door mixing, fire, suppression, alarms                                                                                                                                                                                                             | G2     |
-| G4   | the airlock drill: the pump and vent cycle across `habitat`, `airlock` and space through the doors                                                                                                                                                                                       | G3     |
+| G4   | the airlock drill: the pump and vent cycle across `habitat`, `airlock` and space through the doors under the interlock, with its golden and the console's airlock panel                                                                                                                  | G3     |
 | G5   | `Comms` and `Tactical` move into the library, with `COMMS_ARRAY` and the optional link                                                                                                                                                                                                   | G0     |
 | G6   | `Propulsion` and `Helm`                                                                                                                                                                                                                                                                  | G1, G5 |
 | G7   | `FtlDrive`, loaded with `load()`                                                                                                                                                                                                                                                         | G1, G6 |
@@ -1660,16 +1732,30 @@ Every e2e server starts with `SIM_MODE=manual SIM_SEED=7`. A case drives ticks w
    `habitat-airlock` at tick 120, 5,323 Pa at tick 188 and 4,391 Pa at tick 189. The
    model gives the habitat 107,681.0 Pa and the airlock 37,095.6 Pa at tick 120,
    101,565.0 Pa and 98,060.0 Pa at tick 190, and 101,250.9 Pa at 292.897 K and
-   101,172.4 Pa at 292.804 K at tick 209, with no alarm.
+   101,172.4 Pa at 292.804 K at tick 209, with no alarm. G4 adds
+   `e2e/golden/airlock.seed-7.json` (`e2e/airlock.e2e.ts`) on a ship that registers the
+   interlock as `test/safety.test.ts` does. Its step table holds the drill's accepted
+   commands alone, and it pins the snapshots at ticks 288, 317, 337, 446 and 466. The idle,
+   life-support and safety goldens stay byte-identical. The gating module test
+   `test/airlock.test.ts` runs the same drill in the library's `test` target. It reads
+   `airlock-outer` refused at 9,089 Pa at tick 288 and 5,072 Pa at tick 316 and passed at
+   tick 317, and `habitat-airlock` refused at 101,339 Pa at tick 288, 110,413 Pa at tick 337,
+   109,401 Pa at tick 338 and 5,915 Pa at tick 445 and passed at tick 446. It also asserts
+   the log's ticks 1, 289, 318, 338 and 447, the merged entry of tick 338, a gap of
+   132.5 Pa ± 1 Pa across the inner door at tick 466, and no alarm on any tick from 1 to 466.
 
 The goldens run on Node only, and on the version `.nvmrc` names: the golden suite reads
 `.nvmrc` and fails, naming both versions, when `process.versions.node` differs. A golden
 is then written and read on one Node. A case in the library's `test` target asserts
 rounded idle values that hold on any Node. `Math.exp` and `Math.cos` are not required to round
 identically across engines, and a threshold such as a fire's ignition draw can flip on the
-last bit. The workerd, Deno and Bun legs of `bridge-api`'s `e2e-growth` target run three
-smoke cases: the shape of `/sim` at tick 0, 600 ticks to rounded values far from any
-threshold, and a first telemetry frame (section 7.1).
+last bit. The workerd, Deno and Bun legs of `bridge-api`'s `e2e-growth` target run four
+cases: the shape of `/sim` at tick 0, 600 ticks to rounded values far from any threshold, a
+first telemetry frame (section 7.1), and from G4 the airlock drill, whose reads sit far
+from each threshold (the outer door opens 1,051 Pa under the interlock, and the inner door
+five fill ticks from the limit on either side). From G4 a gating case in
+`test/routes.test.ts` posts life-support commands to the bridge on the three frameworks
+(section 7.1).
 
 S6 keeps old cases stable. In the seeded scenario, a new system starts at zero demand and
 zero effect, and only its own cases command it. The RNG forks of S5 keep the numbers
@@ -1698,7 +1784,18 @@ depends on `chromium`. G3 adds a third project, `safety`, which depends on
 `life-support`, and the `chromium` project ignores both cases. Its case opens
 `bridge-habitat`, reads the interlock's refusal on `airlock-outer`, then closes
 `bridge-habitat`, reading each flight-log line. It drills `reactor-bay` and reads `FIRE in reactor-bay`, then floods it and
-reads `No alarms` 70 backend ticks later.
+reads `No alarms` 70 backend ticks later. G4 adds a fourth project, `airlock`, which depends
+on `safety`, and the `chromium` project ignores its case too. `bridgeApi`, `gauge`,
+`advance` and `reading` move into `e2e/growth/ship.ts`, and the life-support and safety
+cases import them with every `test(...)` body byte-identical. The airlock case,
+`e2e/growth/airlock.spec.ts`, runs the drill on `/airlock` from the ship's current tick
+with the tick counts of `airlockDrill`. After 300 pump-down ticks the airlock side reads
+8.5 to 9.5 kPa, and the outer door's open shows the interlock's refusal and its `Fix:`
+line. After 40 vent ticks it reads 3.5 to 4.5 kPa, and the open shows its flight-log line.
+After 20 more ticks the airlock side reads 0.0 kPa, and after 114 fill ticks the inner door
+opens with its flight-log line. Twenty ticks later the inner door's sides read within
+0.5 kPa of each other. The case ends with `No alarms` on `/systems/safety` and no console
+error.
 
 ## 9. Risks
 
@@ -1860,6 +1957,12 @@ unoccupied airlock raises no `DECOMPRESSION` under its vent or its outer door, a
 inherits that rule. The tick and `GasAnalyzer` share the singleton `ATMOSPHERE_PROBE`, and
 a test breaks the tick's sensors with `FailingProbe` (section 5.11).
 
+G4 settles its item: the drill runs the existing life-support and safety commands under the
+interlock and adds no command. The unoccupied airlock raises no alarm under the drill
+(section 5.11). An airlock sequencer, an `Airlock` module with its own commands, stays out
+as the owner's option, since a tick-driven sequencer would write door setpoints past
+`PressureInterlock`.
+
 ## 14. Owner question
 
 Q1. Where do the growth track's e2e cases run in CI?
@@ -1959,11 +2062,22 @@ library's `e2e-growth` target holds the goldens, and `demo-growth` runs it too.
 | 2026-10-22 | `refusalOf` and the development-only `errors({ text: SHIP_TEXT })` read `SHIP_TEXT = [shipText, interceptorsText]`; `InterlockError` carries the door and, in Pa, the difference and the limit, and `POST /commands` answers it with 409                                                                                                                                                                             | tech lead, G3 ruling 12  |
 | 2026-10-22 | G3 adds no route; `check.test.ts` gains the notes of Safety's providers and the probe, with `AlarmPanel` among the bridge modules, and `graph.json` the new modules and providers                                                                                                                                                                                                                                    | tech lead, G3 ruling 13  |
 | 2026-10-22 | The idle and life-support goldens gain `safety` and `setpoints.safety` with every other record byte-identical, and `safety.seed-7.json` pins the airlock door cycle; `bridge-api`'s growth file holds the door and drill cases, and the console's a third Playwright project                                                                                                                                         | tech lead, G3 ruling 14  |
+| 2026-10-22 | G4 adds no route, no command, no module and no sequencer: the airlock drill runs the existing life-support and safety commands under the interlock, and covers the routes it uses on Hono, Express and Fastify                                                                                                                                                                                                       | tech lead, G4 ruling 1   |
+| 2026-10-22 | The drill pumps down to the stall, vents to the interlock's 5,000 Pa, holds the outer door open 20 ticks, and fills until the interlock passes the inner door, with log entries at ticks 1, 289, 318, 338 and 447                                                                                                                                                                                                    | tech lead, G4 ruling 2   |
+| 2026-10-22 | The golden `e2e/golden/airlock.seed-7.json` pins ticks 288, 317, 337, 446 and 466 with the interlock registered, and the gating `test/airlock.test.ts` asserts each interlock answer and the log                                                                                                                                                                                                                     | tech lead, G4 ruling 3   |
+| 2026-10-22 | The drill raises no alarm in any room; the bypass case stays with `test/safety.test.ts`                                                                                                                                                                                                                                                                                                                              | tech lead, G4 ruling 4   |
+| 2026-10-22 | `bridge-api` gains a gating parity case for `close airlock-outer`, `vent`, `pump` and a refused `vent habitat`, and the fourth runtime case `airlockDrill` on six runtimes, whose harnesses build the ship with `bridgePlugins({ scopes })`                                                                                                                                                                          | tech lead, G4 ruling 5   |
+| 2026-10-22 | The console gains the airlock panel at `/airlock`, which posts to two systems through `systemAction`'s record form, and a fourth growth project `airlock`                                                                                                                                                                                                                                                            | tech lead, G4 ruling 6   |
+| 2026-10-22 | §7.4 names G4 as the increment with no module; §5.7 gives life support's 39.3 kW at the first stalled tick, and the climb past it                                                                                                                                                                                                                                                                                    | tech lead, G4 ruling 7   |
+| 2026-10-22 | The two G3 prose nits in `src/physics/safety.ts` and the `bridge-api` README take the text of ruling 8                                                                                                                                                                                                                                                                                                               | tech lead, G4 ruling 8   |
+| 2026-10-22 | `npx fallow dupes` stays at 2.15 % or under; fallow counts neither `*.spec.*` nor `*.test.*` files                                                                                                                                                                                                                                                                                                                   | tech lead, G4 ruling 9   |
+| 2026-10-22 | The console's growth helpers move into `e2e/growth/ship.ts` with every earlier `test(...)` body byte-identical                                                                                                                                                                                                                                                                                                       | tech lead, G4 ruling 10  |
 
 The owner made the rows whose source is "owner". The architect proposed the "tech lead"
 rows and the tech lead decided them, as `specs/plans/2026-10-21-meridian-g0-kernel.md`,
 `specs/plans/2026-10-21-meridian-g0b-telemetry.md`,
 `specs/plans/2026-10-21-meridian-g1-engineering.md`,
-`specs/plans/2026-10-21-meridian-g2-lifesupport.md` and
-`specs/plans/2026-10-21-meridian-g3-safety.md` record under their rulings. The
+`specs/plans/2026-10-21-meridian-g2-lifesupport.md`,
+`specs/plans/2026-10-21-meridian-g3-safety.md` and
+`specs/plans/2026-10-21-meridian-g4-airlock.md` record under their rulings. The
 controller corrected G2 ruling 7 with 7a on a fact of core's behaviour.
