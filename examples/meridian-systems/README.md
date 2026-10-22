@@ -6,42 +6,46 @@ The library is an example in the NexusDI repository. It reaches `@nexusdi/core` 
 
 ## The Modules a Ship Imports
 
-A ship imports one module, the one `meridianSystems({ seed, dt })` returns. `seed` picks the random streams, and `dt` sets the ship seconds per tick.
+A ship imports one module, the one `meridianSystems({ seed, dt, relayUrl? })` returns. `seed` picks the random streams, and `dt` sets the ship seconds per tick. `relayUrl` links the ship to the fleet's relay (the Comms section below). The library exports no module object beside `meridianSystems`.
 
 - `Simulation`, in `src/simulation/simulation.module.ts`, is a global module that `Simulation.forRoot({ seed, dt })` configures. It binds the clock, the random source, the ship state, the deck plan and the request's compartment, and exports them with `SIM_OPTIONS`. Its schema refuses a `seed` that is not a whole number from 0 to 4294967295 and a `dt` that is not a positive finite number. `Nexus.create` then rejects with `NEXUS_PROVIDER_FAILED` for the `SimOptions` token. Its `cause` is `NEXUS_INVALID_MODULE_OPTIONS`, whose `issues` name each refused field, the value it got and the accepted range. The check runs for `forRoot` and `forRootAsync` alike.
 - `Telemetry`, in `src/telemetry/telemetry.module.ts`, binds `TELEMETRY` to `SnapshotFeed` and exports it.
-- `MeridianSystems`, the aggregate in `src/meridian-systems.module.ts`, is global too. It imports `Simulation.forRoot(options)`, `Telemetry` and its ship systems, from `Engineering` to `Safety`, which the next sections describe. It binds `TICK_LOOP` with `FixedStepLoop` and `COMMAND_DESK` with `CommandDesk`, and exports both with `TELEMETRY`, `Engineering`, `LifeSupport` and `Safety`. The re-exports hand the root `REACTOR`, `POWER_ROUTER`, `SHIELD_GRID`, `ATMOSPHERE_PROBE`, `ATMOSPHERE_SENSOR`, `ATMOSPHERE_CONTROL`, `BLAST_DOORS`, `FIRE_SUPPRESSION` and `MASTER_ALARM`.
+- `MeridianSystems`, the aggregate in `src/meridian-systems.module.ts`, is global too. It imports `Simulation.forRoot({ seed, dt })`, `Telemetry` and its ship systems, from `Engineering` to `Tactical`, which the next sections describe. It binds `TICK_LOOP` with `FixedStepLoop` and `COMMAND_DESK` with `CommandDesk`, and exports both with `TELEMETRY`, `Engineering`, `LifeSupport`, `Safety`, the comms module and the tactical module. The re-exports hand the root `REACTOR`, `POWER_ROUTER`, `SHIELD_GRID`, `ATMOSPHERE_PROBE`, `ATMOSPHERE_SENSOR`, `ATMOSPHERE_CONTROL`, `BLAST_DOORS`, `FIRE_SUPPRESSION`, `MASTER_ALARM`, `COMMS_ARRAY` and `NAV_CHARTS`, and `SUBSPACE_LINK` on a ship with a relay.
 
-Each ship system contributes one `IShipSystem`, with a `name` and a `phase` from 1 to 6, to the multi token `SHIP_SYSTEMS`. `FixedStepLoop` takes them all with `all(SHIP_SYSTEMS)`. `all()` reads the binding module's own providers plus the exports of its imports and of the global modules. Each system module exports `SHIP_SYSTEMS`. A loop bound in `Simulation` would miss a system that a sibling module provides, so `TICK_LOOP` sits in the aggregate, which imports each system module. The command desk reads `all(COMMAND_HANDLERS)` for the same reason, so `COMMAND_DESK` sits beside it. Engineering's router reads `all(POWER_CONSUMERS)` inside `Engineering`, and LifeSupport's load reaches it through the global aggregate, which re-exports `LifeSupport`. Safety's physics reads LifeSupport's `ATMOSPHERE_PROBE` through the same re-export.
+Each ship system contributes one `IShipSystem`, with a `name` and a `phase` from 1 to 6, to the multi token `SHIP_SYSTEMS`. `FixedStepLoop` takes them all with `all(SHIP_SYSTEMS)`. `all()` reads the binding module's own providers plus the exports of its imports and of the global modules. Each system module but `Tactical` exports `SHIP_SYSTEMS`. A loop bound in `Simulation` would miss a system that a sibling module provides, so `TICK_LOOP` sits in the aggregate, which imports each system module. The command desk reads `all(COMMAND_HANDLERS)` for the same reason, so `COMMAND_DESK` sits beside it. Engineering's router reads `all(POWER_CONSUMERS)` inside `Engineering`, and LifeSupport's load reaches it through the global aggregate, which re-exports `LifeSupport`. Safety's physics reads LifeSupport's `ATMOSPHERE_PROBE` through the same re-export.
 
 The tokens follow the interface-first rule: each interface has a token named for its role, and the module binds a class to each service token with `useClass`. `src/index.ts` exports the tokens, their interfaces and the four error classes, and keeps the other classes internal. An app registers `PressureInterlock` with the interceptors plugin itself, so `@nexusdi/meridian-systems/interlock` exports that class.
 
-| Token                  | Interface            | Bound to                   | Bound in                   |
-| ---------------------- | -------------------- | -------------------------- | -------------------------- |
-| `SIM_OPTIONS`          | `SimOptions`         | the `forRoot()` value      | `Simulation`               |
-| `SIM_CLOCK`            | `ISimClock`          | `FixedStepClock`           | `Simulation`               |
-| `RNG`                  | `IRandomSource`      | `SeededRandom`             | `Simulation`               |
-| `SHIP_STATE`           | `IShipState`         | `ShipStateStore`           | `Simulation`               |
-| `DECK_PLAN`            | `DeckPlan`           | `deck/meridian.deck.json`  | `Simulation`               |
-| `TICK_LOOP`            | `ITickLoop`          | `FixedStepLoop`            | `MeridianSystems`          |
-| `COMMAND_DESK`         | `ICommandDesk`       | `CommandDesk`              | `MeridianSystems`          |
-| `TELEMETRY`            | `ITelemetryFeed`     | `SnapshotFeed`             | `Telemetry`                |
-| `SHIP_SYSTEMS`         | `IShipSystem`        | one class per system       | each system module         |
-| `COMMAND_HANDLERS`     | `ICommandHandler`    | one class per system       | each system module         |
-| `REACTOR`              | `IReactorCore`       | `FusionReactor`            | `Engineering`              |
-| `COOLANT_LOOP`         | `ICoolantLoop`       | `RadiatorLoop`             | `Engineering`, private     |
-| `POWER_ROUTER`         | `IPowerRouter`       | `PlasmaRouter`             | `Engineering`              |
-| `SHIELD_GRID`          | `IShieldGrid`        | `DeflectorGrid`            | `Engineering`              |
-| `POWER_CONSUMERS`      | `IPowerConsumer`     | one class per system       | each system module         |
-| `COMPARTMENT`          | `CompartmentId`      | `compartmentOfRequest`     | `Simulation`, scoped       |
-| `LIFE_SUPPORT_OPTIONS` | `LifeSupportOptions` | the `forRootAsync()` value | `LifeSupport`              |
-| `ATMOSPHERE_PROBE`     | `IAtmosphereProbe`   | `CalibratedProbe`          | `LifeSupport`              |
-| `ATMOSPHERE_SENSOR`    | `IAtmosphereSensor`  | `GasAnalyzer`              | `LifeSupport`, transient   |
-| `ATMOSPHERE_CONTROL`   | `IAtmosphereControl` | `EnvironmentalController`  | `LifeSupport`              |
-| `BLAST_DOORS`          | `IBlastDoors`        | `BlastDoorControl`         | `Safety`                   |
-| `FIRE_SUPPRESSION`     | `IFireSuppression`   | `InertGasSuppression`      | `Safety`                   |
-| `MASTER_ALARM`         | `IMasterAlarm`       | `MasterAlarm`              | `Safety`                   |
-| `ALARM_SINKS`          | `IAlarmSink`         | one class per sink         | a global module of the app |
+| Token                  | Interface            | Bound to                   | Bound in                      |
+| ---------------------- | -------------------- | -------------------------- | ----------------------------- |
+| `SIM_OPTIONS`          | `SimOptions`         | the `forRoot()` value      | `Simulation`                  |
+| `SIM_CLOCK`            | `ISimClock`          | `FixedStepClock`           | `Simulation`                  |
+| `RNG`                  | `IRandomSource`      | `SeededRandom`             | `Simulation`                  |
+| `SHIP_STATE`           | `IShipState`         | `ShipStateStore`           | `Simulation`                  |
+| `DECK_PLAN`            | `DeckPlan`           | `deck/meridian.deck.json`  | `Simulation`                  |
+| `TICK_LOOP`            | `ITickLoop`          | `FixedStepLoop`            | `MeridianSystems`             |
+| `COMMAND_DESK`         | `ICommandDesk`       | `CommandDesk`              | `MeridianSystems`             |
+| `TELEMETRY`            | `ITelemetryFeed`     | `SnapshotFeed`             | `Telemetry`                   |
+| `SHIP_SYSTEMS`         | `IShipSystem`        | one class per system       | each system module            |
+| `COMMAND_HANDLERS`     | `ICommandHandler`    | one class per system       | each system module            |
+| `REACTOR`              | `IReactorCore`       | `FusionReactor`            | `Engineering`                 |
+| `COOLANT_LOOP`         | `ICoolantLoop`       | `RadiatorLoop`             | `Engineering`, private        |
+| `POWER_ROUTER`         | `IPowerRouter`       | `PlasmaRouter`             | `Engineering`                 |
+| `SHIELD_GRID`          | `IShieldGrid`        | `DeflectorGrid`            | `Engineering`                 |
+| `POWER_CONSUMERS`      | `IPowerConsumer`     | one class per system       | each system module            |
+| `COMPARTMENT`          | `CompartmentId`      | `compartmentOfRequest`     | `Simulation`, scoped          |
+| `LIFE_SUPPORT_OPTIONS` | `LifeSupportOptions` | the `forRootAsync()` value | `LifeSupport`                 |
+| `ATMOSPHERE_PROBE`     | `IAtmosphereProbe`   | `CalibratedProbe`          | `LifeSupport`                 |
+| `ATMOSPHERE_SENSOR`    | `IAtmosphereSensor`  | `GasAnalyzer`              | `LifeSupport`, transient      |
+| `ATMOSPHERE_CONTROL`   | `IAtmosphereControl` | `EnvironmentalController`  | `LifeSupport`                 |
+| `BLAST_DOORS`          | `IBlastDoors`        | `BlastDoorControl`         | `Safety`                      |
+| `FIRE_SUPPRESSION`     | `IFireSuppression`   | `InertGasSuppression`      | `Safety`                      |
+| `MASTER_ALARM`         | `IMasterAlarm`       | `MasterAlarm`              | `Safety`                      |
+| `ALARM_SINKS`          | `IAlarmSink`         | one class per sink         | a global module of the app    |
+| `COMMS_OPTIONS`        | `CommsOptions`       | the `forRoot()` value      | `Comms`                       |
+| `SUBSPACE_LINK`        | `ISubspaceLink`      | `SubspaceRelay`            | `Comms`                       |
+| `COMMS_ARRAY`          | `ICommsArray`        | `PhasedArray`              | `Comms`, `OfflineComms`       |
+| `NAV_CHARTS`           | `INavCharts`         | `StarCharts`               | `Tactical`, `OfflineTactical` |
 
 ## Engineering
 
@@ -75,7 +79,7 @@ The router and the grid read each other. The router lists the grid's draw on eve
 
 `COMMAND_DESK.submit(body)` takes a crew command, `{ system, action, ...args }`, and returns `{ tick }`, the tick that applies it. `CommandDesk` takes `all(COMMAND_HANDLERS)`, and each `ICommandHandler` names the `system` it serves, so a new system adds its commands with one contribution and no edit to the desk. Two handlers that serve one system make the desk's constructor throw.
 
-The desk checks the envelope: `body` must be an object with a string `system` and a string `action`. It hands the command to the handler of that system. A bad envelope or an unknown system throws `BadCommandError`, and the error's `expected` lists the systems the desk serves. The aggregate's desk reads `engineering, life-support and safety`.
+The desk checks the envelope: `body` must be an object with a string `system` and a string `action`. It hands the command to the handler of that system. A bad envelope or an unknown system throws `BadCommandError`, and the error's `expected` lists the systems the desk serves. The aggregate's desk reads `comms, engineering, life-support and safety`.
 
 `EngineeringCommands` serves `engineering` and takes two actions:
 
@@ -304,13 +308,73 @@ The airlock drill cycles the airlock under the interlock with the commands life 
 
 The command log holds five entries, at ticks 1, 289, 318, 338 and 447. The drill raises no alarm in any room. The habitat falls at 184.6 Pa/s at worst, against the 2,000 Pa/s that raises `DECOMPRESSION`, and the airlock has no occupant. `test/safety.test.ts` covers the decompression law for a ship that skips the interlock.
 
+## Comms
+
+A ship far from the fleet may or may not hold a link to the fleet's relay. A server that starts the ship offline, such as a Worker that builds its graph at module scope or a test with no network, must still start and take a hail. The phased array's class therefore asks for its link with `optional(SUBSPACE_LINK)`: a graph that binds the link gives the array one, and a graph that binds none gives it `undefined`. Which graph the ship gets is a choice of module, and `Comms.forRoot` configures the one that links.
+
+### The Modules and Their Tokens
+
+`Comms`, in `src/systems/comms/comms.module.ts`, is a configured module. `Comms.forRoot({ frequency, transport: 'relay', relayUrl })` binds `COMMS_OPTIONS`, and the module binds the link and the array and makes three contributions:
+
+```text
+SUBSPACE_LINK     SubspaceRelay   deps [COMMS_OPTIONS]
+COMMS_ARRAY       PhasedArray     deps [SHIP_STATE, optional(SUBSPACE_LINK)]
+SHIP_SYSTEMS      CommsPhysics    deps [COMMS_ARRAY]
+POWER_CONSUMERS   CommsPower      deps [COMMS_ARRAY]
+COMMAND_HANDLERS  CommsCommands   deps [COMMS_ARRAY]
+```
+
+It exports all five tokens. `OfflineComms`, in the same file, binds the array and the three contributions with no link and no options. No module of that graph binds `SUBSPACE_LINK`, so `PhasedArray` reads `undefined`, and its `linked` flag is false for the life of the ship. A configured module's providers are static, so one module cannot drop the link when the options are missing, and the two modules split the choice.
+
+`SubspaceRelay` calls `fetch` for `<relayUrl>/charts?frequency=1420` and rejects a response that is not ok. It is the one file under `src/` that calls `fetch`, and the library's ESLint config refuses the global in every other file. A tick does no I/O: `PhasedArray` reads whether the link exists at construction, and no tick calls the link.
+
+### Tactical and the Charts
+
+The helm plots courses from `NAV_CHARTS`, an `INavCharts` whose `plot(to)` answers `{ to, heading }`, with heading 0 for a star the charts lack. `Tactical`, in `src/systems/tactical/tactical.module.ts`, binds `NAV_CHARTS` with an async factory that takes `SUBSPACE_LINK` and runs `StarCharts.download(link)`, which receives the relay's `charts` channel. The container awaits the download one level after it builds the link. `Tactical` imports no link of its own. It reads the one `Comms` exports, so it builds only beside `Comms`. `OfflineTactical` binds `NAV_CHARTS` to a `StarCharts` over `BUNDLED_CHARTS`, the table in `deck/charts.json` that the library exports, and does no I/O. On the offline ship, and on a relay that serves the bundled table, `NAV_CHARTS.plot('Kepler-442b')` answers heading 42.
+
+### The Ship With and Without a Relay
+
+`meridianSystems({ seed, dt, relayUrl })` imports `Comms.forRoot({ frequency: 1420, transport: 'relay', relayUrl })` and `Tactical`. Without `relayUrl` it imports `OfflineComms` and `OfflineTactical`. The aggregate re-exports whichever pair it imported, so the root reads `COMMS_ARRAY` and `NAV_CHARTS` on both ships, and `SUBSPACE_LINK` on the linked one. `bridge-api` builds its `Meridian` root with a relay and its `OfflineMeridian` root without one.
+
+### The Hail
+
+`CommsCommands` serves `comms` and takes one action, with no argument:
+
+```json
+{ "system": "comms", "action": "hail" }
+```
+
+The command queues `{ comms: { hail: true } }` through `ICommsArray.hail()` and answers the tick that applies it. Any other action, such as `send`, throws `BadCommandError` with `reason: 'action'`, `expected: 'hail with no arguments'` and the message "comms has no action 'send'. It takes hail with no arguments."
+
+`CommsPhysics` steps the array in phase 6 through `stepComms`. The snapshot carries `comms`, the record, and `setpoints.comms`, the flag, both after `lifeSupport`:
+
+- `comms.status` is `standby`, `no subspace link`, `no power` or `awaiting reply`.
+- `comms.sent` is the tick of the last send, or null before the first.
+- `comms.messages` holds the newest 10 messages, oldest first, each `{ tick, from, text }`.
+- `setpoints.comms.hail` is true while a hail waits. At tick 0 the record is `{ status: 'standby', sent: null, messages: [] }` and the flag is false.
+
+A hail waits while the array cannot send it, and the status says why. Without the link it waits under `no subspace link`. When the router shed the comms load it waits under `no power`. While a reply is outstanding it waits under `awaiting reply`, and it goes out on the tick after the reply. With the link, the power and no reply outstanding, the array sends on that tick: the record reads `awaiting reply` with `sent` at the tick, and the flag clears.
+
+The relay answers `fleet traffic control: sector clear` 2 s after the send. That is 4 ticks at `dt` 0.5, so a hail sent at tick 10 is still `awaiting reply` at tick 13 and back to `standby` at tick 14, and at `dt` 1 the reply comes 2 ticks after the send. No call goes to the relay for the reply, since the simulation models the traffic.
+
+`CommsPower` asks the router for 5 MW at priority 3 on each tick a hail waits on a linked array with no reply outstanding, and 0 W otherwise, with heat share 0. The load reads the snapshot at the start of the tick, as `stepComms` does, so the router allocates the power on the tick that sends. The router sheds the load when the reactor gives no power. The router lists `comms` in `power.shed`, and Safety raises `LOAD_SHED` for subject `comms` while the hail waits under `no power`.
+
+Four scenarios from `test/comms.test.ts` fix the figures, each on seed 7 and `dt` 0.5:
+
+- A hail at tick 0 with the reactor at throttle 0.01 goes out at tick 1. The load asks and gets 5,000,000 W of the reactor's 12,100,000 W, ticks 2 to 4 ask 0 W, and tick 5 reads `standby` with `{ tick: 5, from: 'fleet traffic control', text: 'sector clear' }`.
+- A hail at tick 0 on a cold reactor reads `no power` for ticks 1 to 3, with the load asking 5,000,000 W, getting 0 W and the alarm `LOAD_SHED` on `comms`. A throttle queued after tick 3 applies at tick 4, the array sends at tick 4 and the reply comes at tick 8.
+- A second hail queued after tick 2 applies at tick 3 and waits. Ticks 3 and 4 read `awaiting reply` with the flag true and 0 W. The reply comes at tick 5, the array sends again at tick 6 with 5,000,000 W, and tick 10 reads `standby` with messages at ticks 5 and 10. The command log holds ticks 1 and 3.
+- Eleven hails five ticks apart leave 10 messages at tick 55, the oldest from tick 10 and the newest from tick 55, with `sent` at 51.
+
+The offline ship takes a hail at tick 1 and a second at tick 21. At ticks 1, 20 and 600 it reads `no subspace link` with the flag true, no message, no alarm, nothing shed and the load at `{ id: 'comms', priority: 3, demand: 0, allocated: 0 }`.
+
 ## How a Tick Runs
 
 `TICK_LOOP.advance(ticks)` runs the ship forward. For each tick, the loop first calls `SHIP_STATE.applyQueued(tick)`, which applies the queued setpoint changes. It then calls every system's `step()` in ascending phase, and in name order within a phase, each on the snapshot the previous system returned. Each step also gets a `TickContext` with the tick, `dt`, the system's fork and `start`, the snapshot `applyQueued` returned before any system stepped. It then advances the clock, commits the result to `SHIP_STATE` and calls the tick listeners with the committed snapshot.
 
 - `FixedStepClock` derives the time from the tick, so 600 ticks of 0.5 s read exactly 300 s.
 - `SeededRandom` is splitmix32 over the seed. The loop hands each system its own `RNG.fork(name)`, so a new system leaves the numbers an older system draws unchanged.
-- `ShipStateStore` starts at tick 0 with the deck's four compartments (`bridge`, `habitat`, `reactor-bay`, `airlock`) filled with air at 293 K and 101.3 kPa, the reactor at level 0 with throttle 0, the coolant at 500 K, the 0 W life-support load and the lowered shields, life support offline, every door shut and no fire. It throws a plain `Error` for a deck whose `equipment` lists an unknown device or one device twice, a pump with no `pumpReservoir` or a `pumpReservoir` with no pump, or a reservoir that is unknown or the pump's own room. It also throws for a door the deck lists twice or `DOOR_IDS` lacks, a door of `DOOR_IDS` the deck lacks, a door whose `between` does not hold two distinct sides, each a compartment or `space`, and a `floodCharge` that is not a positive finite number.
+- `ShipStateStore` starts at tick 0 with the deck's four compartments (`bridge`, `habitat`, `reactor-bay`, `airlock`) filled with air at 293 K and 101.3 kPa, the reactor at level 0 with throttle 0, the coolant at 500 K, the 0 W life-support and comms loads and the lowered shields, life support offline, every door shut, no fire and the phased array on standby with no hail queued. It throws a plain `Error` for a deck whose `equipment` lists an unknown device or one device twice, a pump with no `pumpReservoir` or a `pumpReservoir` with no pump, or a reservoir that is unknown or the pump's own room. It also throws for a door the deck lists twice or `DOOR_IDS` lacks, a door of `DOOR_IDS` the deck lacks, a door whose `between` does not hold two distinct sides, each a compartment or `space`, and a `floodCharge` that is not a positive finite number.
 - `roundSnapshot(ship)` rounds every fraction to four significant digits and keeps integers exact. The golden prints snapshots in that form.
 - `readShip(ship, deck)` returns a `ShipReading`: the snapshot with each compartment's `pressure` in pascals, from the moles of every gas, the temperature and the compartment's volume in the deck plan. It rounds the result once, as `roundSnapshot` does. The `bridge-api` routes and the telemetry frames send this reading, so the habitat reads 101.3 kPa at tick 0.
 
@@ -347,10 +411,11 @@ The classes delegate the arithmetic to pure functions in `src/physics/`, which i
 - `safety.ts` holds the alarm and safety types and `stepSafety`, with the deadband limits as a module constant.
 - `constants.ts` holds `R`, `σ`, `T_hull`, `κ` and the molar heat capacities `CV`.
 - `thermal.ts` holds the reactor and coolant ratings and records, `stepReactor`, `louvre`, `stepCoolant` and `tripped`.
+- `comms.ts` holds the record and setpoint types, `COMMS_LOAD`, `RELAY_ROUND_TRIP`, `MESSAGES_KEPT`, `commsDemand` and `stepComms`.
 - `power.ts` holds `PowerLoad`, the power record, `allocatePower` and `loadHeat`.
 - `rng.ts` holds `splitmix32` and `fnv1a32`, which `SeededRandom` uses for its streams and its forks.
 
-The library's ESLint config keeps the simulation reproducible. A file under `src/` imports relative paths and `@nexusdi/core` alone, and `@nexusdi/interceptors` with `import type` alone (a test file may also import `vitest` and `@nexusdi/errors`), never names the clocks, the timers, `crypto`, `process`, `Intl`, `eval` or the global object, and reads `Math` only as `Math.name` and never `Math.random`, so `nx lint` fails on `node:crypto` or `const { now } = Date` as well as on `Date.now()`. `@typescript-eslint/no-import-type-side-effects` refuses `import { type Interceptor }`, which keeps a bare import of the package at runtime. `tools/repo-checks/src/meridian-purity.test.ts` checks that the config holds those rules. It also fails when a file under `src/physics/` imports `@nexusdi/`, and when a `*.module.ts` file grows past 120 lines.
+The library's ESLint config keeps the simulation reproducible. A file under `src/` imports relative paths and `@nexusdi/core` alone, and `@nexusdi/interceptors` with `import type` alone (a test file may also import `vitest` and `@nexusdi/errors`), never names the clocks, the timers, `crypto`, `process`, `Intl`, `eval` or the global object, and outside `src/systems/comms/subspace-relay.ts` never calls `fetch`, and reads `Math` only as `Math.name` and never `Math.random`, so `nx lint` fails on `node:crypto` or `const { now } = Date` as well as on `Date.now()`. `@typescript-eslint/no-import-type-side-effects` refuses `import { type Interceptor }`, which keeps a bare import of the package at runtime. `tools/repo-checks/src/meridian-purity.test.ts` checks that the config holds those rules. It also fails when a file under `src/physics/` imports `@nexusdi/`, and when a `*.module.ts` file grows past 120 lines.
 
 ## The Errors the Ship Raises
 
@@ -440,8 +505,8 @@ npx nx test @nexusdi/meridian-systems
 npx nx run @nexusdi/meridian-systems:e2e-growth
 ```
 
-- `test` runs the unit tests beside the files in `src/` and the module tests in `test/`. `test/simulation.test.ts` builds `ShipUnderTest` on `@nexusdi/vitest` fixtures with probe systems and the `Telemetry` module, and asserts rounded idle values after 600 ticks that hold on any Node. `test/telemetry.test.ts` reads the feed's frames, and `test/notes.test.ts` reads the ship notes through `inspect()` from `@nexusdi/devtools`. `test/engineering.test.ts` builds `meridianSystems({ seed: 7, dt: 0.5 })` and checks five things on it: that `Nexus.check` passes, the budget case above through `COMMAND_DESK`, the idle ship after 600 ticks, the `NEXUS_NOT_VISIBLE` of `COOLANT_LOOP` and the scram. `test/life-support.test.ts` builds the same ship and reads the sensor in a scope, a `MERIDIAN_UNKNOWN_COMPARTMENT` for `galley`, two ticks from two `get()` calls, the shed at throttle 0, the airlock pump-down and its stall, the refused heater in the airlock and pump in the habitat, and the habitat at 292.6 K after an hour. `test/safety.test.ts` builds the same ship and checks that `Nexus.check` passes and that the root reads the Safety tokens and the probe. A door command answers through the desk. With the interlock registered, the outer door refuses at tick 0 with a difference of 101,300 Pa, and `bridge-habitat` opens. The file also runs the decompression of the two airlock doors and a fire in a habitat at 340 K that a flood puts out. Its last case floods out a drill fire, after which a second drill in the flooded habitat lights nothing. `test/airlock.test.ts` builds the same ship with the interlock registered and runs the airlock drill above. It asserts each answer of the interlock (the refusals of the outer door at 9,089 Pa and 5,072 Pa, and of the inner door at 101,339, 110,413, 109,401 and 5,915 Pa), the ticks the accepted commands apply on, the inner door open at tick 466 with 132.5 Pa across it, no alarm on any tick from 1 to 466, and the log's five ticks.
-- `e2e-growth` runs `e2e/idle.e2e.ts`, which compares seed 7 at ticks 0, 1 and 600 with `e2e/golden/idle.seed-7.json`, engineering and life-support records included. `e2e/life-support.e2e.ts` queues a throttle of 0.01 and `online` at tick 0 and compares ticks 1, 600 and 7,200 with `e2e/golden/life-support.seed-7.json`. Both goldens hold the safety records too. `e2e/safety.e2e.ts` runs with no plugin: it evacuates the airlock from tick 0, fills it from tick 120, opens `habitat-airlock` for tick 190 with the pump off, and compares ticks 120, 190 and 209 with `e2e/golden/safety.seed-7.json`. `e2e/airlock.e2e.ts` replays the accepted commands of the airlock drill on a ship that registers the interlock, and compares ticks 288, 317, 337, 446 and 466 with `e2e/golden/airlock.seed-7.json`. Its step table holds no refused open, so the golden reads the same ship as `test/airlock.test.ts`, which also sends the refused opens, and a command the interlock refused would throw and fail the case. The suite runs only on the Node version `.nvmrc` names, and stops with both versions in the message on any other. `npx nx run @nexusdi/meridian-systems:e2e-growth -- -u` rewrites the goldens. Review its diff as you review a change to `graph.json`. Under `CI`, Vitest writes no snapshot, so a missing golden fails.
+- `test` runs the unit tests beside the files in `src/` and the module tests in `test/`. `test/simulation.test.ts` builds `ShipUnderTest` on `@nexusdi/vitest` fixtures with probe systems and the `Telemetry` module, and asserts rounded idle values after 600 ticks that hold on any Node. `test/telemetry.test.ts` reads the feed's frames, and `test/notes.test.ts` reads the ship notes through `inspect()` from `@nexusdi/devtools`. `test/engineering.test.ts` builds `meridianSystems({ seed: 7, dt: 0.5 })` and checks five things on it: that `Nexus.check` passes, the budget case above through `COMMAND_DESK`, the idle ship after 600 ticks, the `NEXUS_NOT_VISIBLE` of `COOLANT_LOOP` and the scram. `test/life-support.test.ts` builds the same ship and reads the sensor in a scope, a `MERIDIAN_UNKNOWN_COMPARTMENT` for `galley`, two ticks from two `get()` calls, the shed at throttle 0, the airlock pump-down and its stall, the refused heater in the airlock and pump in the habitat, and the habitat at 292.6 K after an hour. `test/safety.test.ts` builds the same ship and checks that `Nexus.check` passes and that the root reads the Safety tokens and the probe. A door command answers through the desk. With the interlock registered, the outer door refuses at tick 0 with a difference of 101,300 Pa, and `bridge-habitat` opens. The file also runs the decompression of the two airlock doors and a fire in a habitat at 340 K that a flood puts out. Its last case floods out a drill fire, after which a second drill in the flooded habitat lights nothing. `test/airlock.test.ts` builds the same ship with the interlock registered and runs the airlock drill above. It asserts each answer of the interlock (the refusals of the outer door at 9,089 Pa and 5,072 Pa, and of the inner door at 101,339, 110,413, 109,401 and 5,915 Pa), the ticks the accepted commands apply on, the inner door open at tick 466 with 132.5 Pa across it, no alarm on any tick from 1 to 466, and the log's five ticks. `test/comms.test.ts` builds the offline ship and the relay graph, and `src/physics/comms.test.ts` steps the array alone. The offline cases pass `Nexus.check`, plot Kepler-442b at heading 42 over the bundled charts, keep a hail queued under `no subspace link` at 0 W with no alarm, refuse `comms send` and read `comms, engineering, life-support and safety` from the desk. The relay cases fetch `https://relay.test/charts?frequency=1420` once at build and never during 10 ticks, and run the four scenarios of the Comms section.
+- `e2e-growth` runs `e2e/idle.e2e.ts`, which compares seed 7 at ticks 0, 1 and 600 with `e2e/golden/idle.seed-7.json`, engineering and life-support records included. `e2e/life-support.e2e.ts` queues a throttle of 0.01 and `online` at tick 0 and compares ticks 1, 600 and 7,200 with `e2e/golden/life-support.seed-7.json`. Both goldens hold the safety and comms records too. `e2e/comms.e2e.ts` builds the relay graph with `relayUrl: 'https://relay.test'` and a stubbed `fetch`, queues a throttle of 0.01, `online` and a hail at tick 0, and compares ticks 1, 5 and 600 with `e2e/golden/comms.seed-7.json`, 494 lines. With the comms records stripped, its ticks 1 and 600 equal the life-support golden's. `e2e/safety.e2e.ts` runs with no plugin: it evacuates the airlock from tick 0, fills it from tick 120, opens `habitat-airlock` for tick 190 with the pump off, and compares ticks 120, 190 and 209 with `e2e/golden/safety.seed-7.json`. `e2e/airlock.e2e.ts` replays the accepted commands of the airlock drill on a ship that registers the interlock, and compares ticks 288, 317, 337, 446 and 466 with `e2e/golden/airlock.seed-7.json`. Its step table holds no refused open, so the golden reads the same ship as `test/airlock.test.ts`, which also sends the refused opens, and a command the interlock refused would throw and fail the case. The suite runs only on the Node version `.nvmrc` names, and stops with both versions in the message on any other. `npx nx run @nexusdi/meridian-systems:e2e-growth -- -u` rewrites the goldens. Review its diff as you review a change to `graph.json`. Under `CI`, Vitest writes no snapshot, so a missing golden fails.
 
 The non-required `demo-growth` CI job runs the `e2e-growth` targets of the three demo projects: `meridian-systems`, `bridge-api` and `bridge-console` (ship systems spec, section 14).
 
