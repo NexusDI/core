@@ -1,4 +1,7 @@
 import type {
+  Alarm,
+  IAlarmSink,
+  IAtmosphereProbe,
   IAtmosphereSensor,
   ITelemetryFeed,
   ShipReading,
@@ -44,5 +47,30 @@ export class RecordingFeed implements ITelemetryFeed {
 export class FailingSensor implements IAtmosphereSensor {
   read(): never {
     throw new Error('the analyzer failed');
+  }
+}
+
+/** A probe whose read() throws a plain Error, so Safety raises SENSOR_FAULT. */
+export class FailingProbe implements IAtmosphereProbe {
+  read(): never {
+    throw new Error('the probe failed');
+  }
+}
+
+/** One call a sink heard from MasterAlarm. */
+export interface HeardAlarm {
+  readonly call: 'raise' | 'clear';
+  readonly alarm: Alarm;
+  readonly tick: number;
+}
+
+/** Keeps every raise and clear it hears, in order. */
+export class MemoryAlarmSink implements IAlarmSink {
+  readonly heard: HeardAlarm[] = [];
+  raise(alarm: Alarm, tick: number) {
+    this.heard.push({ call: 'raise', alarm, tick });
+  }
+  clear(alarm: Alarm, tick: number) {
+    this.heard.push({ call: 'clear', alarm, tick });
   }
 }

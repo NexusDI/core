@@ -1,3 +1,4 @@
+export { AlarmPanel } from './alarm-panel.module';
 export { AUDIT_LOG, AuditTrail, type IAuditLog } from './audit-trail.module';
 export { BridgeApi } from './bridge-api.module';
 export { Comms } from './comms.module';
