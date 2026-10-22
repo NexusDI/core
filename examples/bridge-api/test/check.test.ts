@@ -66,6 +66,7 @@ describe('the bridge API graph', () => {
     expect(notes['TickLoop']).toEqual(['system: MeridianSystems']);
     expect(notes['ShipState']).toEqual(['system: Simulation']);
     expect(notes['TelemetryFeed']).toEqual(['system: Telemetry']);
+    expect(notes['ShipSystems']).toEqual(['system: Engineering', 'phase: 1']);
 
     const bridgeModules = [
       'BridgeApi',
