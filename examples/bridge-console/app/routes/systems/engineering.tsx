@@ -38,16 +38,26 @@ export const loader: (args: Route.LoaderArgs) => Promise<ShipReading | null> =
     link.snapshot().catch(() => null),
   );
 
-const megawatts = (watts: number) => `${watts / 1e6} MW`;
+/**
+ * `value` with `digits` decimals and a comma between each group of three
+ * integer digits. The ship sends raw floats, such as 0.18000000000000002.
+ */
+function fixed(value: number, digits: number): string {
+  const [whole = '', fraction] = value.toFixed(digits).split('.');
+  const grouped = whole.replace(/\B(?=(\d{3})+$)/g, ',');
+  return fraction === undefined ? grouped : `${grouped}.${fraction}`;
+}
+
+const megawatts = (watts: number) => `${fixed(watts / 1e6, 1)} MW`;
 
 /** The reactor level, its electric output, the coolant and the shields' power. */
 function Gauges({ ship }: { ship: ShipReading | null }) {
   if (ship === null) return <p>Gauges offline</p>;
   const shields = ship.power.loads.find((load) => load.id === 'shields');
   const gauges = [
-    ['Reactor level', String(ship.reactor.level)],
+    ['Reactor level', fixed(ship.reactor.level, 2)],
     ['Electric output', megawatts(ship.reactor.electric)],
-    ['Coolant', `${ship.coolant.temperature} K`],
+    ['Coolant', `${fixed(ship.coolant.temperature, 1)} K`],
     ['Shields', megawatts(shields?.allocated ?? 0)],
   ];
   return (
