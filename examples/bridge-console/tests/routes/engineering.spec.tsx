@@ -2,20 +2,25 @@ import { afterAll, describe, expect, test as base, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub, RouterContextProvider } from 'react-router';
 import type { Nexus, Scope } from '@nexusdi/core';
+import type { ShipReading } from '@nexusdi/meridian-systems';
 import { existingScope, NEXUS_SCOPE } from '@nexusdi/react-router';
 import { nexusTest } from '@nexusdi/vitest';
 
 import { BRIDGE_LINK } from '../../app/bridge/bridge-link';
 import { BridgeConsole } from '../../app/bridge/bridge-console';
-import { fakeBridgeLink } from '../doubles';
+import { FakeBridgeLink, fakeBridgeLink, shipAtStart } from '../doubles';
 import { built } from '../support/testing-di';
+import { scopeWith } from './scope-with';
 
 vi.mock('../../app/nexus.server', async () =>
   (await import('../support/testing-di')).shipServer(),
 );
 
-const { default: Engineering, action } =
-  await import('../../app/routes/systems/engineering');
+const {
+  default: Engineering,
+  action,
+  loader,
+} = await import('../../app/routes/systems/engineering');
 
 afterAll(() => Promise.all(built.map((ship) => ship[Symbol.asyncDispose]())));
 
@@ -29,19 +34,23 @@ const scopeOf = (ship: Nexus) =>
     request: { mission: { id: 'survey-7', target: 'Kepler-442b' } },
   });
 
-/** Renders the page with its action in `scope`, as React Router runs it. */
-function renderPage(scope: Scope) {
+/**
+ * Renders the page with its loader and action in `scope`, as React Router
+ * runs them, and waits for the loader's data.
+ */
+async function renderPage(scope: Scope) {
   const Stub = createRoutesStub(
-    [{ path: '/systems/engineering', Component: Engineering, action }],
+    [{ path: '/systems/engineering', Component: Engineering, action, loader }],
     new RouterContextProvider(new Map([[NEXUS_SCOPE, existingScope(scope)]])),
   );
   render(<Stub initialEntries={['/systems/engineering']} />);
+  await screen.findByRole('button', { name: 'Set throttle' });
 }
 
 describe('the engineering route', () => {
   test('renders the throttle and shields forms', async ({ nexus }) => {
     await using scope = await scopeOf(nexus);
-    renderPage(scope);
+    await renderPage(scope);
     expect(screen.getByLabelText('Throttle')).toBeDefined();
     expect(screen.getByRole('button', { name: 'Set throttle' })).toBeDefined();
     expect(screen.getByRole('button', { name: 'Raise shields' })).toBeDefined();
@@ -50,7 +59,7 @@ describe('the engineering route', () => {
 
   test('shows the tick that applies a throttle', async ({ nexus }) => {
     await using scope = await scopeOf(nexus);
-    renderPage(scope);
+    await renderPage(scope);
     fireEvent.click(screen.getByRole('button', { name: 'Set throttle' }));
     expect((await screen.findByRole('status')).textContent).toBe(
       'Queued for tick 1',
@@ -61,7 +70,7 @@ describe('the engineering route', () => {
     nexus,
   }) => {
     await using scope = await scopeOf(nexus);
-    renderPage(scope);
+    await renderPage(scope);
     fireEvent.click(screen.getByRole('button', { name: 'Raise shields' }));
     expect(
       await screen.findByText(
@@ -123,5 +132,63 @@ describe('the engineering route', () => {
       system: 'engineering',
       action: 'vent',
     });
+  });
+});
+
+/** The text of each gauge on the page, in order. */
+async function gauges() {
+  const list = await screen.findByLabelText('Engineering gauges');
+  return [...list.querySelectorAll('dd')].map((dd) => dd.textContent);
+}
+
+describe('the engineering gauges', () => {
+  test('read the idle reactor at tick 0', async ({ nexus }) => {
+    await using scope = await scopeOf(nexus);
+    await renderPage(scope);
+    expect(await gauges()).toEqual(['0', '0 MW', '500 K', '0 MW']);
+  });
+
+  test('read the reactor, the coolant and the shields from the snapshot', async () => {
+    // Tick 17 after a throttle of 1, with the shields raised.
+    const busy: ShipReading = {
+      ...shipAtStart,
+      tick: 17,
+      time: 8.5,
+      reactor: {
+        level: 0.17,
+        thermal: 617.1e6,
+        electric: 205.7e6,
+        tripped: false,
+      },
+      coolant: { temperature: 512.3 },
+      power: {
+        output: 205.7e6,
+        loads: [
+          { id: 'shields', priority: 2, demand: 200e6, allocated: 200e6 },
+        ],
+        shed: [],
+      },
+      setpoints: { reactor: { throttle: 1 }, shields: { raised: true } },
+    };
+    class BusyLink extends FakeBridgeLink {
+      override async snapshot() {
+        return busy;
+      }
+    }
+    await using scope = await scopeWith(BusyLink, built);
+    await renderPage(scope);
+    expect(await gauges()).toEqual(['0.17', '205.7 MW', '512.3 K', '200 MW']);
+  });
+
+  test('say they are offline when the backend fails, and keep the forms', async () => {
+    class DownLink extends FakeBridgeLink {
+      override async snapshot(): Promise<ShipReading> {
+        throw new Error('bridge-api answered 503 for /sim');
+      }
+    }
+    await using scope = await scopeWith(DownLink, built);
+    await renderPage(scope);
+    expect(await screen.findByText('Gauges offline')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Set throttle' })).toBeDefined();
   });
 });

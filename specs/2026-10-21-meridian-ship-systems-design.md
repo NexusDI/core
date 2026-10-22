@@ -893,14 +893,14 @@ and the gating legs keep their current routes.
 The console's server calls `bridge-api` over HTTP, and the browser calls the console only
 (demo spec 6.3).
 
-| Route                                             | What it shows                                                                                   | When      |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------- | --------- |
-| `/`, `/sectors/:sector`, `/course/:to`, `/charts` | the demo plan's routes                                                                          | 0.4       |
-| `/telemetry`                                      | a resource route that relays `bridge-api`'s SSE with `no-transform`; 503 when the backend fails | G0b       |
-| `/systems/engineering`                            | a static route with the throttle and shields forms, and the answer to the last command          | G1        |
-| `/systems/engineering` action                     | posts the command through `BRIDGE_LINK`; a 400 or a 409 renders the text and the fix            | G1        |
-| `/systems/:system`                                | one `lazySection` per system in `SectionBoundary`: gauges and a command form                    | after G0b |
-| `/diagnostics`                                    | `graph(ship)` from `GET /graph`, each module with its providers and their notes                 | G0b       |
+| Route                                             | What it shows                                                                                                         | When      |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------- |
+| `/`, `/sectors/:sector`, `/course/:to`, `/charts` | the demo plan's routes                                                                                                | 0.4       |
+| `/telemetry`                                      | a resource route that relays `bridge-api`'s SSE with `no-transform`; 503 when the backend fails                       | G0b       |
+| `/systems/engineering`                            | a static route with four gauges from `snapshot()`, the throttle and shields forms, and the answer to the last command | G1        |
+| `/systems/engineering` action                     | posts the command through `BRIDGE_LINK`; a 400 or a 409 renders the text and the fix                                  | G1        |
+| `/systems/:system`                                | one `lazySection` per system in `SectionBoundary`: gauges and a command form                                          | after G0b |
+| `/diagnostics`                                    | `graph(ship)` from `GET /graph`, each module with its providers and their notes                                       | G0b       |
 
 `BRIDGE_LINK` gains three methods in G0b: `snapshot(): Promise<ShipReading>` (`GET /sim`),
 `telemetry(): Promise<ReadableStream<Uint8Array>>` (the body of `GET /telemetry`, with the
@@ -908,8 +908,9 @@ request's signal as `course()` sends it, so it takes no parameter) and
 `graph(): Promise<NexusGraph | null>` (`GET /graph`, null on 404). It gains `command(cmd)`
 in G1 with `POST /commands`. `command(cmd)` resolves to `{ accepted: true, tick }` or
 `{ accepted: false, status, code, message, fix? }`, and rejects any other status. The
-engineering page has no gauges and no `lazySection` in G1, since the gauges read G0b's
-`snapshot()`. Its growth case runs in the console's `e2e-growth` target under
+engineering page's loader reads `snapshot()` for four gauges, the reactor level, the
+electric output, the coolant temperature and the shields' allocation, and the page has no
+`lazySection` in G1. Its growth case runs in the console's `e2e-growth` target under
 `playwright.e2e-growth.config.mts`, and the gating config ignores `e2e/growth/`. The
 console takes the types by `import type` only. Its double `fakeBridgeLink` gains the same
 methods, so the route tests stay on `nexusTest`.
