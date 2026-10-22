@@ -10,9 +10,15 @@ import { fixed, kilopascals } from '../../bridge/fixed';
 import { Button, Section } from '../../components';
 import { di } from '../../nexus.server';
 import type { Route } from './+types/life-support';
+import { AirlockControls } from './airlock-controls';
 import { COMPARTMENTS } from './compartments';
 import { systemAction } from './system-action.server';
-import { ControlSection, Gauges, SystemPage } from './system-page';
+import {
+  ControlSection,
+  Gauges,
+  SnapshotOffline,
+  SystemPage,
+} from './system-page';
 
 /**
  * What the page reads: the ship snapshot and each compartment's analyzer
@@ -109,11 +115,7 @@ export default function LifeSupport({
   const { ship, air } = loaderData;
   return (
     <SystemPage answer={actionData}>
-      {ship === null ? (
-        <Section>
-          <p>Ship snapshot offline</p>
-        </Section>
-      ) : null}
+      {ship === null ? <SnapshotOffline /> : null}
       {COMPARTMENTS.map(([id, name]) => (
         <Compartment
           key={id}
@@ -148,27 +150,7 @@ export default function LifeSupport({
         </Form>
       </ControlSection>
       <ControlSection title="Airlock pump and vent">
-        <Form method="post" className="flex gap-2 items-center mb-4">
-          <input type="hidden" name="command" value="pump" />
-          <input type="hidden" name="compartment" value="airlock" />
-          <label htmlFor="mode">Airlock pump mode</label>
-          <select id="mode" name="mode" defaultValue="off">
-            <option value="off">off</option>
-            <option value="evacuate">evacuate</option>
-            <option value="fill">fill</option>
-          </select>
-          <Button type="submit">Set pump</Button>
-        </Form>
-        <Form method="post" className="flex gap-2">
-          <input type="hidden" name="command" value="vent" />
-          <input type="hidden" name="compartment" value="airlock" />
-          <Button type="submit" name="open" value="true">
-            Open vent
-          </Button>
-          <Button type="submit" name="open" value="false" variant="outline">
-            Shut vent
-          </Button>
-        </Form>
+        <AirlockControls />
       </ControlSection>
     </SystemPage>
   );
