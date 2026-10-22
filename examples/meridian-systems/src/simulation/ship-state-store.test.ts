@@ -560,3 +560,37 @@ describe('ShipStateStore safety', () => {
     expect(() => new ShipStateStore(deckPlan)).toThrow(message);
   });
 });
+
+describe('ShipStateStore comms', () => {
+  it('starts the phased array on standby with no hail queued', () => {
+    const ship = new ShipStateStore(plan).snapshot();
+    expect(ship.comms).toStrictEqual({
+      status: 'standby',
+      sent: null,
+      messages: [],
+    });
+    expect(ship.setpoints.comms).toStrictEqual({ hail: false });
+    const keys = Object.keys(ship);
+    expect(keys.indexOf('comms')).toBe(keys.indexOf('lifeSupport') + 1);
+    const setpoints = Object.keys(ship.setpoints);
+    expect(setpoints.indexOf('comms')).toBe(
+      setpoints.indexOf('lifeSupport') + 1,
+    );
+    for (const record of [
+      ship.comms,
+      ship.comms.messages,
+      ship.setpoints.comms,
+    ]) {
+      expect(Object.isFrozen(record)).toBe(true);
+    }
+  });
+
+  it('applies a queued hail and leaves the record to phase 6', () => {
+    const store = new ShipStateStore(plan);
+    const record = store.snapshot().comms;
+    store.queue({ comms: { hail: true } });
+    const ship = store.applyQueued(1);
+    expect(ship.setpoints.comms).toEqual({ hail: true });
+    expect(ship.comms).toBe(record);
+  });
+});

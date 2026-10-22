@@ -340,11 +340,17 @@ function initialSnapshot(deck: DeckPlan): ShipSnapshot {
       shed: Object.freeze(power.shed),
     }),
     lifeSupport: lifeSupport.record,
+    comms: Object.freeze({
+      status: 'standby',
+      sent: null,
+      messages: Object.freeze([]),
+    }),
     safety: safety.record,
     setpoints: Object.freeze({
       reactor: Object.freeze({ throttle: 0 }),
       shields: Object.freeze({ raised: false }),
       lifeSupport: lifeSupport.setpoints,
+      comms: Object.freeze({ hail: false }),
       safety: safety.setpoints,
     }),
   });
