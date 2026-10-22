@@ -1,5 +1,6 @@
 import { R, T_HULL } from './constants';
 import {
+  GASES,
   heatCapacity,
   pressure,
   saturationPressure,
@@ -526,5 +527,113 @@ export function stepAtmosphere(input: AtmosphereInput): AtmosphereResult {
   return Object.freeze({
     compartments: Object.freeze(next),
     lifeSupport: heaterRecord(input, output),
+  });
+}
+
+/** The noise amplitude of one analyzer, for each value it reads. */
+export interface SensorNoise {
+  /** K. */
+  readonly temperature: number;
+  /** Pa, of the total pressure. */
+  readonly pressure: number;
+  /** Pa, of each partial pressure. */
+  readonly partial: number;
+}
+
+/** The shape of `deck/sensors.calibration.json`. */
+export interface SensorCalibration<Id extends string = string> {
+  /** The step each reading rounds to: K for the temperature, Pa for every pressure. */
+  readonly resolution: {
+    readonly temperature: number;
+    readonly pressure: number;
+  };
+  readonly compartments: Readonly<Record<Id, { readonly noise: SensorNoise }>>;
+}
+
+/** One analyzer sample of one compartment. */
+export interface AtmosphereReading<Id extends string = string> {
+  readonly compartment: Id;
+  readonly tick: number;
+  /** K. */
+  readonly temperature: number;
+  /** Pa. */
+  readonly pressure: number;
+  /** Pa, for each gas. */
+  readonly partial: Readonly<Record<Gas, number>>;
+}
+
+/**
+ * The digits `toFixed` keeps for a resolution of `step`, such as 2 for 0.25
+ * and 8 for 2.5e-7. `String(step)` writes a small step with an exponent, so
+ * the count is the mantissa's decimals less the exponent.
+ */
+function decimals(step: number): number {
+  const [mantissa, exponent = '0'] = String(step).split('e');
+  return Math.max(0, (mantissa.split('.')[1]?.length ?? 0) - Number(exponent));
+}
+
+/**
+ * `max(0, value + (2u − 1) · noise)`, rounded to `step` and cleaned through
+ * `toFixed`. The floor at 0 keeps a near-vacuum reading from going negative.
+ */
+function sample(
+  value: number,
+  noise: number,
+  step: number,
+  draw: () => number,
+): number {
+  const noisy = Math.max(0, value + (2 * draw() - 1) * noise);
+  return Number((Math.round(noisy / step) * step).toFixed(decimals(step)));
+}
+
+/**
+ * What a gas analyzer reads in `compartment` at `tick`. `draw` answers
+ * numbers in [0, 1), and the reading takes one each for the temperature, the
+ * pressure and then each gas in `GASES` order. The caller passes a stream
+ * forked for the compartment and the tick, so every read of one tick agrees.
+ */
+export function readAtmosphere<Id extends string>(
+  air: Air,
+  plan: RoomPlan,
+  compartment: Id,
+  tick: number,
+  calibration: SensorCalibration,
+  draw: () => number,
+): AtmosphereReading<Id> {
+  const entry = calibration.compartments[compartment];
+  if (!entry) {
+    throw new Error(
+      `The sensor calibration has no entry for '${compartment}'.`,
+    );
+  }
+  const { noise } = entry;
+  const { resolution } = calibration;
+  const temperature = sample(
+    air.temperature,
+    noise.temperature,
+    resolution.temperature,
+    draw,
+  );
+  const total = sample(
+    roomPressure(air, plan),
+    noise.pressure,
+    resolution.pressure,
+    draw,
+  );
+  const partial = {} as Record<Gas, number>;
+  for (const gas of GASES) {
+    partial[gas] = sample(
+      pressure(air.moles[gas], air.temperature, plan.volume),
+      noise.partial,
+      resolution.pressure,
+      draw,
+    );
+  }
+  return Object.freeze({
+    compartment,
+    tick,
+    temperature,
+    pressure: total,
+    partial: Object.freeze(partial),
   });
 }

@@ -7,14 +7,17 @@ import {
   pumpDraw,
   pumpFraction,
   pumpStalled,
+  readAtmosphere,
   stepAtmosphere,
   oxygenRate,
   type AtmosphereInput,
   type AtmosphereResult,
   type LifeSupportSetpoints,
   type RoomPlan,
+  type SensorCalibration,
 } from './atmosphere';
 import { R } from './constants';
+import { fnv1a32, splitmix32 } from './rng';
 import {
   AIR,
   GASES,
@@ -443,5 +446,187 @@ describe('offline life support', () => {
     );
     expect(result.compartments).toEqual(start);
     expect(result.lifeSupport.heaters).toEqual({ bridge: 0, habitat: 0 });
+  });
+});
+
+describe('readAtmosphere', () => {
+  const noise = { temperature: 0.05, pressure: 20, partial: 5 };
+  const calibration: SensorCalibration = {
+    resolution: { temperature: 0.01, pressure: 1 },
+    compartments: Object.fromEntries(ROOMS.map((plan) => [plan.id, { noise }])),
+  };
+
+  /** A seeded stream for one compartment and tick. */
+  function draws(compartment: string, tick: number): () => number {
+    let state = fnv1a32(`AtmosphereSensor:${compartment}:${tick}`);
+    return () => {
+      const step = splitmix32(state);
+      state = step.state;
+      return step.value / 2 ** 32;
+    };
+  }
+
+  /** A stream that answers `values` in order. */
+  function scripted(...values: number[]): () => number {
+    let index = 0;
+    return () => values[index++] ?? 0.5;
+  }
+
+  const habitat = room('habitat');
+  const start = air(101_300, 293, 120);
+
+  it('reads one compartment and tick alike every time', () => {
+    const first = readAtmosphere(
+      start,
+      habitat,
+      'habitat',
+      7,
+      calibration,
+      draws('habitat', 7),
+    );
+    const again = readAtmosphere(
+      start,
+      habitat,
+      'habitat',
+      7,
+      calibration,
+      draws('habitat', 7),
+    );
+    expect(again).toEqual(first);
+    expect(first.compartment).toBe('habitat');
+    expect(first.tick).toBe(7);
+  });
+
+  it('reads another tick with other noise', () => {
+    const one = readAtmosphere(
+      start,
+      habitat,
+      'habitat',
+      7,
+      calibration,
+      draws('habitat', 7),
+    );
+    const other = readAtmosphere(
+      start,
+      habitat,
+      'habitat',
+      8,
+      calibration,
+      draws('habitat', 8),
+    );
+    expect(other.pressure).not.toBe(one.pressure);
+  });
+
+  it('draws the temperature, the pressure, then each gas in order', () => {
+    const reading = readAtmosphere(
+      start,
+      habitat,
+      'habitat',
+      0,
+      calibration,
+      scripted(0.9, 0.1, 0, 0.25, 0.5, 0.75, 1),
+    );
+    const total = pressure(totalMoles(start.moles), 293, 120);
+    const truth = (gas: (typeof GASES)[number]) =>
+      pressure(start.moles[gas], 293, 120);
+    expect(reading.temperature).toBe(293.04);
+    expect(reading.pressure).toBe(Math.round(total - 16));
+    expect(reading.partial.O2).toBe(Math.round(truth('O2') - 5));
+    expect(reading.partial.N2).toBe(Math.round(truth('N2') - 2.5));
+    expect(reading.partial.CO2).toBe(Math.round(truth('CO2')));
+    expect(reading.partial.H2O).toBe(Math.round(truth('H2O') + 2.5));
+    expect(reading.partial.volatiles).toBe(Math.round(truth('volatiles') + 5));
+  });
+
+  it('rounds to a resolution written with an exponent', () => {
+    const fine: SensorCalibration = {
+      resolution: { temperature: 1e-7, pressure: 1 },
+      compartments: {
+        habitat: { noise: { temperature: 0, pressure: 0, partial: 0 } },
+      },
+    };
+    const warm = { ...start, temperature: 293.123456789 };
+    const reading = readAtmosphere(
+      warm,
+      habitat,
+      'habitat',
+      0,
+      fine,
+      scripted(),
+    );
+    expect(reading.temperature).toBe(293.1234568);
+  });
+
+  it('rounds to a resolution that is not a power of ten', () => {
+    const quarter: SensorCalibration = {
+      resolution: { temperature: 0.25, pressure: 2.5 },
+      compartments: {
+        habitat: { noise: { temperature: 0, pressure: 0, partial: 0 } },
+      },
+    };
+    const warm = { ...start, temperature: 293.37 };
+    const reading = readAtmosphere(
+      warm,
+      habitat,
+      'habitat',
+      0,
+      quarter,
+      scripted(),
+    );
+    expect(reading.temperature).toBe(293.25);
+    const total = pressure(totalMoles(warm.moles), 293.37, 120);
+    expect(reading.pressure).toBe(Math.round(total / 2.5) * 2.5);
+    expect(reading.pressure % 2.5).toBe(0);
+  });
+
+  it('rounds every value to its resolution', () => {
+    for (let tick = 0; tick < 50; tick++) {
+      const reading = readAtmosphere(
+        start,
+        habitat,
+        'habitat',
+        tick,
+        calibration,
+        draws('habitat', tick),
+      );
+      expect(reading.temperature).toBe(Number(reading.temperature.toFixed(2)));
+      expect(Math.abs(reading.temperature - 293)).toBeLessThanOrEqual(0.055);
+      expect(Number.isInteger(reading.pressure)).toBe(true);
+      for (const gas of GASES) {
+        expect(Number.isInteger(reading.partial[gas])).toBe(true);
+      }
+    }
+  });
+
+  it('reads no field under 0 in an airlock at 50 Pa', () => {
+    const airlock = room('airlock');
+    const thin = air(50, 293, airlock.volume);
+    for (let tick = 0; tick < 200; tick++) {
+      const reading = readAtmosphere(
+        thin,
+        airlock,
+        'airlock',
+        tick,
+        calibration,
+        draws('airlock', tick),
+      );
+      expect(reading.pressure).toBeGreaterThanOrEqual(0);
+      for (const gas of GASES) {
+        expect(reading.partial[gas]).toBeGreaterThanOrEqual(0);
+      }
+    }
+  });
+
+  it('refuses a compartment the calibration lacks', () => {
+    expect(() =>
+      readAtmosphere(
+        start,
+        habitat,
+        'galley',
+        0,
+        calibration,
+        draws('galley', 0),
+      ),
+    ).toThrow(/galley/);
   });
 });
