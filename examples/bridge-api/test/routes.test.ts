@@ -566,6 +566,95 @@ describe.each(['hono', 'express', 'fastify'] as const)(
 );
 
 describe.each(['hono', 'express', 'fastify'] as const)(
+  'the airlock commands on %s',
+  (framework) => {
+    const call = calls[framework];
+
+    test('POST /commands queues the close, the vent and the pump, and GET /commands merges them', async () => {
+      const scopes = nodeScopes();
+      await using ship = await scopedShip(scopes);
+      const post = (body: unknown) =>
+        call(ship, 'POST', '/commands', json(body), { scopes });
+
+      expect(
+        await post({
+          system: 'safety',
+          action: 'close',
+          door: 'airlock-outer',
+        }),
+      ).toEqual({
+        status: 202,
+        body: { tick: 1, flightLog: ['survey-7: closed airlock-outer'] },
+      });
+      expect(
+        await post({
+          system: 'life-support',
+          action: 'vent',
+          compartment: 'airlock',
+          open: false,
+        }),
+      ).toEqual({ status: 202, body: { tick: 1 } });
+      expect(
+        await post({
+          system: 'life-support',
+          action: 'pump',
+          compartment: 'airlock',
+          mode: 'fill',
+        }),
+      ).toEqual({ status: 202, body: { tick: 1 } });
+
+      const advanced = await call(
+        ship,
+        'POST',
+        '/sim/advance',
+        json({ ticks: 1 }),
+        { scopes },
+      );
+      expect(advanced.status).toBe(200);
+      expect(
+        await call(ship, 'GET', '/commands', undefined, { scopes }),
+      ).toEqual({
+        status: 200,
+        body: [
+          {
+            tick: 1,
+            change: {
+              safety: { doors: { 'airlock-outer': false } },
+              lifeSupport: {
+                vents: { airlock: false },
+                pumps: { airlock: 'fill' },
+              },
+            },
+          },
+        ],
+      });
+    });
+
+    test('POST /commands answers 400 for a vent in the habitat, which has none', async () => {
+      const scopes = nodeScopes();
+      await using ship = await scopedShip(scopes);
+      const vent = json({
+        system: 'life-support',
+        action: 'vent',
+        compartment: 'habitat',
+        open: true,
+      });
+      expect(await call(ship, 'POST', '/commands', vent, { scopes })).toEqual({
+        status: 400,
+        body: {
+          code: 'MERIDIAN_BAD_COMMAND',
+          message:
+            'life-support vent got an argument it cannot use. It takes online with no arguments, heater with a compartment and on true or false or a target from 283 to 303 K, scrubber and oxygen with a compartment and on true or false, vent with a compartment and open true or false, and pump with a compartment and mode off, evacuate or fill.',
+          fix: 'send the arguments in the ranges above.',
+        },
+      });
+      await call(ship, 'POST', '/sim/advance', json({ ticks: 1 }), { scopes });
+      expect(ship.get(SHIP_STATE).log()).toEqual([]);
+    });
+  },
+);
+
+describe.each(['hono', 'express', 'fastify'] as const)(
   'the safety commands on %s',
   (framework) => {
     const call = calls[framework];
