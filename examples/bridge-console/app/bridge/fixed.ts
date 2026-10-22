@@ -13,3 +13,8 @@ export function fixed(value: number, digits: number): string {
 export function kilopascals(pascals: number, digits: number): string {
   return `${fixed(pascals / 1000, digits)} kPa`;
 }
+
+/** `watts` in MW, to 0.1, with the unit. */
+export function megawatts(watts: number): string {
+  return `${fixed(watts / 1e6, 1)} MW`;
+}

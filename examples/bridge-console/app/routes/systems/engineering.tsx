@@ -2,7 +2,7 @@ import type { ShipReading } from '@nexusdi/meridian-systems';
 import { Form } from 'react-router';
 
 import type { CommandAnswer } from '../../bridge/bridge-link';
-import { fixed } from '../../bridge/fixed';
+import { fixed, megawatts } from '../../bridge/fixed';
 import { Button, Section } from '../../components';
 import { snapshotLoader } from '../snapshot-loader.server';
 import type { Route } from './+types/engineering';
@@ -19,8 +19,6 @@ export const action: (args: Route.ActionArgs) => Promise<CommandAnswer> =
 /** The ship for the gauges, or null when the backend fails. */
 export const loader: (args: Route.LoaderArgs) => Promise<ShipReading | null> =
   snapshotLoader;
-
-const megawatts = (watts: number) => `${fixed(watts / 1e6, 1)} MW`;
 
 /** The reactor level, its electric output, the coolant and the shields' power. */
 function EngineeringGauges({ ship }: { ship: ShipReading | null }) {
