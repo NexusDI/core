@@ -27,7 +27,7 @@ const AIRLOCK_SYSTEMS = {
   vent: 'life-support',
   open: 'safety',
   close: 'safety',
-};
+} as const satisfies Readonly<Record<string, string>>;
 
 /** Sends the submitted form to bridge-api as a life-support or safety command. */
 export const action: (args: Route.ActionArgs) => Promise<CommandAnswer> =
