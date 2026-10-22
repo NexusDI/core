@@ -14,6 +14,7 @@ export default [
     layout('routes/ship-layout.tsx', [
       route('diagnostics', 'routes/diagnostics.tsx'),
       route('systems/engineering', 'routes/systems/engineering.tsx'),
+      route('systems/life-support', 'routes/systems/life-support.tsx'),
     ]),
   ]),
   // A resource route outside the page layout: it answers with the stream alone.

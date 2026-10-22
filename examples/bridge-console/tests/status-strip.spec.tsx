@@ -71,7 +71,16 @@ describe('the status strip', () => {
       ...shipAtStart,
       compartments: { ...shipAtStart.compartments, habitat },
     });
-    expect(screen.getByText('95.42 kPa')).toBeDefined();
+    expect(screen.getByText('95.4 kPa')).toBeDefined();
+  });
+
+  it('shows a warmed habitat in whole kelvin', async () => {
+    const habitat = { ...shipAtStart.compartments.habitat, temperature: 292.7 };
+    await strip({
+      ...shipAtStart,
+      compartments: { ...shipAtStart.compartments, habitat },
+    });
+    expect(screen.getByText('293 K')).toBeDefined();
   });
 
   it('renders Telemetry offline with no snapshot', async () => {

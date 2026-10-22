@@ -1,0 +1,10 @@
+/**
+ * `value` with `digits` decimals and a comma between each group of three
+ * integer digits. The ship sends raw floats, such as 0.18000000000000002, so
+ * every gauge on the console writes its figure through this.
+ */
+export function fixed(value: number, digits: number): string {
+  const [whole = '', fraction] = value.toFixed(digits).split('.');
+  const grouped = whole.replace(/\B(?=(\d{3})+$)/g, ',');
+  return fraction === undefined ? grouped : `${grouped}.${fraction}`;
+}
