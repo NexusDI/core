@@ -10,6 +10,17 @@ export interface PowerLoad {
   readonly heatShare: number;
 }
 
+/**
+ * The Meridian's deflector shield grid while raised, from spec §5.7. The
+ * lowered grid stays on the router with a demand of 0 W.
+ */
+export const DEFLECTOR_GRID: PowerLoad = {
+  id: 'shields',
+  priority: 2,
+  demand: 200e6,
+  heatShare: 0.25,
+};
+
 /** What one load asked for and what the router gave it. */
 export interface LoadRecord {
   readonly id: string;

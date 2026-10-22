@@ -1,4 +1,5 @@
 import { AIR, molesAt } from '../physics/gas';
+import { allocatePower, DEFLECTOR_GRID } from '../physics/power';
 import { LITHIUM_LOOP } from '../physics/thermal';
 import type {
   LoggedChange,
@@ -147,6 +148,7 @@ function initialSnapshot(deck: DeckPlan): ShipSnapshot {
       temperature,
     });
   }
+  const power = allocatePower(0, [{ ...DEFLECTOR_GRID, demand: 0 }]);
   return Object.freeze({
     tick: 0,
     time: 0,
@@ -159,9 +161,9 @@ function initialSnapshot(deck: DeckPlan): ShipSnapshot {
     }),
     coolant: Object.freeze({ temperature: LITHIUM_LOOP.standby }),
     power: Object.freeze({
-      output: 0,
-      loads: Object.freeze([]),
-      shed: Object.freeze([]),
+      ...power,
+      loads: Object.freeze(power.loads.map((entry) => Object.freeze(entry))),
+      shed: Object.freeze(power.shed),
     }),
     setpoints: Object.freeze({
       reactor: Object.freeze({ throttle: 0 }),

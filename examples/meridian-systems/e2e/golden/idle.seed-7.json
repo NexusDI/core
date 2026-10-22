@@ -55,7 +55,14 @@
     },
     "power": {
       "output": 0,
-      "loads": [],
+      "loads": [
+        {
+          "id": "shields",
+          "priority": 2,
+          "demand": 0,
+          "allocated": 0
+        }
+      ],
       "shed": []
     },
     "setpoints": {
