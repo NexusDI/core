@@ -110,6 +110,38 @@ describe('the system page pieces', () => {
     expect(screen.getByRole('status').textContent).toBe('Queued for tick 4');
   });
 
+  it('shows one line per flight-log entry under the tick', () => {
+    render(
+      <SystemPage
+        answer={{
+          accepted: true,
+          tick: 4,
+          flightLog: [
+            'survey-7: opened bridge-habitat',
+            'survey-7: closed airlock-outer',
+          ],
+        }}
+      >
+        page
+      </SystemPage>,
+    );
+    const status = screen.getByRole('status');
+    expect(status.textContent).toBe(
+      'Queued for tick 4survey-7: opened bridge-habitatsurvey-7: closed airlock-outer',
+    );
+    expect(
+      [...status.querySelectorAll('li')].map((item) => item.textContent),
+    ).toEqual([
+      'survey-7: opened bridge-habitat',
+      'survey-7: closed airlock-outer',
+    ]);
+  });
+
+  it('shows no list when the answer has no flight log', () => {
+    render(<SystemPage answer={{ accepted: true, tick: 4 }}>page</SystemPage>);
+    expect(screen.getByRole('status').querySelector('li')).toBeNull();
+  });
+
   it('shows a refusal and its fix', () => {
     render(
       <SystemPage

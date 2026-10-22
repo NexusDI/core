@@ -45,10 +45,24 @@ export function ControlSection({
   );
 }
 
-/** The answer to the last command: its tick, or the refusal and its fix. */
+/**
+ * The answer to the last command: its tick and one line per flight-log entry
+ * the command recorded, or the refusal and its fix.
+ */
 function LastAnswer({ answer }: { answer: CommandAnswer }) {
   if (answer.accepted)
-    return <p role="status">{`Queued for tick ${answer.tick}`}</p>;
+    return (
+      <div role="status">
+        <p>{`Queued for tick ${answer.tick}`}</p>
+        {answer.flightLog === undefined ? null : (
+          <ul>
+            {answer.flightLog.map((entry, index) => (
+              <li key={index}>{entry}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
   return (
     <div role="alert">
       <p>{answer.message}</p>
