@@ -41,6 +41,7 @@ export const shipAtStart: ShipReading = {
     shed: [],
   },
   lifeSupport: { heaters: { bridge: 0, habitat: 0 } },
+  comms: { status: 'standby', sent: null, messages: [] },
   safety: {
     fires: { bridge: 0, habitat: 0, 'reactor-bay': 0, airlock: 0 },
     flooded: { bridge: 0, habitat: 0, 'reactor-bay': 0 },
@@ -60,6 +61,7 @@ export const shipAtStart: ShipReading = {
       vents: { airlock: false },
       pumps: { airlock: 'off' },
     },
+    comms: { hail: false },
     safety: {
       doors: {
         'bridge-habitat': false,

@@ -1,5 +1,6 @@
 import { MultiToken, Token } from '@nexusdi/core';
 import type { LifeSupportRecord, RoomPlan } from '../physics/atmosphere';
+import type { CommsRecord } from '../physics/comms';
 import type { DoorPlan } from '../physics/doors';
 import type { FloodPlan } from '../physics/fire';
 import type { Gas } from '../physics/gas';
@@ -57,6 +58,7 @@ export interface ShipSnapshot {
   readonly coolant: CoolantRecord;
   readonly power: PowerRecord;
   readonly lifeSupport: LifeSupportRecord<CompartmentId>;
+  readonly comms: CommsRecord;
   readonly safety: SafetyRecord<CompartmentId>;
   readonly setpoints: Setpoints;
 }

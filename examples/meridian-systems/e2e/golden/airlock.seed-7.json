@@ -77,6 +77,11 @@
         "habitat": 1339
       }
     },
+    "comms": {
+      "status": "standby",
+      "sent": null,
+      "messages": []
+    },
     "safety": {
       "fires": {
         "bridge": 0,
@@ -124,6 +129,9 @@
         "pumps": {
           "airlock": "evacuate"
         }
+      },
+      "comms": {
+        "hail": false
       },
       "safety": {
         "doors": {
@@ -223,6 +231,11 @@
         "habitat": 1450
       }
     },
+    "comms": {
+      "status": "standby",
+      "sent": null,
+      "messages": []
+    },
     "safety": {
       "fires": {
         "bridge": 0,
@@ -270,6 +283,9 @@
         "pumps": {
           "airlock": "off"
         }
+      },
+      "comms": {
+        "hail": false
       },
       "safety": {
         "doors": {
@@ -369,6 +385,11 @@
         "habitat": 1524
       }
     },
+    "comms": {
+      "status": "standby",
+      "sent": null,
+      "messages": []
+    },
     "safety": {
       "fires": {
         "bridge": 0,
@@ -416,6 +437,9 @@
         "pumps": {
           "airlock": "off"
         }
+      },
+      "comms": {
+        "hail": false
       },
       "safety": {
         "doors": {
@@ -515,6 +539,11 @@
         "habitat": 1896
       }
     },
+    "comms": {
+      "status": "standby",
+      "sent": null,
+      "messages": []
+    },
     "safety": {
       "fires": {
         "bridge": 0,
@@ -562,6 +591,9 @@
         "pumps": {
           "airlock": "fill"
         }
+      },
+      "comms": {
+        "hail": false
       },
       "safety": {
         "doors": {
@@ -661,6 +693,11 @@
         "habitat": 1980
       }
     },
+    "comms": {
+      "status": "standby",
+      "sent": null,
+      "messages": []
+    },
     "safety": {
       "fires": {
         "bridge": 0,
@@ -708,6 +745,9 @@
         "pumps": {
           "airlock": "off"
         }
+      },
+      "comms": {
+        "hail": false
       },
       "safety": {
         "doors": {
