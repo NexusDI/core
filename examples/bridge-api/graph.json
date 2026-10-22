@@ -64,7 +64,7 @@
       ],
       "exports": [
         "p6",
-        "p13",
+        "p14",
         "p7",
         "m8"
       ]
@@ -75,11 +75,12 @@
       "global": true,
       "imports": [],
       "exports": [
-        "p12",
+        "p13",
         "p8",
         "p9",
         "p10",
-        "p11"
+        "p11",
+        "p12"
       ]
     },
     {
@@ -88,7 +89,7 @@
       "global": false,
       "imports": [],
       "exports": [
-        "p13"
+        "p14"
       ]
     },
     {
@@ -97,11 +98,11 @@
       "global": false,
       "imports": [],
       "exports": [
-        "p14",
-        "p16",
+        "p15",
         "p17",
         "p18",
-        "p19"
+        "p19",
+        "p20"
       ]
     },
     {
@@ -110,7 +111,7 @@
       "global": false,
       "imports": [],
       "exports": [
-        "p20"
+        "p21"
       ]
     },
     {
@@ -270,6 +271,18 @@
     },
     {
       "id": "p12",
+      "token": "Compartment",
+      "module": "m6",
+      "lifetime": "scoped",
+      "kind": "factory",
+      "eager": false,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "p13",
       "token": "SimOptions",
       "module": "m6",
       "lifetime": null,
@@ -281,7 +294,7 @@
       "internal": false
     },
     {
-      "id": "p13",
+      "id": "p14",
       "token": "TelemetryFeed",
       "module": "m7",
       "lifetime": "singleton",
@@ -293,7 +306,7 @@
       "internal": false
     },
     {
-      "id": "p14",
+      "id": "p15",
       "token": "ReactorCore",
       "module": "m8",
       "lifetime": "singleton",
@@ -305,7 +318,7 @@
       "internal": false
     },
     {
-      "id": "p15",
+      "id": "p16",
       "token": "CoolantLoop",
       "module": "m8",
       "lifetime": "singleton",
@@ -317,7 +330,7 @@
       "internal": false
     },
     {
-      "id": "p16",
+      "id": "p17",
       "token": "PowerRouter",
       "module": "m8",
       "lifetime": "singleton",
@@ -329,7 +342,7 @@
       "internal": false
     },
     {
-      "id": "p17",
+      "id": "p18",
       "token": "ShieldGrid",
       "module": "m8",
       "lifetime": "singleton",
@@ -341,7 +354,7 @@
       "internal": false
     },
     {
-      "id": "p18",
+      "id": "p19",
       "token": "ShipSystems",
       "module": "m8",
       "lifetime": "singleton",
@@ -353,7 +366,7 @@
       "internal": false
     },
     {
-      "id": "p19",
+      "id": "p20",
       "token": "CommandHandlers",
       "module": "m8",
       "lifetime": "singleton",
@@ -365,7 +378,7 @@
       "internal": false
     },
     {
-      "id": "p20",
+      "id": "p21",
       "token": "SimDriver",
       "module": "m9",
       "lifetime": "singleton",
@@ -377,7 +390,7 @@
       "internal": false
     },
     {
-      "id": "p21",
+      "id": "p22",
       "token": "DriverOptions",
       "module": "m9",
       "lifetime": null,
@@ -389,7 +402,7 @@
       "internal": false
     },
     {
-      "id": "p22",
+      "id": "p23",
       "token": "NavAudit",
       "module": "m10",
       "lifetime": "singleton",
@@ -401,7 +414,7 @@
       "internal": false
     },
     {
-      "id": "p23",
+      "id": "p24",
       "token": "interceptors registry",
       "module": "m10",
       "lifetime": "singleton",
@@ -413,7 +426,7 @@
       "internal": false
     },
     {
-      "id": "p24",
+      "id": "p25",
       "token": "interceptors guard",
       "module": "m10",
       "lifetime": "singleton",
@@ -475,22 +488,22 @@
     },
     {
       "from": "p6",
-      "to": "p18",
-      "kind": "all"
-    },
-    {
-      "from": "p7",
       "to": "p19",
       "kind": "all"
     },
     {
+      "from": "p7",
+      "to": "p20",
+      "kind": "all"
+    },
+    {
       "from": "p8",
-      "to": "p12",
+      "to": "p13",
       "kind": "required"
     },
     {
       "from": "p9",
-      "to": "p12",
+      "to": "p13",
       "kind": "required"
     },
     {
@@ -499,18 +512,13 @@
       "kind": "required"
     },
     {
-      "from": "p13",
+      "from": "p12",
+      "to": "request",
+      "kind": "required"
+    },
+    {
+      "from": "p14",
       "to": "p6",
-      "kind": "required"
-    },
-    {
-      "from": "p13",
-      "to": "p10",
-      "kind": "required"
-    },
-    {
-      "from": "p13",
-      "to": "p11",
       "kind": "required"
     },
     {
@@ -519,43 +527,43 @@
       "kind": "required"
     },
     {
-      "from": "p16",
+      "from": "p14",
+      "to": "p11",
+      "kind": "required"
+    },
+    {
+      "from": "p15",
       "to": "p10",
       "kind": "required"
     },
     {
-      "from": "p16",
-      "to": "p17",
+      "from": "p17",
+      "to": "p10",
+      "kind": "required"
+    },
+    {
+      "from": "p17",
+      "to": "p18",
       "kind": "lazy"
     },
     {
-      "from": "p17",
+      "from": "p18",
       "to": "p10",
       "kind": "required"
     },
     {
-      "from": "p17",
-      "to": "p16",
+      "from": "p18",
+      "to": "p17",
       "kind": "required"
     },
     {
-      "from": "p18",
-      "to": "p14",
-      "kind": "required"
-    },
-    {
-      "from": "p18",
+      "from": "p19",
       "to": "p15",
       "kind": "required"
     },
     {
-      "from": "p18",
-      "to": "p16",
-      "kind": "required"
-    },
-    {
       "from": "p19",
-      "to": "p14",
+      "to": "p16",
       "kind": "required"
     },
     {
@@ -565,27 +573,37 @@
     },
     {
       "from": "p20",
+      "to": "p15",
+      "kind": "required"
+    },
+    {
+      "from": "p20",
+      "to": "p18",
+      "kind": "required"
+    },
+    {
+      "from": "p21",
       "to": "p6",
       "kind": "required"
     },
     {
-      "from": "p20",
-      "to": "p12",
+      "from": "p21",
+      "to": "p13",
       "kind": "required"
     },
     {
-      "from": "p20",
-      "to": "p21",
-      "kind": "required"
-    },
-    {
-      "from": "p22",
-      "to": "p5",
+      "from": "p21",
+      "to": "p22",
       "kind": "required"
     },
     {
       "from": "p23",
-      "to": "p22",
+      "to": "p5",
+      "kind": "required"
+    },
+    {
+      "from": "p24",
+      "to": "p23",
       "kind": "required"
     }
   ]

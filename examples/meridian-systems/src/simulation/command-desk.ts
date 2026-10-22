@@ -8,6 +8,7 @@ import {
   type QueuedCommand,
   type ShipCommand,
 } from './commands';
+import { listInWords } from './list-in-words';
 
 /** Reads the envelope of a crew command and hands the command to its system's handler. */
 export class CommandDesk implements ICommandDesk {
@@ -31,7 +32,7 @@ export class CommandDesk implements ICommandDesk {
     const names = [...this.handlers.keys()].sort((a, b) =>
       a < b ? -1 : a > b ? 1 : 0,
     );
-    this.serves = listInWords(names);
+    this.serves = names.length === 0 ? 'no system' : listInWords(names);
   }
 
   submit(body: unknown): QueuedCommand {
@@ -71,11 +72,4 @@ function stringField(body: unknown, key: 'system' | 'action'): string {
   if (typeof body !== 'object' || body === null) return '';
   const value = (body as Record<string, unknown>)[key];
   return typeof value === 'string' ? value : '';
-}
-
-/** `a`, `a and b`, `a, b and c`, or `no system` for an empty list. */
-function listInWords(names: readonly string[]): string {
-  if (names.length === 0) return 'no system';
-  if (names.length === 1) return names[0];
-  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }

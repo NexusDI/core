@@ -182,3 +182,20 @@ export const SHIP_STATE = new Token<IShipState>('ShipState');
 export const SHIP_SYSTEMS = new MultiToken<IShipSystem>('ShipSystems');
 export const TICK_LOOP = new Token<ITickLoop>('TickLoop');
 export const DECK_PLAN = new Token<DeckPlan>('DeckPlan');
+
+declare module '@nexusdi/core' {
+  interface NexusRequest {
+    /**
+     * The compartment a request reads, as the path names it. `COMPARTMENT`
+     * checks it against `COMPARTMENT_IDS`.
+     */
+    compartment?: string;
+  }
+}
+
+/**
+ * The compartment of the current request: scoped, and refused with
+ * `UnknownCompartmentError` on `get` when the request names none or one the
+ * deck does not have.
+ */
+export const COMPARTMENT = new Token<CompartmentId>('Compartment');
