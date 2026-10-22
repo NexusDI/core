@@ -8,12 +8,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { SSE_HEADERS, telemetryStream } from '../src/bridge/telemetry-stream';
 import type { TelemetryEvent } from '../src/ship/contracts';
 
-/** A frame with no compartments: the stream frames whatever JSON it gets. */
-const frameAt = (tick: number): ShipReading => ({
-  tick,
-  time: tick / 2,
-  compartments: {} as ShipReading['compartments'],
-});
+/** A frame of tick and time only: the stream frames whatever JSON it gets. */
+const frameAt = (tick: number) => ({ tick, time: tick / 2 }) as ShipReading;
 
 const sse = (event: TelemetryEvent, data: string) =>
   `event: ${event}\ndata: ${data}\n\n`;
