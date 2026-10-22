@@ -54,8 +54,8 @@ async function gauges(label: string) {
 }
 
 /**
- * The ship at tick 318 of the airlock drill under the interlock, with the
- * vent open, the pump off and the outer door open: seed 7's unrounded floats.
+ * The ship at tick 318 of the airlock drill under the interlock, from seed 7's
+ * unrounded floats. The pump is off. The vent and the outer door stand open.
  */
 const venting: ShipReading = {
   ...shipAtStart,
@@ -99,8 +99,8 @@ const venting: ShipReading = {
 };
 
 /**
- * The ship at tick 446 of the same drill, with the pump filling, the vent
- * shut and both airlock doors shut.
+ * The ship at tick 446 of the same drill, with the pump filling. The vent and
+ * both airlock doors are shut.
  */
 const filling: ShipReading = {
   ...venting,
