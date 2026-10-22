@@ -280,6 +280,7 @@ describe('the deck plan', () => {
         conductance: 90,
         structureHeatCapacity: 2_000_000,
         occupants: 2,
+        floodCharge: 1_000,
         equipment: ['heater', 'scrubber', 'oxygen'],
       },
       {
@@ -288,6 +289,7 @@ describe('the deck plan', () => {
         conductance: 150,
         structureHeatCapacity: 4_000_000,
         occupants: 4,
+        floodCharge: 2_000,
         equipment: ['heater', 'scrubber', 'oxygen'],
       },
       {
@@ -297,6 +299,7 @@ describe('the deck plan', () => {
         structureHeatCapacity: 6_000_000,
         occupants: 0,
         coolantConductance: 2,
+        floodCharge: 1_330,
       },
       {
         id: 'airlock',

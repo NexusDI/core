@@ -41,6 +41,11 @@ export const shipAtStart: ShipReading = {
     shed: [],
   },
   lifeSupport: { heaters: { bridge: 0, habitat: 0 } },
+  safety: {
+    fires: { bridge: 0, habitat: 0, 'reactor-bay': 0, airlock: 0 },
+    flooded: { bridge: 0, habitat: 0, 'reactor-bay': 0 },
+    alarms: [],
+  },
   setpoints: {
     reactor: { throttle: 0 },
     shields: { raised: false },
@@ -54,6 +59,16 @@ export const shipAtStart: ShipReading = {
       oxygen: { bridge: true, habitat: true },
       vents: { airlock: false },
       pumps: { airlock: 'off' },
+    },
+    safety: {
+      doors: {
+        'bridge-habitat': false,
+        'habitat-reactor-bay': false,
+        'habitat-airlock': false,
+        'airlock-outer': false,
+      },
+      floods: { bridge: false, habitat: false, 'reactor-bay': false },
+      drills: { bridge: false, habitat: false, 'reactor-bay': false },
     },
   },
 };

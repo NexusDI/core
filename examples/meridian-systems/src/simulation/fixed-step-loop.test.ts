@@ -98,6 +98,20 @@ describe('FixedStepLoop', () => {
     ]);
   });
 
+  it('passes each system the snapshot of the tick before any system stepped', () => {
+    const calls: Call[] = [];
+    const { state, loop } = build([
+      probe('a', 1, calls, { tick: 999 }),
+      probe('b', 4, calls),
+    ]);
+    state.queue({ reactor: { throttle: 1 } });
+    loop.advance(2);
+    expect(calls[0].tick.start).toBe(calls[0].input);
+    expect(calls[1].tick.start).toBe(calls[0].input);
+    expect(calls[2].tick.start).toBe(calls[2].input);
+    expect(calls[2].tick.start).not.toBe(calls[0].input);
+  });
+
   it('stamps tick and time after the systems run', () => {
     const calls: Call[] = [];
     const { state, loop } = build([

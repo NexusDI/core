@@ -20,7 +20,12 @@ import { EngineeringPhysics } from './engineering-physics';
 /** `m · c_p` of the lithium loop, in J/K. */
 const LOOP_HEAT_CAPACITY = 200_000 * 4_170;
 const dt = 0.5;
-const tick: TickContext = { tick: 1, dt, rng: new SeededRandom({ seed: 7 }) };
+const tick: TickContext = {
+  tick: 1,
+  dt,
+  rng: new SeededRandom({ seed: 7 }),
+  start: new ShipStateStore(deck satisfies DeckPlan).snapshot(),
+};
 
 interface Running {
   readonly level: number;
