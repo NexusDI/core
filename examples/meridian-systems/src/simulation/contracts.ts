@@ -154,6 +154,14 @@ export interface IShipSystem {
   step(ship: ShipSnapshot, tick: TickContext): ShipSnapshot;
 }
 
+/**
+ * A ship system class that declares its phase statically, so the graph reads
+ * the phase without building the class.
+ */
+export interface ShipSystemClass {
+  readonly phase: Phase;
+}
+
 /** Hears each snapshot the loop commits. */
 export type TickListener = (ship: ShipSnapshot) => void;
 
