@@ -77,6 +77,20 @@
         "habitat": 0
       }
     },
+    "safety": {
+      "fires": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0,
+        "airlock": 0
+      },
+      "flooded": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0
+      },
+      "alarms": []
+    },
     "setpoints": {
       "reactor": {
         "throttle": 0.01
@@ -109,6 +123,24 @@
         },
         "pumps": {
           "airlock": "off"
+        }
+      },
+      "safety": {
+        "doors": {
+          "bridge-habitat": false,
+          "habitat-reactor-bay": false,
+          "habitat-airlock": false,
+          "airlock-outer": false
+        },
+        "floods": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        },
+        "drills": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
         }
       }
     }
@@ -191,6 +223,20 @@
         "habitat": 2346
       }
     },
+    "safety": {
+      "fires": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0,
+        "airlock": 0
+      },
+      "flooded": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0
+      },
+      "alarms": []
+    },
     "setpoints": {
       "reactor": {
         "throttle": 0.01
@@ -223,6 +269,24 @@
         },
         "pumps": {
           "airlock": "off"
+        }
+      },
+      "safety": {
+        "doors": {
+          "bridge-habitat": false,
+          "habitat-reactor-bay": false,
+          "habitat-airlock": false,
+          "airlock-outer": false
+        },
+        "floods": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        },
+        "drills": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
         }
       }
     }
@@ -305,6 +369,20 @@
         "habitat": 4482
       }
     },
+    "safety": {
+      "fires": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0,
+        "airlock": 0
+      },
+      "flooded": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0
+      },
+      "alarms": []
+    },
     "setpoints": {
       "reactor": {
         "throttle": 0.01
@@ -337,6 +415,24 @@
         },
         "pumps": {
           "airlock": "off"
+        }
+      },
+      "safety": {
+        "doors": {
+          "bridge-habitat": false,
+          "habitat-reactor-bay": false,
+          "habitat-airlock": false,
+          "airlock-outer": false
+        },
+        "floods": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        },
+        "drills": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
         }
       }
     }
