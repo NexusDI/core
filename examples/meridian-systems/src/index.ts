@@ -45,8 +45,10 @@ export {
 } from './systems/engineering/contracts';
 export {
   ATMOSPHERE_CONTROL,
+  ATMOSPHERE_PROBE,
   ATMOSPHERE_SENSOR,
   type IAtmosphereControl,
+  type IAtmosphereProbe,
   type IAtmosphereSensor,
   LIFE_SUPPORT_OPTIONS,
   type LifeSupportOptions,

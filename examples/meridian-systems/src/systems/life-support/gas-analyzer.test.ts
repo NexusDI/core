@@ -1,55 +1,57 @@
 import { describe, expect, it } from 'vitest';
 
-import calibration from '../../../deck/sensors.calibration.json';
 import deck from '../../../deck/meridian.deck.json';
-import { LIFE_SUPPORT_RATINGS, readAtmosphere } from '../../physics/atmosphere';
-import type { DeckPlan } from '../../simulation/contracts';
-import { SeededRandom } from '../../simulation/seeded-random';
+import type { AtmosphereReading } from '../../physics/atmosphere';
+import type {
+  CompartmentId,
+  CompartmentState,
+  DeckPlan,
+} from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
-import type { LifeSupportOptions } from './contracts';
+import type { IAtmosphereProbe } from './contracts';
 import { GasAnalyzer } from './gas-analyzer';
 
 const plan = deck satisfies DeckPlan;
-const options: LifeSupportOptions = {
-  calibration,
-  ratings: LIFE_SUPPORT_RATINGS,
-};
+
+/** Records each call and answers a reading that names its arguments. */
+class ProbeDouble implements IAtmosphereProbe {
+  readonly calls: [CompartmentId, CompartmentState, number][] = [];
+
+  read(
+    compartment: CompartmentId,
+    air: CompartmentState,
+    tick: number,
+  ): AtmosphereReading<CompartmentId> {
+    this.calls.push([compartment, air, tick]);
+    return {
+      compartment,
+      tick,
+      temperature: air.temperature,
+      pressure: 0,
+      partial: air.moles,
+    };
+  }
+}
 
 function build() {
   const state = new ShipStateStore(plan);
-  const rng = new SeededRandom({ seed: 7 });
-  const analyzer = () => new GasAnalyzer('habitat', state, rng, options, plan);
-  return { state, rng, analyzer };
-}
-
-/** What the analyzer reads in the habitat of `state` at its current tick. */
-function expected(state: ShipStateStore, rng: SeededRandom) {
-  const ship = state.snapshot();
-  const room = plan.compartments.find((entry) => entry.id === 'habitat');
-  if (!room) throw new Error('the deck has no habitat');
-  const stream = rng.fork(`AtmosphereSensor:habitat:${ship.tick}`);
-  return readAtmosphere(
-    ship.compartments.habitat,
-    room,
-    'habitat',
-    ship.tick,
-    calibration,
-    () => stream.next(),
-  );
+  const probe = new ProbeDouble();
+  const analyzer = () => new GasAnalyzer('habitat', state, probe);
+  return { state, probe, analyzer };
 }
 
 describe('GasAnalyzer', () => {
-  it('reads the habitat through the fork of its compartment and tick', () => {
-    const { state, rng, analyzer } = build();
-    expect(analyzer().read()).toEqual(expected(state, rng));
-    expect(analyzer().read()).toMatchObject({
-      compartment: 'habitat',
-      tick: 0,
-    });
+  it('reads the habitat through the probe at the current tick', () => {
+    const { state, probe, analyzer } = build();
+    const reading = analyzer().read();
+    const ship = state.snapshot();
+    expect(probe.calls).toEqual([['habitat', ship.compartments.habitat, 0]]);
+    expect(probe.calls[0][1]).toBe(ship.compartments.habitat);
+    expect(reading).toMatchObject({ compartment: 'habitat', tick: 0 });
   });
 
   it('samples at construction, so a second read repeats the first tick', () => {
-    const { state, rng, analyzer } = build();
+    const { state, probe, analyzer } = build();
     const first = analyzer();
     const sample = first.read();
     const ship = state.snapshot();
@@ -63,9 +65,9 @@ describe('GasAnalyzer', () => {
       },
     });
     expect(first.read()).toBe(sample);
+    expect(probe.calls).toHaveLength(1);
     const second = analyzer().read();
-    expect(second.tick).toBe(1);
-    expect(second).toEqual(expected(state, rng));
-    expect(second.temperature).toBeLessThan(281);
+    expect(second).toMatchObject({ tick: 1, temperature: 280 });
+    expect(probe.calls).toHaveLength(2);
   });
 });

@@ -42,8 +42,9 @@ export function meridianSystems(options: SimOptions) {
     ],
     // Re-exporting Engineering hands the root REACTOR, POWER_ROUTER and
     // SHIELD_GRID. COOLANT_LOOP stays inside Engineering. Re-exporting
-    // LifeSupport hands the root ATMOSPHERE_SENSOR and ATMOSPHERE_CONTROL, and
-    // puts its POWER_CONSUMERS entry where Engineering's router reads it.
+    // LifeSupport hands the root ATMOSPHERE_PROBE, ATMOSPHERE_SENSOR and
+    // ATMOSPHERE_CONTROL, and puts its POWER_CONSUMERS entry where
+    // Engineering's router reads it.
     exports: [
       TICK_LOOP,
       TELEMETRY,

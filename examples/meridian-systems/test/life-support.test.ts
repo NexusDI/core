@@ -16,6 +16,7 @@ import {
 } from '../src/simulation/contracts';
 import {
   ATMOSPHERE_CONTROL,
+  ATMOSPHERE_PROBE,
   ATMOSPHERE_SENSOR,
 } from '../src/systems/life-support/contracts';
 
@@ -51,6 +52,19 @@ describe('LifeSupport', () => {
       compartment: 'habitat',
       tick: 0,
     });
+  });
+
+  it('shows the root the probe its analyzers read through', async () => {
+    await using ship = await Nexus.create(meridianSystems(options));
+    const loop = ship.get(TICK_LOOP);
+    loop.advance(3);
+    const air = ship.get(SHIP_STATE).snapshot().compartments.bridge;
+    await using scope = await ship.createScope({
+      request: { compartment: 'bridge' },
+    });
+    expect(ship.get(ATMOSPHERE_PROBE).read('bridge', air, 3)).toEqual(
+      scope.get(ATMOSPHERE_SENSOR).read(),
+    );
   });
 
   it('refuses a sensor for a compartment the deck lacks', async () => {

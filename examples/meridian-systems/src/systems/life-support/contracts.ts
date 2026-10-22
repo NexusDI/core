@@ -7,7 +7,10 @@ import type {
   SensorCalibration,
 } from '../../physics/atmosphere';
 import type { QueuedCommand } from '../../simulation/commands';
-import type { CompartmentId } from '../../simulation/contracts';
+import type {
+  CompartmentId,
+  CompartmentState,
+} from '../../simulation/contracts';
 
 /**
  * The actions life support takes and their ranges, in words. shipText reads
@@ -15,6 +18,23 @@ import type { CompartmentId } from '../../simulation/contracts';
  */
 export const LIFE_SUPPORT_ACTIONS =
   'online with no arguments, heater with a compartment and on true or false or a target from 283 to 303 K, scrubber and oxygen with a compartment and on true or false, vent with a compartment and open true or false, and pump with a compartment and mode off, evacuate or fill';
+
+/**
+ * The calibrated sensors of every compartment. The analyzers of a route and
+ * the tick read through the same probe, so both see the same noisy numbers.
+ */
+export interface IAtmosphereProbe {
+  /**
+   * Reads `air` as the sensors of `compartment` read it at `tick`. One
+   * compartment, air and tick always give the same reading. Throws a plain
+   * `Error` when the deck has no such compartment.
+   */
+  read(
+    compartment: CompartmentId,
+    air: CompartmentState,
+    tick: number,
+  ): AtmosphereReading<CompartmentId>;
+}
 
 /** A gas analyzer in one compartment. */
 export interface IAtmosphereSensor {
@@ -56,6 +76,7 @@ export interface LifeSupportOptions {
 export const ATMOSPHERE_SENSOR = new Token<IAtmosphereSensor>(
   'AtmosphereSensor',
 );
+export const ATMOSPHERE_PROBE = new Token<IAtmosphereProbe>('AtmosphereProbe');
 export const ATMOSPHERE_CONTROL = new Token<IAtmosphereControl>(
   'AtmosphereControl',
 );
