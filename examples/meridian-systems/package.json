@@ -16,6 +16,11 @@
       "import": "./src/text.ts",
       "default": "./src/text.ts"
     },
+    "./interlock": {
+      "types": "./src/systems/safety/pressure-interlock.ts",
+      "import": "./src/systems/safety/pressure-interlock.ts",
+      "default": "./src/systems/safety/pressure-interlock.ts"
+    },
     "./package.json": "./package.json"
   },
   "dependencies": {
