@@ -1,4 +1,4 @@
-import { Token } from '@nexusdi/core';
+import { MultiToken, Token } from '@nexusdi/core';
 
 import type { PowerLoad } from '../../physics/power';
 import type { CoolantRating, ReactorRating } from '../../physics/thermal';
@@ -36,7 +36,18 @@ export interface IShieldGrid {
   lower(): QueuedCommand;
 }
 
+/** A system that asks the power router for electricity on each tick. */
+export interface IPowerConsumer {
+  /** The system's load on the tick that reads `ship`. */
+  draw(ship: ShipSnapshot): PowerLoad;
+}
+
 export const REACTOR = new Token<IReactorCore>('ReactorCore');
 export const COOLANT_LOOP = new Token<ICoolantLoop>('CoolantLoop');
 export const POWER_ROUTER = new Token<IPowerRouter>('PowerRouter');
 export const SHIELD_GRID = new Token<IShieldGrid>('ShieldGrid');
+/**
+ * The loads other systems add to the router. A system's module provides its
+ * consumer here and exports the token.
+ */
+export const POWER_CONSUMERS = new MultiToken<IPowerConsumer>('PowerConsumers');

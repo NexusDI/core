@@ -4,7 +4,11 @@ import { describe, expect, it } from 'vitest';
 import * as packageRoot from '../src/index';
 import { meridianSystems } from '../src/meridian-systems.module';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
-import { SHIP_STATE, TICK_LOOP } from '../src/simulation/contracts';
+import {
+  SHIP_STATE,
+  type ShipSnapshot,
+  TICK_LOOP,
+} from '../src/simulation/contracts';
 import {
   COOLANT_LOOP,
   POWER_ROUTER,
@@ -18,6 +22,9 @@ const throttle = (desk: ICommandDesk, level: number) =>
   desk.submit({ system: 'engineering', action: 'throttle', level });
 const shields = (desk: ICommandDesk, raised: boolean) =>
   desk.submit({ system: 'engineering', action: 'shields', raised });
+/** The shields' record among the tick's loads, which other systems join. */
+const shieldsLoad = (ship: ShipSnapshot) =>
+  ship.power.loads.find((load) => load.id === 'shields');
 
 describe('Engineering', () => {
   it('passes the check', () => {
@@ -36,7 +43,12 @@ describe('Engineering', () => {
 
   it('leaves the coolant loop out of the package root', () => {
     expect(Object.keys(packageRoot)).toEqual(
-      expect.arrayContaining(['REACTOR', 'POWER_ROUTER', 'SHIELD_GRID']),
+      expect.arrayContaining([
+        'REACTOR',
+        'POWER_ROUTER',
+        'SHIELD_GRID',
+        'POWER_CONSUMERS',
+      ]),
     );
     expect(packageRoot).not.toHaveProperty('COOLANT_LOOP');
   });
@@ -63,9 +75,12 @@ describe('Engineering', () => {
     expect(shields(desk, true)).toEqual({ tick: 18 });
 
     const raised = loop.advance(1);
-    expect(raised.power.loads).toEqual([
-      { id: 'shields', priority: 2, demand: 200e6, allocated: 200e6 },
-    ]);
+    expect(shieldsLoad(raised)).toEqual({
+      id: 'shields',
+      priority: 2,
+      demand: 200e6,
+      allocated: 200e6,
+    });
     expect(raised.power.shed).toEqual([]);
 
     // The level falls 0.18, 0.17, 0.16: the grid sheds at 193.6 MW on tick 20.
@@ -74,7 +89,7 @@ describe('Engineering', () => {
     const shed = loop.advance(1);
     expect(shed.tick).toBe(20);
     expect(shed.power.shed).toEqual(['shields']);
-    expect(shed.power.loads[0]).toMatchObject({ allocated: 0 });
+    expect(shieldsLoad(shed)).toMatchObject({ allocated: 0 });
     expect(shed.setpoints.shields).toEqual({ raised: true });
   });
 
@@ -93,9 +108,12 @@ describe('Engineering', () => {
     expect(log.filter((entry) => entry.tick === 18)).toStrictEqual([
       { tick: 18, change: { shields: { raised: false } } },
     ]);
-    expect(next.power.loads).toEqual([
-      { id: 'shields', priority: 2, demand: 0, allocated: 0 },
-    ]);
+    expect(shieldsLoad(next)).toEqual({
+      id: 'shields',
+      priority: 2,
+      demand: 0,
+      allocated: 0,
+    });
   });
 
   it('holds the idle ship after 600 ticks: level 0, 500 K and no load', async () => {
@@ -103,10 +121,13 @@ describe('Engineering', () => {
     const idle = ship.get(TICK_LOOP).advance(600);
     expect(idle.reactor.level).toBe(0);
     expect(idle.coolant.temperature).toBe(500);
-    expect(idle.power).toEqual({
-      output: 0,
-      loads: [{ id: 'shields', priority: 2, demand: 0, allocated: 0 }],
-      shed: [],
+    expect(idle.power.output).toBe(0);
+    expect(idle.power.shed).toEqual([]);
+    expect(shieldsLoad(idle)).toEqual({
+      id: 'shields',
+      priority: 2,
+      demand: 0,
+      allocated: 0,
     });
   });
 

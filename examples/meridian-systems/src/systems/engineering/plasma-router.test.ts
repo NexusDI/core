@@ -5,7 +5,7 @@ import { PowerBudgetError } from '../../errors';
 import type { PowerLoad } from '../../physics/power';
 import type { DeckPlan, ShipSnapshot } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
-import type { IShieldGrid } from './contracts';
+import type { IPowerConsumer, IShieldGrid } from './contracts';
 import { PlasmaRouter } from './plasma-router';
 
 const RAISED: PowerLoad = {
@@ -15,8 +15,27 @@ const RAISED: PowerLoad = {
   heatShare: 0.25,
 };
 
-/** A store whose reactor gives `electric` W, and a grid that draws `draw`. */
-function build(electric: number, draw: PowerLoad = { ...RAISED, demand: 0 }) {
+/** A consumer that draws `load` on every tick, and the ships it read. */
+function consumer(load: PowerLoad) {
+  const seen: ShipSnapshot[] = [];
+  const double: IPowerConsumer = {
+    draw(at) {
+      seen.push(at);
+      return load;
+    },
+  };
+  return { double, seen };
+}
+
+/**
+ * A store whose reactor gives `electric` W, a grid that draws `draw`, and the
+ * `consumers` on the router.
+ */
+function build(
+  electric: number,
+  draw: PowerLoad = { ...RAISED, demand: 0 },
+  consumers: IPowerConsumer[] = [],
+) {
   const state = new ShipStateStore(deck satisfies DeckPlan);
   const ship = state.snapshot();
   state.commit({ ...ship, reactor: { ...ship.reactor, electric } });
@@ -30,10 +49,14 @@ function build(electric: number, draw: PowerLoad = { ...RAISED, demand: 0 }) {
     raise: () => ({ tick: 1 }),
     lower: () => ({ tick: 1 }),
   };
-  const router = new PlasmaRouter(state, () => {
-    calls += 1;
-    return grid;
-  });
+  const router = new PlasmaRouter(
+    state,
+    () => {
+      calls += 1;
+      return grid;
+    },
+    consumers,
+  );
   return { state, router, seen, calls: () => calls };
 }
 
@@ -55,6 +78,57 @@ describe('PlasmaRouter', () => {
     expect(router.loads(ship)).toEqual([{ ...RAISED, demand: 0 }]);
     expect(calls()).toBe(1);
     expect(seen).toEqual([ship]);
+  });
+
+  it('lists the shields load, then the draw of each consumer in order', () => {
+    const pump = consumer({
+      id: 'pump',
+      priority: 1,
+      demand: 400,
+      heatShare: 0,
+    });
+    const lamp = consumer({
+      id: 'lamp',
+      priority: 3,
+      demand: 60,
+      heatShare: 0,
+    });
+    const { state, router } = build(0, RAISED, [pump.double, lamp.double]);
+    const ship = state.snapshot();
+    expect(router.loads(ship).map((load) => load.id)).toEqual([
+      'shields',
+      'pump',
+      'lamp',
+    ]);
+    expect(pump.seen).toEqual([ship]);
+    expect(lamp.seen).toEqual([ship]);
+  });
+
+  it('fits 200 MW of shields beside a consumer of 5.7 MW at 205.7 MW', () => {
+    const pump = consumer({
+      id: 'pump',
+      priority: 1,
+      demand: 5.7e6,
+      heatShare: 0,
+    });
+    expect(() =>
+      build(205.7e6, undefined, [pump.double]).router.divert(RAISED),
+    ).not.toThrow();
+  });
+
+  it('refuses 200 MW of shields beside a consumer served first of 5.8 MW at 205.7 MW', () => {
+    const pump = consumer({
+      id: 'pump',
+      priority: 1,
+      demand: 5.8e6,
+      heatShare: 0,
+    });
+    const { router } = build(205.7e6, undefined, [pump.double]);
+    expect(refusal(router, RAISED)).toMatchObject({
+      consumer: 'shields',
+      demand: 200e6,
+      available: 205.7e6 - 5.8e6,
+    });
   });
 
   it('refuses 200 MW of shields at 193.6 MW', () => {
