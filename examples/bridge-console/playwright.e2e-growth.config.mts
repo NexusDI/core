@@ -19,5 +19,19 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: webServers(GROWTH_PORTS),
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: /life-support\.spec\.ts/,
+    },
+    // Life support's online command is one-way on the shared manual ship, so
+    // its case runs after every case that reads the idle ship.
+    {
+      name: 'life-support',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /life-support\.spec\.ts/,
+      dependencies: ['chromium'],
+    },
+  ],
 });
