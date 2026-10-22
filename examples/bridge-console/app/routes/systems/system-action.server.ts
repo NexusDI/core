@@ -1,6 +1,7 @@
 /**
- * The action every ship system page under /systems shares: it reads the
- * posted form as one command for the page's system and posts it to
+ * The action every ship system page under /systems and the airlock panel
+ * share: it reads the posted form as one command for the page's system, or
+ * for the system its record names for the posted action, and posts it to
  * bridge-api. React Router drops each route's action from the client bundle,
  * and the `.server` suffix fails the client build if client code imports
  * this module and, through it, nexus.server.
@@ -30,16 +31,24 @@ function argument(value: FormDataEntryValue | null, kind: ArgumentKind) {
 }
 
 /**
+ * The system of the commands a page posts: one system name, or a record that
+ * names the system of each action the page posts.
+ */
+export type SystemOf = string | Readonly<Record<string, string>>;
+
+/**
  * The ship command a system page's form posts. The form's `command` field
  * names the action, and `args` names each field the action reads and its
- * kind. A missing, blank or file field stays out, and so does a boolean
- * field other than true or false. The backend refuses a number field that is
- * not a number, and checks the action and its arguments, so a bad command
- * comes back as a refusal.
+ * kind. A record `system` names the system of each action, and an action
+ * outside the record gets an empty system, which the backend refuses with
+ * `MERIDIAN_BAD_COMMAND`. A missing, blank or file field stays out, and so
+ * does a boolean field other than true or false. The backend refuses a number
+ * field that is not a number, and checks the action and its arguments, so a
+ * bad command comes back as a refusal.
  */
 export function commandFrom(
   form: FormData,
-  system: string,
+  system: SystemOf,
   args: Readonly<Record<string, ArgumentKind>>,
 ): ShipCommand {
   const fields: Record<string, unknown> = {};
@@ -47,16 +56,24 @@ export function commandFrom(
     const value = argument(form.get(name), kind);
     if (value !== undefined) fields[name] = value;
   }
-  return { system, action: String(form.get('command') ?? ''), ...fields };
+  const action = String(form.get('command') ?? '');
+  const named =
+    typeof system === 'string'
+      ? system
+      : Object.hasOwn(system, action)
+        ? (system[action] ?? '')
+        : '';
+  return { system: named, action, ...fields };
 }
 
 /**
  * A route action that posts the submitted form to bridge-api as a command
- * for `system`, read by `commandFrom` with `args`. It answers the queued
- * tick or the backend's refusal.
+ * for `system` (one name, or the system of each action), read by
+ * `commandFrom` with `args`. It answers the queued tick or the backend's
+ * refusal.
  */
 export function systemAction(
-  system: string,
+  system: SystemOf,
   args: Readonly<Record<string, ArgumentKind>>,
 ): (args: ActionFunctionArgs) => Promise<CommandAnswer> {
   return di.inject(

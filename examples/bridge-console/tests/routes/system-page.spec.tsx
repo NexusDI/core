@@ -72,6 +72,44 @@ describe('commandFrom', () => {
   });
 });
 
+describe('commandFrom with a record of systems', () => {
+  const systems = { pump: 'life-support', open: 'safety' };
+
+  it('reads the system of each action from the record', () => {
+    expect(
+      commandFrom(
+        formOf({ command: 'pump', compartment: 'airlock', mode: 'fill' }),
+        systems,
+        { compartment: 'text', mode: 'text', door: 'text' },
+      ),
+    ).toEqual({
+      system: 'life-support',
+      action: 'pump',
+      compartment: 'airlock',
+      mode: 'fill',
+    });
+    expect(
+      commandFrom(formOf({ command: 'open', door: 'airlock-outer' }), systems, {
+        door: 'text',
+      }),
+    ).toEqual({ system: 'safety', action: 'open', door: 'airlock-outer' });
+  });
+
+  it('sends an empty system for an action outside the record', () => {
+    expect(
+      commandFrom(formOf({ command: 'flood' }), systems, {}),
+    ).toStrictEqual({ system: '', action: 'flood' });
+  });
+
+  it('does not read a system off the prototype', () => {
+    for (const action of ['constructor', 'toString', '__proto__']) {
+      expect(
+        commandFrom(formOf({ command: action }), systems, {}),
+      ).toStrictEqual({ system: '', action });
+    }
+  });
+});
+
 describe('the system page pieces', () => {
   it('lists the gauges under their accessible name', () => {
     render(
