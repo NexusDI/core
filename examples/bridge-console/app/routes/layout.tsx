@@ -34,6 +34,9 @@ export default function Layout(props: Route.ComponentProps) {
         <Button as="link" to="/systems/life-support" variant="outline">
           Life support
         </Button>
+        <Button as="link" to="/systems/safety" variant="outline">
+          Safety
+        </Button>
       </nav>
 
       <main>

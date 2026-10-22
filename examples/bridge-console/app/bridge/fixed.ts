@@ -8,3 +8,8 @@ export function fixed(value: number, digits: number): string {
   const grouped = whole.replace(/\B(?=(\d{3})+$)/g, ',');
   return fraction === undefined ? grouped : `${grouped}.${fraction}`;
 }
+
+/** `pascals` in kPa, to `digits` decimals, with the unit. */
+export function kilopascals(pascals: number, digits: number): string {
+  return `${fixed(pascals / 1000, digits)} kPa`;
+}

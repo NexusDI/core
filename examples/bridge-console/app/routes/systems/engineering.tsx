@@ -1,10 +1,10 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
 import { Form } from 'react-router';
 
-import { BRIDGE_LINK, type CommandAnswer } from '../../bridge/bridge-link';
+import type { CommandAnswer } from '../../bridge/bridge-link';
 import { fixed } from '../../bridge/fixed';
 import { Button, Section } from '../../components';
-import { di } from '../../nexus.server';
+import { snapshotLoader } from '../snapshot-loader.server';
 import type { Route } from './+types/engineering';
 import { systemAction } from './system-action.server';
 import { ControlSection, Gauges, SystemPage } from './system-page';
@@ -18,9 +18,7 @@ export const action: (args: Route.ActionArgs) => Promise<CommandAnswer> =
 
 /** The ship for the gauges, or null when the backend fails. */
 export const loader: (args: Route.LoaderArgs) => Promise<ShipReading | null> =
-  di.inject({ link: BRIDGE_LINK }, ({ link }) =>
-    link.snapshot().catch(() => null),
-  );
+  snapshotLoader;
 
 const megawatts = (watts: number) => `${fixed(watts / 1e6, 1)} MW`;
 
