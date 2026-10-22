@@ -9,8 +9,8 @@
         "m3",
         "m4",
         "m5",
-        "m8",
-        "m9"
+        "m9",
+        "m10"
       ],
       "exports": []
     },
@@ -59,12 +59,14 @@
       "global": true,
       "imports": [
         "m6",
-        "m7"
+        "m7",
+        "m8"
       ],
       "exports": [
         "p6",
+        "p13",
         "p7",
-        "m7"
+        "m8"
       ]
     },
     {
@@ -82,28 +84,37 @@
     },
     {
       "id": "m7",
-      "name": "Engineering",
+      "name": "Telemetry",
       "global": false,
       "imports": [],
       "exports": [
-        "p13",
-        "p15",
-        "p16",
-        "p17",
-        "p18"
+        "p13"
       ]
     },
     {
       "id": "m8",
-      "name": "SimDriver",
+      "name": "Engineering",
       "global": false,
       "imports": [],
       "exports": [
+        "p14",
+        "p16",
+        "p17",
+        "p18",
         "p19"
       ]
     },
     {
       "id": "m9",
+      "name": "SimDriver",
+      "global": false,
+      "imports": [],
+      "exports": [
+        "p20"
+      ]
+    },
+    {
+      "id": "m10",
       "name": "interceptors",
       "global": false,
       "imports": [
@@ -271,8 +282,20 @@
     },
     {
       "id": "p13",
-      "token": "ReactorCore",
+      "token": "TelemetryFeed",
       "module": "m7",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "SnapshotFeed",
+      "internal": false
+    },
+    {
+      "id": "p14",
+      "token": "ReactorCore",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -282,9 +305,9 @@
       "internal": false
     },
     {
-      "id": "p14",
+      "id": "p15",
       "token": "CoolantLoop",
-      "module": "m7",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -294,9 +317,9 @@
       "internal": false
     },
     {
-      "id": "p15",
+      "id": "p16",
       "token": "PowerRouter",
-      "module": "m7",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -306,9 +329,9 @@
       "internal": false
     },
     {
-      "id": "p16",
+      "id": "p17",
       "token": "ShieldGrid",
-      "module": "m7",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -318,9 +341,9 @@
       "internal": false
     },
     {
-      "id": "p17",
+      "id": "p18",
       "token": "ShipSystems",
-      "module": "m7",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -330,9 +353,9 @@
       "internal": false
     },
     {
-      "id": "p18",
+      "id": "p19",
       "token": "CommandHandlers",
-      "module": "m7",
+      "module": "m8",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -342,9 +365,9 @@
       "internal": false
     },
     {
-      "id": "p19",
+      "id": "p20",
       "token": "SimDriver",
-      "module": "m8",
+      "module": "m9",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -354,9 +377,9 @@
       "internal": false
     },
     {
-      "id": "p20",
+      "id": "p21",
       "token": "DriverOptions",
-      "module": "m8",
+      "module": "m9",
       "lifetime": null,
       "kind": "value",
       "eager": true,
@@ -366,9 +389,9 @@
       "internal": false
     },
     {
-      "id": "p21",
+      "id": "p22",
       "token": "NavAudit",
-      "module": "m9",
+      "module": "m10",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -378,9 +401,9 @@
       "internal": false
     },
     {
-      "id": "p22",
+      "id": "p23",
       "token": "interceptors registry",
-      "module": "m9",
+      "module": "m10",
       "lifetime": "singleton",
       "kind": "factory",
       "eager": true,
@@ -390,9 +413,9 @@
       "internal": false
     },
     {
-      "id": "p23",
+      "id": "p24",
       "token": "interceptors guard",
-      "module": "m9",
+      "module": "m10",
       "lifetime": "singleton",
       "kind": "factory",
       "eager": true,
@@ -452,12 +475,12 @@
     },
     {
       "from": "p6",
-      "to": "p17",
+      "to": "p18",
       "kind": "all"
     },
     {
       "from": "p7",
-      "to": "p18",
+      "to": "p19",
       "kind": "all"
     },
     {
@@ -477,77 +500,92 @@
     },
     {
       "from": "p13",
-      "to": "p10",
-      "kind": "required"
-    },
-    {
-      "from": "p15",
-      "to": "p10",
-      "kind": "required"
-    },
-    {
-      "from": "p15",
-      "to": "p16",
-      "kind": "lazy"
-    },
-    {
-      "from": "p16",
-      "to": "p10",
-      "kind": "required"
-    },
-    {
-      "from": "p16",
-      "to": "p15",
-      "kind": "required"
-    },
-    {
-      "from": "p17",
-      "to": "p13",
-      "kind": "required"
-    },
-    {
-      "from": "p17",
-      "to": "p14",
-      "kind": "required"
-    },
-    {
-      "from": "p17",
-      "to": "p15",
-      "kind": "required"
-    },
-    {
-      "from": "p18",
-      "to": "p13",
-      "kind": "required"
-    },
-    {
-      "from": "p18",
-      "to": "p16",
-      "kind": "required"
-    },
-    {
-      "from": "p19",
       "to": "p6",
       "kind": "required"
     },
     {
+      "from": "p13",
+      "to": "p10",
+      "kind": "required"
+    },
+    {
+      "from": "p13",
+      "to": "p11",
+      "kind": "required"
+    },
+    {
+      "from": "p14",
+      "to": "p10",
+      "kind": "required"
+    },
+    {
+      "from": "p16",
+      "to": "p10",
+      "kind": "required"
+    },
+    {
+      "from": "p16",
+      "to": "p17",
+      "kind": "lazy"
+    },
+    {
+      "from": "p17",
+      "to": "p10",
+      "kind": "required"
+    },
+    {
+      "from": "p17",
+      "to": "p16",
+      "kind": "required"
+    },
+    {
+      "from": "p18",
+      "to": "p14",
+      "kind": "required"
+    },
+    {
+      "from": "p18",
+      "to": "p15",
+      "kind": "required"
+    },
+    {
+      "from": "p18",
+      "to": "p16",
+      "kind": "required"
+    },
+    {
       "from": "p19",
+      "to": "p14",
+      "kind": "required"
+    },
+    {
+      "from": "p19",
+      "to": "p17",
+      "kind": "required"
+    },
+    {
+      "from": "p20",
+      "to": "p6",
+      "kind": "required"
+    },
+    {
+      "from": "p20",
       "to": "p12",
       "kind": "required"
     },
     {
-      "from": "p19",
-      "to": "p20",
-      "kind": "required"
-    },
-    {
-      "from": "p21",
-      "to": "p5",
+      "from": "p20",
+      "to": "p21",
       "kind": "required"
     },
     {
       "from": "p22",
-      "to": "p21",
+      "to": "p5",
+      "kind": "required"
+    },
+    {
+      "from": "p23",
+      "to": "p22",
       "kind": "required"
     }
   ]
