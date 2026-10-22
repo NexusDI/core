@@ -1,15 +1,42 @@
 import { describe, expect, it } from 'vitest';
 import deck from '../../deck/meridian.deck.json';
 import { AIR, molesAt } from '../physics/gas';
+import type { LoadRecord } from '../physics/power';
 import { LITHIUM_LOOP } from '../physics/thermal';
 import {
   COMPARTMENT_IDS,
   type CompartmentId,
+  type CompartmentPlan,
   type DeckPlan,
+  type ShipSnapshot,
 } from './contracts';
 import { ShipStateStore } from './ship-state-store';
 
 const plan = deck satisfies DeckPlan;
+const initial = new ShipStateStore(plan).snapshot();
+
+function load(ship: ShipSnapshot, id: string): LoadRecord | undefined {
+  return ship.power.loads.find((entry) => entry.id === id);
+}
+
+/** The deck with `room`'s plan changed by `change`. */
+function withRoom(
+  room: CompartmentId,
+  change: Partial<CompartmentPlan>,
+): DeckPlan {
+  return {
+    ...plan,
+    compartments: plan.compartments.map((entry) =>
+      entry.id === room ? { ...entry, ...change } : entry,
+    ),
+  };
+}
+
+/** Every object level under `value`, `value` included. */
+function levels(value: unknown): object[] {
+  if (typeof value !== 'object' || value === null) return [];
+  return [value, ...Object.values(value).flatMap(levels)];
+}
 
 describe('ShipStateStore', () => {
   it('starts at tick 0 and time 0', () => {
@@ -88,15 +115,16 @@ describe('ShipStateStore', () => {
       tripped: false,
     });
     expect(ship.coolant).toEqual({ temperature: LITHIUM_LOOP.standby });
-    expect(ship.power).toEqual({
-      output: 0,
-      loads: [{ id: 'shields', priority: 2, demand: 0, allocated: 0 }],
-      shed: [],
+    expect(ship.power.output).toBe(0);
+    expect(ship.power.shed).toEqual([]);
+    expect(load(ship, 'shields')).toEqual({
+      id: 'shields',
+      priority: 2,
+      demand: 0,
+      allocated: 0,
     });
-    expect(ship.setpoints).toEqual({
-      reactor: { throttle: 0 },
-      shields: { raised: false },
-    });
+    expect(ship.setpoints.reactor).toEqual({ throttle: 0 });
+    expect(ship.setpoints.shields).toEqual({ raised: false });
     for (const record of [
       ship.reactor,
       ship.coolant,
@@ -128,6 +156,7 @@ describe('ShipStateStore setpoint queue', () => {
     store.queue({ reactor: { throttle: 1 } });
     const ship = store.applyQueued(1);
     expect(ship.setpoints).toEqual({
+      ...initial.setpoints,
       reactor: { throttle: 1 },
       shields: { raised: true },
     });
@@ -144,6 +173,7 @@ describe('ShipStateStore setpoint queue', () => {
     store.applyQueued(1);
     store.queue({ shields: { raised: true } });
     expect(store.applyQueued(2).setpoints).toEqual({
+      ...initial.setpoints,
       reactor: { throttle: 0.4 },
       shields: { raised: true },
     });
@@ -192,7 +222,10 @@ describe('ShipStateStore setpoint queue', () => {
     expect(merged.log()).toHaveLength(1);
     expect(merged.log()[0].tick).toBe(1);
     expect(ship.setpoints).toEqual(stepped.snapshot().setpoints);
-    expect(merged.log()[0].change).toEqual(ship.setpoints);
+    expect(merged.log()[0].change).toEqual({
+      reactor: ship.setpoints.reactor,
+      shields: ship.setpoints.shields,
+    });
   });
 
   it('leaves a change it merged earlier as it was', () => {
@@ -262,5 +295,139 @@ describe('ShipStateStore setpoint queue', () => {
       tick: 1_001,
       change: { reactor: { throttle: 1 } },
     });
+  });
+});
+
+describe('ShipStateStore life support', () => {
+  it('starts life support offline with every device the deck lists at its initial setting', () => {
+    const ship = new ShipStateStore(plan).snapshot();
+    expect(ship.setpoints.lifeSupport).toStrictEqual({
+      online: false,
+      heaters: {
+        bridge: { on: true, target: 293 },
+        habitat: { on: true, target: 293 },
+      },
+      scrubbers: { bridge: true, habitat: true },
+      oxygen: { bridge: true, habitat: true },
+      vents: { airlock: false },
+      pumps: { airlock: 'off' },
+    });
+    expect(ship.lifeSupport).toStrictEqual({
+      heaters: { bridge: 0, habitat: 0 },
+    });
+  });
+
+  it('lists the 0 W life-support load first, beside the lowered shields', () => {
+    const ship = new ShipStateStore(plan).snapshot();
+    expect(ship.power.loads).toEqual([
+      { id: 'life-support', priority: 1, demand: 0, allocated: 0 },
+      { id: 'shields', priority: 2, demand: 0, allocated: 0 },
+    ]);
+  });
+
+  it('freezes every level of the initial snapshot', () => {
+    const ship = new ShipStateStore(plan).snapshot();
+    for (const level of levels(ship)) {
+      expect(Object.isFrozen(level)).toBe(true);
+    }
+  });
+
+  it('applies a target and an off queued in one tick as one heater setting, and leaves the bridge heater as it was', () => {
+    const store = new ShipStateStore(plan);
+    const bridge = store.snapshot().setpoints.lifeSupport.heaters.bridge;
+    store.queue({ lifeSupport: { heaters: { habitat: { target: 295 } } } });
+    store.queue({ lifeSupport: { heaters: { habitat: { on: false } } } });
+    const ship = store.applyQueued(1);
+    expect(ship.setpoints.lifeSupport.heaters).toStrictEqual({
+      bridge: { on: true, target: 293 },
+      habitat: { on: false, target: 295 },
+    });
+    expect(ship.setpoints.lifeSupport.heaters.bridge).toEqual(bridge);
+    expect(store.log()).toStrictEqual([
+      {
+        tick: 1,
+        change: {
+          lifeSupport: { heaters: { habitat: { target: 295, on: false } } },
+        },
+      },
+    ]);
+  });
+
+  it('applies a throttle and a heater change queued in one tick', () => {
+    const store = new ShipStateStore(plan);
+    store.queue({ reactor: { throttle: 0.01 } });
+    store.queue({
+      lifeSupport: { online: true, heaters: { bridge: { target: 290 } } },
+    });
+    const ship = store.applyQueued(1);
+    expect(ship.setpoints.reactor).toEqual({ throttle: 0.01 });
+    expect(ship.setpoints.lifeSupport.online).toBe(true);
+    expect(ship.setpoints.lifeSupport.heaters.bridge).toEqual({
+      on: true,
+      target: 290,
+    });
+    expect(ship.setpoints.shields).toEqual({ raised: false });
+  });
+
+  it('freezes every level of the merged setpoints and of the logged change', () => {
+    const store = new ShipStateStore(plan);
+    const change = {
+      lifeSupport: {
+        heaters: { habitat: { target: 295 } },
+        pumps: { airlock: 'evacuate' as const },
+      },
+    };
+    store.queue(change);
+    const ship = store.applyQueued(1);
+    for (const level of [...levels(ship), ...levels(store.log())]) {
+      expect(Object.isFrozen(level)).toBe(true);
+    }
+    expect(Object.isFrozen(change.lifeSupport.heaters.habitat)).toBe(false);
+  });
+
+  it('keeps a nested change from the caller mutating it after the queue', () => {
+    const store = new ShipStateStore(plan);
+    const change = { lifeSupport: { heaters: { habitat: { target: 295 } } } };
+    store.queue(change);
+    change.lifeSupport.heaters.habitat.target = 300;
+    expect(store.applyQueued(1).setpoints.lifeSupport.heaters.habitat).toEqual({
+      on: true,
+      target: 295,
+    });
+  });
+
+  it.each([
+    [
+      'an unknown device',
+      withRoom('bridge', { equipment: ['heater', 'fan'] }),
+      "The deck plan gives compartment 'bridge' an unknown device 'fan'.",
+    ],
+    [
+      'a device twice',
+      withRoom('bridge', { equipment: ['heater', 'heater'] }),
+      "The deck plan gives compartment 'bridge' the device 'heater' twice.",
+    ],
+    [
+      'a pump with no reservoir',
+      withRoom('airlock', { pumpReservoir: undefined }),
+      "The deck plan gives compartment 'airlock' a pump and no pumpReservoir.",
+    ],
+    [
+      'a reservoir with no pump',
+      withRoom('habitat', { pumpReservoir: 'bridge' }),
+      "The deck plan gives compartment 'habitat' a pumpReservoir and no pump.",
+    ],
+    [
+      'an unknown reservoir',
+      withRoom('airlock', { pumpReservoir: 'galley' }),
+      "The deck plan pumps compartment 'airlock' to an unknown compartment 'galley'.",
+    ],
+    [
+      'a reservoir that is the pump room',
+      withRoom('airlock', { pumpReservoir: 'airlock' }),
+      "The deck plan pumps compartment 'airlock' to itself.",
+    ],
+  ])('refuses a deck plan with %s', (_, deckPlan, message) => {
+    expect(() => new ShipStateStore(deckPlan)).toThrow(message);
   });
 });

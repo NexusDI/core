@@ -177,6 +177,7 @@ describe('the deck plan', () => {
         conductance: 90,
         structureHeatCapacity: 2_000_000,
         occupants: 2,
+        equipment: ['heater', 'scrubber', 'oxygen'],
       },
       {
         id: 'habitat',
@@ -184,6 +185,7 @@ describe('the deck plan', () => {
         conductance: 150,
         structureHeatCapacity: 4_000_000,
         occupants: 4,
+        equipment: ['heater', 'scrubber', 'oxygen'],
       },
       {
         id: 'reactor-bay',
@@ -191,6 +193,7 @@ describe('the deck plan', () => {
         conductance: 110,
         structureHeatCapacity: 6_000_000,
         occupants: 0,
+        coolantConductance: 2,
       },
       {
         id: 'airlock',
@@ -198,6 +201,8 @@ describe('the deck plan', () => {
         conductance: 30,
         structureHeatCapacity: 500_000,
         occupants: 0,
+        equipment: ['vent', 'pump'],
+        pumpReservoir: 'habitat',
       },
     ]);
   });
