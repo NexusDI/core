@@ -16,18 +16,24 @@ import {
   type ShipSnapshot,
 } from './contracts';
 
-/** The most entries `log()` keeps. */
+/**
+ * The most entries `log()` keeps. The store logs one entry per tick that
+ * applied a change, so the log covers the newest 1,000 such ticks.
+ */
 const LOG_SIZE = 1_000;
 
 /**
  * Holds the current snapshot, which starts at tick 0 with the deck's initial
- * air and every system idle, and the setpoint changes the crew queued.
+ * air and every system idle, and one pending change: the merge of every
+ * setpoint change the crew queued since the last tick. A client that sends
+ * commands in a loop between two ticks replaces fields of that one change,
+ * so the store keeps one change however many commands arrive.
  */
 export class ShipStateStore implements IShipState {
   static deps = [DECK_PLAN] as const;
 
   private current: ShipSnapshot;
-  private queued: SetpointChange[] = [];
+  private pending: SetpointChange | undefined;
   private entries: LoggedChange[] = [];
 
   constructor(deck: DeckPlan) {
@@ -43,18 +49,16 @@ export class ShipStateStore implements IShipState {
   }
 
   queue(change: SetpointChange): QueuedCommand {
-    this.queued.push(copyChange(change));
+    this.pending = mergeChange(this.pending, change);
     return Object.freeze({ tick: this.current.tick + 1 });
   }
 
   applyQueued(tick: number): ShipSnapshot {
-    if (this.queued.length === 0) return this.current;
-    let setpoints = this.current.setpoints;
-    for (const change of this.queued) {
-      setpoints = mergeSetpoints(setpoints, change);
-      this.entries.push(Object.freeze({ tick, change }));
-    }
-    this.queued = [];
+    const change = this.pending;
+    if (!change) return this.current;
+    this.pending = undefined;
+    const setpoints = mergeSetpoints(this.current.setpoints, change);
+    this.entries.push(Object.freeze({ tick, change }));
     if (this.entries.length > LOG_SIZE) {
       this.entries.splice(0, this.entries.length - LOG_SIZE);
     }
@@ -68,27 +72,42 @@ export class ShipStateStore implements IShipState {
 }
 
 /**
- * A frozen copy of `change` with its undefined fields dropped, so a caller
- * that keeps the object cannot alter the queue or the log.
+ * A new frozen change that holds `pending` with `change` merged over it field
+ * by field inside each record, the later value winning. It drops the fields
+ * `change` sets to undefined and leaves `pending` as it was, so a caller that
+ * keeps either object cannot alter the pending change or the log.
  */
-function copyChange(change: SetpointChange): SetpointChange {
-  const copy: { -readonly [K in keyof Setpoints]?: Partial<Setpoints[K]> } = {};
-  if (change.reactor) copy.reactor = definedFields(change.reactor);
-  if (change.shields) copy.shields = definedFields(change.shields);
-  return Object.freeze(copy);
+function mergeChange(
+  pending: SetpointChange | undefined,
+  change: SetpointChange,
+): SetpointChange {
+  const merged: { -readonly [K in keyof Setpoints]?: Partial<Setpoints[K]> } = {
+    ...pending,
+  };
+  if (change.reactor) {
+    merged.reactor = Object.freeze({
+      ...pending?.reactor,
+      ...definedFields(change.reactor),
+    });
+  }
+  if (change.shields) {
+    merged.shields = Object.freeze({
+      ...pending?.shields,
+      ...definedFields(change.shields),
+    });
+  }
+  return Object.freeze(merged);
 }
 
 /**
- * A frozen copy of `fields` without the keys set to undefined. `Partial`
+ * A copy of `fields` without the keys set to undefined. `Partial`
  * lets a caller write `{ throttle: undefined }`, and a merge of that key
  * would leave undefined in the setpoints.
  */
 function definedFields<T extends object>(fields: T): T {
-  return Object.freeze(
-    Object.fromEntries(
-      Object.entries(fields).filter(([, value]) => value !== undefined),
-    ) as T,
-  );
+  return Object.fromEntries(
+    Object.entries(fields).filter(([, value]) => value !== undefined),
+  ) as T;
 }
 
 function mergeSetpoints(
