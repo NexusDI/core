@@ -118,15 +118,21 @@ export interface ISimClock {
 export interface IShipState {
   snapshot(): ShipSnapshot;
   commit(next: ShipSnapshot): void;
-  /** Queues `change` for the next tick and answers with that tick. */
+  /**
+   * Merges `change` field by field over the change pending for the next
+   * tick, the later value winning, and answers with that tick.
+   */
   queue(change: SetpointChange): QueuedCommand;
   /**
-   * Merges the queued changes over the setpoints in queue order, logs each
-   * under `tick`, commits the result and returns it. The tick loop calls it
-   * at step 1 of tick `tick`.
+   * Merges the pending change over the setpoints, logs it as one entry
+   * under `tick`, clears it, commits the result and returns it. The tick
+   * loop calls it at step 1 of tick `tick`.
    */
   applyQueued(tick: number): ShipSnapshot;
-  /** The newest 1,000 applied changes, oldest first. */
+  /**
+   * The newest 1,000 entries, oldest first. Each entry holds the merged
+   * change one tick applied, so the log covers 1,000 ticks.
+   */
   log(): readonly LoggedChange[];
 }
 

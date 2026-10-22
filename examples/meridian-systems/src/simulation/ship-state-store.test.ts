@@ -144,15 +144,65 @@ describe('ShipStateStore setpoint queue', () => {
     });
   });
 
-  it('logs each change under the tick that applied it', () => {
+  it('logs the changes of one tick as one merged entry under that tick', () => {
     const store = new ShipStateStore(plan);
     store.queue({ reactor: { throttle: 0.5 } });
     store.queue({ shields: { raised: true } });
     store.applyQueued(1);
     expect(store.log()).toEqual([
-      { tick: 1, change: { reactor: { throttle: 0.5 } } },
-      { tick: 1, change: { shields: { raised: true } } },
+      {
+        tick: 1,
+        change: { reactor: { throttle: 0.5 }, shields: { raised: true } },
+      },
     ]);
+  });
+
+  it('merges throttle 0.2, shields raised and throttle 0.8 into one entry', () => {
+    const store = new ShipStateStore(plan);
+    store.queue({ reactor: { throttle: 0.2 } });
+    store.queue({ shields: { raised: true } });
+    store.queue({ reactor: { throttle: 0.8 } });
+    store.applyQueued(1);
+    expect(store.log()).toStrictEqual([
+      {
+        tick: 1,
+        change: { reactor: { throttle: 0.8 }, shields: { raised: true } },
+      },
+    ]);
+  });
+
+  it('holds 10,000 changes between two ticks as one entry with the setpoints of applying them one by one', () => {
+    const merged = new ShipStateStore(plan);
+    const stepped = new ShipStateStore(plan);
+    for (let i = 1; i <= 10_000; i++) {
+      const change =
+        i % 3 === 0
+          ? { shields: { raised: i % 2 === 0 } }
+          : { reactor: { throttle: i / 10_000 } };
+      merged.queue(change);
+      stepped.queue(change);
+      stepped.applyQueued(i);
+    }
+    const ship = merged.applyQueued(1);
+    expect(merged.log()).toHaveLength(1);
+    expect(merged.log()[0].tick).toBe(1);
+    expect(ship.setpoints).toEqual(stepped.snapshot().setpoints);
+    expect(merged.log()[0].change).toEqual(ship.setpoints);
+  });
+
+  it('leaves a change it merged earlier as it was', () => {
+    const store = new ShipStateStore(plan);
+    store.queue({ reactor: { throttle: 0.2 } });
+    store.applyQueued(1);
+    const first = store.log()[0].change;
+    store.queue({ reactor: { throttle: 0.3 } });
+    store.queue({ shields: { raised: true } });
+    store.applyQueued(2);
+    expect(first).toStrictEqual({ reactor: { throttle: 0.2 } });
+    const second = store.log()[1].change;
+    expect(Object.isFrozen(second)).toBe(true);
+    expect(Object.isFrozen(second.reactor)).toBe(true);
+    expect(Object.isFrozen(second.shields)).toBe(true);
   });
 
   it('empties the queue once it applies it', () => {

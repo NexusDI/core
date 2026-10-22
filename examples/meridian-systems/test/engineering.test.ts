@@ -70,6 +70,26 @@ describe('Engineering', () => {
     expect(shed.setpoints.shields).toEqual({ raised: true });
   });
 
+  it('applies a raise and a lower queued in one tick as the lower, so the grid draws nothing', async () => {
+    await using ship = await Nexus.create(meridianSystems(options));
+    const desk = ship.get(COMMAND_DESK);
+    const loop = ship.get(TICK_LOOP);
+    throttle(desk, 1);
+    // Level 0.17 after 17 ticks: 205.7 MW, so the raise passes the divert.
+    loop.advance(17);
+    expect(shields(desk, true)).toEqual({ tick: 18 });
+    expect(shields(desk, false)).toEqual({ tick: 18 });
+
+    const next = loop.advance(1);
+    const log = ship.get(SHIP_STATE).log();
+    expect(log.filter((entry) => entry.tick === 18)).toStrictEqual([
+      { tick: 18, change: { shields: { raised: false } } },
+    ]);
+    expect(next.power.loads).toEqual([
+      { id: 'shields', priority: 2, demand: 0, allocated: 0 },
+    ]);
+  });
+
   it('holds the idle ship after 600 ticks: level 0, 500 K and no load', async () => {
     await using ship = await Nexus.create(meridianSystems(options));
     const idle = ship.get(TICK_LOOP).advance(600);
