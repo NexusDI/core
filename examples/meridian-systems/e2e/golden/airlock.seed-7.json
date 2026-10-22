@@ -1,0 +1,732 @@
+[
+  {
+    "tick": 288,
+    "time": 144,
+    "compartments": {
+      "bridge": {
+        "moles": {
+          "O2": 523.9,
+          "N2": 1946,
+          "CO2": 0.9565,
+          "H2O": 22.59,
+          "volatiles": 1.328
+        },
+        "temperature": 292.9
+      },
+      "habitat": {
+        "moles": {
+          "O2": 1143,
+          "N2": 4247,
+          "CO2": 2.201,
+          "H2O": 47.27,
+          "volatiles": 3.082
+        },
+        "temperature": 292.9
+      },
+      "reactor-bay": {
+        "moles": {
+          "O2": 698.6,
+          "N2": 2595,
+          "CO2": 1.331,
+          "H2O": 29.94,
+          "volatiles": 1.996
+        },
+        "temperature": 292.9
+      },
+      "airlock": {
+        "moles": {
+          "O2": 9.411,
+          "N2": 34.96,
+          "CO2": 0.01793,
+          "H2O": 0.4033,
+          "volatiles": 0.02694
+        },
+        "temperature": 292.7
+      }
+    },
+    "reactor": {
+      "level": 0.01,
+      "thermal": 36300000,
+      "electric": 12100000,
+      "tripped": false
+    },
+    "coolant": {
+      "temperature": 503.7
+    },
+    "power": {
+      "output": 12100000,
+      "loads": [
+        {
+          "id": "life-support",
+          "priority": 1,
+          "demand": 39280,
+          "allocated": 39280
+        },
+        {
+          "id": "shields",
+          "priority": 2,
+          "demand": 0,
+          "allocated": 0
+        }
+      ],
+      "shed": []
+    },
+    "lifeSupport": {
+      "heaters": {
+        "bridge": 1391,
+        "habitat": 1339
+      }
+    },
+    "safety": {
+      "fires": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0,
+        "airlock": 0
+      },
+      "flooded": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0
+      },
+      "alarms": []
+    },
+    "setpoints": {
+      "reactor": {
+        "throttle": 0.01
+      },
+      "shields": {
+        "raised": false
+      },
+      "lifeSupport": {
+        "online": true,
+        "heaters": {
+          "bridge": {
+            "on": true,
+            "target": 293
+          },
+          "habitat": {
+            "on": true,
+            "target": 293
+          }
+        },
+        "scrubbers": {
+          "bridge": true,
+          "habitat": true
+        },
+        "oxygen": {
+          "bridge": true,
+          "habitat": true
+        },
+        "vents": {
+          "airlock": false
+        },
+        "pumps": {
+          "airlock": "evacuate"
+        }
+      },
+      "safety": {
+        "doors": {
+          "bridge-habitat": false,
+          "habitat-reactor-bay": false,
+          "habitat-airlock": false,
+          "airlock-outer": false
+        },
+        "floods": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        },
+        "drills": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        }
+      }
+    }
+  },
+  {
+    "tick": 317,
+    "time": 158.5,
+    "compartments": {
+      "bridge": {
+        "moles": {
+          "O2": 523.9,
+          "N2": 1946,
+          "CO2": 0.9526,
+          "H2O": 22.58,
+          "volatiles": 1.312
+        },
+        "temperature": 292.9
+      },
+      "habitat": {
+        "moles": {
+          "O2": 1143,
+          "N2": 4247,
+          "CO2": 2.203,
+          "H2O": 47.08,
+          "volatiles": 3.063
+        },
+        "temperature": 292.9
+      },
+      "reactor-bay": {
+        "moles": {
+          "O2": 698.6,
+          "N2": 2595,
+          "CO2": 1.331,
+          "H2O": 29.94,
+          "volatiles": 1.996
+        },
+        "temperature": 292.9
+      },
+      "airlock": {
+        "moles": {
+          "O2": 5.144,
+          "N2": 19.11,
+          "CO2": 0.009797,
+          "H2O": 0.2204,
+          "volatiles": 0.01474
+        },
+        "temperature": 292.7
+      }
+    },
+    "reactor": {
+      "level": 0.01,
+      "thermal": 36300000,
+      "electric": 12100000,
+      "tripped": false
+    },
+    "coolant": {
+      "temperature": 504
+    },
+    "power": {
+      "output": 12100000,
+      "loads": [
+        {
+          "id": "life-support",
+          "priority": 1,
+          "demand": 5334,
+          "allocated": 5334
+        },
+        {
+          "id": "shields",
+          "priority": 2,
+          "demand": 0,
+          "allocated": 0
+        }
+      ],
+      "shed": []
+    },
+    "lifeSupport": {
+      "heaters": {
+        "bridge": 1484,
+        "habitat": 1450
+      }
+    },
+    "safety": {
+      "fires": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0,
+        "airlock": 0
+      },
+      "flooded": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0
+      },
+      "alarms": []
+    },
+    "setpoints": {
+      "reactor": {
+        "throttle": 0.01
+      },
+      "shields": {
+        "raised": false
+      },
+      "lifeSupport": {
+        "online": true,
+        "heaters": {
+          "bridge": {
+            "on": true,
+            "target": 293
+          },
+          "habitat": {
+            "on": true,
+            "target": 293
+          }
+        },
+        "scrubbers": {
+          "bridge": true,
+          "habitat": true
+        },
+        "oxygen": {
+          "bridge": true,
+          "habitat": true
+        },
+        "vents": {
+          "airlock": true
+        },
+        "pumps": {
+          "airlock": "off"
+        }
+      },
+      "safety": {
+        "doors": {
+          "bridge-habitat": false,
+          "habitat-reactor-bay": false,
+          "habitat-airlock": false,
+          "airlock-outer": false
+        },
+        "floods": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        },
+        "drills": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        }
+      }
+    }
+  },
+  {
+    "tick": 337,
+    "time": 168.5,
+    "compartments": {
+      "bridge": {
+        "moles": {
+          "O2": 523.9,
+          "N2": 1946,
+          "CO2": 0.95,
+          "H2O": 22.57,
+          "volatiles": 1.301
+        },
+        "temperature": 292.8
+      },
+      "habitat": {
+        "moles": {
+          "O2": 1143,
+          "N2": 4247,
+          "CO2": 2.205,
+          "H2O": 46.95,
+          "volatiles": 3.05
+        },
+        "temperature": 292.8
+      },
+      "reactor-bay": {
+        "moles": {
+          "O2": 698.6,
+          "N2": 2595,
+          "CO2": 1.331,
+          "H2O": 29.94,
+          "volatiles": 1.996
+        },
+        "temperature": 292.9
+      },
+      "airlock": {
+        "moles": {
+          "O2": 6.54e-22,
+          "N2": 2.429e-21,
+          "CO2": 1.246e-24,
+          "H2O": 2.803e-23,
+          "volatiles": 4.371e-8
+        },
+        "temperature": 292.7
+      }
+    },
+    "reactor": {
+      "level": 0.01,
+      "thermal": 36300000,
+      "electric": 12100000,
+      "tripped": false
+    },
+    "coolant": {
+      "temperature": 504.2
+    },
+    "power": {
+      "output": 12100000,
+      "loads": [
+        {
+          "id": "life-support",
+          "priority": 1,
+          "demand": 5468,
+          "allocated": 5468
+        },
+        {
+          "id": "shields",
+          "priority": 2,
+          "demand": 0,
+          "allocated": 0
+        }
+      ],
+      "shed": []
+    },
+    "lifeSupport": {
+      "heaters": {
+        "bridge": 1545,
+        "habitat": 1524
+      }
+    },
+    "safety": {
+      "fires": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0,
+        "airlock": 0
+      },
+      "flooded": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0
+      },
+      "alarms": []
+    },
+    "setpoints": {
+      "reactor": {
+        "throttle": 0.01
+      },
+      "shields": {
+        "raised": false
+      },
+      "lifeSupport": {
+        "online": true,
+        "heaters": {
+          "bridge": {
+            "on": true,
+            "target": 293
+          },
+          "habitat": {
+            "on": true,
+            "target": 293
+          }
+        },
+        "scrubbers": {
+          "bridge": true,
+          "habitat": true
+        },
+        "oxygen": {
+          "bridge": true,
+          "habitat": true
+        },
+        "vents": {
+          "airlock": true
+        },
+        "pumps": {
+          "airlock": "off"
+        }
+      },
+      "safety": {
+        "doors": {
+          "bridge-habitat": false,
+          "habitat-reactor-bay": false,
+          "habitat-airlock": false,
+          "airlock-outer": true
+        },
+        "floods": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        },
+        "drills": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        }
+      }
+    }
+  },
+  {
+    "tick": 446,
+    "time": 223,
+    "compartments": {
+      "bridge": {
+        "moles": {
+          "O2": 523.8,
+          "N2": 1946,
+          "CO2": 0.9358,
+          "H2O": 22.53,
+          "volatiles": 1.243
+        },
+        "temperature": 292.8
+      },
+      "habitat": {
+        "moles": {
+          "O2": 1044,
+          "N2": 3878,
+          "CO2": 2.022,
+          "H2O": 42.83,
+          "volatiles": 2.723
+        },
+        "temperature": 292.8
+      },
+      "reactor-bay": {
+        "moles": {
+          "O2": 698.6,
+          "N2": 2595,
+          "CO2": 1.331,
+          "H2O": 29.94,
+          "volatiles": 1.996
+        },
+        "temperature": 292.9
+      },
+      "airlock": {
+        "moles": {
+          "O2": 99.29,
+          "N2": 368.9,
+          "CO2": 0.1919,
+          "H2O": 4.065,
+          "volatiles": 0.2621
+        },
+        "temperature": 292.6
+      }
+    },
+    "reactor": {
+      "level": 0.01,
+      "thermal": 36300000,
+      "electric": 12100000,
+      "tripped": false
+    },
+    "coolant": {
+      "temperature": 505.3
+    },
+    "power": {
+      "output": 12100000,
+      "loads": [
+        {
+          "id": "life-support",
+          "priority": 1,
+          "demand": 6524,
+          "allocated": 6524
+        },
+        {
+          "id": "shields",
+          "priority": 2,
+          "demand": 0,
+          "allocated": 0
+        }
+      ],
+      "shed": []
+    },
+    "lifeSupport": {
+      "heaters": {
+        "bridge": 1827,
+        "habitat": 1896
+      }
+    },
+    "safety": {
+      "fires": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0,
+        "airlock": 0
+      },
+      "flooded": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0
+      },
+      "alarms": []
+    },
+    "setpoints": {
+      "reactor": {
+        "throttle": 0.01
+      },
+      "shields": {
+        "raised": false
+      },
+      "lifeSupport": {
+        "online": true,
+        "heaters": {
+          "bridge": {
+            "on": true,
+            "target": 293
+          },
+          "habitat": {
+            "on": true,
+            "target": 293
+          }
+        },
+        "scrubbers": {
+          "bridge": true,
+          "habitat": true
+        },
+        "oxygen": {
+          "bridge": true,
+          "habitat": true
+        },
+        "vents": {
+          "airlock": false
+        },
+        "pumps": {
+          "airlock": "fill"
+        }
+      },
+      "safety": {
+        "doors": {
+          "bridge-habitat": false,
+          "habitat-reactor-bay": false,
+          "habitat-airlock": false,
+          "airlock-outer": false
+        },
+        "floods": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        },
+        "drills": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        }
+      }
+    }
+  },
+  {
+    "tick": 466,
+    "time": 233,
+    "compartments": {
+      "bridge": {
+        "moles": {
+          "O2": 523.8,
+          "N2": 1946,
+          "CO2": 0.9333,
+          "H2O": 22.53,
+          "volatiles": 1.233
+        },
+        "temperature": 292.8
+      },
+      "habitat": {
+        "moles": {
+          "O2": 1039,
+          "N2": 3861,
+          "CO2": 2.015,
+          "H2O": 42.7,
+          "volatiles": 2.703
+        },
+        "temperature": 292.8
+      },
+      "reactor-bay": {
+        "moles": {
+          "O2": 698.6,
+          "N2": 2595,
+          "CO2": 1.331,
+          "H2O": 29.94,
+          "volatiles": 1.996
+        },
+        "temperature": 292.9
+      },
+      "airlock": {
+        "moles": {
+          "O2": 103.9,
+          "N2": 385.9,
+          "CO2": 0.2013,
+          "H2O": 4.266,
+          "volatiles": 0.2704
+        },
+        "temperature": 292.6
+      }
+    },
+    "reactor": {
+      "level": 0.01,
+      "thermal": 36300000,
+      "electric": 12100000,
+      "tripped": false
+    },
+    "coolant": {
+      "temperature": 505.5
+    },
+    "power": {
+      "output": 12100000,
+      "loads": [
+        {
+          "id": "life-support",
+          "priority": 1,
+          "demand": 6252,
+          "allocated": 6252
+        },
+        {
+          "id": "shields",
+          "priority": 2,
+          "demand": 0,
+          "allocated": 0
+        }
+      ],
+      "shed": []
+    },
+    "lifeSupport": {
+      "heaters": {
+        "bridge": 1871,
+        "habitat": 1980
+      }
+    },
+    "safety": {
+      "fires": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0,
+        "airlock": 0
+      },
+      "flooded": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0
+      },
+      "alarms": []
+    },
+    "setpoints": {
+      "reactor": {
+        "throttle": 0.01
+      },
+      "shields": {
+        "raised": false
+      },
+      "lifeSupport": {
+        "online": true,
+        "heaters": {
+          "bridge": {
+            "on": true,
+            "target": 293
+          },
+          "habitat": {
+            "on": true,
+            "target": 293
+          }
+        },
+        "scrubbers": {
+          "bridge": true,
+          "habitat": true
+        },
+        "oxygen": {
+          "bridge": true,
+          "habitat": true
+        },
+        "vents": {
+          "airlock": false
+        },
+        "pumps": {
+          "airlock": "off"
+        }
+      },
+      "safety": {
+        "doors": {
+          "bridge-habitat": false,
+          "habitat-reactor-bay": false,
+          "habitat-airlock": true,
+          "airlock-outer": false
+        },
+        "floods": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        },
+        "drills": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        }
+      }
+    }
+  }
+]
