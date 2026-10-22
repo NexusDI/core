@@ -88,7 +88,11 @@ describe('ShipStateStore', () => {
       tripped: false,
     });
     expect(ship.coolant).toEqual({ temperature: LITHIUM_LOOP.standby });
-    expect(ship.power).toEqual({ output: 0, loads: [], shed: [] });
+    expect(ship.power).toEqual({
+      output: 0,
+      loads: [{ id: 'shields', priority: 2, demand: 0, allocated: 0 }],
+      shed: [],
+    });
     expect(ship.setpoints).toEqual({
       reactor: { throttle: 0 },
       shields: { raised: false },
@@ -98,6 +102,7 @@ describe('ShipStateStore', () => {
       ship.coolant,
       ship.power,
       ship.power.loads,
+      ...ship.power.loads,
       ship.power.shed,
       ship.setpoints,
       ship.setpoints.reactor,

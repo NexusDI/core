@@ -27,7 +27,11 @@ export const shipAtStart: ShipReading = {
   },
   reactor: { level: 0, thermal: 0, electric: 0, tripped: false },
   coolant: { temperature: 500 },
-  power: { output: 0, loads: [], shed: [] },
+  power: {
+    output: 0,
+    loads: [{ id: 'shields', priority: 2, demand: 0, allocated: 0 }],
+    shed: [],
+  },
   setpoints: { reactor: { throttle: 0 }, shields: { raised: false } },
 };
 

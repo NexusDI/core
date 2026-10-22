@@ -187,7 +187,7 @@ describe('the engineering gauges', () => {
     const full: ShipReading = {
       ...shipAtStart,
       reactor: { level: 1, thermal: 3.63e9, electric: 1.21e9, tripped: false },
-      power: { output: 1.21e9, loads: [], shed: [] },
+      power: { ...shipAtStart.power, output: 1.21e9 },
     };
     class FullLink extends FakeBridgeLink {
       override async snapshot() {

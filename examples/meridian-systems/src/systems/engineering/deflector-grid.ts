@@ -1,4 +1,4 @@
-import type { PowerLoad } from '../../physics/power';
+import { DEFLECTOR_GRID, type PowerLoad } from '../../physics/power';
 import type { QueuedCommand } from '../../simulation/commands';
 import {
   type IShipState,
@@ -6,9 +6,6 @@ import {
   type ShipSnapshot,
 } from '../../simulation/contracts';
 import { type IPowerRouter, type IShieldGrid, POWER_ROUTER } from './contracts';
-
-/** The power the raised grid draws, in W (spec §5.7). */
-const RAISED_DEMAND = 200e6;
 
 /** The Meridian's deflector shields, a load of priority 2 on the power router. */
 export class DeflectorGrid implements IShieldGrid {
@@ -34,12 +31,7 @@ export class DeflectorGrid implements IShieldGrid {
   }
 }
 
-/** The grid's load. A quarter of the power it draws ends in the coolant loop. */
+/** The grid's load, which asks for its whole rating while raised and 0 W while lowered. */
 function load(raised: boolean): PowerLoad {
-  return {
-    id: 'shields',
-    priority: 2,
-    demand: raised ? RAISED_DEMAND : 0,
-    heatShare: 0.25,
-  };
+  return raised ? DEFLECTOR_GRID : { ...DEFLECTOR_GRID, demand: 0 };
 }
