@@ -76,7 +76,7 @@ The desk checks the envelope: `body` must be an object with a string `system` an
 
 `throttle` takes a `level` from 0 to 1 and calls `REACTOR.throttle(level)`. `shields` takes a boolean `raised` and calls `SHIELD_GRID.raise()` or `lower()`. An unknown action or an argument out of range throws `BadCommandError`. A raise the router cannot fit throws `PowerBudgetError` from `divert()`, and the handler passes it through.
 
-`SHIP_STATE` holds the queue. `queue(change)` stores a setpoint change and answers with the next tick. At step 1 of that tick, the loop calls `applyQueued(tick)`, which merges the changes in queue order and logs each under the tick. `log()` returns the newest 1,000 entries, oldest first. A refused command throws before it reaches the queue, so the log never holds it.
+`SHIP_STATE` holds one pending setpoint change. `queue(change)` merges the change over it field by field, the later value winning, and answers with the next tick. A throttle change and a shields change queued in one tick both apply, and of two throttle changes the later applies. At step 1 of that tick, the loop calls `applyQueued(tick)`, which applies the pending change and logs it as one entry under the tick. Changes queued between two ticks apply together at the next tick, and the log keeps one entry per tick. `log()` returns the newest 1,000 entries, oldest first. A refused command throws before it reaches the queue, so the log never holds it.
 
 ### The Scram on Shutdown
 
