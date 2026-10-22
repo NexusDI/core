@@ -1,20 +1,7 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
-import type { Locator } from '@playwright/test';
 
-import { GROWTH_PORTS } from '../../playwright.servers.mts';
 import { expect, problems, test } from '../support';
-
-/** The bridge API the growth config starts. */
-const bridgeApi = `http://127.0.0.1:${GROWTH_PORTS.api}`;
-
-/** The value of the gauge named `name` in the gauge list `gauges`. */
-const gauge = (gauges: Locator, name: string) =>
-  gauges.locator(`dt:text-is("${name}") + dd`);
-
-/** The number a gauge shows, read from its text such as `292.8 K`. */
-async function reading(value: Locator): Promise<number> {
-  return Number((await value.innerText()).split(' ')[0]?.replaceAll(',', ''));
-}
+import { bridgeApi, gauge, reading } from './ship';
 
 test('brings life support online and reads the heated habitat on /systems/life-support', async ({
   page,
