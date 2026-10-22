@@ -89,13 +89,59 @@ export function vent(air: Air, fraction: number): Air {
 }
 
 /**
- * Moves `fraction` (0 to 1) of each gas from `source` into `target`, whose
- * structure holds `targetStructure` J/K.
+ * Splits `air` in two: `moved` holds `fraction` (0 to 1) of each gas and
+ * `kept` the rest. Both sides stay at the air's temperature.
+ */
+export function parcel(
+  air: Air,
+  fraction: number,
+): { readonly kept: Air; readonly moved: Air } {
+  const kept = {} as Record<Gas, number>;
+  const moved = {} as Record<Gas, number>;
+  for (const gas of GASES) {
+    moved[gas] = fraction * air.moles[gas];
+    kept[gas] = air.moles[gas] - moved[gas];
+  }
+  return Object.freeze({
+    kept: Object.freeze({
+      moles: Object.freeze(kept),
+      temperature: air.temperature,
+    }),
+    moved: Object.freeze({
+      moles: Object.freeze(moved),
+      temperature: air.temperature,
+    }),
+  });
+}
+
+/**
+ * Adds the parcel `incoming` to `target`, whose structure holds
+ * `targetStructure` J/K.
  *
- * The moved gas carries its energy `Σ Δn_g · c_v,g · T_s`, so the target
- * settles at `(C_t · T_t + Σ Δn_g · c_v,g · T_s) / (C_t + Σ Δn_g · c_v,g)` and
- * the source keeps its temperature. Each gas's moles and the rooms' total
- * `Σ C · T` stay the same.
+ * The parcel carries its energy `Σ n_p,g · c_v,g · T_p`, so the target settles
+ * at `(C_t · T_t + Σ n_p,g · c_v,g · T_p) / (C_t + Σ n_p,g · c_v,g)`. Each
+ * gas's moles and `Σ C · T` stay the same.
+ */
+export function mix(target: Air, targetStructure: number, incoming: Air): Air {
+  const gained = {} as Record<Gas, number>;
+  let energy = 0;
+  let capacity = 0;
+  for (const gas of GASES) {
+    gained[gas] = target.moles[gas] + incoming.moles[gas];
+    energy += incoming.moles[gas] * CV[gas] * incoming.temperature;
+    capacity += incoming.moles[gas] * CV[gas];
+  }
+  const before = heatCapacity(target, targetStructure);
+  return Object.freeze({
+    moles: Object.freeze(gained),
+    temperature: (before * target.temperature + energy) / (before + capacity),
+  });
+}
+
+/**
+ * Moves `fraction` (0 to 1) of each gas from `source` into `target`, whose
+ * structure holds `targetStructure` J/K: a `parcel` of the source, then a
+ * `mix` into the target. The source keeps its temperature.
  */
 export function transfer(
   source: Air,
@@ -103,26 +149,32 @@ export function transfer(
   targetStructure: number,
   fraction: number,
 ): { readonly source: Air; readonly target: Air } {
-  const left = {} as Record<Gas, number>;
-  const gained = {} as Record<Gas, number>;
-  let energy = 0;
-  let capacity = 0;
-  for (const gas of GASES) {
-    const moved = fraction * source.moles[gas];
-    left[gas] = source.moles[gas] - moved;
-    gained[gas] = target.moles[gas] + moved;
-    energy += moved * CV[gas] * source.temperature;
-    capacity += moved * CV[gas];
-  }
-  const before = heatCapacity(target, targetStructure);
+  const { kept, moved } = parcel(source, fraction);
   return Object.freeze({
-    source: Object.freeze({
-      moles: Object.freeze(left),
-      temperature: source.temperature,
-    }),
-    target: Object.freeze({
-      moles: Object.freeze(gained),
-      temperature: (before * target.temperature + energy) / (before + capacity),
-    }),
+    source: kept,
+    target: mix(target, targetStructure, moved),
+  });
+}
+
+/**
+ * Trades gas both ways between `a` and `b` through an open door: `fromA` of
+ * each gas in `a` and `fromB` of each gas in `b`. Both parcels come from the
+ * air as it stood before the exchange, and each mixes into the other side's
+ * kept air at its own room's temperature, so two rooms at one molar density
+ * and two temperatures still trade heat.
+ */
+export function exchange(
+  a: Air,
+  b: Air,
+  structureA: number,
+  structureB: number,
+  fromA: number,
+  fromB: number,
+): { readonly a: Air; readonly b: Air } {
+  const sentA = parcel(a, fromA);
+  const sentB = parcel(b, fromB);
+  return Object.freeze({
+    a: mix(sentA.kept, structureA, sentB.moved),
+    b: mix(sentB.kept, structureB, sentA.moved),
   });
 }
