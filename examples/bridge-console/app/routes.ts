@@ -16,6 +16,7 @@ export default [
       route('systems/engineering', 'routes/systems/engineering.tsx'),
       route('systems/life-support', 'routes/systems/life-support.tsx'),
       route('systems/safety', 'routes/systems/safety.tsx'),
+      route('airlock', 'routes/airlock.tsx'),
     ]),
   ]),
   // A resource route outside the page layout: it answers with the stream alone.
