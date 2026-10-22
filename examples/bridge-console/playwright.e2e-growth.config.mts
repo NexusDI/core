@@ -9,6 +9,11 @@ import { GROWTH_PORTS, webServers } from './playwright.servers.mts';
  */
 export default defineConfig({
   ...nxE2EPreset(import.meta.dirname, { testDir: './e2e/growth' }),
+  // The growth cases share one stateful manual ship, so they run one at a
+  // time, once each.
+  fullyParallel: false,
+  workers: 1,
+  retries: 0,
   use: {
     baseURL: `http://127.0.0.1:${GROWTH_PORTS.console}`,
     trace: 'on-first-retry',
