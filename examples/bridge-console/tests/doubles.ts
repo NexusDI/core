@@ -25,6 +25,10 @@ export const shipAtStart: ShipReading = {
     'reactor-bay': air(3300),
     airlock: air(500),
   },
+  reactor: { level: 0, thermal: 0, electric: 0, tripped: false },
+  coolant: { temperature: 500 },
+  power: { output: 0, loads: [], shed: [] },
+  setpoints: { reactor: { throttle: 0 }, shields: { raised: false } },
 };
 
 /** One server-sent event as the bridge's `GET /telemetry` frames it. */
