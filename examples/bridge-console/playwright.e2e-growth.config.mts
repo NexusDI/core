@@ -23,7 +23,7 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: /life-support\.spec\.ts/,
+      testIgnore: /(life-support|safety)\.spec\.ts/,
     },
     // Life support's online command is one-way on the shared manual ship, so
     // its case runs after every case that reads the idle ship.
@@ -32,6 +32,15 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
       testMatch: /life-support\.spec\.ts/,
       dependencies: ['chromium'],
+    },
+    // The safety case floods the reactor bay, which then holds too little
+    // oxygen for a second drill fire, so the case runs once, after every case
+    // that reads the unflooded ship.
+    {
+      name: 'safety',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /safety\.spec\.ts/,
+      dependencies: ['life-support'],
     },
   ],
 });
