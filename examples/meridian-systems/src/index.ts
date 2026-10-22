@@ -13,6 +13,7 @@ export type {
   LifeSupportSetpoints,
   PumpMode,
 } from './physics/atmosphere';
+export { doorPressures, PRESSURE_INTERLOCK } from './physics/doors';
 export { GASES, pressure, type Gas } from './physics/gas';
 export type { LoadRecord, PowerLoad, PowerRecord } from './physics/power';
 export type {
