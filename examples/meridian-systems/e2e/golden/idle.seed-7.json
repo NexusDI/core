@@ -57,6 +57,12 @@
       "output": 0,
       "loads": [
         {
+          "id": "life-support",
+          "priority": 1,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
           "id": "shields",
           "priority": 2,
           "demand": 0,
@@ -65,12 +71,45 @@
       ],
       "shed": []
     },
+    "lifeSupport": {
+      "heaters": {
+        "bridge": 0,
+        "habitat": 0
+      }
+    },
     "setpoints": {
       "reactor": {
         "throttle": 0
       },
       "shields": {
         "raised": false
+      },
+      "lifeSupport": {
+        "online": false,
+        "heaters": {
+          "bridge": {
+            "on": true,
+            "target": 293
+          },
+          "habitat": {
+            "on": true,
+            "target": 293
+          }
+        },
+        "scrubbers": {
+          "bridge": true,
+          "habitat": true
+        },
+        "oxygen": {
+          "bridge": true,
+          "habitat": true
+        },
+        "vents": {
+          "airlock": false
+        },
+        "pumps": {
+          "airlock": "off"
+        }
       }
     }
   },
@@ -132,6 +171,12 @@
       "output": 0,
       "loads": [
         {
+          "id": "life-support",
+          "priority": 1,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
           "id": "shields",
           "priority": 2,
           "demand": 0,
@@ -140,12 +185,45 @@
       ],
       "shed": []
     },
+    "lifeSupport": {
+      "heaters": {
+        "bridge": 0,
+        "habitat": 0
+      }
+    },
     "setpoints": {
       "reactor": {
         "throttle": 0
       },
       "shields": {
         "raised": false
+      },
+      "lifeSupport": {
+        "online": false,
+        "heaters": {
+          "bridge": {
+            "on": true,
+            "target": 293
+          },
+          "habitat": {
+            "on": true,
+            "target": 293
+          }
+        },
+        "scrubbers": {
+          "bridge": true,
+          "habitat": true
+        },
+        "oxygen": {
+          "bridge": true,
+          "habitat": true
+        },
+        "vents": {
+          "airlock": false
+        },
+        "pumps": {
+          "airlock": "off"
+        }
       }
     }
   },
@@ -207,6 +285,12 @@
       "output": 0,
       "loads": [
         {
+          "id": "life-support",
+          "priority": 1,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
           "id": "shields",
           "priority": 2,
           "demand": 0,
@@ -215,12 +299,45 @@
       ],
       "shed": []
     },
+    "lifeSupport": {
+      "heaters": {
+        "bridge": 0,
+        "habitat": 0
+      }
+    },
     "setpoints": {
       "reactor": {
         "throttle": 0
       },
       "shields": {
         "raised": false
+      },
+      "lifeSupport": {
+        "online": false,
+        "heaters": {
+          "bridge": {
+            "on": true,
+            "target": 293
+          },
+          "habitat": {
+            "on": true,
+            "target": 293
+          }
+        },
+        "scrubbers": {
+          "bridge": true,
+          "habitat": true
+        },
+        "oxygen": {
+          "bridge": true,
+          "habitat": true
+        },
+        "vents": {
+          "airlock": false
+        },
+        "pumps": {
+          "airlock": "off"
+        }
       }
     }
   }
