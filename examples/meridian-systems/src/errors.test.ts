@@ -98,7 +98,8 @@ describe('UnknownCompartmentError', () => {
 
   it('leaves the compartment out when the request named none', () => {
     const error = new UnknownCompartmentError({ expected: ROOMS });
-    expect({ ...error }).toEqual({ expected: ROOMS });
+    expect({ ...error }).toStrictEqual({ expected: ROOMS });
+    expect(Object.hasOwn(error, 'compartment')).toBe(false);
   });
 
   it('narrows through isNexusError by its code', () => {
