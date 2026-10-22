@@ -35,7 +35,7 @@
     "@nexusdi/vitest": "*",
     "@types/express": "5.0.6",
     "esbuild": "0.28.2",
-    "wrangler": "4.148.0"
+    "wrangler": "4.151.1"
   },
   "nx": {
     "tags": [
