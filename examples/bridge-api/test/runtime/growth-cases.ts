@@ -214,9 +214,55 @@ export const airlockDrill: GrowthCase = {
 };
 
 /**
+ * Checks what the offline ship holds from the first hail to the last tick: the
+ * array reports no subspace link and asks for 0 W, and the hail stays queued.
+ */
+function expectOfflineArray(ship: ShipReading, tick: number): void {
+  expectEqual(`comms at tick ${tick}`, ship.comms, {
+    status: 'no subspace link',
+    sent: null,
+    messages: [],
+  });
+  expectEqual(`hail flag at tick ${tick}`, ship.setpoints.comms.hail, true);
+  expectEqual(
+    `comms load at tick ${tick}`,
+    ship.power.loads.find((load) => load.id === 'comms'),
+    { id: 'comms', priority: 3, demand: 0, allocated: 0 },
+  );
+}
+
+/**
+ * The offline ship, which binds no subspace link, takes a hail at tick 0 and a
+ * second one at tick 20. Its array reports `no subspace link` and keeps the
+ * hail queued up to tick 600, with no alarm and 0 W of load.
+ */
+export const offlineHail: GrowthCase = {
+  name: 'a hail on the offline ship reports no subspace link and keeps its queue',
+  async run(fetch) {
+    const hail = command('comms', 'hail');
+    await send(fetch, hail, 202, { tick: 1 });
+
+    expectOfflineArray(await advanceTo(fetch, 20, 20), 20);
+    await send(fetch, hail, 202, { tick: 21 });
+
+    expectOfflineArray(await advanceTo(fetch, 580, 600), 600);
+    const log = await okJson<{ tick: number }[]>(
+      'GET /commands',
+      await fetch('/commands'),
+    );
+    expectEqual(
+      'command log ticks',
+      log.map((entry) => entry.tick),
+      [1, 21],
+    );
+  },
+};
+
+/**
  * The cases bridge-api's e2e-growth target runs on workerd
  * (test/worker/growth/sim.test.ts), Deno and Bun (test/runtime/growth.ts).
- * The airlock drill also runs on the Node servers (e2e/growth/airlock.e2e.ts).
+ * The airlock drill and the offline hail also run on the Node servers
+ * (e2e/growth/airlock.e2e.ts and e2e/growth/comms.e2e.ts).
  */
 export const growthCases: readonly GrowthCase[] = [
   {
@@ -313,4 +359,5 @@ export const growthCases: readonly GrowthCase[] = [
     },
   },
   airlockDrill,
+  offlineHail,
 ];
