@@ -220,6 +220,14 @@ describe('the meridian-systems eslint purity rules', () => {
     expect(await purityHits(code)).not.toEqual([]);
   });
 
+  it('refuses fetch in every file but the subspace relay', async () => {
+    const code = "export const r = fetch('https://relay.test');";
+    expect(await purityHits(code)).toEqual(['no-restricted-globals']);
+    expect(
+      await purityHits(code, 'src/systems/comms/subspace-relay.ts'),
+    ).toEqual([]);
+  });
+
   it('refuses a clock in a test file', async () => {
     expect(
       await purityHits('export const t = Date.now();', 'src/x.test.ts'),
@@ -287,11 +295,45 @@ const MATH_COMPUTED = "MemberExpression[object.name='Math'][computed=true]";
 const CONSTRUCTOR_READ =
   "MemberExpression:matches([property.name='constructor'][computed=false], [property.value='constructor'])";
 
+/** The globals that reach the host's clock, timers, randomness or global object. */
+const HOST_GLOBALS = [
+  'Date',
+  'performance',
+  'Temporal',
+  'process',
+  'crypto',
+  'scheduler',
+  'setTimeout',
+  'setInterval',
+  'setImmediate',
+  'requestAnimationFrame',
+  'globalThis',
+  'global',
+  'window',
+  'self',
+  'require',
+  'eval',
+  'Function',
+  'Intl',
+  'WeakRef',
+  'FinalizationRegistry',
+  'Atomics',
+];
+
 /*
  * The config itself is pinned so a later edit cannot drop a rule or an entry
  * while the bypass cases above still read green on a narrower list.
  */
 describe('the meridian-systems eslint config', () => {
+  it('holds every host global but fetch for the subspace relay', async () => {
+    const config = (await eslint.calculateConfigForFile(
+      join(LIBRARY, 'src/systems/comms/subspace-relay.ts'),
+    )) as Linter.Config;
+    expect(new Set(names(options(config, 'no-restricted-globals')))).toEqual(
+      new Set(HOST_GLOBALS),
+    );
+  });
+
   it.each(['src/simulation/x.ts', 'src/physics/gas.test.ts'])(
     'holds the purity rules for %s',
     async (path) => {
@@ -300,29 +342,7 @@ describe('the meridian-systems eslint config', () => {
       )) as Linter.Config;
 
       expect(new Set(names(options(config, 'no-restricted-globals')))).toEqual(
-        new Set([
-          'Date',
-          'performance',
-          'Temporal',
-          'process',
-          'crypto',
-          'scheduler',
-          'setTimeout',
-          'setInterval',
-          'setImmediate',
-          'requestAnimationFrame',
-          'globalThis',
-          'global',
-          'window',
-          'self',
-          'require',
-          'eval',
-          'Function',
-          'Intl',
-          'WeakRef',
-          'FinalizationRegistry',
-          'Atomics',
-        ]),
+        new Set([...HOST_GLOBALS, 'fetch']),
       );
 
       expect(options(config, 'no-restricted-properties')).toContainEqual(
