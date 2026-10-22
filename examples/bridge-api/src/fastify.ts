@@ -14,7 +14,9 @@ import {
 } from '@nexusdi/meridian-systems';
 import Fastify, { type FastifyRequest } from 'fastify';
 
+import { answerAtmosphere } from './bridge/atmosphere';
 import { answerCommand } from './bridge/commands';
+import { compartmentOf } from './bridge/compartment-of';
 import { readJson } from './bridge/json-body';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { telemetryReadable } from './bridge/telemetry-readable';
@@ -28,17 +30,26 @@ export async function createBridge(
   options: BridgeOptions = {},
 ) {
   const di = nexus(ship, {
-    request: (req) => ({
-      mission: {
-        id: String(req.headers['x-mission-id'] ?? 'survey-7'),
-        target: 'Kepler-442b',
-      },
-    }),
+    request: (req) => {
+      const compartment = compartmentOf(req.url);
+      return {
+        mission: {
+          id: String(req.headers['x-mission-id'] ?? 'survey-7'),
+          target: 'Kepler-442b',
+        },
+        ...(compartment === undefined ? {} : { compartment }),
+      };
+    },
     scopes: options.scopes,
     log: options.log,
   });
 
   const bridge = Fastify();
+  // A path no route matches answers an empty 404, so no answer repeats the
+  // path, as Fastify's default body would.
+  bridge.setNotFoundHandler((_req, reply) => {
+    void reply.code(404).send();
+  });
   bridge.setErrorHandler((error, _req, reply) => {
     void reply
       .code((error as { statusCode?: number }).statusCode ?? 500)
@@ -100,6 +111,10 @@ export async function createBridge(
         async ({ state, deck }) => readShip(state.snapshot(), deck),
       ),
     );
+    scoped.get('/compartments/:id/atmosphere', async (req, reply) => {
+      const answer = answerAtmosphere(await di.scope(req));
+      return reply.code(answer.status).send(answer.body);
+    });
     scoped.get(
       '/telemetry',
       di.inject({ feed: TELEMETRY }, async ({ feed }, _req, reply) =>
