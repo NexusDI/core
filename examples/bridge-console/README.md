@@ -139,6 +139,39 @@ interlock refuses shows the `MERIDIAN_INTERLOCK` message and its `Fix:`
 line. `tests/routes/safety.spec.tsx` runs the page on `nexusTest` with
 `fakeBridgeLink`, fed unrounded floats in the shape seed 7 gives.
 
+## The Airlock Page
+
+`/airlock` sits in the ship layout and the root layout's nav links it as
+`Airlock`. The airlock cycle uses the pump and the vent of life support and
+the doors of Safety, so the panel sits beside the system pages and outside
+`/systems`, which names one ship system per page. Its loader reads the
+snapshot alone through `snapshotLoader`, and a failed snapshot shows `Ship snapshot
+offline`.
+
+- Airlock lists the `Pump` as `off`, `evacuate` or `fill`, and the `Vent` as
+  `Open` or `Shut`.
+- Doors shows `habitat-airlock` and `airlock-outer`, each `Open` or `Shut`,
+  with the pressure on each side to 0.1 kPa. The outer door's far side reads
+  `Space` at 0.0 kPa.
+
+The pump and vent forms are `AirlockControls`, which the life-support page
+renders too, and the door form holds a select of the two airlock doors with
+`Open door` and `Close door`. The page shows the answer to the last command as
+the other pages do, and an open the interlock refuses shows its
+`MERIDIAN_INTERLOCK` message and `Fix:` line.
+
+The page posts to two ship systems through one action. `systemAction` takes
+one system name or a record that maps each action to its system, and
+`AIRLOCK_SYSTEMS` maps `pump` and `vent` to `life-support`, and `open` and
+`close` to `safety`. An action outside the record goes to the bridge with an
+empty system, and the command desk refuses it with `MERIDIAN_BAD_COMMAND` and
+`reason: 'system'`. The safety page shares the door gauges of
+`app/routes/systems/doors.tsx` and the door select of `system-page.tsx`, and
+the life-support page shares the pump and vent forms of
+`app/routes/systems/airlock-controls.tsx`. `tests/routes/airlock.spec.tsx`
+runs the page on `nexusTest` with `fakeBridgeLink`, fed unrounded floats in
+the shape seed 7 gives.
+
 ## Testing the Console
 
 `npx nx run @nexusdi/bridge-console:e2e` starts both servers itself and
@@ -179,8 +212,27 @@ the backend and finds the door `Shut`. A drill of the reactor bay reads
 `FIRE in reactor-bay` after one tick, and after a flood and 70 ticks the
 page reads `No alarms`, with no console error. The flood leaves the bay too
 poor in oxygen for a second drill fire, so the case runs once, after every
-case that reads the unflooded ship. Only the non-required `demo-growth` CI
-job runs `e2e-growth` (ship systems spec, section 14).
+case that reads the unflooded ship.
+
+`e2e/growth/airlock.spec.ts` runs in a fourth project, `airlock`, that depends
+on `safety`, since it needs life support online, and the doors shut and clear
+of alarms. It evacuates the airlock on `/airlock` from the ship's current tick
+and posts 300 ticks to the backend. The airlock side of the outer door then
+reads from 8.5 to 9.5 kPa, and `Open door` answers the interlock text and the
+exact `Fix:` line. The case turns the pump off and opens the vent, and after
+40 ticks the airlock side reads from 3.5 to 4.5 kPa. `Open door` then reads
+`survey-7: opened airlock-outer`, and after 20 more ticks the outer door reads
+`Open` with its airlock side at `0.0 kPa`. The case closes the outer door and
+starts the fill with the vent shut, and the inner door stays refused. After
+114 ticks the two rooms lie 554 Pa apart, so the case turns the pump off and
+opens `habitat-airlock`, which reads `survey-7: opened habitat-airlock`. After
+20 ticks the inner door reads `Open` with its sides within 0.5 kPa. The case
+ends with `No alarms` on `/systems/safety` and no console error. The
+`chromium` project ignores the life-support, safety and airlock cases. Those
+three cases share their helpers in `e2e/growth/ship.ts`.
+
+Only the non-required `demo-growth` CI job runs `e2e-growth` (ship systems
+spec, section 14).
 
 Next, read [the command desk](../meridian-systems/README.md#the-command-desk)
 for how the ship hands these commands to each ship system.
