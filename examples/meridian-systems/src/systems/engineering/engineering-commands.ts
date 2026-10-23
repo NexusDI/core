@@ -1,6 +1,7 @@
 import {
   commandRefusal,
   flagArgument,
+  levelArgument,
 } from '../../simulation/command-arguments';
 import type {
   ICommandHandler,
@@ -36,13 +37,10 @@ export class EngineeringCommands implements ICommandHandler {
 
   handle(command: ShipCommand): QueuedCommand {
     switch (command.action) {
-      case 'throttle': {
-        const { level } = command;
-        if (typeof level !== 'number' || !(level >= 0 && level <= 1)) {
-          throw this.refuse(command.action);
-        }
-        return this.reactor.throttle(level);
-      }
+      case 'throttle':
+        return this.reactor.throttle(
+          levelArgument(command, 'level', this.refuse),
+        );
       case 'shields':
         return flagArgument(command, 'raised', this.refuse)
           ? this.shields.raise()

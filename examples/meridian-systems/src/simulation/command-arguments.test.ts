@@ -4,6 +4,7 @@ import { BadCommandError } from '../errors';
 import {
   commandRefusal,
   flagArgument,
+  levelArgument,
   textArgument,
 } from './command-arguments';
 
@@ -58,5 +59,17 @@ describe('flagArgument', () => {
   it.each([undefined, 'true', 1])('refuses %o', (on) => {
     const command = { system: 'probe', action: 'ping', on };
     expect(() => flagArgument(command, 'on', refuse)).toThrow(badArgument);
+  });
+});
+
+describe('levelArgument', () => {
+  it.each([0, 0.25, 1])('reads %o', (level) => {
+    const command = { system: 'probe', action: 'ping', level };
+    expect(levelArgument(command, 'level', refuse)).toBe(level);
+  });
+
+  it.each([-0.1, 1.5, NaN, '0.5', undefined])('refuses %o', (level) => {
+    const command = { system: 'probe', action: 'ping', level };
+    expect(() => levelArgument(command, 'level', refuse)).toThrow(badArgument);
   });
 });
