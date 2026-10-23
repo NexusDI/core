@@ -665,3 +665,23 @@ describe('ShipStateStore ftl', () => {
     expect(Object.isFrozen(ship.setpoints.ftl)).toBe(true);
   });
 });
+
+describe('ShipStateStore weapons', () => {
+  it('starts the weapons record idle and the setpoints unarmed after comms, frozen', () => {
+    const ship = new ShipStateStore(plan).snapshot();
+    expect(ship.weapons).toStrictEqual({
+      status: 'idle',
+      charge: 0,
+      shots: 0,
+      hits: 0,
+      lastShot: null,
+    });
+    expect(ship.setpoints.weapons).toStrictEqual({ armed: false, range: null });
+    const keys = Object.keys(ship);
+    expect(keys.indexOf('weapons')).toBe(keys.indexOf('comms') + 1);
+    const setpoints = Object.keys(ship.setpoints);
+    expect(setpoints.indexOf('weapons')).toBe(setpoints.indexOf('comms') + 1);
+    expect(Object.isFrozen(ship.weapons)).toBe(true);
+    expect(Object.isFrozen(ship.setpoints.weapons)).toBe(true);
+  });
+});

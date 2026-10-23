@@ -4,6 +4,7 @@ import type { CommsSetpoints } from '../physics/comms';
 import type { FtlSetpoints } from '../physics/ftl';
 import type { DriveSetpoints, HelmSetpoints } from '../physics/motion';
 import type { SafetySetpoints } from '../physics/safety';
+import type { WeaponsSetpoints } from '../physics/weapons';
 import type { CompartmentId, DoorId } from './contracts';
 
 /** What the crew asks of each system. A system steps toward its setpoint each tick. */
@@ -15,6 +16,7 @@ export interface Setpoints {
   readonly shields: { readonly raised: boolean };
   readonly lifeSupport: LifeSupportSetpoints<CompartmentId>;
   readonly comms: CommsSetpoints;
+  readonly weapons: WeaponsSetpoints;
   readonly drive: DriveSetpoints;
   readonly helm: HelmSetpoints;
   readonly ftl: FtlSetpoints;
