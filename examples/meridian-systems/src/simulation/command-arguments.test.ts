@@ -5,6 +5,7 @@ import {
   commandRefusal,
   flagArgument,
   levelArgument,
+  numberArgument,
   textArgument,
 } from './command-arguments';
 
@@ -60,6 +61,23 @@ describe('flagArgument', () => {
     const command = { system: 'probe', action: 'ping', on };
     expect(() => flagArgument(command, 'on', refuse)).toThrow(badArgument);
   });
+});
+
+describe('numberArgument', () => {
+  it.each([-5, 0, 7.5, 10])('reads %o between -5 and 10', (range) => {
+    const command = { system: 'probe', action: 'ping', range };
+    expect(numberArgument(command, 'range', -5, 10, refuse)).toBe(range);
+  });
+
+  it.each([-5.1, 10.1, NaN, Infinity, '5', undefined, null])(
+    'refuses %o',
+    (range) => {
+      const command = { system: 'probe', action: 'ping', range };
+      expect(() => numberArgument(command, 'range', -5, 10, refuse)).toThrow(
+        badArgument,
+      );
+    },
+  );
 });
 
 describe('levelArgument', () => {
