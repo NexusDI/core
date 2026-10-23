@@ -13,6 +13,7 @@ import { readCalibration } from './systems/life-support/read-calibration';
 import { Propulsion } from './systems/propulsion/propulsion.module';
 import { Safety } from './systems/safety/safety.module';
 import { OfflineTactical, Tactical } from './systems/tactical/tactical.module';
+import { Weapons } from './systems/weapons/weapons.module';
 import { TELEMETRY } from './telemetry/contracts';
 import { Telemetry } from './telemetry/telemetry.module';
 
@@ -64,6 +65,7 @@ export function meridianSystems({
       tactical,
       Propulsion,
       Helm,
+      Weapons,
     ],
     providers: [
       // all(SHIP_SYSTEMS) reads this module's own providers plus the exports of
@@ -84,7 +86,9 @@ export function meridianSystems({
     // The Propulsion export hands the root MAIN_DRIVE, which HelmControl
     // reads, and puts its POWER_CONSUMERS entry where the router reads it.
     // The Helm export hands the root THRUSTERS and HELM, and puts the
-    // thrusters' POWER_CONSUMERS entry where the router reads it.
+    // thrusters' POWER_CONSUMERS entry where the router reads it. The
+    // Weapons export hands the root WEAPON_MOUNT and puts the capacitor's
+    // POWER_CONSUMERS entry where the router reads it.
     exports: [
       TICK_LOOP,
       TELEMETRY,
@@ -96,6 +100,7 @@ export function meridianSystems({
       tactical,
       Propulsion,
       Helm,
+      Weapons,
     ],
   });
 }

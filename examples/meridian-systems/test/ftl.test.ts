@@ -83,6 +83,7 @@ describe('the FTL drive', () => {
       'comms',
       'thrusters',
       'main-drive',
+      'railgun',
     ]);
     expect(first.ftl).toEqual({
       status: 'offline',
@@ -111,6 +112,7 @@ describe('the FTL drive', () => {
       'comms',
       'thrusters',
       'main-drive',
+      'railgun',
       'ftl-spool',
     ]);
     expect(spoolLoad(second)).toEqual({
@@ -129,7 +131,7 @@ describe('the FTL drive', () => {
     ).toThrow(
       expect.objectContaining({
         reason: 'system',
-        expected: 'comms, engineering, helm, life-support and safety',
+        expected: 'comms, engineering, helm, life-support, safety and weapons',
       }),
     );
     expect(() =>

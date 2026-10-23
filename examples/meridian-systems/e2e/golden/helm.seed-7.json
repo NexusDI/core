@@ -85,6 +85,12 @@
           "priority": 5,
           "demand": 600000000,
           "allocated": 0
+        },
+        {
+          "id": "railgun",
+          "priority": 6,
+          "demand": 0,
+          "allocated": 0
         }
       ],
       "shed": [
@@ -308,6 +314,12 @@
           "priority": 5,
           "demand": 600000000,
           "allocated": 600000000
+        },
+        {
+          "id": "railgun",
+          "priority": 6,
+          "demand": 0,
+          "allocated": 0
         }
       ],
       "shed": []
@@ -519,6 +531,12 @@
           "priority": 5,
           "demand": 600000000,
           "allocated": 600000000
+        },
+        {
+          "id": "railgun",
+          "priority": 6,
+          "demand": 0,
+          "allocated": 0
         }
       ],
       "shed": []
@@ -730,6 +748,12 @@
           "priority": 5,
           "demand": 600000000,
           "allocated": 600000000
+        },
+        {
+          "id": "railgun",
+          "priority": 6,
+          "demand": 0,
+          "allocated": 0
         }
       ],
       "shed": []

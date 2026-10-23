@@ -115,7 +115,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         jumped: 2,
       });
       expect(reading.setpoints.ftl).toEqual({ armed: false, jump: null });
-      expect(reading.power.loads).toHaveLength(5);
+      expect(reading.power.loads).toHaveLength(6);
       expect(reading.coolant.temperature).toBe(500);
       expect(ship.get(FTL_DRIVE)).toBeInstanceOf(SimulatedJumpDrive);
     });
