@@ -1,6 +1,7 @@
-import type { NexusError } from '@nexusdi/core';
+import { isNexusError, type NexusError } from '@nexusdi/core';
 import { explain } from '@nexusdi/errors';
 import { interceptorsText } from '@nexusdi/interceptors/text';
+import { BadCommandError } from '@nexusdi/meridian-systems';
 import { shipText } from '@nexusdi/meridian-systems/text';
 
 /**
@@ -24,4 +25,21 @@ export function refusalOf(error: NexusError): Refusal {
     message: text?.message ?? error.message.replace(`[${error.code}] `, ''),
     ...(text?.fix === undefined ? {} : { fix: text.fix }),
   };
+}
+
+/** The status and body of a refused command. */
+export interface RefusedReply {
+  readonly status: 400 | 409;
+  readonly body: Refusal;
+}
+
+/**
+ * The answer to a command the ship refused: 400 for a `BadCommandError` and
+ * 409 for any other `NexusError`. Any other throw is a bug, so the function
+ * throws it again and the framework answers it with an empty 500.
+ */
+export function refusedReply(error: unknown): RefusedReply {
+  if (!isNexusError(error)) throw error;
+  const status = error instanceof BadCommandError ? 400 : 409;
+  return { status, body: refusalOf(error) };
 }
