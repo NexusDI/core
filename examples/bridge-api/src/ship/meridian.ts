@@ -5,6 +5,10 @@ import {
   type SimOptions,
 } from '@nexusdi/meridian-systems';
 
+// The FTL drive, which the bridge loads into a running ship. The graph target
+// draws it with --load src/ship/meridian.ts#FtlDrive.
+export { FtlDrive } from '@nexusdi/meridian-systems';
+
 import { AlarmPanel } from './alarm-panel.module';
 import { AuditTrail } from './audit-trail.module';
 import { BridgeApi } from './bridge-api.module';

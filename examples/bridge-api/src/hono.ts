@@ -4,6 +4,8 @@ import { nexus, type ContainerSource, type NexusLog } from '@nexusdi/hono';
 import {
   COMMAND_DESK,
   DECK_PLAN,
+  FTL_DRIVE,
+  FtlDrive,
   readShip,
   SHIP_STATE,
   TELEMETRY,
@@ -16,6 +18,7 @@ import { streamSSE } from 'hono/streaming';
 import { answerAtmosphere } from './bridge/atmosphere';
 import { answerCommand } from './bridge/commands';
 import { compartmentOf } from './bridge/compartment-of';
+import { answerJump, answerSpool } from './bridge/ftl';
 import { readJson } from './bridge/json-body';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { SSE_HEADERS, telemetryStream } from './bridge/telemetry-stream';
@@ -59,6 +62,9 @@ export function createBridge(
     maxSize: SIM_BODY_LIMIT,
     onError: (c) => c.body(null, 413),
   });
+  // The drive loads on the first FTL request, and the section extends a
+  // request scope that opened before the load.
+  const ftl = di.load(FtlDrive);
 
   return (
     new Hono()
@@ -161,6 +167,26 @@ export function createBridge(
       .get(
         '/commands',
         di.inject({ state: SHIP_STATE }, ({ state }, c) => c.json(state.log())),
+      )
+      .post(
+        '/ftl/spool',
+        ftl,
+        ftl.inject({ drive: FTL_DRIVE }, ({ drive }, c) => {
+          const { status, body } = answerSpool(drive);
+          return c.json(body, status);
+        }),
+      )
+      .post(
+        '/ftl/jump',
+        limit,
+        ftl,
+        ftl.inject({ drive: FTL_DRIVE }, async ({ drive }, c) => {
+          const { status, body } = answerJump(
+            drive,
+            readJson(c.req.header('content-type'), await c.req.text()),
+          );
+          return c.json(body, status);
+        }),
       )
       // A path no route matches answers an empty 404, as Express and
       // Fastify answer it, so no answer repeats the path.
