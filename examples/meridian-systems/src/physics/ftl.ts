@@ -1,5 +1,5 @@
 import type { PowerLoad } from './power';
-import type { CoolantRating, CoolantRecord, ReactorRecord } from './thermal';
+import type { CoolantRecord, ReactorRecord } from './thermal';
 
 /** The FTL drive's fixed figures. */
 export interface FtlRating {
@@ -162,19 +162,4 @@ export function stepFtl(
     setpoints,
     pulse: 0,
   };
-}
-
-/**
- * The loop after a pulse of `energy` J within one tick:
- * `T_c' = T_c + energy / (m · c_p)`.
- */
-export function pulseCoolant(
-  coolant: CoolantRecord,
-  energy: number,
-  rating: CoolantRating,
-): CoolantRecord {
-  return Object.freeze({
-    temperature:
-      coolant.temperature + energy / (rating.mass * rating.heatCapacity),
-  });
 }
