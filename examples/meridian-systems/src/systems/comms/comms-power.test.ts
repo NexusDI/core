@@ -39,7 +39,7 @@ describe('CommsPower', () => {
     });
   });
 
-  it('draws 5,000,000 W on the tick a linked array sends its hail', () => {
+  it('draws 5,000,000 W on each tick a hail waits on a linked array with no reply outstanding', () => {
     expect(new CommsPower(array(true)).draw(ship(standby, true))).toEqual({
       id: 'comms',
       priority: 3,

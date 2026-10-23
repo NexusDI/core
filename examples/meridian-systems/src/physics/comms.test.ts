@@ -208,7 +208,7 @@ describe('commsDemand', () => {
     });
   });
 
-  it('asks 5,000,000 W on the tick the array sends', () => {
+  it('asks 5,000,000 W while a hail waits on a linked array with no reply outstanding', () => {
     expect(commsDemand(standby, hailing, true)).toBe(5_000_000);
   });
 
