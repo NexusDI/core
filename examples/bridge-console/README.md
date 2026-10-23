@@ -171,6 +171,53 @@ reply and on a ship with no link. It also reads the message list and the three
 headings. Its last two cases read the offline snapshot and post a hail that
 queues for tick 1.
 
+## The Helm Page
+
+`/systems/helm` sits in the ship layout beside the other system pages, and the
+root layout's nav links it as `Helm`, after `Comms`. The page shows the helm
+and the main drive and posts the crew's helm commands. Its loader reads the
+snapshot alone through `snapshotLoader`, since the snapshot holds the helm
+and drive records and the loads. Each gauge rounds the snapshot's four-digit
+reading, so its last digit can sit one unit off the ship's own value. A failed
+snapshot hides the gauges and shows `Ship snapshot offline`, and the forms
+stay.
+
+- Helm lists five gauges. `Heading` is the ship's attitude and `Course` the
+  helm's setpoint, both in degrees to 0.1 from 0 to 360 through `bearing()`,
+  so Kepler-442b reads `42.0°`. The snapshot keeps both in radians.
+  `Turn rate` is the rate in °/s to two decimals through `turnRate()`, which
+  never prints `-0.00`. `Thruster torque` is in whole N·m, and
+  `Thruster power` is the allocated power of the `thrusters` load in MW to 0.1.
+- Main drive lists seven gauges: `Burn level` to two decimals, `Drive power` in
+  MW to 0.1 from the `main-drive` load, `Thrust` in whole N, `Propellant flow`
+  in kg/s to three decimals, `Acceleration` in m/s² to four decimals,
+  `Velocity` in m/s to two decimals and `Distance` in whole m. Velocity and
+  distance read along the ship's track since tick 0.
+
+Two forms post helm commands through `systemAction('helm', ...)` and
+`BRIDGE_LINK.command(cmd)`. The course form holds a select of the stars in
+`app/bridge/charts.json` and the button `Plot course`, and posts
+`command=course` with the star as `to`. The burn form is `LevelForm`
+(`system-page.tsx`), a number field from 0 to 1 with the button `Burn`, and
+posts `command=burn` with the level. The engineering page's throttle form is
+a `LevelForm` too. The page shows the answer to the last command as the other
+pages do: `Queued for tick N`, or a refusal with its `Fix:` line.
+
+A turn needs power. The thrusters ask for 20 MW at full torque, and the
+router sheds them while the reactor gives less, so a crew that plots a
+charted course at the throttle of 0.01 reads `Turn rate` and `Heading`
+unchanged until the reactor's level is above 0.0165. The burn waits for 600 MW
+the same way.
+`tests/routes/helm.spec.tsx` runs the page on `nexusTest` with
+`fakeBridgeLink`, fed seed 7's readings of the helm scenario rounded to four
+significant digits as `/sim` sends them. It reads the gauges at tick 0, on
+the tick the router sheds both loads, on the first tick of the turn, during a
+burn off the course axis, on a burn along the course and after a course to
+TRAPPIST-1e. It also reads a rate a hair below zero and the four section
+headings. When the snapshot fails, the page reads `Ship snapshot offline` and
+keeps its controls. It posts a course and a burn, and shows a refused burn
+with its `Fix:` line.
+
 ## The Airlock Page
 
 `/airlock` sits in the ship layout and the root layout's nav links it as
@@ -260,11 +307,29 @@ starts the fill with the vent shut, and the inner door stays refused. After
 opens `habitat-airlock`, which reads `survey-7: opened habitat-airlock`. After
 20 ticks the inner door reads `Open` with its sides within 0.5 kPa. The case
 ends with `No alarms` on `/systems/safety` and no console error. The
-`chromium` project ignores the life-support, safety, airlock and comms
-cases. Those four cases share their helpers in `e2e/growth/ship.ts`.
+`chromium` project ignores the life-support, safety, airlock, helm and comms
+cases. Those five cases share their helpers in `e2e/growth/ship.ts`.
 
-`e2e/growth/comms.spec.ts` runs in a fifth project, `comms`, that depends on
-`airlock`. The backend's ship has no subspace link, so the hail stays queued
+`e2e/growth/helm.spec.ts` runs in a fifth project, `helm`, that depends on
+`airlock`. The shared ship holds a throttle of 0.01 with life support online,
+and a turn needs the reactor above 0.0165, so the case raises the throttle to
+0.6 on `/systems/engineering` first and reads `Queued for tick` with the next
+tick. It posts 10 ticks to the backend. On `/systems/helm` the gauges then
+read `Heading 0.0°`, `Course 0.0°` and `Thrust 0 N`. The case selects
+Kepler-442b and clicks `Plot course`. The page reads `Queued for tick` 10
+ticks after the throttle's. After 800 more ticks and a reload, `Heading` and
+`Course` read `42.0°`, `Turn rate` `0.00 °/s`, `Thruster torque` `0 N·m` and
+`Thruster power` `0.0 MW`. The helm has settled by then on any start tick, so
+the burn that follows starts on the course. `Burn` at level 1 reads
+`Queued for tick` 810 ticks after the throttle's, and after 400 ticks and a
+reload the drive gauges read `Thrust 14,400 N`, `Propellant flow 0.288 kg/s`,
+`Acceleration 0.0036 m/s²`, `Velocity 0.72 m/s`, `Distance 72 m` and
+`Drive power 600.0 MW`. The case ends with `No alarms` on `/systems/safety`
+and no console error. It leaves the drive thrusting on the shared ship, and
+the comms case after it reads the array at 0 W.
+
+`e2e/growth/comms.spec.ts` runs in a sixth project, `comms`, that depends on
+`helm`. The backend's ship has no subspace link, so the hail stays queued
 for good, and the case runs after every other case. It reads the ship's tick
 from the backend and opens `/systems/comms`, where the status reads `standby`
 and the hail flag `No`. The case clicks `Hail fleet traffic control` and reads
