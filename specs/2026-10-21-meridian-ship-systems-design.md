@@ -1870,8 +1870,9 @@ The physics tests import `src/physics/*` and no NexusDI code:
   dt 1 the reply comes at `sent + 2`; the reply is
   `{ tick, from: 'fleet traffic control', text: 'sector clear' }`, and eleven replies
   keep the newest 10; a hail while the array awaits keeps its flag and leaves the record
-  alone unless the reply is due; `commsDemand` asks 5,000,000 W on a send and 0 W
-  otherwise; every level of a stepped record is frozen.
+  alone unless the reply is due; `commsDemand` asks 5,000,000 W on each tick a hail waits on
+  a linked array with no reply outstanding, and 0 W otherwise; every level of a stepped
+  record is frozen.
 - `tools/repo-checks/src/meridian-purity.test.ts`: the library's ESLint config holds the
   replay rules of section 4.3, and ESLint refuses each known bypass of them. No file
   under `src/physics` imports `@nexusdi/*`, and no `*.module.ts` file passes 120 lines.
