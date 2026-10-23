@@ -2,24 +2,50 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { Nexus, defineModule, isNexusError, provide } from '@nexusdi/core';
+import {
+  Nexus,
+  defineModule,
+  isNexusError,
+  provide,
+  type Token,
+} from '@nexusdi/core';
 import { defineContract, federation } from '@nexusdi/federation';
 import { describe, expect, it } from 'vitest';
 
-import { NAV_CHARTS, type INavCharts } from './index.js';
+import {
+  COMMAND_LINK,
+  NAV_CHARTS,
+  TELEMETRY_FEED,
+  type ICommandLink,
+  type INavCharts,
+  type IStationTelemetry,
+} from './index.js';
 import { MERIDIAN_CONTRACT_VERSION } from './version.js';
 
 const charts: INavCharts = { plot: (to) => ({ to, heading: 42 }) };
+const telemetry: IStationTelemetry = {
+  subscribe: () => () => undefined,
+  state: () => ({ status: 'offline', reading: null }),
+};
+const link: ICommandLink = {
+  send: async () => ({ queued: false, text: 'offline' }),
+};
 
-/** A shell that provides the contract's NavCharts at `version`. */
+/** A shell that provides the contract's three tokens at `version`. */
 const shellAt = (version: string) => {
-  const token = defineContract({ key: 'meridian', version }).token<INavCharts>(
-    'NavCharts',
-  );
+  const contract = defineContract({ key: 'meridian', version });
+  const navCharts = contract.token<INavCharts>('NavCharts');
+  const stationTelemetry =
+    contract.token<IStationTelemetry>('StationTelemetry');
+  const commandLink = contract.token<ICommandLink>('CommandLink');
   return defineModule({
     name: 'Tactical',
-    providers: [provide(token, { useValue: charts })],
-    exports: [token],
+    providers: [
+      provide(navCharts, { useValue: charts }),
+      provide(stationTelemetry, { useValue: telemetry }),
+      provide(commandLink, { useValue: link }),
+    ],
+    exports: [navCharts, stationTelemetry, commandLink],
     global: true,
   });
 };
@@ -34,11 +60,23 @@ const Cartography = defineModule({
   providers: [SectorRoutes],
 });
 
-/** The errors `Nexus.check` reports for a shell at `version` and this remote. */
-async function checkAgainst(version: string): Promise<unknown[]> {
+/** A remote module whose one class depends on `token`. */
+function stationOn(token: Token<unknown>) {
+  class Station {
+    static deps = [token] as const;
+    constructor(readonly dependency: unknown) {}
+  }
+  return defineModule({ name: 'Station', providers: [Station] });
+}
+
+/** The errors `Nexus.check` reports for a shell at `version` and `remote`. */
+async function checkAgainst(
+  version: string,
+  remote = Cartography,
+): Promise<unknown[]> {
   const root = defineModule({
     name: 'Meridian',
-    imports: [shellAt(version), Cartography],
+    imports: [shellAt(version), remote],
   });
   try {
     await Nexus.check(root, { plugins: [federation()] });
@@ -53,25 +91,45 @@ describe('the meridian contract', () => {
     expect(NAV_CHARTS.description).toBe('meridian/NavCharts');
   });
 
-  it('is at version 2.3.0', () => {
-    expect(MERIDIAN_CONTRACT_VERSION).toBe('2.3.0');
+  it('is at version 2.4.0', () => {
+    expect(MERIDIAN_CONTRACT_VERSION).toBe('2.4.0');
   });
 
-  it('binds NAV_CHARTS to a provider of key meridian at 2.3.0', async () => {
-    expect(await checkAgainst('2.3.0')).toEqual([]);
+  it('binds NAV_CHARTS to a provider of key meridian at 2.4.0', async () => {
+    expect(await checkAgainst('2.4.0')).toEqual([]);
   });
 
-  it('marks NAV_CHARTS with version 2.3.0, which a 2.2.0 provider fails', async () => {
-    const errors = await checkAgainst('2.2.0');
+  it('marks NAV_CHARTS with version 2.4.0, which a 2.3.0 provider fails', async () => {
+    const errors = await checkAgainst('2.3.0');
     expect(errors).toHaveLength(1);
     const [error] = errors;
     expect(isNexusError(error, 'NEXUS_CONTRACT_VERSION')).toBe(true);
     expect(error).toMatchObject({
       contract: 'meridian/NavCharts',
-      required: '2.3.0',
-      provided: '2.2.0',
+      required: '2.4.0',
+      provided: '2.3.0',
     });
   });
+
+  it.each([
+    { token: NAV_CHARTS, description: 'meridian/NavCharts' },
+    { token: TELEMETRY_FEED, description: 'meridian/StationTelemetry' },
+    { token: COMMAND_LINK, description: 'meridian/CommandLink' },
+  ])(
+    'describes $description and needs a 2.4.0 provider',
+    async ({ token, description }) => {
+      expect(token.description).toBe(description);
+      const errors = await checkAgainst('2.3.0', stationOn(token));
+      expect(errors).toHaveLength(1);
+      const [error] = errors;
+      expect(isNexusError(error, 'NEXUS_CONTRACT_VERSION')).toBe(true);
+      expect(error).toMatchObject({
+        contract: description,
+        required: '2.4.0',
+        provided: '2.3.0',
+      });
+    },
+  );
 });
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');

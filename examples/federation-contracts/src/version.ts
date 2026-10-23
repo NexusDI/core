@@ -3,4 +3,4 @@
  * a contract token promises moves it, and a remote built against a newer
  * minor than the shell provides fails with `NEXUS_CONTRACT_VERSION`.
  */
-export const MERIDIAN_CONTRACT_VERSION = '2.3.0';
+export const MERIDIAN_CONTRACT_VERSION = '2.4.0';

@@ -5,8 +5,18 @@ two remotes, `federation-cartography` and `federation-command`. The package is p
 and part of the federation demo.
 
 `src/index.ts` defines the contract with `defineContract({ key: 'meridian', version })`
-and one token, `NAV_CHARTS = meridian.token<INavCharts>('NavCharts')`, described
-`meridian/NavCharts`.
+at version 2.4.0, and three tokens:
+
+- `NAV_CHARTS = meridian.token<INavCharts>('NavCharts')`, described `meridian/NavCharts`:
+  the star charts.
+- `TELEMETRY_FEED = meridian.token<IStationTelemetry>('StationTelemetry')`, described
+  `meridian/StationTelemetry`: the ship's telemetry, shaped for `useSyncExternalStore`.
+- `COMMAND_LINK = meridian.token<ICommandLink>('CommandLink')`, described
+  `meridian/CommandLink`: sends a crew command to bridge-api's `POST /commands`.
+
+The package declares its own reading types (`TelemetryReading`, `CompartmentTelemetry`
+and `TelemetryState`) and imports nothing from the simulation, so a remote that bundles
+the contract bundles no simulation code.
 
 ## Who owns the contract
 
