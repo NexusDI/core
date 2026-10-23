@@ -68,7 +68,7 @@ The architect proposed and the tech lead decided these on 2026-10-23. The tech l
 
 12. ci.yml comments. Line 133 ("The four federation demo projects carry the demo-frontend tag") becomes six. Line 157 ("With the four federation projects, run 39642501189 ... took 2 min 26 s") stays, since it records a measured run with four projects. The demo-growth comment (line 213) gains federation-shell among the `e2e-growth` holders. No step changes.
 
-13. Duplication. The two new route files follow `charts.tsx` and `command.tsx`, which fallow does not group today. The stations carry no `bootstrap.tsx` (the cartography and command pair is an 11-line clone group), take the receipt text from the shell, and use different shapes (a `<dl>` against a `<table>`). Each task that adds a counted file records `npx fallow dupes` in its hand-back. A figure over 2.15 % removes its own clone in a fixup inside G9's new files. `.fallowrc.jsonc` keeps 2.25 %.
+13. Duplication. The two new route files follow `charts.tsx` and `command.tsx`, which fallow does not group today. The stations carry no `bootstrap.tsx` (the cartography and command pair is an 11-line clone group), take the receipt text from the shell, and use different shapes (a `<dl>` against a `<table>`). Each task that adds a counted file records `npx fallow dupes` in its hand-back. A figure over 2.15 % removes its own clone in a fixup inside G9's new files. `.fallowrc.jsonc` keeps 2.25 %. Measured: Task 5, the last task that adds a counted file, reads 2.1149 % (1,499 of 70,878 lines).
 
 14. Spec text. Task 6 writes it in `docs(specs): record the g9 rulings in the ship systems spec`. The items sit under Task 6.
 
@@ -88,10 +88,27 @@ The architect proposed and the tech lead decided these on 2026-10-23. The tech l
 | Dupes base                          | 2.1253 % (1,487 of 69,968 lines, 97 groups), inside G8's forecast end of 2.125 % to 2.135 %                                  |
 | Dupes forecast                      | 2.12 % to 2.14 %; limit for this branch 2.15 % (about +29 duplicated lines of headroom)                                      |
 | Counted lines added (forecast)      | about 550: contracts 60, bridge-api 25, shell 160, engineering 80, life-support 130, command 35, servers and ports 60        |
-| Commits                             | 22 before fixups (Task 0 included), plus the two #196 commits on the branch; 1 planned fixup                                 |
+| Dupes measured                      | 2.1149 % (1,499 of 70,878 lines) after Task 5                                                                                |
+| Gating e2e measured                 | 13 federation cases (SHELL_PORT=4400); growth suite 3 cases, 3 of 3 on two runs                                              |
+| Pinned texts                        | habitat at tick 2: 293.0 K and 101.3 kPa; engineering idle: 0.00, 0.0 MW, 500.0 K, 0.0 MW, none                              |
+| `graph.json`                        | unchanged                                                                                                                    |
+| Commits                             | 24 after the fold, with the two #196 commits and the commit that records this row                                            |
 | Growth cases                        | 3 (`engineering`, `command`, `life-support`)                                                                                 |
 | Gating e2e additions                | 2 bundle titles; sentinel list stays 6                                                                                       |
 | Helm refs                           | `course` to Kepler-442b charted at 42, heading 0.733 rad (3 decimals); `burn` level 0.5 gives `setpoints.drive.throttle` 0.5 |
+
+## Ledger
+
+The controller's ledger, in order. Hashes are those before the fold.
+
+- Task N (sonnet) committed `df636c87` and `969945e8`, the #196 nits. Task 2's review covered them and skipped a nit on an 88-column line at `growth-cases.ts:434`.
+- The architect (opus) and the tech lead (opus) wrote the rulings. Task 0 (sonnet) committed the plan, `e9d3bd26`.
+- Task 2 (opus) committed `4afce661` and a helm-orders commit. Its review found that the shell's gating e2e failed at the helm-orders commit, since the shell's `Tactical` had no `COMMAND_LINK` yet. The controller moved that commit behind Task 3's command-link commit, where it is `8a45929c`.
+- Task 1 (sonnet) committed the scopes and both scaffolds. Its review found that the raw scaffold commits missed the root `tsconfig.json` reference (`nx sync` failed) and that one lockfile entry sat in the wrong commit. Task 1 rebuilt the four scaffold commits on a scratch branch with an identical tip tree, and the controller swapped them in: `833ffc1e`, `4b34a786`, `4911f53f`, `d803f519`, `d30a6d9d`.
+- Task 4 (sonnet) committed `1e6f48a4` and `d6bdb62c`. Its review found no blocking issue. The golden as an undeclared test input of life-support went to Task 6 as the fixup `4b2e7e18`.
+- Task 3 (opus) committed `bf15eeaf`, `5852a623`, `2394fbd4`, `2a92f87c` and `1d05933c`, with `graph.json` byte-identical. Its review asked to drop `--parallel=5` from the README and to give `BridgeTelemetry` a `Symbol.dispose`. Fixups and two amends followed: `850dd05e`, `3df01ee1`, `64c25708`, `59dba91f`, `a124ad22`, `4315cd63`.
+- Task 6 (sonnet) committed `8c1996fa`, `f5c2bcb8` and `36781e5e`, and the fixups `912c7e01` (ruling 1) and `4b2e7e18`. Its review found one triad in the spec (`9f65f686` fixes it) and one word, "trip", changed to "fail".
+- Task 5 (opus) committed `956a0dd0`, `506beef0` and `c8b7c3ec`. The gating e2e passed with 11, 13 and 13 cases across the three runs at `SHELL_PORT=4400`, and the growth suite passed 3 of 3 twice. `.fallowrc.jsonc` gained the shell's `bridge-api` devDependency in `ignoreDependencies`, and `nx sync` added a `bridge-api` reference to the shell's `tsconfig.app.json`.
 
 ## Global Constraints
 
@@ -447,10 +464,10 @@ Questions the architect and the tech lead left for the controller.
 
 ## For the owner
 
-Additions and divergences beyond the spec's G9 row. None removes a public export or an earlier test, changes anything under `libs/`, or adds a runtime dependency between packages.
+Additions and divergences beyond the spec's G9 row. None removes a public export or an earlier test. G9 changes nothing under `libs/` and adds no runtime dependency between packages.
 
 1. The public `/federation/` page changes: "Four folders hold it" becomes "Six folders hold it", with bullets for `examples/federation-engineering` and `examples/federation-life-support` (ruling 11).
-2. The contract tokens are described `meridian/StationTelemetry` and `meridian/CommandLink`, since `meridian/TelemetryFeed` would trip the gating bundle check. The contract moves to 2.4.0 and the drift build to 2.5.0 (ruling 2).
+2. The contract tokens are described `meridian/StationTelemetry` and `meridian/CommandLink`, since `meridian/TelemetryFeed` would fail the gating bundle check. The contract moves to 2.4.0 and the drift build to 2.5.0 (ruling 2).
 3. The federation growth suite holds three cases, one per station remote G9 touches, which reads §7.4's "one e2e case per app" as one per remote project. bridge-api gets no e2e case (ruling 8).
 4. The gating federation e2e gains two bundle-check titles for the new station builds, as §9 names each station's build (ruling 8).
 5. bridge-api's Hono entry answers the shell's origin through `hono/cors` in development and e2e (`SHELL_ORIGIN`, default `http://localhost:4300`). Express, Fastify and Workers get no CORS (ruling 5).
