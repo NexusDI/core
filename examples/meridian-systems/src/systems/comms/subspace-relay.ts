@@ -1,6 +1,9 @@
+import { RelayError } from '../../errors';
+import { formatNumber } from '../../text';
 import {
   COMMS_OPTIONS,
   type CommsOptions,
+  DEFAULT_RELAY_TIMEOUT,
   type ISubspaceLink,
 } from './contracts';
 
@@ -19,8 +22,22 @@ export class SubspaceRelay implements ISubspaceLink {
         : `${this.options.relayUrl}/`,
     );
     url.searchParams.set('frequency', String(this.options.frequency));
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`relay answered ${res.status} for ${channel}`);
-    return (await res.json()) as T;
+    const timeout = this.options.relayTimeout ?? DEFAULT_RELAY_TIMEOUT;
+    // The signal covers the whole exchange, from connect to the last body byte.
+    const signal = AbortSignal.timeout(timeout);
+    try {
+      const res = await fetch(url, { signal });
+      if (!res.ok)
+        throw new Error(`relay answered ${res.status} for ${channel}`);
+      return (await res.json()) as T;
+    } catch (error) {
+      if (signal.aborted)
+        throw new RelayError({
+          channel,
+          reason: 'timeout',
+          expected: `within ${formatNumber(timeout, 0)} ms`,
+        });
+      throw error;
+    }
   }
 }

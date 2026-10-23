@@ -7,6 +7,7 @@ import {
   FtlNotSpooledError,
   InterlockError,
   PowerBudgetError,
+  RelayError,
   UnknownCompartmentError,
 } from './errors';
 import { ENGINEERING_ACTIONS } from './systems/engineering/engineering-commands';
@@ -171,4 +172,34 @@ describe('shipText', () => {
       );
     },
   );
+});
+
+describe('MERIDIAN_RELAY', () => {
+  it('words a relay that gave no answer in time', () => {
+    const error = new RelayError({
+      channel: 'charts',
+      reason: 'timeout',
+      expected: 'within 5,000 ms',
+    });
+    expect(render(error)).toBe(
+      [
+        '[MERIDIAN_RELAY] The subspace relay did not answer the charts channel within 5,000 ms.',
+        '  Fix: check that the relay is up and reachable at relayUrl, or raise relayTimeout.',
+      ].join('\n'),
+    );
+  });
+
+  it('words a relay that answered a table the ship cannot read', () => {
+    const error = new RelayError({
+      channel: 'charts',
+      reason: 'malformed',
+      expected: 'a JSON object that maps each star name to a finite heading',
+    });
+    expect(render(error)).toBe(
+      [
+        '[MERIDIAN_RELAY] The subspace relay answered the charts channel with a table the ship cannot read. The table must be a JSON object that maps each star name to a finite heading.',
+        '  Fix: check what the relay serves on that channel.',
+      ].join('\n'),
+    );
+  });
 });

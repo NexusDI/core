@@ -6,6 +6,7 @@ import type {
   FtlNotSpooledError,
   InterlockError,
   PowerBudgetError,
+  RelayError,
   UnknownCompartmentError,
 } from './errors';
 
@@ -95,4 +96,14 @@ export const shipText = {
     message: `The FTL drive holds ${gigajoules(error.charge)} GJ of the ${gigajoules(error.energy)} GJ a jump needs.`,
     fix: 'spool the drive and wait until it holds the full charge, then jump.',
   }),
+  MERIDIAN_RELAY: (error: RelayError) =>
+    error.reason === 'timeout'
+      ? {
+          message: `The subspace relay did not answer the ${error.channel} channel ${error.expected}.`,
+          fix: 'check that the relay is up and reachable at relayUrl, or raise relayTimeout.',
+        }
+      : {
+          message: `The subspace relay answered the ${error.channel} channel with a table the ship cannot read. The table must be ${error.expected}.`,
+          fix: 'check what the relay serves on that channel.',
+        },
 } satisfies ErrorTextPack;

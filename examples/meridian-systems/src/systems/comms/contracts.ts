@@ -17,7 +17,12 @@ export interface CommsOptions {
   readonly transport: 'relay';
   /** The relay's base URL. The link resolves each channel against it. */
   readonly relayUrl: string;
+  /** How long the link waits for the relay's answer, in ms. Defaults to `DEFAULT_RELAY_TIMEOUT`. */
+  readonly relayTimeout?: number;
 }
+
+/** The wait for a relay's answer when `CommsOptions` sets none, in ms. */
+export const DEFAULT_RELAY_TIMEOUT = 5_000;
 
 /** The phased array's panel. */
 export interface ICommsArray {
