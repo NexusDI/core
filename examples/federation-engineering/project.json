@@ -1,0 +1,24 @@
+{
+  "name": "federation-engineering",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "examples/federation-engineering/src",
+  "projectType": "application",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "continuous": true,
+      "options": {
+        "command": "rspack serve --mode=development",
+        "cwd": "examples/federation-engineering"
+      },
+      "dependsOn": ["@nexusdi/federation-shell:serve"]
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "rspack build --mode=production",
+        "cwd": "examples/federation-engineering"
+      }
+    }
+  }
+}
