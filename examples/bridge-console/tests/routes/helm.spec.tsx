@@ -3,10 +3,10 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub, RouterContextProvider } from 'react-router';
 import type { Nexus, Scope } from '@nexusdi/core';
 import type { ShipReading } from '@nexusdi/meridian-systems';
+import { BUNDLED_CHARTS } from '@nexusdi/meridian-systems/charts';
 import { existingScope, NEXUS_SCOPE } from '@nexusdi/react-router';
 import { nexusTest } from '@nexusdi/vitest';
 
-import charts from '../../app/bridge/charts.json';
 import { BRIDGE_LINK } from '../../app/bridge/bridge-link';
 import type { CommandAnswer } from '../../app/bridge/bridge-link';
 import { BridgeConsole } from '../../app/bridge/bridge-console';
@@ -320,7 +320,7 @@ describe('the course button', () => {
     expect(select.getAttribute('name')).toBe('to');
     expect(
       [...select.querySelectorAll('option')].map((option) => option.value),
-    ).toEqual(Object.keys(charts));
+    ).toEqual(Object.keys(BUNDLED_CHARTS));
   });
 
   test('posts the star and shows the tick it queues for', async ({ nexus }) => {
@@ -375,7 +375,7 @@ describe('the burn button', () => {
           status: 400,
           code: 'MERIDIAN_BAD_COMMAND',
           message:
-            'helm burn got an argument it cannot use. It takes course with a star to steer for and burn with a level from 0 to 1.',
+            'helm burn got an argument it cannot use. It takes course with a charted star to steer for and burn with a level from 0 to 1.',
           fix: 'send the arguments in the ranges above.',
         };
       }
@@ -384,7 +384,7 @@ describe('the burn button', () => {
     await renderPage(scope);
     fireEvent.click(screen.getByRole('button', { name: 'Burn' }));
     expect((await screen.findByRole('alert')).textContent).toBe(
-      'helm burn got an argument it cannot use. It takes course with a star to steer for and burn with a level from 0 to 1.Fix: send the arguments in the ranges above.',
+      'helm burn got an argument it cannot use. It takes course with a charted star to steer for and burn with a level from 0 to 1.Fix: send the arguments in the ranges above.',
     );
   });
 });

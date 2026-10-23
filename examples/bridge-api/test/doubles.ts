@@ -14,6 +14,10 @@ import type { IFlightLog, INavCharts } from '../src/ship/contracts';
 
 /** A class, so the audit interceptor wraps it: interceptors skip value providers. */
 export class FakeCharts implements INavCharts {
+  /** It holds 42 for every star. */
+  has() {
+    return true;
+  }
   plot(to: string) {
     return { to, heading: 42 };
   }

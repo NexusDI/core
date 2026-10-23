@@ -151,8 +151,10 @@ same way. From G5 `src/systems/tactical/star-charts.ts` imports `deck/charts.jso
 way.
 
 `bridge-api` imports the aggregate and runs the simulation. The bridge console and
-the federation stations import types only (`import type`), so no simulation code reaches
-a browser bundle.
+the federation stations import types only (`import type`), and the console imports the
+star charts from `@nexusdi/meridian-systems/charts`, so no simulation code reaches a
+browser bundle. The `./charts` subpath points at `src/systems/tactical/star-charts.ts`,
+which exports `StarCharts` and `BUNDLED_CHARTS` and holds no simulation code.
 
 ### 3.2 Modules
 
@@ -426,23 +428,31 @@ and plots over the table it gets.
 From G6 `IMainDrive` has `readonly rating: DriveRating` and `throttle(level)`, which
 queues `{ drive: { throttle: level } }`. `IThrusters` has
 `readonly rating: ThrusterRating` and `steer(heading)`, which queues
-`{ helm: { heading: wrap(heading) } }`. `HelmPhysics` and `HelmPower` read the thrusters'
-rating through `THRUSTERS`, and `PropulsionPhysics` and `PropulsionPower` the drive's
-through `MAIN_DRIVE`, as `EngineeringPhysics` reads the reactor's, so a test swaps a
-rating behind the token. `IHelm` has `course(to)`, which plots the star on `NAV_CHARTS` at
-the command and steers `toRadians(heading)`, and `burn(level)`, which throttles the main
-drive. A plot in the tick would call `NavAudit` on every tick and fill `AUDIT_LOG`. A star
-the charts do not hold plots heading 0, as `INavCharts.plot` documents, so the helm steers
-0 for it. `HelmCommands` serves `helm`: `course` takes a string `to`, and `burn` a finite
-`level` from 0 to 1, which the handler reads through `levelArgument` in
-`src/simulation/command-arguments.ts`, as `EngineeringCommands` reads its throttle.
-`HELM_ACTIONS` reads "course with a star to steer for and burn with a level from 0 to 1".
-`helm warp` answers "helm has no action 'warp'. It takes course with a star to steer for
-and burn with a level from 0 to 1." with the fix "send one of the actions above with its
-arguments.", and a `burn` with no `level` from 0 to 1 or a `course` with no string `to`
-answers "helm burn got an argument it cannot use. It takes …" or "helm course got …" with
-the fix "send the arguments in the ranges above." `Propulsion` binds no command handler,
-so the crew steers and burns through `helm`.
+`{ helm: { heading: wrap(heading) } }` and throws `RangeError` "steer() takes a finite
+heading in rad, and got NaN." for a heading that is not finite, as `advance()` guards its
+ticks. `HelmPhysics` and `HelmPower` read the thrusters' rating through `THRUSTERS`, and
+`PropulsionPhysics` and `PropulsionPower` the drive's through `MAIN_DRIVE`, as
+`EngineeringPhysics` reads the reactor's, so a test swaps a rating behind the token.
+`INavCharts` gains `has(to)`, true when the charts hold a heading for `to`. One predicate,
+`Object.hasOwn(headings, to) && Number.isFinite(headings[to])`, serves `has` and `plot`,
+so a key of `Object.prototype` is no star, and an entry of the downloaded table that is
+not a finite number reads as uncharted. `plot(to)` keeps heading 0 for a star the charts
+do not hold. `IHelm` has `course(to)`, which plots the star on `NAV_CHARTS` at the command
+and steers `toRadians(heading)`, and `burn(level)`, which throttles the main drive. A plot
+in the tick would call `NavAudit` on every tick and fill `AUDIT_LOG`. `HelmCommands`
+serves `helm`: `course` takes a string `to`, and `burn` a finite `level` from 0 to 1,
+which the handler reads through `levelArgument` in `src/simulation/command-arguments.ts`,
+as `EngineeringCommands` reads its throttle. `HELM_ACTIONS` reads "course with a charted
+star to steer for and burn with a level from 0 to 1". `helm warp` answers "helm has no
+action 'warp'. It takes course with a charted star to steer for and burn with a level from
+0 to 1." with the fix "send one of the actions above with its arguments.", and a `burn`
+with no `level` from 0 to 1 or a `course` with no string `to` answers "helm burn got an
+argument it cannot use. It takes …" or "helm course got …" with the fix "send the
+arguments in the ranges above." `HelmControl.course(to)` checks `has(to)` before it plots,
+and a star the charts do not hold answers "helm course got an argument it cannot use. It
+takes course with a charted star to steer for and burn with a level from 0 to 1." with the
+same fix, as `EnvironmentalController` refuses a device a compartment lacks. `Propulsion`
+binds no command handler, so the crew steers and burns through `helm`.
 
 Engineering's physics class, `EngineeringPhysics`, takes `REACTOR`, `COOLANT_LOOP` and
 `POWER_ROUTER` (`static deps = [REACTOR, COOLANT_LOOP, POWER_ROUTER] as const`). It reads the ratings
@@ -1135,7 +1145,10 @@ maps to (−π, π], with a compare that moves the double just above −π back 
 `wrap(π)`, `wrap(−π)` and `wrap(±3π)` are π, and `wrap(2π)` is 0. One setpoint,
 `setpoints.helm.heading` in rad, holds both `θ_set` and `θ_course`, so the course the docs
 plot is the heading the helm flies. Before a course it is 0, and a burn with no course
-flies along the ship's initial axis.
+flies along the ship's initial axis. A star the charts do not hold, such as Vega, and a key
+of `Object.prototype`, such as `constructor`, answer `MERIDIAN_BAD_COMMAND` at the command
+and queue no heading. `RcsThrusters.steer` throws `RangeError` for a heading that is not
+finite, so a NaN never reaches the tick.
 
 The helm is a PD controller on the yaw angle, critically damped (`HELM_TUNING`: `ζ = 1`,
 `ω_n = 0.05 rad/s`), with moment of inertia `I = 3.3 × 10⁹ kg·m²` (`HULL`) and the
@@ -1389,8 +1402,9 @@ tick 1 and the coolant's 1,064.4 K at tick 1,200, which the golden holds.
   tick 16 answers `MERIDIAN_POWER_BUDGET` with `consumer` `shields`, `demand` 200,000,000
   and `available` 193,600,000, and a raise at tick 17 queues for tick 18.
 - `helm warp` answers `MERIDIAN_BAD_COMMAND` with reason `action`, and a burn at level 2
-  and a course to 42 with reason `argument`, each with `expected: HELM_ACTIONS`. The log
-  stays empty.
+  and a course to 42 with reason `argument`, each with `expected: HELM_ACTIONS`. A course
+  to Vega, `constructor` or `__proto__` answers reason `argument` too. The log stays
+  empty.
 - A course to TRAPPIST-1e sets −2.7401669256310974. On the relay graph with `fetch`
   stubbed to a table that holds Kepler-442b at 90°, a course to Kepler-442b sets
   `toRadians(90)` from the downloaded table, and the graph fetches once, at build.
@@ -1846,21 +1860,23 @@ G6 adds no route. `helm course` and `helm burn` go through `POST /commands`, and
 on Hono, Express and Fastify, after every existing block. On the fixture's linked ship,
 whose `FakeCharts` plots heading 42 for every star, `engineering throttle 0.6`,
 `helm course to Kepler-442b` and `helm burn level 1` each answer 202 `{ tick: 1 }`, and
-`AUDIT_LOG` holds `plot Kepler-442b` after the course. After one tick `GET /sim` holds
-`setpoints.helm` `{ heading: 0.733 }`, `setpoints.drive` `{ throttle: 1 }`, the loads
+`AUDIT_LOG` holds `has Kepler-442b` and `plot Kepler-442b` after the course. After one
+tick `GET /sim` holds `setpoints.helm` `{ heading: 0.733 }`, `setpoints.drive`
+`{ throttle: 1 }`, the loads
 `{ id: 'thrusters', priority: 4, demand: 20000000, allocated: 0 }` and
 `{ id: 'main-drive', priority: 5, demand: 600000000, allocated: 0 }`, both shed, and
 `LOAD_SHED` for each. One tick later the helm reads
 `{ attitude: 0.0003788, rate: 0.0007576, torque: 5000000 }`, the thrusters get
 20,000,000 W, `power.shed` holds `main-drive` alone with `LOAD_SHED` for it, `AUDIT_LOG`
-still holds the one plot, and `GET /commands` holds the one
-entry
+still holds those two entries, and `GET /commands` holds the one entry
 `{ tick: 1, change: { reactor: { throttle: 0.6 }, helm: { heading: (42 * Math.PI) / 180 }, drive: { throttle: 1 } } }`.
 On `OfflineMeridian` a course to TRAPPIST-1e answers 202 `{ tick: 1 }` and sets the
 heading −2.74 after one tick, and `AUDIT_LOG` stays empty, since an interceptor never
 wraps the bundled charts' value. On either ship `helm burn level 1.5`, `helm course` with
 no `to` and `helm flip` answer 400 `MERIDIAN_BAD_COMMAND` with the texts of section 3.3,
-and the log stays empty.
+and the log stays empty. On `OfflineMeridian` a course to Vega, `constructor` or
+`__proto__` answers 400 `MERIDIAN_BAD_COMMAND` with the text of section 3.3, and after
+one tick `setpoints.helm` stays `{ heading: 0 }` with no `LOAD_SHED`.
 
 `courseAndBurn` joins `growthCases` as the sixth case, named "a course and a burn on the
 offline ship settle the helm on the charted heading and drive the ship along it", and
@@ -2419,17 +2435,17 @@ read is exact on any start tick, since the burn starts after the settle.
 
 ## 9. Risks
 
-| Risk                                                                                                              | What the spec does                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Ship logic hides NexusDI. A reader opens a module and meets thermodynamics.                                       | Physics lives in `src/physics/` with no NexusDI import (S2). A module file holds tokens, providers and one delegation per system (section 3.4), and the reviewer refuses a module file over 120 lines. Each system's README section names the NexusDI feature it shows first, then the physics.                                                                                                                                                                                                 |
-| The demo teaches odd DI. Compartments as request scopes, or a loaded system that attaches itself, read as tricks. | Section 6 gives the reason for each pairing. The scope carries one request's compartment, and nothing in the simulation holds a scope beyond a request. The attach in G7 is the documented `all()` rule, stated where it happens.                                                                                                                                                                                                                                                               |
-| Bundle size. A console or station bundles the simulation.                                                         | Frontends take `import type` only. A G0b test greps the console's client build and each station's build for the descriptions of `TICK_LOOP`, `SHIP_STATE`, `SIM_CLOCK`, `RNG`, `DECK_PLAN` and `TELEMETRY`, and fails on a hit. A minifier keeps a token's description as a string and renames function names, so `stepAtmosphere` serves as no sentinel. The console's case sits in the gating `e2e/fresh-server.spec.ts` and the stations' in `examples/federation-shell/e2e/bundle.spec.ts`. |
-| CI time grows with every increment.                                                                               | Each increment adds at most one e2e case per app, and the physics tests run in milliseconds. Manual mode advances 600 ticks in well under a second. The demo spec's 8-minute budget for `demo-apps` stands, since growth e2e cases run in `demo-growth` (section 14) until a green RC cycle promotes them.                                                                                                                                                                                      |
-| Floating-point drift across engines breaks a golden.                                                              | Goldens run on Node only; other runtimes run a smoke case (section 8.3).                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| A new system changes older e2e expectations.                                                                      | S5 and S6: per-system RNG forks, and idle at start.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| Vocabulary drift. The simulation adds about forty names, and a docs page or post picks one up before §7.1 has it. | Section 10 proposes every row. The demo plan's PR G carries them to `spec/docs-site`. Until a row is there, no docs page uses the name, and the domain guard's interface list gains the new interfaces, none ending in `Service`.                                                                                                                                                                                                                                                               |
-| "Tactical" reads as weapons to a naval reader.                                                                    | `Tactical` keeps navigation, as §7.1 has it, and the weapons module is `Weapons`. Section 10.2 records the rule.                                                                                                                                                                                                                                                                                                                                                                                |
-| Humour creeps in through ship colour (alarm text, hail messages).                                                 | §7.4 binds the demo text too: alarm and hail text states facts (`fleet traffic control: sector clear`), and the reviewer checks it.                                                                                                                                                                                                                                                                                                                                                             |
+| Risk                                                                                                              | What the spec does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ship logic hides NexusDI. A reader opens a module and meets thermodynamics.                                       | Physics lives in `src/physics/` with no NexusDI import (S2). A module file holds tokens, providers and one delegation per system (section 3.4), and the reviewer refuses a module file over 120 lines. Each system's README section names the NexusDI feature it shows first, then the physics.                                                                                                                                                                                                                                                                                                      |
+| The demo teaches odd DI. Compartments as request scopes, or a loaded system that attaches itself, read as tricks. | Section 6 gives the reason for each pairing. The scope carries one request's compartment, and nothing in the simulation holds a scope beyond a request. The attach in G7 is the documented `all()` rule, stated where it happens.                                                                                                                                                                                                                                                                                                                                                                    |
+| Bundle size. A console or station bundles the simulation.                                                         | Frontends take `import type` only, and the console takes the star charts from `@nexusdi/meridian-systems/charts`, which holds no token. A G0b test greps the console's client build and each station's build for the descriptions of `TICK_LOOP`, `SHIP_STATE`, `SIM_CLOCK`, `RNG`, `DECK_PLAN` and `TELEMETRY`, and fails on a hit. A minifier keeps a token's description as a string and renames function names, so `stepAtmosphere` serves as no sentinel. The console's case sits in the gating `e2e/fresh-server.spec.ts` and the stations' in `examples/federation-shell/e2e/bundle.spec.ts`. |
+| CI time grows with every increment.                                                                               | Each increment adds at most one e2e case per app, and the physics tests run in milliseconds. Manual mode advances 600 ticks in well under a second. The demo spec's 8-minute budget for `demo-apps` stands, since growth e2e cases run in `demo-growth` (section 14) until a green RC cycle promotes them.                                                                                                                                                                                                                                                                                           |
+| Floating-point drift across engines breaks a golden.                                                              | Goldens run on Node only; other runtimes run a smoke case (section 8.3).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| A new system changes older e2e expectations.                                                                      | S5 and S6: per-system RNG forks, and idle at start.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Vocabulary drift. The simulation adds about forty names, and a docs page or post picks one up before §7.1 has it. | Section 10 proposes every row. The demo plan's PR G carries them to `spec/docs-site`. Until a row is there, no docs page uses the name, and the domain guard's interface list gains the new interfaces, none ending in `Service`.                                                                                                                                                                                                                                                                                                                                                                    |
+| "Tactical" reads as weapons to a naval reader.                                                                    | `Tactical` keeps navigation, as §7.1 has it, and the weapons module is `Weapons`. Section 10.2 records the rule.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Humour creeps in through ship colour (alarm text, hail messages).                                                 | §7.4 binds the demo text too: alarm and hail text states facts (`fleet traffic control: sector clear`), and the reviewer checks it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 ## 10. Vocabulary
 
@@ -2605,9 +2621,7 @@ changes no federation file, and nothing under `apps/docs` or `examples/meridian`
 
 G6 leaves out an attitude command apart from the course (a flip-and-burn to brake), a
 `propulsion` command system of its own, a target distance and an arrival, a propellant
-tank and the rocket equation, a refusal of an uncharted star, and a seventh bundle
-sentinel. A refusal of an uncharted star needs a new `INavCharts` member that every
-implementer would gain, so the owner gets it as a follow-up issue. The helm suite over
+tank and the rocket equation, and a seventh bundle sentinel. The helm suite over
 `SimulatedFtlDrive`, which section 8.2 gave G6, moves to G7, since `FtlDrive` arrives
 there. G6 changes no federation file, and nothing under `apps/docs` or
 `examples/meridian`: `examples/meridian/src/pages/lazy.md` defines its own `HELM_CONTROL`
@@ -2745,7 +2759,7 @@ library's `e2e-growth` target holds the goldens, and `demo-growth` runs it too.
 | 2026-10-23 | The snapshot gains `drive` and `helm`, and the setpoints `drive.throttle` and `helm.heading` in rad, after `comms`; the store and phase 2 freeze them                                                                                                                                                                                                                                                                | tech lead, G6 ruling 4          |
 | 2026-10-23 | A new course keeps the speed and the distance along the track                                                                                                                                                                                                                                                                                                                                                        | tech lead, G6 ruling 6          |
 | 2026-10-23 | `HelmPower` draws `thrusters` at priority 4 from the start-of-tick torque with heat share 0, and `PropulsionPower` draws `main-drive` at priority 5 with heat share 0.4; no helm command diverts; a turn at full torque needs the reactor at 0.01653                                                                                                                                                                 | tech lead, G6 ruling 7          |
-| 2026-10-23 | G6 adds the crew commands `helm course` and `helm burn`, and no other; `HelmControl` plots at the command; an uncharted star steers heading 0                                                                                                                                                                                                                                                                        | tech lead, G6 ruling 8          |
+| 2026-10-23 | G6 adds the crew commands `helm course` and `helm burn`, and no other; `HelmControl` plots at the command; an uncharted star or a key of `Object.prototype` answers `MERIDIAN_BAD_COMMAND` at the command, and `INavCharts` gains `has`                                                                                                                                                                              | tech lead, G6 rulings 8 and 23  |
 | 2026-10-23 | `Propulsion` and `Helm` join the aggregate, and `HelmControl` reads `MAIN_DRIVE` and `NAV_CHARTS` through it; `Propulsion` also exports `SHIP_SYSTEMS` and `POWER_CONSUMERS`, `Helm` also those two and `COMMAND_HANDLERS`, and `IMainDrive` and `IThrusters` carry their `rating`                                                                                                                                   | tech lead, G6 ruling 9          |
 | 2026-10-23 | The library gains `test/helm.test.ts` and the golden `helm.seed-7.json` at ticks 1, 50, 688 and 1,200                                                                                                                                                                                                                                                                                                                | tech lead, G6 ruling 11         |
 | 2026-10-23 | Four enumerating unit assertions grow with the ship; every earlier golden only gains lines (90, 90, 90, 150 and 90), the records in one commit and the loads with the wiring                                                                                                                                                                                                                                         | tech lead, G6 ruling 12         |
@@ -2778,8 +2792,7 @@ changes a public docs page.
   a cold reactor that sheds with `LOAD_SHED main-drive`, a course at throttle 0.01 that
   waits on the reactor with `LOAD_SHED thrusters`, and a new course that keeps the speed
   (G6 rulings 6 and 7).
-- An uncharted star steers heading 0, and a refusal needs a new `INavCharts` member,
-  proposed as a follow-up issue (G6 ruling 8).
+- `INavCharts` gains `has(to)`; every implementer in the repo gains it (G6 ruling 23).
 - `navigator` refused as a whole global where the owner named `navigator.sendBeacon`, and
   six more names refused in their own commit: `Bun`, `Deno`, `WebTransport`,
   `importScripts`, `Worker` and `WebSocketStream` (G6 rulings 13, 14 and 20).
