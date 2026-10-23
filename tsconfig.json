@@ -97,6 +97,9 @@
       "path": "./examples/federation-engineering"
     },
     {
+      "path": "./examples/federation-life-support"
+    },
+    {
       "path": "./examples/federation-contracts"
     },
     {
