@@ -1,6 +1,13 @@
-import type { IFtlDrive, QueuedCommand } from '@nexusdi/meridian-systems';
+import type { Scope } from '@nexusdi/core';
+import {
+  FTL_DRIVE,
+  type FtlRating,
+  type IFtlDrive,
+  type QueuedCommand,
+} from '@nexusdi/meridian-systems';
 
 import { type RefusedReply, refusedReply } from './refusal';
+import type { FrameRating } from './telemetry-stream';
 
 /** The status and body `POST /ftl/spool` and `POST /ftl/jump` answer. */
 export type FtlReply =
@@ -34,3 +41,22 @@ export const answerJump = (drive: IFtlDrive, body: unknown): FtlReply =>
         : '',
     ),
   );
+
+/**
+ * The FTL rating of each telemetry frame, read through the stream's request
+ * scope `scope`: undefined while the frame's FTL record reads `offline`, and
+ * from the first other status the rating of the drive bound to FTL_DRIVE.
+ * The stream's scope opened before the first FTL request loaded the drive,
+ * so the read calls `scope.extend()` first. Without the extend, `get` throws
+ * NEXUS_LOADED_AFTER_SCOPE. The extend and the read run once, and every
+ * later frame gets the same promise.
+ */
+export function ftlRating(scope: Pick<Scope, 'extend' | 'get'>): FrameRating {
+  let rating: Promise<FtlRating> | undefined;
+  return async (reading) => {
+    if (rating === undefined && reading.ftl.status === 'offline')
+      return undefined;
+    rating ??= scope.extend().then(() => scope.get(FTL_DRIVE).rating);
+    return rating;
+  };
+}

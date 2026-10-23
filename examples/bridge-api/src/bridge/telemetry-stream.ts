@@ -1,6 +1,15 @@
-import type { ITelemetryFeed, ShipReading } from '@nexusdi/meridian-systems';
+import type {
+  FtlRating,
+  ITelemetryFeed,
+  ShipReading,
+} from '@nexusdi/meridian-systems';
 
-import type { TelemetryEvent } from '../ship/contracts';
+import type { TelemetryEvent, TelemetryFrame } from '../ship/contracts';
+
+/** The FTL rating of the frame of `reading`, or undefined for a frame with none. */
+export type FrameRating = (
+  reading: ShipReading,
+) => Promise<FtlRating | undefined>;
 
 /**
  * The headers of `GET /telemetry`. `no-transform` stops a compressing proxy
@@ -33,10 +42,14 @@ const sse = (event: TelemetryEvent, data: string): Uint8Array =>
  * client and never 600. A cancel unsubscribes from the feed. When `shutdown`
  * aborts, the stream unsubscribes and ends as the feed's own close does, with
  * `ship offline`, so a server that stops can close before the ship disposes.
+ * With `rating`, the stream awaits the rating of each frame before it sends
+ * it and adds a defined one as `ftlRating`. A rating that rejects errors the
+ * stream.
  */
 export function telemetryStream(
   feed: ITelemetryFeed,
   shutdown?: AbortSignal,
+  rating?: FrameRating,
 ): ReadableStream<Uint8Array> {
   let latest: ShipReading | undefined;
   let offline: string | undefined;
@@ -84,8 +97,13 @@ export function telemetryStream(
         }
         if (ended) return;
         if (latest !== undefined) {
-          controller.enqueue(sse('snapshot', JSON.stringify(latest)));
+          const reading = latest;
           latest = undefined;
+          const ftlRating =
+            rating === undefined ? undefined : await rating(reading);
+          const frame: TelemetryFrame =
+            ftlRating === undefined ? reading : { ...reading, ftlRating };
+          controller.enqueue(sse('snapshot', JSON.stringify(frame)));
           return;
         }
         if (offline !== undefined) {
