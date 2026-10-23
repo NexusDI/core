@@ -40,6 +40,9 @@ export default function Layout(props: Route.ComponentProps) {
         <Button as="link" to="/systems/comms" variant="outline">
           Comms
         </Button>
+        <Button as="link" to="/systems/helm" variant="outline">
+          Helm
+        </Button>
         <Button as="link" to="/airlock" variant="outline">
           Airlock
         </Button>
