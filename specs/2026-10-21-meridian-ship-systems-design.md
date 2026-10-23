@@ -2825,3 +2825,6 @@ changes a public docs page.
   loaded machine fails on its assertions alone, and no earlier `it(...)` call changes
   (G6 ruling 21). `.prettierignore` leaves the library's goldens out of the format check,
   since Prettier folds a short array the golden tests compare byte for byte.
+- The console moves `@nexusdi/meridian-systems` from a dev dependency to a dependency and
+  imports `StarCharts` and `BUNDLED_CHARTS` from the new `./charts` subpath. Its copy of the
+  table, `app/bridge/charts.json`, goes, and so does `tests/charts.test.ts` (G6 ruling 24).
