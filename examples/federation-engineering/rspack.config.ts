@@ -1,6 +1,7 @@
 import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 import { ModuleFederationPlugin } from '@module-federation/enhanced/rspack';
+import { meridianShared } from '@nexusdi/federation-contracts/shared';
 import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,7 +23,7 @@ export default defineConfig((_env, argv) => {
     context: __dirname,
     entry: { main: './src/index.ts' },
     output: {
-      path: path.resolve(__dirname, 'dist'),
+      path: path.resolve(__dirname, 'dist', 'main'),
       publicPath: 'auto',
       uniqueName: NAME,
       clean: true,
@@ -73,10 +74,9 @@ export default defineConfig((_env, argv) => {
       new ModuleFederationPlugin({
         name: NAME,
         filename: 'remoteEntry.js',
-        exposes: {
-          './section': './src/Section.tsx',
-        },
-        shared: ['react', 'react-dom'],
+        exposes: { './section': './src/section.ts' },
+        shared: meridianShared(),
+        dts: false,
       }),
     ].filter(Boolean),
   };
