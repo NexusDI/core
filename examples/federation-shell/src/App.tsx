@@ -2,7 +2,9 @@ import { Diagnostics } from './diagnostics';
 import { Link, usePath } from './router';
 import { Charts } from './routes/charts';
 import { CommandRoute } from './routes/command';
+import { EngineeringRoute } from './routes/engineering';
 import { Home } from './routes/home';
+import { LifeSupportRoute } from './routes/life-support';
 import { withDevtools } from './ship/ship';
 
 function Route({ path }: { path: string }) {
@@ -11,6 +13,10 @@ function Route({ path }: { path: string }) {
       return <Charts />;
     case '/command':
       return <CommandRoute />;
+    case '/engineering':
+      return <EngineeringRoute />;
+    case '/life-support':
+      return <LifeSupportRoute />;
     case '/diagnostics':
       return withDevtools ? (
         <Diagnostics />
@@ -30,7 +36,9 @@ export function App() {
       <h1>Meridian</h1>
       <nav>
         <Link to="/">Bridge</Link> <Link to="/charts">Cartography</Link>{' '}
-        <Link to="/command">Command</Link>
+        <Link to="/command">Command</Link>{' '}
+        <Link to="/engineering">Engineering</Link>{' '}
+        <Link to="/life-support">Life support</Link>
         {withDevtools ? (
           <>
             {' '}

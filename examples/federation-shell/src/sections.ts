@@ -23,14 +23,32 @@ async function sectionOf<P>(station: StationName): Promise<P> {
 
 type CartographyPackage = SectionPackage<'Cartography', 'StarMap'>;
 type CommandPackage = SectionPackage<'Command', 'CommandDeck'>;
+type EngineeringPackage = SectionPackage<
+  'EngineeringStation',
+  'EngineeringPanel'
+>;
+type LifeSupportPackage = SectionPackage<
+  'LifeSupportStation',
+  'LifeSupportPanel'
+>;
 
 export const cartography = () =>
   sectionOf<CartographyPackage>('federation_cartography');
 export const command = () => sectionOf<CommandPackage>('federation_command');
+export const engineering = () =>
+  sectionOf<EngineeringPackage>('federation_engineering');
+export const lifeSupport = () =>
+  sectionOf<LifeSupportPackage>('federation_life_support');
 
 export const Cartography = lazySection('cartography', () =>
   cartography().then((m) => m.Cartography),
 );
 export const Command = lazySection('command', () =>
   command().then((m) => m.Command),
+);
+export const EngineeringStation = lazySection('engineering', () =>
+  engineering().then((m) => m.EngineeringStation),
+);
+export const LifeSupportStation = lazySection('life-support', () =>
+  lifeSupport().then((m) => m.LifeSupportStation),
 );
