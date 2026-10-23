@@ -23,7 +23,8 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: /(life-support|safety|airlock|helm|ftl|comms)\.spec\.ts/,
+      testIgnore:
+        /(life-support|safety|airlock|helm|ftl|weapons|comms)\.spec\.ts/,
     },
     // Life support's online command is one-way on the shared manual ship, so
     // its case runs after every case that reads the idle ship.
@@ -67,13 +68,21 @@ export default defineConfig({
       testMatch: /ftl\.spec\.ts/,
       dependencies: ['helm'],
     },
+    // The weapons case fires the railgun, which arms the mount for good, so it
+    // runs after every case that reads the ship with the capacitor idle.
+    {
+      name: 'weapons',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /weapons\.spec\.ts/,
+      dependencies: ['ftl'],
+    },
     // The hail stays queued on the shared ship for good, because the ship has
     // no subspace link, so the comms case runs after every other case.
     {
       name: 'comms',
       use: { ...devices['Desktop Chrome'] },
       testMatch: /comms\.spec\.ts/,
-      dependencies: ['ftl'],
+      dependencies: ['weapons'],
     },
   ],
 });
