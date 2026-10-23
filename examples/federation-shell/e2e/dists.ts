@@ -1,4 +1,4 @@
-import { REMOTES } from './ports.ts';
+import { GROWTH, REMOTES } from './ports.ts';
 
 /** The shell's e2e build, which three shell instances serve. */
 export const SHELL_DIST = 'federation-shell/dist/e2e';
@@ -18,6 +18,16 @@ export const REMOTE_DISTS = [
 const STATION_DISTS = [
   'federation-engineering/dist/main',
   'federation-life-support/dist/main',
+] as const;
+
+/**
+ * The three remote builds the growth suite's shell loads, each on its
+ * growth port. The e2e-growth target builds them first (project.json).
+ */
+export const GROWTH_DISTS = [
+  { dist: 'federation-command/dist/main', port: GROWTH.command },
+  { dist: 'federation-engineering/dist/main', port: GROWTH.engineering },
+  { dist: 'federation-life-support/dist/main', port: GROWTH.lifeSupport },
 ] as const;
 
 /**
