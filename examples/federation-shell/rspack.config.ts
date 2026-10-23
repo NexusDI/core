@@ -69,7 +69,8 @@ export default defineConfig((env, argv) => {
     plugins: [
       isDev && new ReactRefreshRspackPlugin(),
       new rspack.HtmlRspackPlugin({ template: './index.html' }),
-      // public/remotes.json, the development remote list.
+      // public/remotes.json and public/bridge.json, the development remote
+      // list and bridge-api's address.
       new rspack.CopyRspackPlugin({ patterns: [{ from: 'public' }] }),
       new rspack.DefinePlugin({ MERIDIAN_DEVTOOLS: isDev || e2e }),
       new ModuleFederationPlugin({
