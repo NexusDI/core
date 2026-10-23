@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   BadCommandError,
+  FtlNotSpooledError,
   InterlockError,
   PowerBudgetError,
   UnknownCompartmentError,
@@ -155,4 +156,19 @@ describe('shipText', () => {
       ].join('\n'),
     );
   });
+
+  it.each([
+    [22.5e9, 'The FTL drive holds 22.5 GJ of the 90 GJ a jump needs.'],
+    [0, 'The FTL drive holds 0 GJ of the 90 GJ a jump needs.'],
+  ])(
+    'words MERIDIAN_FTL_NOT_SPOOLED at a charge of %d J',
+    (charge, message) => {
+      expect(render(new FtlNotSpooledError({ charge, energy: 90e9 }))).toBe(
+        [
+          `[MERIDIAN_FTL_NOT_SPOOLED] ${message}`,
+          '  Fix: spool the drive and wait until it holds the full charge, then jump.',
+        ].join('\n'),
+      );
+    },
+  );
 });

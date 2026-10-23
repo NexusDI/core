@@ -3,6 +3,7 @@ import type { ErrorText, ErrorTextPack } from '@nexusdi/core';
 import type {
   BadCommandError,
   BadCommandReason,
+  FtlNotSpooledError,
   InterlockError,
   PowerBudgetError,
   UnknownCompartmentError,
@@ -38,6 +39,9 @@ const shownId = (id: string): string =>
 
 /** Watts as megawatts to one decimal. */
 const megawatts = (watts: number): string => formatNumber(watts / 1e6, 1);
+
+/** Joules as gigajoules to one decimal. */
+const gigajoules = (joules: number): string => formatNumber(joules / 1e9, 1);
 
 /** The text of each MERIDIAN_BAD_COMMAND reason. */
 const BAD_COMMAND: Readonly<
@@ -86,5 +90,9 @@ export const shipText = {
   MERIDIAN_INTERLOCK: (error: InterlockError) => ({
     message: `The ${error.door} door holds ${formatNumber(error.difference, 0)} Pa of difference, above the ${formatNumber(error.limit, 0)} Pa interlock.`,
     fix: `bring both sides within ${formatNumber(error.limit, 0)} Pa of each other with a pump or a vent, then open the door.`,
+  }),
+  MERIDIAN_FTL_NOT_SPOOLED: (error: FtlNotSpooledError) => ({
+    message: `The FTL drive holds ${gigajoules(error.charge)} GJ of the ${gigajoules(error.energy)} GJ a jump needs.`,
+    fix: 'spool the drive and wait until it holds the full charge, then jump.',
   }),
 } satisfies ErrorTextPack;

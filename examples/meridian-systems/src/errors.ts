@@ -69,11 +69,25 @@ export class InterlockError extends errorBase<
   InterlockFields
 >('MERIDIAN_INTERLOCK', 'InterlockError', DOCS) {}
 
+interface FtlNotSpooledFields {
+  /** The spool's charge, in J. */
+  readonly charge: number;
+  /** The charge a jump spends, in J. */
+  readonly energy: number;
+}
+
+/** A jump was commanded before the spool held its full charge. */
+export class FtlNotSpooledError extends errorBase<
+  'MERIDIAN_FTL_NOT_SPOOLED',
+  FtlNotSpooledFields
+>('MERIDIAN_FTL_NOT_SPOOLED', 'FtlNotSpooledError', DOCS) {}
+
 declare module '@nexusdi/core' {
   interface NexusErrorByCode {
     MERIDIAN_POWER_BUDGET: PowerBudgetError;
     MERIDIAN_BAD_COMMAND: BadCommandError;
     MERIDIAN_UNKNOWN_COMPARTMENT: UnknownCompartmentError;
     MERIDIAN_INTERLOCK: InterlockError;
+    MERIDIAN_FTL_NOT_SPOOLED: FtlNotSpooledError;
   }
 }

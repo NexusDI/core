@@ -1,5 +1,6 @@
 export {
   BadCommandError,
+  FtlNotSpooledError,
   InterlockError,
   PowerBudgetError,
   UnknownCompartmentError,
@@ -23,6 +24,13 @@ export type {
   CommsStatus,
 } from './physics/comms';
 export { doorPressures, PRESSURE_INTERLOCK } from './physics/doors';
+// The FTL drive's rating and the types of its snapshot record and setpoints.
+export type {
+  FtlRating,
+  FtlRecord,
+  FtlSetpoints,
+  FtlStatus,
+} from './physics/ftl';
 export { GASES, pressure, type Gas } from './physics/gas';
 export type {
   DriveRecord,
@@ -67,6 +75,10 @@ export {
   REACTOR,
   SHIELD_GRID,
 } from './systems/engineering/contracts';
+// The FTL drive's contract, which a reader resolves once the drive is loaded.
+export { FTL_DRIVE, type IFtlDrive } from './systems/ftl/contracts';
+// The one module object beside meridianSystems, which a running ship loads.
+export { FtlDrive } from './systems/ftl/ftl-drive.module';
 export {
   HELM,
   type IHelm,
