@@ -66,6 +66,9 @@
     // The federation shell's Playwright webServer entries run serve.ts by
     // path.
     "examples/federation-shell/e2e/serve.ts",
+    // The shell's e2e target runs playwright.config.mts, which imports the
+    // servers playwright.servers.mts defines.
+    "examples/federation-shell/playwright.config.mts",
     // The docs app's behaviour-data target runs this script by path.
     "apps/docs/tools/behaviour-data.mjs",
     "libs/decorators/vite.decorators.ts",

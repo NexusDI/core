@@ -12,7 +12,12 @@
     "resolveJsonModule": true,
     "types": ["node"]
   },
-  "include": ["e2e/**/*.ts", "e2e/**/*.js", "playwright.config.mts"],
+  "include": [
+    "e2e/**/*.ts",
+    "e2e/**/*.js",
+    "playwright.config.mts",
+    "playwright.servers.mts"
+  ],
   "exclude": [
     "out-tsc",
     "test-output",
