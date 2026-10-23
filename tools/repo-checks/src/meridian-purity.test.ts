@@ -228,6 +228,35 @@ describe('the meridian-systems eslint purity rules', () => {
     ).toEqual([]);
   });
 
+  it.each([
+    ['new WebSocket', "export const s = new WebSocket('wss://relay.test');"],
+    ['new XMLHttpRequest', 'export const x = new XMLHttpRequest();'],
+    [
+      'new EventSource',
+      "export const e = new EventSource('https://relay.test');",
+    ],
+    [
+      'navigator.sendBeacon',
+      "export const b = navigator.sendBeacon('https://relay.test', 'x');",
+    ],
+    [
+      'a sendBeacon destructure',
+      "const { sendBeacon } = navigator;\nexport const b = sendBeacon('https://relay.test');",
+    ],
+    [
+      'a navigator alias',
+      "const n = navigator;\nexport const b = n.sendBeacon('https://relay.test');",
+    ],
+  ])(
+    'refuses %s in every file, the subspace relay included',
+    async (_n, code) => {
+      expect(await purityHits(code)).toContain('no-restricted-globals');
+      expect(
+        await purityHits(code, 'src/systems/comms/subspace-relay.ts'),
+      ).toContain('no-restricted-globals');
+    },
+  );
+
   it('refuses a clock in a test file', async () => {
     expect(
       await purityHits('export const t = Date.now();', 'src/x.test.ts'),
@@ -320,17 +349,20 @@ const HOST_GLOBALS = [
   'Atomics',
 ];
 
+/** The globals that reach the network. The relay reaches it through fetch alone. */
+const NETWORK = ['WebSocket', 'XMLHttpRequest', 'EventSource', 'navigator'];
+
 /*
  * The config itself is pinned so a later edit cannot drop a rule or an entry
  * while the bypass cases above still read green on a narrower list.
  */
 describe('the meridian-systems eslint config', () => {
-  it('holds every host global but fetch for the subspace relay', async () => {
+  it('holds every host and network global but fetch for the subspace relay', async () => {
     const config = (await eslint.calculateConfigForFile(
       join(LIBRARY, 'src/systems/comms/subspace-relay.ts'),
     )) as Linter.Config;
     expect(new Set(names(options(config, 'no-restricted-globals')))).toEqual(
-      new Set(HOST_GLOBALS),
+      new Set([...HOST_GLOBALS, ...NETWORK]),
     );
   });
 
@@ -342,7 +374,7 @@ describe('the meridian-systems eslint config', () => {
       )) as Linter.Config;
 
       expect(new Set(names(options(config, 'no-restricted-globals')))).toEqual(
-        new Set([...HOST_GLOBALS, 'fetch']),
+        new Set([...HOST_GLOBALS, ...NETWORK, 'fetch']),
       );
 
       expect(options(config, 'no-restricted-properties')).toContainEqual(

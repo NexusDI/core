@@ -43,6 +43,18 @@ const FETCH = {
   message: `A tick does no I/O, so ${RELAY} alone calls fetch.`,
 };
 
+/**
+ * Every global that opens a connection or sends a request. `navigator` is
+ * refused whole, since a property rule misses `const n = navigator` and
+ * `const { sendBeacon } = navigator`, and the global rule catches both.
+ */
+const NETWORK = ['WebSocket', 'XMLHttpRequest', 'EventSource', 'navigator'].map(
+  (name) => ({
+    name,
+    message: `A tick does no I/O, so ${RELAY} alone reaches the network, through fetch.`,
+  }),
+);
+
 const TYPES_ONLY = '@nexusdi/interceptors';
 
 const escape = (name) => name.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
@@ -84,7 +96,7 @@ export default [
       ],
       // import { type A } keeps a bare import of the package at runtime.
       '@typescript-eslint/no-import-type-side-effects': 'error',
-      'no-restricted-globals': ['error', ...HOST_GLOBALS, FETCH],
+      'no-restricted-globals': ['error', ...HOST_GLOBALS, ...NETWORK, FETCH],
       'no-restricted-properties': [
         'error',
         { object: 'Math', property: 'random', message: REPLAY },
@@ -122,7 +134,7 @@ export default [
     // startup, so the relay alone reaches the network.
     files: [RELAY],
     rules: {
-      'no-restricted-globals': ['error', ...HOST_GLOBALS],
+      'no-restricted-globals': ['error', ...HOST_GLOBALS, ...NETWORK],
     },
   },
   {
