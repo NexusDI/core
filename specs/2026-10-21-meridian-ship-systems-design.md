@@ -592,7 +592,7 @@ the global object. It reads `Math` only as `Math.name`, and never `Math.random`,
 refuses `fetch` in every other file under `src`. The relay runs in `NAV_CHARTS`'s factory
 at startup, and no tick reads the link. The refusal reads "A tick does no I/O, so
 src/systems/comms/subspace-relay.ts alone calls fetch.", and the relay file's own block
-keeps every other host global refused. A repo-check test pins those
+keeps every other host global and the network globals refused. A repo-check test pins those
 rules and lints one case per bypass (section 8.1).
 
 ### 4.4 Driving the loop
