@@ -69,6 +69,25 @@
           "dependentTasksOutputFiles": "**/*"
         }
       ]
+    },
+    "e2e-growth": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "build-e2e",
+        "^build",
+        {
+          "projects": [
+            "@nexusdi/federation-command",
+            "@nexusdi/federation-engineering",
+            "@nexusdi/federation-life-support"
+          ],
+          "target": "build"
+        }
+      ],
+      "options": {
+        "cwd": "examples/federation-shell",
+        "command": "playwright test --config playwright.e2e-growth.config.mts"
+      }
     }
   }
 }

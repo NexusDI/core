@@ -42,9 +42,17 @@ npx nx build @nexusdi/federation-shell           # production build in dist/main
 npx nx build-e2e @nexusdi/federation-shell       # production build with devtools(), in dist/e2e
 npx nx test @nexusdi/federation-shell
 npx nx e2e @nexusdi/federation-shell             # every build, then Playwright in Chromium
+npx nx e2e-growth @nexusdi/federation-shell      # the growth cases against a manual bridge-api
 ```
 
 The e2e suite runs three shell instances, on 4300, 4310 and 4320, one per remote list in
 `e2e/remotes`: the main remotes, the drift build of `cartography` on 4303 and its
 unshared build on 4304. `SHELL_PORT=4400` moves the three shells on a machine where 4300
 is taken.
+
+The `e2e-growth` target runs the cases under `e2e/growth` through
+`playwright.e2e-growth.config.mts`, one each for `engineering`, `command` and
+`life-support`, in that order, since they share one ship. One shell on `SHELL_PORT + 30`
+(4330 by default) loads the three remotes on 4332, 4335 and 4336, and bridge-api's Hono
+entry runs a manual ship on seed 7 on 4331 and answers that shell's origin. Each case
+reads the ship's tick from `GET /sim` and advances it with `POST /sim/advance`.
