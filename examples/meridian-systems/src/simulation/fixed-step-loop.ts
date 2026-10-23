@@ -28,32 +28,18 @@ interface Entry {
 export class FixedStepLoop implements ITickLoop {
   static deps = [SIM_CLOCK, SHIP_STATE, RNG, all(SHIP_SYSTEMS)] as const;
 
-  private readonly entries: readonly Entry[];
+  private entries: readonly Entry[];
   /** Each `listen` adds its own wrapper, so one function listened twice hears twice. */
   private readonly listeners = new Set<TickListener>();
 
   constructor(
     private readonly clock: ISimClock,
     private readonly state: IShipState,
-    rng: IRandomSource,
+    private readonly rng: IRandomSource,
     systems: IShipSystem[],
   ) {
-    const names = new Set<string>();
-    for (const system of systems) {
-      if (names.has(system.name)) {
-        throw new Error(`Two ship systems are named '${system.name}'.`);
-      }
-      names.add(system.name);
-    }
-    // `all()` returns the systems in registration order, so the loop sorts
-    // them by phase and then by name. `<` compares UTF-16 code units and gives
-    // one order on every engine. `localeCompare` follows the host locale.
-    this.entries = [...systems]
-      .sort(
-        (a, b) =>
-          a.phase - b.phase || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
-      )
-      .map((system) => ({ system, rng: rng.fork(system.name) }));
+    this.entries = [];
+    for (const system of systems) this.add(system);
   }
 
   advance(ticks: number): ShipSnapshot {
@@ -82,12 +68,41 @@ export class FixedStepLoop implements ITickLoop {
     return this.state.snapshot();
   }
 
+  /**
+   * `advance()` walks the entries a tick started with, so a system attached
+   * during a tick first steps on the next one.
+   */
+  attach(system: IShipSystem): () => void {
+    const entry = this.add(system);
+    return () => {
+      this.entries = this.entries.filter((other) => other !== entry);
+    };
+  }
+
   listen(listener: TickListener): () => void {
     const entry: TickListener = (ship) => listener(ship);
     this.listeners.add(entry);
     return () => {
       this.listeners.delete(entry);
     };
+  }
+
+  /**
+   * Adds `system` with the fork for its name. `all()` returns the systems in
+   * registration order, so the loop sorts them by phase and then by name. `<`
+   * compares UTF-16 code units and gives one order on every engine.
+   * `localeCompare` follows the host locale.
+   */
+  private add(system: IShipSystem): Entry {
+    if (this.entries.some((entry) => entry.system.name === system.name)) {
+      throw new Error(`Two ship systems are named '${system.name}'.`);
+    }
+    const entry = { system, rng: this.rng.fork(system.name) };
+    this.entries = [...this.entries, entry].sort(
+      ({ system: a }, { system: b }) =>
+        a.phase - b.phase || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
+    );
+    return entry;
   }
 
   /**

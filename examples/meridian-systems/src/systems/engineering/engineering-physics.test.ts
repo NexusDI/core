@@ -77,6 +77,7 @@ function build(rating: CoolantRating = LITHIUM_LOOP) {
       ];
     },
     divert() {},
+    attach: () => () => {},
   };
   return { seen, physics: new EngineeringPhysics(reactor, coolant, router) };
 }

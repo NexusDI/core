@@ -193,6 +193,13 @@ export interface ITickLoop {
    * `advance()`, since the loop is still inside the tick.
    */
   listen(listener: TickListener): () => void;
+  /**
+   * Runs `system` in its phase from the next tick on, with the fork for its
+   * name, and returns a function that removes it and runs twice safely. The
+   * loop resolved `all(SHIP_SYSTEMS)` at its construction, so a system that a
+   * module loaded later joins this way. Throws for a name the loop runs.
+   */
+  attach(system: IShipSystem): () => void;
 }
 
 export const SIM_OPTIONS = new Token<SimOptions>('SimOptions');

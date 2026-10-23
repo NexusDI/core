@@ -13,6 +13,7 @@ function build(refuse = false) {
   const diverted: PowerLoad[] = [];
   const router: IPowerRouter = {
     loads: () => [],
+    attach: () => () => {},
     divert(load) {
       diverted.push(load);
       if (refuse) {

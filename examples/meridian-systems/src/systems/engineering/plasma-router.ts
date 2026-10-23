@@ -35,11 +35,29 @@ export class PlasmaRouter implements IPowerRouter {
     private readonly consumers: readonly IPowerConsumer[],
   ) {}
 
-  /** The shields load, then each consumer's draw in registration order. */
+  /**
+   * The consumers `attach` added, in the order it added them. Each attach
+   * holds its own entry, so a detach removes that attach alone.
+   */
+  private attached: readonly { readonly consumer: IPowerConsumer }[] = [];
+
+  attach(consumer: IPowerConsumer): () => void {
+    const entry = { consumer };
+    this.attached = [...this.attached, entry];
+    return () => {
+      this.attached = this.attached.filter((other) => other !== entry);
+    };
+  }
+
+  /**
+   * The shields load, then each consumer's draw in registration order, then
+   * the draws of the attached consumers.
+   */
   loads(ship: ShipSnapshot): readonly PowerLoad[] {
     return [
       this.shields().draw(ship),
       ...this.consumers.map((consumer) => consumer.draw(ship)),
+      ...this.attached.map(({ consumer }) => consumer.draw(ship)),
     ];
   }
 

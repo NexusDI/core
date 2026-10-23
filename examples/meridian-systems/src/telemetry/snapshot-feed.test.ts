@@ -19,6 +19,9 @@ class FakeLoop implements ITickLoop {
   advance(): ShipSnapshot {
     throw new Error('The feed never advances the loop.');
   }
+  attach(): () => void {
+    throw new Error('The feed never attaches a system.');
+  }
   listen(listener: TickListener): () => void {
     this.listeners.push(listener);
     return this.unsubscribe;
