@@ -585,7 +585,7 @@ random source. The library's ESLint config enforces this on the syntax tree, so
 imports relative paths and `@nexusdi/core` alone, which refuses `node:crypto` and
 `node:perf_hooks`. From G3 `src/systems/safety/pressure-interlock.ts` alone also imports
 `@nexusdi/interceptors`, types only (section 6.1). It names none of `Date`, `performance`, `Temporal`, `process`,
-`crypto`, `scheduler`, `Intl`, `eval`, `Function`, the timers, the GC hooks, `Atomics` or
+`crypto`, `scheduler`, `Intl`, `eval`, `Function`, the timers, the GC hooks, `Atomics`, `Bun`, `Deno` or
 the global object. It reads `Math` only as `Math.name`, and never `Math.random`, so
 `const M = Math` and `Reflect.get(Math, 'random')` fail too. From G5
 `src/systems/comms/subspace-relay.ts` alone calls `fetch`, and the library's ESLint config

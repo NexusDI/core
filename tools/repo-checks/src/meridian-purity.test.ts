@@ -124,6 +124,8 @@ describe('the meridian-systems eslint purity rules', () => {
     ['a Date destructure', 'const { now } = Date;\nexport const t = now();'],
     ["globalThis['Date']", "export const t = globalThis['Date'].now();"],
     ['global.Date', 'export const t = global.Date.now();'],
+    ['Bun.nanoseconds()', 'export const t = Bun.nanoseconds();'],
+    ['Deno.connect()', 'export const c = await Deno.connect({ port: 80 });'],
     ['performance.now()', 'export const t = performance.now();'],
     ['process.hrtime()', 'export const t = process.hrtime();'],
     ['process.uptime()', 'export const t = process.uptime();'],
@@ -247,6 +249,19 @@ describe('the meridian-systems eslint purity rules', () => {
       'a navigator alias',
       "const n = navigator;\nexport const b = n.sendBeacon('https://relay.test');",
     ],
+    [
+      'new WebTransport',
+      "export const w = new WebTransport('https://relay.test');",
+    ],
+    ['importScripts', "importScripts('https://relay.test/x.js');"],
+    [
+      'new Worker',
+      "export const w = new Worker('https://relay.test/w.js', { type: 'module' });",
+    ],
+    [
+      'new WebSocketStream',
+      "export const s = new WebSocketStream('wss://relay.test');",
+    ],
   ])(
     'refuses %s in every file, the subspace relay included',
     async (_n, code) => {
@@ -347,10 +362,21 @@ const HOST_GLOBALS = [
   'WeakRef',
   'FinalizationRegistry',
   'Atomics',
+  'Bun',
+  'Deno',
 ];
 
 /** The globals that reach the network. The relay reaches it through fetch alone. */
-const NETWORK = ['WebSocket', 'XMLHttpRequest', 'EventSource', 'navigator'];
+const NETWORK = [
+  'WebSocket',
+  'XMLHttpRequest',
+  'EventSource',
+  'navigator',
+  'WebTransport',
+  'importScripts',
+  'Worker',
+  'WebSocketStream',
+];
 
 /*
  * The config itself is pinned so a later edit cannot drop a rule or an entry
