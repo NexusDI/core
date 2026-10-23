@@ -97,6 +97,7 @@ own):
 - **bridge-api**, **bridge-console**, **next-bridge**: Changes to the private
   demo apps of the same name under `examples/`
 - **federation-shell**, **federation-cartography**, **federation-command**,
+  **federation-engineering**, **federation-life-support**,
   **federation-contracts**: Changes to the private federation demo projects of
   the same name under `examples/`
 - **meridian-systems**: Changes to `examples/meridian-systems`, the ship
