@@ -39,6 +39,24 @@ export function flagArgument(
 }
 
 /**
+ * The number argument `name` of `command`, from `low` to `high` with both
+ * ends allowed. Throws the argument refusal for any other value, NaN included.
+ */
+export function numberArgument(
+  command: ShipCommand,
+  name: string,
+  low: number,
+  high: number,
+  refuse: CommandRefusal,
+): number {
+  const value = command[name];
+  if (typeof value !== 'number' || !(value >= low && value <= high)) {
+    throw refuse(command.action);
+  }
+  return value;
+}
+
+/**
  * The level argument `name` of `command`, a number from 0 to 1. Throws the
  * argument refusal for any other value, NaN included.
  */
@@ -47,9 +65,5 @@ export function levelArgument(
   name: string,
   refuse: CommandRefusal,
 ): number {
-  const value = command[name];
-  if (typeof value !== 'number' || !(value >= 0 && value <= 1)) {
-    throw refuse(command.action);
-  }
-  return value;
+  return numberArgument(command, name, 0, 1, refuse);
 }
