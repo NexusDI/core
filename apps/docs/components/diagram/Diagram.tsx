@@ -46,6 +46,12 @@ export default function Diagram({ chart, caption }: Readonly<DiagramProps>) {
         securityLevel: 'strict',
         theme: 'base',
         themeVariables,
+        // Mermaid's defaults are the ELK layout and the `neo` look. ELK
+        // fetches a chunk of about 480 KB gzipped, and `neo` draws node drop
+        // shadows. Dagre and `classic` draw the flat figure the palette was
+        // built for.
+        layout: 'dagre',
+        look: 'classic',
       });
       const drawn = await mermaid.render(id, `${chart}\n${accentClass}`);
       if (!cancelled) setSvg(recolour(drawn.svg));

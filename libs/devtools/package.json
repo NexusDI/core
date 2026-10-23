@@ -65,6 +65,6 @@
     "provenance": true
   },
   "devDependencies": {
-    "mermaid": "^11.17.2"
+    "mermaid": "^12.2.0"
   }
 }
