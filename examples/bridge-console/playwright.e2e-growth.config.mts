@@ -23,7 +23,7 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: /(life-support|safety|airlock|comms)\.spec\.ts/,
+      testIgnore: /(life-support|safety|airlock|helm|comms)\.spec\.ts/,
     },
     // Life support's online command is one-way on the shared manual ship, so
     // its case runs after every case that reads the idle ship.
@@ -50,13 +50,22 @@ export default defineConfig({
       testMatch: /airlock\.spec\.ts/,
       dependencies: ['safety'],
     },
+    // The helm case raises the throttle to 0.6 and leaves the main drive
+    // burning at 600 MW, so it runs after every case that reads the ship at
+    // throttle 0.01.
+    {
+      name: 'helm',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /helm\.spec\.ts/,
+      dependencies: ['airlock'],
+    },
     // The hail stays queued on the shared ship for good, because the ship has
     // no subspace link, so the comms case runs after every other case.
     {
       name: 'comms',
       use: { ...devices['Desktop Chrome'] },
       testMatch: /comms\.spec\.ts/,
-      dependencies: ['airlock'],
+      dependencies: ['helm'],
     },
   ],
 });
