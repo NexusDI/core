@@ -1,8 +1,8 @@
 # @nexusdi/federation-contracts
 
 The `meridian` contract between the Meridian shell (`examples/federation-shell`) and its
-three remotes, `federation-cartography`, `federation-command` and `federation-engineering`. The package is private
-and part of the federation demo.
+four remotes, `federation-cartography`, `federation-command`, `federation-engineering` and
+`federation-life-support`. The package is private and part of the federation demo.
 
 `src/index.ts` defines the contract with `defineContract({ key: 'meridian', version })`
 at version 2.4.0, and three tokens:
