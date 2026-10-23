@@ -1,6 +1,7 @@
 import { Nexus } from '@nexusdi/core';
 import { federation } from '@nexusdi/federation';
 import {
+  COMMAND_LINK,
   NAV_CHARTS,
   TELEMETRY_FEED,
   type TelemetryReading,
@@ -29,6 +30,10 @@ describe('the shell', () => {
 
   it("exports the contract's TELEMETRY_FEED from Tactical", () => {
     expect(Tactical.exports).toContain(TELEMETRY_FEED);
+  });
+
+  it("exports the contract's COMMAND_LINK from Tactical", () => {
+    expect(Tactical.exports).toContain(COMMAND_LINK);
   });
 
   it('reads a ship reading as the telemetry reading the stations show', () => {
