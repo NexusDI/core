@@ -1149,3 +1149,26 @@ describe.each(['hono', 'express', 'fastify'] as const)(
     );
   },
 );
+
+describe.each(['hono', 'express', 'fastify'] as const)(
+  'the course route on %s',
+  (framework) => {
+    const call = calls[framework];
+
+    test.each(['constructor', '__proto__'])(
+      'GET /course/%s answers heading 0 on the offline ship, whose charts do not hold it',
+      async (to) => {
+        await using ship = await Nexus.create(OfflineMeridian, {
+          plugins: bridgePlugins(),
+        });
+        expect(await call(ship, 'GET', `/course/${to}`)).toEqual({
+          status: 200,
+          body: {
+            course: { to, heading: 0 },
+            entries: [`survey-7: plotting ${to}`],
+          },
+        });
+      },
+    );
+  },
+);
