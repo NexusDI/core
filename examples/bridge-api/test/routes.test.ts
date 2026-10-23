@@ -1261,6 +1261,12 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         (await send('GET', '/sim')).body as ShipReading;
       const railgun = (ship: ShipReading) =>
         ship.power.loads.find((load) => load.id === 'railgun');
+      const load = (demand: number) => ({
+        id: 'railgun',
+        priority: 6,
+        demand,
+        allocated: demand,
+      });
 
       // The first fire arms the mount, so it asks the router for the
       // charger and refuses while the reactor gives nothing.
@@ -1321,12 +1327,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         armed: true,
         range: 10_000,
       });
-      expect(railgun(charging)).toEqual({
-        id: 'railgun',
-        priority: 6,
-        demand: 300_000_000,
-        allocated: 300_000_000,
-      });
+      expect(railgun(charging)).toEqual(load(300_000_000));
 
       await advance(1);
       const hit = await reading();
@@ -1338,12 +1339,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         lastShot: { tick: 32, range: 10_000, hit: true },
       });
       expect(hit.setpoints.weapons).toEqual({ armed: true, range: null });
-      expect(railgun(hit)).toEqual({
-        id: 'railgun',
-        priority: 6,
-        demand: 300_000_000,
-        allocated: 300_000_000,
-      });
+      expect(railgun(hit)).toEqual(load(300_000_000));
       expect(hit.coolant.temperature).toBe(507.7);
       expect(hit.safety.alarms).toEqual([]);
 
@@ -1357,12 +1353,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         hits: 1,
         lastShot: { tick: 32, range: 10_000, hit: true },
       });
-      expect(railgun(charged)).toEqual({
-        id: 'railgun',
-        priority: 6,
-        demand: 200_000_000,
-        allocated: 200_000_000,
-      });
+      expect(railgun(charged)).toEqual(load(200_000_000));
 
       expect(await send('POST', '/commands', fire(50_000))).toEqual({
         status: 202,

@@ -431,7 +431,7 @@ export const spoolAndJump: GrowthCase = {
  * capacitor refills to 400 MJ at tick 35, where the load tapers to 200 MW. A
  * second shot at 50 km leaves at tick 36 and misses. The draws are 0.5777
  * against 0.6550 at 10 km and 0.8633 against a ceiling of 0.8 at 50 km, so no
- * engine can disagree on a hit. Every value is an integer, a boolean or null.
+ * engine can disagree on a hit. Every value is an integer, a boolean, a string or null.
  */
 export const fireRailgun: GrowthCase = {
   name: 'two railgun shots on the offline ship charge the capacitor, hit at 10 km and miss at 50 km',
@@ -469,12 +469,7 @@ export const fireRailgun: GrowthCase = {
       hits: 0,
       lastShot: null,
     });
-    expectEqual('railgun at tick 30', railgun(ship), {
-      id: 'railgun',
-      priority: 6,
-      demand: 0,
-      allocated: 0,
-    });
+    expectEqual('railgun at tick 30', railgun(ship), load(0));
     await send(fetch, fire('far'), 400, usage);
     await send(fetch, fire(100_001), 400, usage);
     await send(fetch, fire(10_000), 202, { tick: 31 });
