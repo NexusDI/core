@@ -4,8 +4,8 @@ const REPLAY =
   'The simulation replays from a seed, so src reads time from SIM_CLOCK and randomness from RNG.';
 
 /**
- * Every name that reaches the wall clock, a timer, a random source or the
- * global object, which holds all of these under another name.
+ * Every name that reaches the wall clock, a timer, a random source, the
+ * network or the global object, which holds all of these under another name.
  * `queueMicrotask` stays allowed because a microtask runs in a fixed order.
  */
 const HOST_GLOBALS = [
@@ -33,6 +33,10 @@ const HOST_GLOBALS = [
   'WeakRef',
   'FinalizationRegistry',
   'Atomics',
+  // Bun.nanoseconds() reads the clock and Deno.connect() the network, and the
+  // library runs on both.
+  'Bun',
+  'Deno',
 ].map((name) => ({ name, message: REPLAY }));
 
 /** The relay file, the one file under src that calls fetch. */
@@ -44,16 +48,25 @@ const FETCH = {
 };
 
 /**
- * Every global that opens a connection or sends a request. `navigator` is
- * refused whole, since a property rule misses `const n = navigator` and
- * `const { sendBeacon } = navigator`, and the global rule catches both.
+ * Every global of Node, workerd, Deno and Bun that reaches the network or
+ * loads code from it. `navigator` is refused whole, since a property rule
+ * misses `const n = navigator` and `const { sendBeacon } = navigator`, and the
+ * global rule catches both.
  */
-const NETWORK = ['WebSocket', 'XMLHttpRequest', 'EventSource', 'navigator'].map(
-  (name) => ({
-    name,
-    message: `A tick does no I/O, so ${RELAY} alone reaches the network, through fetch.`,
-  }),
-);
+const NETWORK = [
+  'WebSocket',
+  'XMLHttpRequest',
+  'EventSource',
+  'navigator',
+  'WebTransport',
+  'importScripts',
+  // Deno and Bun hold a global Worker, and Deno loads a remote module worker.
+  'Worker',
+  'WebSocketStream',
+].map((name) => ({
+  name,
+  message: `A tick does no I/O, so ${RELAY} alone reaches the network, through fetch.`,
+}));
 
 const TYPES_ONLY = '@nexusdi/interceptors';
 
