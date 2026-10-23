@@ -168,37 +168,58 @@ export function CommandSelect({
 }
 
 /**
- * A form of one number named `level`, from 0 to 1 in steps of 0.01, that
- * posts `command` with the level when the reader presses `button`. `label`
- * names the field and `defaultValue` fills it. The field's id is `level`, so
- * a page holds one `LevelForm`.
+ * A form of one number named `name` that posts `command` with the number when
+ * the reader presses `button`. `label` names the field and `defaultValue`
+ * fills it. `min`, `max` and `step` bound it. The field's id is `name`, so a
+ * page holds one `NumberForm` for each field name.
  */
-export function LevelForm({
+export function NumberForm({
   command,
+  name,
   label,
   button,
+  min,
+  max,
+  step,
   defaultValue,
 }: {
   command: string;
+  name: string;
   label: string;
   button: string;
+  min: number;
+  max: number;
+  step: number;
   defaultValue: number;
 }) {
   return (
     <Form method="post" className="flex gap-2 items-center">
       <input type="hidden" name="command" value={command} />
-      <label htmlFor="level">{label}</label>
+      <label htmlFor={name}>{label}</label>
       <input
-        id="level"
-        name="level"
+        id={name}
+        name={name}
         type="number"
-        min={0}
-        max={1}
-        step={0.01}
+        min={min}
+        max={max}
+        step={step}
         defaultValue={defaultValue}
         required
       />
       <Button type="submit">{button}</Button>
     </Form>
   );
+}
+
+/**
+ * A `NumberForm` of one number named `level`, from 0 to 1 in steps of 0.01.
+ * The field's id is `level`, so a page holds one `LevelForm`.
+ */
+export function LevelForm(props: {
+  command: string;
+  label: string;
+  button: string;
+  defaultValue: number;
+}) {
+  return <NumberForm {...props} name="level" min={0} max={1} step={0.01} />;
 }
