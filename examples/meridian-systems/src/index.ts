@@ -24,6 +24,12 @@ export type {
 } from './physics/comms';
 export { doorPressures, PRESSURE_INTERLOCK } from './physics/doors';
 export { GASES, pressure, type Gas } from './physics/gas';
+export type {
+  DriveRecord,
+  DriveSetpoints,
+  HelmRecord,
+  HelmSetpoints,
+} from './physics/motion';
 export type { LoadRecord, PowerLoad, PowerRecord } from './physics/power';
 export type {
   Alarm,
@@ -62,6 +68,12 @@ export {
   SHIELD_GRID,
 } from './systems/engineering/contracts';
 export {
+  HELM,
+  type IHelm,
+  type IThrusters,
+  THRUSTERS,
+} from './systems/helm/contracts';
+export {
   ATMOSPHERE_CONTROL,
   ATMOSPHERE_PROBE,
   ATMOSPHERE_SENSOR,
@@ -71,6 +83,7 @@ export {
   LIFE_SUPPORT_OPTIONS,
   type LifeSupportOptions,
 } from './systems/life-support/contracts';
+export { type IMainDrive, MAIN_DRIVE } from './systems/propulsion/contracts';
 export {
   ALARM_SINKS,
   BLAST_DOORS,

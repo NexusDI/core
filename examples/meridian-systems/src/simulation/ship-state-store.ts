@@ -8,6 +8,7 @@ import {
 } from '../physics/atmosphere';
 import { COMMS_LOAD } from '../physics/comms';
 import { AIR, molesAt } from '../physics/gas';
+import { MAIN_DRIVE_LOAD, THRUSTERS_LOAD } from '../physics/motion';
 import { allocatePower, DEFLECTOR_GRID } from '../physics/power';
 import type { SafetyRecord, SafetySetpoints } from '../physics/safety';
 import { LITHIUM_LOOP } from '../physics/thermal';
@@ -324,6 +325,8 @@ function initialSnapshot(deck: DeckPlan): ShipSnapshot {
     { ...LIFE_SUPPORT_LOAD, demand: 0 },
     { ...DEFLECTOR_GRID, demand: 0 },
     { ...COMMS_LOAD, demand: 0 },
+    { ...THRUSTERS_LOAD, demand: 0 },
+    { ...MAIN_DRIVE_LOAD, demand: 0 },
   ]);
   return Object.freeze({
     tick: 0,

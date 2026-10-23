@@ -120,6 +120,22 @@ describe('the bridge API graph', () => {
     expect(notes['NavCharts in OfflineTactical']).toEqual([
       'system: OfflineTactical',
     ]);
+    expect(notes['ShipSystems in Propulsion']).toEqual([
+      'system: Propulsion',
+      'phase: 2',
+    ]);
+    for (const token of ['MainDrive', 'PowerConsumers']) {
+      expect(notes[`${token} in Propulsion`]).toEqual(['system: Propulsion']);
+    }
+    expect(notes['ShipSystems in Helm']).toEqual(['system: Helm', 'phase: 2']);
+    for (const token of [
+      'Thrusters',
+      'Helm',
+      'PowerConsumers',
+      'CommandHandlers',
+    ]) {
+      expect(notes[`${token} in Helm`]).toEqual(['system: Helm']);
+    }
 
     // The bridge registers the interlock and the flight recorder in its
     // interceptors plugin, outside every ship system.

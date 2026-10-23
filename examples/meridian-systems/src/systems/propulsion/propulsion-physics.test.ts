@@ -34,7 +34,7 @@ function powered(allocated: number): ShipSnapshot {
     power: {
       ...idle.power,
       loads: [
-        ...idle.power.loads,
+        ...idle.power.loads.filter(({ id }) => id !== 'main-drive'),
         { id: 'main-drive', priority: 5, demand: 600e6, allocated },
       ],
       shed: allocated === 0 ? ['main-drive'] : [],
@@ -52,7 +52,14 @@ describe('PropulsionPhysics', () => {
   });
 
   it('returns the ship it got at rest with no main-drive load', () => {
-    expect(new PropulsionPhysics(drive).step(idle, tick)).toBe(idle);
+    const bare: ShipSnapshot = {
+      ...idle,
+      power: {
+        ...idle.power,
+        loads: idle.power.loads.filter(({ id }) => id !== 'main-drive'),
+      },
+    };
+    expect(new PropulsionPhysics(drive).step(bare, tick)).toBe(bare);
   });
 
   it('returns the ship it got at rest when the router shed the main drive', () => {

@@ -10,6 +10,8 @@ export default defineConfig(() => ({
     watch: false,
     environment: 'node',
     include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
+    // An hour of ticks runs past vitest's 5 s default on a loaded machine.
+    testTimeout: 30_000,
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',

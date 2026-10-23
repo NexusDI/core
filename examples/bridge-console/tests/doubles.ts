@@ -38,6 +38,8 @@ export const shipAtStart: ShipReading = {
       { id: 'life-support', priority: 1, demand: 0, allocated: 0 },
       { id: 'shields', priority: 2, demand: 0, allocated: 0 },
       { id: 'comms', priority: 3, demand: 0, allocated: 0 },
+      { id: 'thrusters', priority: 4, demand: 0, allocated: 0 },
+      { id: 'main-drive', priority: 5, demand: 0, allocated: 0 },
     ],
     shed: [],
   },
