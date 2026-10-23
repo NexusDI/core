@@ -180,4 +180,65 @@ describe('PlasmaRouter', () => {
   it('swaps a load in by id, so the current draw of the grid does not count twice', () => {
     expect(() => build(250e6, RAISED).router.divert(RAISED)).not.toThrow();
   });
+
+  describe('attach', () => {
+    const pump = (): PowerLoad => ({
+      id: 'pump',
+      priority: 1,
+      demand: 400,
+      heatShare: 0,
+    });
+    const spool: PowerLoad = {
+      id: 'ftl-spool',
+      priority: 7,
+      demand: 0,
+      heatShare: 0.1,
+    };
+
+    it('lists an attached consumer after the consumers of POWER_CONSUMERS', () => {
+      const listed = consumer(pump());
+      const attached = consumer(spool);
+      const { state, router } = build(0, RAISED, [listed.double]);
+      router.attach(attached.double);
+      const ship = state.snapshot();
+      expect(router.loads(ship).map((load) => load.id)).toEqual([
+        'shields',
+        'pump',
+        'ftl-spool',
+      ]);
+      expect(attached.seen).toEqual([ship]);
+    });
+
+    it('counts an attached load against a new load', () => {
+      const { router } = build(250e6, RAISED);
+      router.attach(consumer({ ...spool, priority: 1, demand: 100e6 }).double);
+      expect(refusal(router, { ...RAISED, priority: 3 })).toMatchObject({
+        consumer: 'shields',
+        available: 150e6,
+      });
+    });
+
+    it('removes one attach of a consumer attached twice at its detach', () => {
+      const { state, router } = build(0, RAISED);
+      const double = consumer(spool).double;
+      const detach = router.attach(double);
+      router.attach(double);
+      detach();
+      expect(router.loads(state.snapshot()).map((load) => load.id)).toEqual([
+        'shields',
+        'ftl-spool',
+      ]);
+    });
+
+    it('removes the consumer at its detach, which runs twice safely', () => {
+      const { state, router } = build(0, RAISED, [consumer(pump()).double]);
+      const detach = router.attach(consumer(spool).double);
+      detach();
+      detach();
+      expect(router.loads(state.snapshot()).map((load) => load.id)).toEqual([
+        'shields',
+        'pump',
+      ]);
+    });
+  });
 });

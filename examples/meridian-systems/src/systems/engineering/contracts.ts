@@ -26,6 +26,13 @@ export interface IPowerRouter {
    * electric output, and throws `PowerBudgetError` when it does not.
    */
   divert(load: PowerLoad): void;
+  /**
+   * Lists `consumer`'s draw after the consumers of POWER_CONSUMERS and returns
+   * a function that removes it and runs twice safely. The router resolved
+   * `all(POWER_CONSUMERS)` at its construction, so a consumer that a module
+   * loaded later joins this way.
+   */
+  attach(consumer: IPowerConsumer): () => void;
 }
 
 export interface IShieldGrid {

@@ -289,4 +289,85 @@ describe('FixedStepLoop', () => {
       expect((error as AggregateError).errors).toEqual([first, second]);
     });
   });
+
+  describe('attach', () => {
+    it('runs an attached system from the next tick in phase and name order', () => {
+      const calls: Call[] = [];
+      const { loop } = build([probe('b', 4, calls), probe('z', 1, calls)]);
+      loop.advance(1);
+      loop.attach(probe('a', 4, calls));
+      loop.advance(1);
+      expect(calls.map((call) => [call.tick.tick, call.name])).toEqual([
+        [1, 'z'],
+        [1, 'b'],
+        [2, 'z'],
+        [2, 'a'],
+        [2, 'b'],
+      ]);
+    });
+
+    it('gives an attached system the fork for its name', () => {
+      const calls: Call[] = [];
+      const { loop } = build([]);
+      loop.attach(probe('FtlDrive', 3, calls));
+      loop.advance(2);
+      const fork = new SeededRandom({ seed: 7 }).fork('FtlDrive');
+      expect(calls.map((call) => call.draw)).toEqual(draw(fork, 2));
+    });
+
+    it('refuses a name the loop runs, attached or built in', () => {
+      const { loop } = build([probe('FtlDrive', 3, [])]);
+      expect(() => loop.attach(probe('FtlDrive', 3, []))).toThrow(
+        "Two ship systems are named 'FtlDrive'.",
+      );
+      loop.attach(probe('a', 4, []));
+      expect(() => loop.attach(probe('a', 2, []))).toThrow(/'a'/);
+    });
+
+    it('removes the system at its detach, which runs twice safely', () => {
+      const calls: Call[] = [];
+      const { loop } = build([probe('b', 4, calls)]);
+      const detach = loop.attach(probe('a', 4, calls));
+      loop.advance(1);
+      detach();
+      detach();
+      loop.advance(1);
+      expect(calls.map((call) => [call.tick.tick, call.name])).toEqual([
+        [1, 'a'],
+        [1, 'b'],
+        [2, 'b'],
+      ]);
+      expect(() => loop.attach(probe('a', 4, calls))).not.toThrow();
+    });
+
+    it('first steps a system attached inside a listener on the next tick', () => {
+      const calls: Call[] = [];
+      const { loop } = build([]);
+      const stop = loop.listen(() => {
+        stop();
+        loop.attach(probe('a', 4, calls));
+      });
+      loop.advance(2);
+      expect(calls.map((call) => call.tick.tick)).toEqual([2]);
+    });
+
+    it('first steps a system attached during a step on the next tick', () => {
+      const calls: Call[] = [];
+      const { loop } = build([]);
+      let attached = false;
+      loop.attach({
+        name: 'loader',
+        phase: 1,
+        step(ship) {
+          if (!attached) {
+            attached = true;
+            loop.attach(probe('a', 4, calls));
+          }
+          return ship;
+        },
+      });
+      loop.advance(2);
+      expect(calls.map((call) => call.tick.tick)).toEqual([2]);
+    });
+  });
 });
