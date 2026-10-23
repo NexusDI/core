@@ -253,7 +253,10 @@ jobs:
         with:
           bun-version: 1.4.2
 
-      - run: npx nx run-many -t e2e-growth --projects=tag:demo
+      # Stream mode prints every task's output, and the bridge-api growth
+      # cases print a `sim-pin` line per leg with each pinned /sim body's
+      # size and hash. The spec's per-leg pins are read from those lines.
+      - run: npx nx run-many -t e2e-growth --projects=tag:demo --output-style=stream
 
   # The only check that reads a package as npm publishes it. Everything in
   # `main` resolves through `customConditions: ["@nexusdi/source"]`, which
