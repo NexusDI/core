@@ -278,6 +278,52 @@ its text. A command that is neither the spool nor the jump reaches
 spool with no body, the jump with its star, the 409 for a jump below the full
 charge and a rejection for a 500.
 
+## The Weapons Page
+
+`/systems/weapons` sits in the ship layout beside the other system pages, and
+the root layout's nav links it as `Weapons`, after `FTL`. The page shows the
+railgun and posts the crew's shots. Its loader reads the snapshot alone
+through `snapshotLoader`, since the snapshot holds the weapons record, its
+setpoints and the `railgun` load. A failed snapshot hides the gauges and shows
+`Ship snapshot offline`, and the form stays.
+
+The Railgun section lists eight gauges, all in SI units:
+
+- `Status` is the record's status: `idle`, `held`, `charging` or `charged`.
+  `Armed` reads `Yes` or `No` from the setpoint.
+- `Capacitor charge` is the charge in MJ to 0.1, and `Capacitor power` is the
+  allocated power of the `railgun` load in MW to 0.1. The power reads 0.0 MW
+  when the bank is full or the router has shed the load.
+- `Shot waiting` is the range of the shot that waits for its charge, in whole
+  m, or `none`. A shot at 0 m reads `0 m`.
+- `Shots fired` and `Hits` are whole numbers. `Last shot` reads
+  `hit at 10,000 m, tick 32`, or `none` before the first shot. Words and ticks
+  carry no unit.
+
+The Fire section holds one form, `NumberForm` (`system-page.tsx`): a number
+field `Range (m)` from 0 to 100,000 in steps of 1, which starts at 10,000, and
+the button `Fire`. The form posts `command=fire` with the range, and
+`systemAction('weapons', { range: 'number' })` calls `BRIDGE_LINK.command()`
+for the system `weapons`. The page shows the answer to the last command as the
+other pages do: `Queued for tick N`, or a refusal with its `Fix:` line.
+`LevelForm` is a `NumberForm` named `level`, from 0 to 1 in steps of 0.01, so
+every number field of the console pages renders one form.
+
+The first fire arms the mount, so it needs the capacitor's 300 MW at priority 6.
+On a cold reactor the router refuses it with "The railgun load needs 300 MW, and
+the router has 0 MW free beside the loads above it." and the `Fix:` line. Once
+the mount is armed, a fire never refuses for power, and it replaces the range of
+a shot that still waits. `tests/routes/weapons.spec.tsx` runs the page on
+`nexusTest` with `fakeBridgeLink`, fed readings in the shape of seed 7's weapons
+scenario rounded to four significant digits as `/sim` sends them. It reads the
+gauges at tick 0, with a shot waiting at tick 31, after the hit at tick 32, at
+the full capacitor at tick 35, a tick later with the load at 0 W, after the miss
+at tick 37 and with the router shedding the load at tick 62. It reads the gauge
+names and the two section headings. When the snapshot fails, the page reads
+`Ship snapshot offline` and keeps its form. The range field is bounded and
+starts at 10,000, and `Fire` posts that range or the one the reader typed. A
+refused fire shows its text and its `Fix:` line.
+
 ## The Airlock Page
 
 `/airlock` sits in the ship layout and the root layout's nav links it as
@@ -367,8 +413,9 @@ starts the fill with the vent shut, and the inner door stays refused. After
 opens `habitat-airlock`, which reads `survey-7: opened habitat-airlock`. After
 20 ticks the inner door reads `Open` with its sides within 0.5 kPa. The case
 ends with `No alarms` on `/systems/safety` and no console error. The
-`chromium` project ignores the life-support, safety, airlock, helm, ftl and
-comms cases. Those six cases share their helpers in `e2e/growth/ship.ts`.
+`chromium` project ignores the life-support, safety, airlock, helm, ftl,
+weapons and comms cases. Those seven cases share their helpers in
+`e2e/growth/ship.ts`.
 
 `e2e/growth/helm.spec.ts` runs in a fifth project, `helm`, that depends on
 `airlock`. The shared ship holds a throttle of 0.01 with life support online,
@@ -403,11 +450,26 @@ since no earlier case loads the drive. `Spool drive` reads `Queued for tick`
 `idle`, `0.0 GJ`, `Proxima-b` and `tick t + 241`. The case ends with
 `No alarms` on `/systems/safety` and no console error. The backend is a Node
 server with `nodeScopes()`, so the first spool runs the adapter's section and
-its extend. The spool does not touch the array, so the comms case after it
-still reads 0 W.
+its extend. The spool does not touch the array, so the comms case, two
+projects later, still reads 0 W.
 
-`e2e/growth/comms.spec.ts` runs in a seventh project, `comms`, that depends on
-`ftl`. The backend's ship has no subspace link, so the hail stays queued
+`e2e/growth/weapons.spec.ts` runs in a seventh project, `weapons`, that depends
+on `ftl`. The ftl case before it leaves the shared ship at a throttle of 1, the
+burn at 0 and the drive disarmed, so the capacitor charges at once. The case
+reads the ship's tick `t` from the backend. On `/systems/weapons` the gauges
+read `idle`, `No` and `0.0 MJ`. `Fire` reads `Queued for tick` `t + 1`. After 1
+tick and a reload the gauges read `charging`, `150.0 MJ`, `300.0 MW` and the
+shot waiting at `10,000 m`. After 1 more tick and a reload, `Shots fired` and
+`Hits` read `1` and `Last shot` reads `hit at 10,000 m, tick t + 2`. After 4
+more ticks and a reload the page reads `charged`, `400.0 MJ` and `0.0 MW`. The
+case ends with `No alarms` on `/systems/safety` and no console error. The shot's
+pulse heats the coolant by 0.09 K, and Safety raises nothing for it. The first
+shot draws the hit on any start tick, since the weapons stream is seeded and no
+earlier case fires. The capacitor ends full and asks 0 W, so the comms case after
+it still reads 0 W.
+
+`e2e/growth/comms.spec.ts` runs in an eighth project, `comms`, that depends on
+`weapons`. The backend's ship has no subspace link, so the hail stays queued
 for good, and the case runs after every other case. It reads the ship's tick
 from the backend and opens `/systems/comms`, where the status reads `standby`
 and the hail flag `No`. The case clicks `Hail fleet traffic control` and reads
