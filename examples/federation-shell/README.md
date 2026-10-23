@@ -24,7 +24,21 @@ its retry button loads the section again. The contract lives in
 its `POST /commands`. The shell reads bridge-api's address from `/bridge.json`,
 `{ "url": "..." }`, the first time a station asks for either, so startup fetches nothing.
 `public/bridge.json` names `http://localhost:3000/`, bridge-api's dev port, and bridge-api's
-Hono entry answers the shell's origin, `http://localhost:4300`, with CORS headers.
+Hono entry answers the shell's origins, `http://localhost:4300` and `http://127.0.0.1:4300`,
+with CORS headers. A `url` in `/bridge.json` without a trailing slash gets one, so its path
+stays in front of `telemetry` and `commands`.
+
+The telemetry stream does not reconnect after bridge-api restarts. A panel shows
+"Telemetry offline" until the crew leaves the route and opens it again. When
+`/bridge.json` is missing or malformed, the panels show "offline" or "The bridge
+is unreachable". A relative `url` gives the same panels. The shell logs the
+cause with `console.error`.
+
+The shell lists `@nexusdi/bridge-api` as a devDependency because the e2e servers start its
+Hono entry. Nx reads the devDependency as a project edge, so `nx affected` marks the shell
+and runs its tests, builds and e2e whenever bridge-api changes. Nx's TypeScript sync adds
+`../bridge-api/tsconfig.lib.json` to `tsconfig.app.json` for the same edge, so the shell's
+type check builds bridge-api first.
 
 The ports: the shell on 4300, `cartography` on 4301, `command` on 4302, `engineering` on
 4305 and `life-support` on 4306.

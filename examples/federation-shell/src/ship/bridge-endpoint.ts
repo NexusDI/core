@@ -14,7 +14,11 @@ async function readEndpoint(): Promise<URL> {
   const body: unknown = await response.json();
   const url = (body as { url?: unknown } | null)?.url;
   if (typeof url !== 'string') throw new Error('/bridge.json holds no url');
-  return new URL(url);
+  // A base URL without a trailing slash drops its last path segment when a
+  // route resolves against it.
+  const base = new URL(url);
+  if (!base.pathname.endsWith('/')) base.pathname += '/';
+  return base;
 }
 
 /**

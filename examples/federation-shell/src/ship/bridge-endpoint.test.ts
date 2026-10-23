@@ -18,6 +18,33 @@ describe('RuntimeBridgeEndpoint', () => {
     expect(fetch).toHaveBeenCalledWith('/bridge.json');
   });
 
+  it('keeps the path of a url that has no trailing slash', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ url: 'http://127.0.0.1:4331/api' })),
+    );
+    const url = await new RuntimeBridgeEndpoint().url();
+
+    expect(String(url)).toBe('http://127.0.0.1:4331/api/');
+    expect(String(new URL('commands', url))).toBe(
+      'http://127.0.0.1:4331/api/commands',
+    );
+  });
+
+  it('adds the slash to the path of a url that has a query or a hash', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({ url: 'http://127.0.0.1:4331/api?key=1#top' }),
+      ),
+    );
+    const url = await new RuntimeBridgeEndpoint().url();
+
+    expect(url.pathname).toBe('/api/');
+    expect(url.search).toBe('?key=1');
+    expect(url.hash).toBe('#top');
+  });
+
   it('reads /bridge.json again after a failed read', async () => {
     const fetch = vi
       .fn<() => Promise<Response>>()

@@ -99,14 +99,18 @@ describe('BridgeCommandLink', () => {
     });
   });
 
-  it('words an endpoint that cannot be read as an unreachable bridge', async () => {
+  it('words an endpoint that cannot be read as an unreachable bridge and logs the cause', async () => {
+    const cause = new Error('/bridge.json answered 404');
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
     const link = new BridgeCommandLink({
-      url: () => Promise.reject(new Error('/bridge.json answered 404')),
+      url: () => Promise.reject(cause),
     });
 
     expect(await link.send(COURSE)).toEqual({
       queued: false,
       text: 'The bridge is unreachable',
     });
+    expect(log).toHaveBeenCalledWith(expect.any(String), cause);
+    log.mockRestore();
   });
 });

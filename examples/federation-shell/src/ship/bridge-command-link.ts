@@ -60,14 +60,15 @@ export class BridgeCommandLink implements ICommandLink {
 
   async send(command: StationCommand): Promise<CommandReceipt> {
     try {
-      const response = await fetch(
-        new URL('commands', await this.endpoint.url()),
-        {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(command),
-        },
-      );
+      const base = await this.endpoint.url().catch((error: unknown) => {
+        console.error('The shell cannot read the bridge address', error);
+        throw error;
+      });
+      const response = await fetch(new URL('commands', base), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(command),
+      });
       if (![202, 400, 409].includes(response.status)) return UNREACHABLE;
       return await receiptOf(response);
     } catch {
