@@ -92,11 +92,16 @@ describe('isDev', () => {
 });
 
 describe('shellOrigins', () => {
-  it("allows the shell's dev server when SHELL_ORIGIN is unset or empty", () => {
-    expect(shellOrigins({})).toEqual(['http://localhost:4300']);
-    expect(shellOrigins({ SHELL_ORIGIN: '' })).toEqual([
-      'http://localhost:4300',
-    ]);
+  it("allows the shell's dev server on both loopback names when SHELL_ORIGIN is unset or empty", () => {
+    const both = ['http://localhost:4300', 'http://127.0.0.1:4300'];
+    expect(shellOrigins({})).toEqual(both);
+    expect(shellOrigins({ SHELL_ORIGIN: '' })).toEqual(both);
+  });
+
+  it('trims each entry and drops the empty ones', () => {
+    expect(
+      shellOrigins({ SHELL_ORIGIN: 'http://a.test, http://b.test ,, ' }),
+    ).toEqual(['http://a.test', 'http://b.test']);
   });
 
   it('reads a comma-separated SHELL_ORIGIN', () => {

@@ -115,7 +115,7 @@ The inner door stands open after the first command, so close it first. Then brin
 
 Each Node entry passes `graph: () => graph(ship)` unless `NODE_ENV` is `production` (`isDev` in `src/ship-from-env.ts`), so `GET /graph` answers 404 in production.
 
-The federation shell reads the telemetry stream and posts crew commands from its own origin, so the Hono entry answers the origins in `SHELL_ORIGIN` with CORS headers through `hono/cors` (`shellOrigins` in `src/ship-from-env.ts`). `SHELL_ORIGIN` is a comma-separated list and defaults to `http://localhost:4300`, the shell's dev server. In production the entry answers no origin, whatever `SHELL_ORIGIN` holds. The Express, Fastify and Workers entries send no CORS header.
+The federation shell reads the telemetry stream and posts crew commands from its own origin, so the Hono entry answers the origins in `SHELL_ORIGIN` with CORS headers through `hono/cors` (`shellOrigins` in `src/ship-from-env.ts`). `SHELL_ORIGIN` is a comma-separated list and defaults to `http://localhost:4300` and `http://127.0.0.1:4300`, the shell's dev server under both loopback names. The Hono entry trims each origin and ignores empty ones. In production the entry answers no origin, whatever `SHELL_ORIGIN` holds. The Express, Fastify and Workers entries send no CORS header.
 
 The sources use parameter properties and extensionless imports, which plain `node` refuses, so `tsx` runs them.
 
