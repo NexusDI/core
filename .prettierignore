@@ -53,6 +53,10 @@ apps/docs-e2e/.next-out
 # with the nexusdi CLI and diffs against the committed copy. A format pass
 # would make the formatter a second producer of the file.
 examples/bridge-api/graph.json
+# The library's goldens, which its e2e-growth tests write with JSON.stringify
+# and compare byte for byte. Prettier folds a short array such as a shed list
+# onto one line, so a format pass would fail the next run.
+examples/meridian-systems/e2e/golden
 # examples/next-bridge's Next build output and the file next build rewrites.
 examples/next-bridge/.next
 examples/next-bridge/next-env.d.ts
