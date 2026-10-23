@@ -400,8 +400,12 @@ scrubbers, electrolysers, pump and vent). `readCalibration(deck)`
 docblock says that a ship that reads a device awaits it there. It throws a plain `Error`
 when a deck compartment has no calibration entry, and returns
 `{ calibration, ratings: LIFE_SUPPORT_RATINGS }`. From G5 `COMMS_OPTIONS` (`CommsOptions`:
-`frequency`, `transport` `'relay'` and `relayUrl`) is the value of `Comms.forRoot`, and the
-aggregate passes frequency 1420.
+`frequency`, `transport` `'relay'`, `relayUrl` and the optional `relayTimeout` in ms) is the
+value of `Comms.forRoot`, and the aggregate passes frequency 1420 and the `relayTimeout` of
+`meridianSystems`. `Comms` carries a schema (`COMMS_OPTIONS_SCHEMA`), as `Simulation` does,
+that accepts an unset `relayTimeout` or a whole number of ms from 1 to 2,147,483,647 (the
+longest delay a Node timer holds), and refuses NaN, a negative, zero, a fraction, Infinity
+and a larger value with `NEXUS_INVALID_MODULE_OPTIONS`.
 
 `GasAnalyzer` samples its compartment in its constructor, and `read()` answers that
 sample, so the transient lifetime matters: two `get()` calls around an `advance(1)` read
@@ -477,8 +481,13 @@ takes hail with no arguments." `ISubspaceLink` has one member, `receive<T>(chann
 slash, and asks for it on `frequency` through one `fetch`, so `charts` reads
 `https://relay.test/charts?frequency=1420` for `relayUrl: 'https://relay.test'`. A reply
 outside 200 to 299 throws `relay answered <status> for <channel>`, such as
-`relay answered 503 for charts`. `StarCharts.download(link)` asks the link for `charts`
-and plots over the table it gets.
+`relay answered 503 for charts`. The request carries `AbortSignal.timeout(relayTimeout)`,
+5000 ms when `CommsOptions.relayTimeout` is unset, and a relay that stays silent past it
+makes the link throw `RelayError` with reason `timeout`. `StarCharts.download(link)` asks
+the link for `charts`, checks the answer, and plots over the table it gets. The check
+throws `RelayError` with reason `malformed` for anything but a plain JSON object whose
+every value is a finite number and whose names `Object.prototype` does not hold. Both
+errors stop `Nexus.create`, which reports them as the `cause` of `NEXUS_PROVIDER_FAILED`.
 
 From G6 `IMainDrive` has `readonly rating: DriveRating` and `throttle(level)`, which
 queues `{ drive: { throttle: level } }`. `IThrusters` has
@@ -2085,6 +2094,14 @@ has 0 MW free beside the loads above it." The router fits a spool from reactor l
 `bridge-api` matches the refusals through `isNexusError` and `BadCommandError`, the
 library's public names.
 
+The relay fix (issue 188) adds `RelayError`, code `MERIDIAN_RELAY`, with the `channel`, a
+`reason` of `timeout` or `malformed`, and `expected` in words. Its text reads "The subspace
+relay did not answer the charts channel within 5,000 ms." with the fix "check that the
+relay is up and reachable at relayUrl, or raise relayTimeout." for `timeout`, and "The
+subspace relay answered the charts channel with a table the ship cannot read. The table
+must be a JSON object that maps each star name to a finite heading." with the fix "check
+what the relay serves on that channel." for `malformed`. It links to `#MERIDIAN_RELAY`.
+
 G8 adds no code. The first fire on a cold reactor answers `PowerBudgetError` with "The
 railgun load needs 300 MW, and the router has 0 MW free beside the loads above it." and the
 fix "raise the reactor throttle and wait for the output to climb, or lower a load of higher
@@ -3356,7 +3373,7 @@ interfaces ends in `Service`.
 | A command              | `ShipCommand`, `{ system, action, ...args }`: `{ system: 'engineering', action: 'throttle', level: 1 }`. `COMMAND_DESK` hands it to its system's handler, which queues a `SetpointChange` on `SHIP_STATE` for the next tick. The desk answers a `QueuedCommand`, `{ tick }`. Changes queued between two ticks apply together at the next tick, and the log keeps one entry per tick, a `LoggedChange`, `{ tick, change }`, holding their merge.                                                                                                                                                                                                                                                                                                                                                                 |
 | An interlock           | `PressureInterlock`, an interceptor on `BLAST_DOORS.open`, at `@nexusdi/meridian-systems/interlock`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | An alarm               | `HYPOXIA`, `CO2_HIGH`, `PRESSURE_LOW`, `TEMPERATURE`, `FIRE`, `COOLANT_HIGH`, `REACTOR_TRIP`, `LOAD_SHED`, `DECOMPRESSION`, `SENSOR_FAULT`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| The ship's error codes | `MERIDIAN_INTERLOCK`, `MERIDIAN_POWER_BUDGET`, `MERIDIAN_BAD_COMMAND`, `MERIDIAN_FTL_NOT_SPOOLED`, `MERIDIAN_UNKNOWN_COMPARTMENT`, with `InterlockError`, `PowerBudgetError`, `BadCommandError`, `FtlNotSpooledError`, `UnknownCompartmentError` and the text pack `shipText`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| The ship's error codes | `MERIDIAN_INTERLOCK`, `MERIDIAN_POWER_BUDGET`, `MERIDIAN_BAD_COMMAND`, `MERIDIAN_FTL_NOT_SPOOLED`, `MERIDIAN_UNKNOWN_COMPARTMENT`, `MERIDIAN_RELAY`, with `InterlockError`, `PowerBudgetError`, `BadCommandError`, `FtlNotSpooledError`, `UnknownCompartmentError`, `RelayError` and the text pack `shipText`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | A rating               | The fixed figures of a part, beside its pure functions in `src/physics/`: `ReactorRating` (`FUSION_REACTOR`), `CoolantRating` (`LITHIUM_LOOP`), from G2 the `LifeSupportRatings` (`LIFE_SUPPORT_RATINGS`) of `ELECTRIC_HEATER`, `CO2_SCRUBBER`, `ELECTROLYSER`, `TRANSFER_PUMP` and `SPACE_VENT`, and from G6 `HullRating` (`HULL`), `DriveRating` (`PLASMA_DRIVE`) and `ThrusterRating` (`RCS_THRUSTERS`), beside the helm's control law `HELM_TUNING` and `HELM_SETTLE`, from G7 `FtlRating` (`FTL_SPOOL`), read through `IFtlDrive.rating`, and from G8 `RailgunRating` (`RAILGUN`), read through `IWeaponMount.rating`.                                                                                                                                                                                     |
 | A record               | One part's state in the snapshot: `ReactorRecord`, `CoolantRecord`, `PowerRecord` with its `LoadRecord`s, `LifeSupportRecord` from G2, `SafetyRecord` from G3, `CommsRecord` from G5, `DriveRecord` and `HelmRecord` from G6, `FtlRecord` from G7, `WeaponsRecord` with its `RailgunShot` from G8, and `Setpoints` with `LifeSupportSetpoints`, from G3 `SafetySetpoints`, from G5 `CommsSetpoints`, from G6 `DriveSetpoints` and `HelmSetpoints`, from G7 `FtlSetpoints` and from G8 `WeaponsSetpoints`.                                                                                                                                                                                                                                                                                                       |
 | A load                 | `PowerLoad`, `{ id, priority, demand, heatShare }`, a consumer that asks the router for power on a tick: `life-support`, `shields`, `comms`, from G6 `thrusters` and `main-drive`, from G7 `ftl-spool` and from G8 `railgun`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |

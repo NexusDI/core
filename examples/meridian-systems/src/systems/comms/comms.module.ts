@@ -6,6 +6,7 @@ import { POWER_CONSUMERS } from '../engineering/contracts';
 import { CommsCommands } from './comms-commands';
 import { CommsPhysics } from './comms-physics';
 import { CommsPower } from './comms-power';
+import { COMMS_OPTIONS_SCHEMA } from './comms-options-schema';
 import { COMMS_ARRAY, COMMS_OPTIONS, SUBSPACE_LINK } from './contracts';
 import { PhasedArray } from './phased-array';
 import { SubspaceRelay } from './subspace-relay';
@@ -29,6 +30,7 @@ const ARRAY_EXPORTS = [
 export const Comms = defineModule({
   name: 'Comms',
   options: COMMS_OPTIONS,
+  schema: COMMS_OPTIONS_SCHEMA,
   providers: [
     provide(SUBSPACE_LINK, { useClass: SubspaceRelay }),
     ...ARRAY_PROVIDERS,

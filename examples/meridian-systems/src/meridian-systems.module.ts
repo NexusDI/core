@@ -21,6 +21,8 @@ import { Telemetry } from './telemetry/telemetry.module';
 export interface MeridianSystemsOptions extends SimOptions {
   /** The relay's base URL. Without one the ship has no subspace link. */
   readonly relayUrl?: string;
+  /** How long the ship waits for the relay's answer at startup, in ms. Defaults to 5000. */
+  readonly relayTimeout?: number;
 }
 
 /**
@@ -40,6 +42,7 @@ const ConfiguredLifeSupport = LifeSupport.forRootAsync({
  */
 export function meridianSystems({
   relayUrl,
+  relayTimeout,
   seed,
   dt,
 }: MeridianSystemsOptions) {
@@ -49,7 +52,12 @@ export function meridianSystems({
     relayUrl === undefined
       ? [OfflineComms, OfflineTactical]
       : [
-          Comms.forRoot({ frequency: 1420, transport: 'relay', relayUrl }),
+          Comms.forRoot({
+            frequency: 1420,
+            transport: 'relay',
+            relayUrl,
+            relayTimeout,
+          }),
           Tactical,
         ];
   return defineModule({

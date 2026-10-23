@@ -82,6 +82,24 @@ export class FtlNotSpooledError extends errorBase<
   FtlNotSpooledFields
 >('MERIDIAN_FTL_NOT_SPOOLED', 'FtlNotSpooledError', DOCS) {}
 
+/** What the subspace relay failed to do: answer in time, or answer a table the ship can read. */
+export type RelayFaultReason = 'timeout' | 'malformed';
+
+interface RelayFields {
+  /** The relay channel the ship asked for. */
+  readonly channel: string;
+  readonly reason: RelayFaultReason;
+  /** What the ship needed, in words: the time limit, or the shape of the answer. */
+  readonly expected: string;
+}
+
+/** The subspace relay gave no answer within the time limit, or answered a table the ship cannot read. */
+export class RelayError extends errorBase<'MERIDIAN_RELAY', RelayFields>(
+  'MERIDIAN_RELAY',
+  'RelayError',
+  DOCS,
+) {}
+
 declare module '@nexusdi/core' {
   interface NexusErrorByCode {
     MERIDIAN_POWER_BUDGET: PowerBudgetError;
@@ -89,5 +107,6 @@ declare module '@nexusdi/core' {
     MERIDIAN_UNKNOWN_COMPARTMENT: UnknownCompartmentError;
     MERIDIAN_INTERLOCK: InterlockError;
     MERIDIAN_FTL_NOT_SPOOLED: FtlNotSpooledError;
+    MERIDIAN_RELAY: RelayError;
   }
 }

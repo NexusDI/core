@@ -3,8 +3,10 @@ export {
   FtlNotSpooledError,
   InterlockError,
   PowerBudgetError,
+  RelayError,
   UnknownCompartmentError,
   type BadCommandReason,
+  type RelayFaultReason,
 } from './errors';
 export {
   meridianSystems,

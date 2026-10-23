@@ -6,6 +6,7 @@ import {
   FtlNotSpooledError,
   InterlockError,
   PowerBudgetError,
+  RelayError,
   UnknownCompartmentError,
 } from './errors';
 import { ENGINEERING_ACTIONS } from './systems/engineering/engineering-commands';
@@ -179,6 +180,41 @@ describe('FtlNotSpooledError', () => {
   it('links its one-line message to the README anchor of its code', () => {
     expect(notSpooled().message).toBe(
       `[MERIDIAN_FTL_NOT_SPOOLED] charge=22500000000 energy=90000000000. ${DOCS}MERIDIAN_FTL_NOT_SPOOLED`,
+    );
+  });
+});
+
+const relayFault = () =>
+  new RelayError({
+    channel: 'charts',
+    reason: 'timeout',
+    expected: 'within 5,000 ms',
+  });
+
+describe('RelayError', () => {
+  it('carries its code, its name and its fields', () => {
+    const error = relayFault();
+    expect(error).toBeInstanceOf(NexusError);
+    expect(error.code).toBe('MERIDIAN_RELAY');
+    expect(error.name).toBe('RelayError');
+    expect({ ...error }).toEqual({
+      channel: 'charts',
+      reason: 'timeout',
+      expected: 'within 5,000 ms',
+    });
+  });
+
+  it('narrows through isNexusError by its code', () => {
+    const error: unknown = relayFault();
+    expect(isNexusError(error, 'MERIDIAN_RELAY')).toBe(true);
+    expect(isNexusError(error, 'MERIDIAN_BAD_COMMAND')).toBe(false);
+    if (isNexusError(error, 'MERIDIAN_RELAY'))
+      expectTypeOf(error).toEqualTypeOf<RelayError>();
+  });
+
+  it('links its one-line message to the README anchor of its code', () => {
+    expect(relayFault().message).toBe(
+      `[MERIDIAN_RELAY] channel=charts reason=timeout expected=within 5,000 ms. ${DOCS}MERIDIAN_RELAY`,
     );
   });
 });
