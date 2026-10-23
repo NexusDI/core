@@ -1,10 +1,7 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
-import { BUNDLED_CHARTS } from '@nexusdi/meridian-systems/charts';
-import { Form } from 'react-router';
 
 import type { CommandAnswer } from '../../bridge/bridge-link';
 import { bearing, fixed, megawatts, turnRate } from '../../bridge/fixed';
-import { Button } from '../../components';
 import { snapshotLoader } from '../snapshot-loader.server';
 import type { Route } from './+types/helm';
 import { systemAction } from './system-action.server';
@@ -15,6 +12,7 @@ import {
   SnapshotOffline,
   SystemPage,
 } from './system-page';
+import { StarSelect } from './star-select';
 
 /** Sends the submitted form to bridge-api as a helm command. */
 export const action: (args: Route.ActionArgs) => Promise<CommandAnswer> =
@@ -94,23 +92,7 @@ export default function Helm({
         </>
       )}
       <ControlSection title="Course">
-        <Form method="post" className="flex gap-2 items-center">
-          <label htmlFor="to">Star</label>
-          <select
-            id="to"
-            name="to"
-            defaultValue={Object.keys(BUNDLED_CHARTS)[0]}
-          >
-            {Object.keys(BUNDLED_CHARTS).map((star) => (
-              <option key={star} value={star}>
-                {star}
-              </option>
-            ))}
-          </select>
-          <Button type="submit" name="command" value="course">
-            Plot course
-          </Button>
-        </Form>
+        <StarSelect command="course" button="Plot course" />
       </ControlSection>
       <ControlSection title="Burn">
         <LevelForm

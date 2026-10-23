@@ -112,14 +112,22 @@ class BridgeApiLink implements IBridgeLink {
     return (await (await this.#ok(res, url)).json()) as NexusGraph;
   }
   async command(cmd: ShipCommand): Promise<CommandAnswer> {
-    const url = new URL('commands', this.options.url);
+    return this.#post('commands', cmd);
+  }
+
+  /**
+   * Posts `body` as JSON to `path` and reads the answer: 202 is the queued
+   * tick, 400 and 409 are the backend's refusal, and any other status rejects.
+   */
+  async #post(path: string, body?: unknown): Promise<CommandAnswer> {
+    const url = new URL(path, this.options.url);
     const res = await fetch(url, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         'x-mission-id': this.request.mission.id,
       },
-      body: JSON.stringify(cmd),
+      body: JSON.stringify(body),
       signal: this.request.signal,
     });
     if (res.status === 202) {
