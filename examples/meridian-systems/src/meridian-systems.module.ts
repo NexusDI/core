@@ -7,8 +7,10 @@ import { FixedStepLoop } from './simulation/fixed-step-loop';
 import { Simulation } from './simulation/simulation.module';
 import { Comms, OfflineComms } from './systems/comms/comms.module';
 import { Engineering } from './systems/engineering/engineering.module';
+import { Helm } from './systems/helm/helm.module';
 import { LifeSupport } from './systems/life-support/life-support.module';
 import { readCalibration } from './systems/life-support/read-calibration';
+import { Propulsion } from './systems/propulsion/propulsion.module';
 import { Safety } from './systems/safety/safety.module';
 import { OfflineTactical, Tactical } from './systems/tactical/tactical.module';
 import { TELEMETRY } from './telemetry/contracts';
@@ -60,6 +62,8 @@ export function meridianSystems({
       Safety,
       comms,
       tactical,
+      Propulsion,
+      Helm,
     ],
     providers: [
       // all(SHIP_SYSTEMS) reads this module's own providers plus the exports of
@@ -77,6 +81,10 @@ export function meridianSystems({
     // BLAST_DOORS, FIRE_SUPPRESSION and MASTER_ALARM. The comms
     // export hands the root COMMS_ARRAY and puts the link where Tactical's
     // factory reads it. The tactical export hands the root NAV_CHARTS.
+    // The Propulsion export hands the root MAIN_DRIVE, which HelmControl
+    // reads, and puts its POWER_CONSUMERS entry where the router reads it.
+    // The Helm export hands the root THRUSTERS and HELM, and puts the
+    // thrusters' POWER_CONSUMERS entry where the router reads it.
     exports: [
       TICK_LOOP,
       TELEMETRY,
@@ -86,6 +94,8 @@ export function meridianSystems({
       Safety,
       comms,
       tactical,
+      Propulsion,
+      Helm,
     ],
   });
 }

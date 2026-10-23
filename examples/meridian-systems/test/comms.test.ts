@@ -105,7 +105,7 @@ describe('comms on the offline ship', () => {
     ).toThrow(
       expect.objectContaining({
         reason: 'system',
-        expected: 'comms, engineering, life-support and safety',
+        expected: 'comms, engineering, helm, life-support and safety',
       }),
     );
   });

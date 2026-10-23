@@ -9,5 +9,7 @@ export default defineConfig({
     include: ['e2e/**/*.e2e.ts'],
     globalSetup: ['e2e/node-pin.ts'],
     environment: 'node',
+    // An hour of ticks runs past vitest's 5 s default on a loaded machine.
+    testTimeout: 30_000,
   },
 });

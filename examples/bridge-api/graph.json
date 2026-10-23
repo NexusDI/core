@@ -9,8 +9,8 @@
         "m2",
         "m3",
         "m4",
-        "m12",
-        "m13"
+        "m14",
+        "m15"
       ],
       "exports": []
     },
@@ -55,7 +55,9 @@
         "m8",
         "m9",
         "m10",
-        "m11"
+        "m11",
+        "m12",
+        "m13"
       ],
       "exports": [
         "p4",
@@ -65,7 +67,9 @@
         "m8",
         "m9",
         "m10",
-        "m11"
+        "m11",
+        "m12",
+        "m13"
       ]
     },
     {
@@ -104,10 +108,13 @@
         "p22",
         "p29",
         "p33",
+        "p39",
+        "p43",
         "p18",
         "p24",
         "p30",
-        "p35"
+        "p35",
+        "p45"
       ]
     },
     {
@@ -123,12 +130,17 @@
         "p22",
         "p29",
         "p33",
+        "p39",
+        "p43",
         "p23",
         "p34",
+        "p40",
+        "p44",
         "p18",
         "p24",
         "p30",
-        "p35"
+        "p35",
+        "p45"
       ]
     },
     {
@@ -144,10 +156,13 @@
         "p22",
         "p29",
         "p33",
+        "p39",
+        "p43",
         "p18",
         "p24",
         "p30",
-        "p35"
+        "p35",
+        "p45"
       ]
     },
     {
@@ -162,12 +177,17 @@
         "p22",
         "p29",
         "p33",
+        "p39",
+        "p43",
         "p23",
         "p34",
+        "p40",
+        "p44",
         "p18",
         "p24",
         "p30",
-        "p35"
+        "p35",
+        "p45"
       ]
     },
     {
@@ -181,15 +201,59 @@
     },
     {
       "id": "m12",
-      "name": "SimDriver",
+      "name": "Propulsion",
       "global": false,
       "imports": [],
       "exports": [
-        "p38"
+        "p38",
+        "p17",
+        "p22",
+        "p29",
+        "p33",
+        "p39",
+        "p43",
+        "p23",
+        "p34",
+        "p40",
+        "p44"
       ]
     },
     {
       "id": "m13",
+      "name": "Helm",
+      "global": false,
+      "imports": [],
+      "exports": [
+        "p41",
+        "p42",
+        "p17",
+        "p22",
+        "p29",
+        "p33",
+        "p39",
+        "p43",
+        "p23",
+        "p34",
+        "p40",
+        "p44",
+        "p18",
+        "p24",
+        "p30",
+        "p35",
+        "p45"
+      ]
+    },
+    {
+      "id": "m14",
+      "name": "SimDriver",
+      "global": false,
+      "imports": [],
+      "exports": [
+        "p46"
+      ]
+    },
+    {
+      "id": "m15",
       "name": "interceptors",
       "global": false,
       "imports": [
@@ -657,8 +721,104 @@
     },
     {
       "id": "p38",
-      "token": "SimDriver",
+      "token": "MainDrive",
       "module": "m12",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "PlasmaDrive",
+      "internal": false
+    },
+    {
+      "id": "p39",
+      "token": "ShipSystems",
+      "module": "m12",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "PropulsionPhysics",
+      "internal": false
+    },
+    {
+      "id": "p40",
+      "token": "PowerConsumers",
+      "module": "m12",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "PropulsionPower",
+      "internal": false
+    },
+    {
+      "id": "p41",
+      "token": "Thrusters",
+      "module": "m13",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "RcsThrusters",
+      "internal": false
+    },
+    {
+      "id": "p42",
+      "token": "Helm",
+      "module": "m13",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "HelmControl",
+      "internal": false
+    },
+    {
+      "id": "p43",
+      "token": "ShipSystems",
+      "module": "m13",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "HelmPhysics",
+      "internal": false
+    },
+    {
+      "id": "p44",
+      "token": "PowerConsumers",
+      "module": "m13",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "HelmPower",
+      "internal": false
+    },
+    {
+      "id": "p45",
+      "token": "CommandHandlers",
+      "module": "m13",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "HelmCommands",
+      "internal": false
+    },
+    {
+      "id": "p46",
+      "token": "SimDriver",
+      "module": "m14",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -668,9 +828,9 @@
       "internal": false
     },
     {
-      "id": "p39",
+      "id": "p47",
       "token": "DriverOptions",
-      "module": "m12",
+      "module": "m14",
       "lifetime": null,
       "kind": "value",
       "eager": true,
@@ -680,9 +840,9 @@
       "internal": false
     },
     {
-      "id": "p40",
+      "id": "p48",
       "token": "NavAudit",
-      "module": "m13",
+      "module": "m15",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -692,9 +852,9 @@
       "internal": false
     },
     {
-      "id": "p41",
+      "id": "p49",
       "token": "FlightRecorder",
-      "module": "m13",
+      "module": "m15",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -704,9 +864,9 @@
       "internal": false
     },
     {
-      "id": "p42",
+      "id": "p50",
       "token": "PressureInterlock",
-      "module": "m13",
+      "module": "m15",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -716,9 +876,9 @@
       "internal": false
     },
     {
-      "id": "p43",
+      "id": "p51",
       "token": "RequestScopes",
-      "module": "m13",
+      "module": "m15",
       "lifetime": null,
       "kind": "value",
       "eager": true,
@@ -728,9 +888,9 @@
       "internal": false
     },
     {
-      "id": "p44",
+      "id": "p52",
       "token": "interceptors registry",
-      "module": "m13",
+      "module": "m15",
       "lifetime": "singleton",
       "kind": "factory",
       "eager": true,
@@ -740,9 +900,9 @@
       "internal": false
     },
     {
-      "id": "p45",
+      "id": "p53",
       "token": "interceptors guard",
-      "module": "m13",
+      "module": "m15",
       "lifetime": "singleton",
       "kind": "factory",
       "eager": true,
@@ -816,6 +976,16 @@
       "kind": "all"
     },
     {
+      "from": "p4",
+      "to": "p39",
+      "kind": "all"
+    },
+    {
+      "from": "p4",
+      "to": "p43",
+      "kind": "all"
+    },
+    {
       "from": "p5",
       "to": "p18",
       "kind": "all"
@@ -833,6 +1003,11 @@
     {
       "from": "p5",
       "to": "p35",
+      "kind": "all"
+    },
+    {
+      "from": "p5",
+      "to": "p45",
       "kind": "all"
     },
     {
@@ -893,6 +1068,16 @@
     {
       "from": "p15",
       "to": "p34",
+      "kind": "all"
+    },
+    {
+      "from": "p15",
+      "to": "p40",
+      "kind": "all"
+    },
+    {
+      "from": "p15",
+      "to": "p44",
       "kind": "all"
     },
     {
@@ -1072,42 +1257,42 @@
     },
     {
       "from": "p38",
-      "to": "p4",
+      "to": "p8",
       "kind": "required"
     },
     {
-      "from": "p38",
-      "to": "p11",
-      "kind": "required"
-    },
-    {
-      "from": "p38",
-      "to": "p39",
+      "from": "p39",
+      "to": "p38",
       "kind": "required"
     },
     {
       "from": "p40",
-      "to": "p2",
+      "to": "p38",
       "kind": "required"
     },
     {
       "from": "p41",
-      "to": "p43",
-      "kind": "required"
-    },
-    {
-      "from": "p42",
       "to": "p8",
       "kind": "required"
     },
     {
       "from": "p42",
-      "to": "p9",
+      "to": "p41",
       "kind": "required"
     },
     {
-      "from": "p44",
-      "to": "p40",
+      "from": "p42",
+      "to": "p38",
+      "kind": "required"
+    },
+    {
+      "from": "p42",
+      "to": "p37",
+      "kind": "required"
+    },
+    {
+      "from": "p43",
+      "to": "p41",
       "kind": "required"
     },
     {
@@ -1116,8 +1301,58 @@
       "kind": "required"
     },
     {
-      "from": "p44",
+      "from": "p45",
       "to": "p42",
+      "kind": "required"
+    },
+    {
+      "from": "p46",
+      "to": "p4",
+      "kind": "required"
+    },
+    {
+      "from": "p46",
+      "to": "p11",
+      "kind": "required"
+    },
+    {
+      "from": "p46",
+      "to": "p47",
+      "kind": "required"
+    },
+    {
+      "from": "p48",
+      "to": "p2",
+      "kind": "required"
+    },
+    {
+      "from": "p49",
+      "to": "p51",
+      "kind": "required"
+    },
+    {
+      "from": "p50",
+      "to": "p8",
+      "kind": "required"
+    },
+    {
+      "from": "p50",
+      "to": "p9",
+      "kind": "required"
+    },
+    {
+      "from": "p52",
+      "to": "p48",
+      "kind": "required"
+    },
+    {
+      "from": "p52",
+      "to": "p49",
+      "kind": "required"
+    },
+    {
+      "from": "p52",
+      "to": "p50",
       "kind": "required"
     }
   ]
