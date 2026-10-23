@@ -424,11 +424,119 @@ export const spoolAndJump: GrowthCase = {
 };
 
 /**
+ * Two railgun shots on the offline ship. The reactor is cold at tick 0, so
+ * the first fire finds no power and the desk refuses it. Fired at tick 30
+ * with the reactor at full throttle, the railgun charges 150 MJ a tick and
+ * shoots at 300 MJ, so the first shot leaves at tick 32 and hits at 10 km. The
+ * capacitor refills to 400 MJ at tick 35, where the load tapers to 200 MW. A
+ * second shot at 50 km leaves at tick 36 and misses. The draws are 0.5777
+ * against 0.6550 at 10 km and 0.8633 against a ceiling of 0.8 at 50 km, so no
+ * engine can disagree on a hit. Every value is an integer, a boolean or null.
+ */
+export const fireRailgun: GrowthCase = {
+  name: 'two railgun shots on the offline ship charge the capacitor, hit at 10 km and miss at 50 km',
+  async run(fetch) {
+    const railgun = (ship: ShipReading) =>
+      ship.power.loads.find((load) => load.id === 'railgun');
+    const load = (demand: number) => ({
+      id: 'railgun',
+      priority: 6,
+      demand,
+      allocated: demand,
+    });
+    const fire = (range: unknown) => command('weapons', 'fire', { range });
+    const usage = {
+      code: 'MERIDIAN_BAD_COMMAND',
+      message:
+        'weapons fire got an argument it cannot use. It takes fire with a range from 0 to 100,000 m.',
+      fix: 'send the arguments in the ranges above.',
+    };
+    await send(fetch, fire(10_000), 409, {
+      code: 'MERIDIAN_POWER_BUDGET',
+      message:
+        'The railgun load needs 300 MW, and the router has 0 MW free beside the loads above it.',
+      fix: 'raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
+    });
+    await send(fetch, command('engineering', 'throttle', { level: 1 }), 202, {
+      tick: 1,
+    });
+
+    let ship = await advanceTo(fetch, 30, 30);
+    expectEqual('weapons at tick 30', ship.weapons, {
+      status: 'idle',
+      charge: 0,
+      shots: 0,
+      hits: 0,
+      lastShot: null,
+    });
+    expectEqual('railgun at tick 30', railgun(ship), {
+      id: 'railgun',
+      priority: 6,
+      demand: 0,
+      allocated: 0,
+    });
+    await send(fetch, fire('far'), 400, usage);
+    await send(fetch, fire(100_001), 400, usage);
+    await send(fetch, fire(10_000), 202, { tick: 31 });
+
+    ship = await advanceTo(fetch, 1, 31);
+    expectEqual('weapons at tick 31', ship.weapons, {
+      status: 'charging',
+      charge: 150_000_000,
+      shots: 0,
+      hits: 0,
+      lastShot: null,
+    });
+    expectEqual('railgun at tick 31', railgun(ship), load(300_000_000));
+
+    ship = await advanceTo(fetch, 1, 32);
+    expectEqual('weapons at tick 32', ship.weapons, {
+      status: 'charging',
+      charge: 0,
+      shots: 1,
+      hits: 1,
+      lastShot: { tick: 32, range: 10_000, hit: true },
+    });
+
+    ship = await advanceTo(fetch, 3, 35);
+    expectEqual('weapons at tick 35', ship.weapons, {
+      status: 'charged',
+      charge: 400_000_000,
+      shots: 1,
+      hits: 1,
+      lastShot: { tick: 32, range: 10_000, hit: true },
+    });
+    expectEqual('railgun at tick 35', railgun(ship), load(200_000_000));
+    await send(fetch, fire(50_000), 202, { tick: 36 });
+
+    ship = await advanceTo(fetch, 1, 36);
+    expectEqual('weapons at tick 36', ship.weapons, {
+      status: 'charging',
+      charge: 100_000_000,
+      shots: 2,
+      hits: 1,
+      lastShot: { tick: 36, range: 50_000, hit: false },
+    });
+    expectEqual(
+      'command log ticks',
+      (
+        await okJson<{ tick: number }[]>(
+          'GET /commands',
+          await fetch('/commands'),
+        )
+      ).map((entry) => entry.tick),
+      [1, 31, 36],
+    );
+  },
+};
+
+/**
  * The cases bridge-api's e2e-growth target runs on workerd
  * (test/worker/growth/sim.test.ts), Deno and Bun (test/runtime/growth.ts).
  * Each case this file exports by name also runs on the Node servers
  * (e2e/growth/airlock.e2e.ts, e2e/growth/comms.e2e.ts,
- * e2e/growth/helm.e2e.ts and e2e/growth/ftl.e2e.ts).
+ * e2e/growth/helm.e2e.ts, e2e/growth/ftl.e2e.ts and
+ * e2e/growth/weapons.e2e.ts).
  */
 export const growthCases: readonly GrowthCase[] = [
   {
@@ -528,4 +636,5 @@ export const growthCases: readonly GrowthCase[] = [
   offlineHail,
   courseAndBurn,
   spoolAndJump,
+  fireRailgun,
 ];
