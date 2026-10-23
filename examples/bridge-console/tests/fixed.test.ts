@@ -14,6 +14,10 @@ describe('fixed', () => {
     expect(fixed(502.49791096128916, 1)).toBe('502.5');
   });
 
+  it('rounds 2.0652 to 2.07', () => {
+    expect(fixed(2.0652, 2)).toBe('2.07');
+  });
+
   it('pads to the digits it is given', () => {
     expect(fixed(0, 2)).toBe('0.00');
     expect(fixed(101.286, 1)).toBe('101.3');

@@ -152,7 +152,7 @@ describe('the engineering gauges', () => {
     // Seed 7 at tick 18, after a throttle of 1 at tick 0 and a shields raise
     // at tick 17, which the router fits once the output passes 200 MW. The
     // numbers are the ship's own floats. bridge-api's readShip rounds them to
-    // four digits, and the page must read right without it.
+    // eight digits, and the page must read right without it.
     const busy: ShipReading = {
       ...shipAtStart,
       tick: 18,

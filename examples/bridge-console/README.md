@@ -181,10 +181,10 @@ queues for tick 1.
 root layout's nav links it as `Helm`, after `Comms`. The page shows the helm
 and the main drive and posts the crew's helm commands. Its loader reads the
 snapshot alone through `snapshotLoader`, since the snapshot holds the helm
-and drive records and the loads. Each gauge rounds the snapshot's four-digit
-reading, so its last digit can sit one unit off the ship's own value. A failed
-snapshot hides the gauges and shows `Ship snapshot offline`, and the forms
-stay.
+and drive records and the loads. The snapshot carries eight significant
+digits, and each gauge rounds that reading once to its own decimals, so
+2.0652 m/s reads `2.07 m/s`. A failed snapshot hides the gauges and shows
+`Ship snapshot offline`, and the forms stay.
 
 - Helm lists five gauges. `Heading` is the ship's attitude and `Course` the
   helm's setpoint, both in degrees to 0.1 from 0 to 360 through `bearing()`,
@@ -214,13 +214,13 @@ unchanged until the reactor's level is above 0.0165. The burn waits for 600 MW
 the same way.
 `tests/routes/helm.spec.tsx` runs the page on `nexusTest` with
 `fakeBridgeLink`, fed seed 7's readings of the helm scenario rounded to four
-significant digits as `/sim` sends them. It reads the gauges at tick 0, on
-the tick the router sheds both loads, on the first tick of the turn, during a
-burn off the course axis, on a burn along the course and after a course to
-TRAPPIST-1e. It also reads a rate a hair below zero and the four section
-headings. When the snapshot fails, the page reads `Ship snapshot offline` and
-keeps its controls. It posts a course and a burn, and shows a refused burn
-with its `Fix:` line.
+significant digits, as the golden holds them. `/sim` sends eight. It reads the
+gauges at tick 0, on the tick the router sheds both loads, on the first tick of
+the turn, during a burn off the course axis, on a burn along the course and
+after a course to TRAPPIST-1e. It also reads a rate a hair below zero and the
+four section headings. When the snapshot fails, the page reads
+`Ship snapshot offline` and keeps its controls. It posts a course and a burn,
+and shows a refused burn with its `Fix:` line.
 
 ## The FTL Page
 
@@ -228,9 +228,9 @@ with its `Fix:` line.
 root layout's nav links it as `FTL`, after `Helm`. The page shows the jump
 drive and posts the crew's spool and jump. Its loader reads the snapshot alone
 through `snapshotLoader`, since the snapshot holds the FTL record and its
-setpoints beside the loads. Each gauge rounds the snapshot's four-digit reading,
-so 0.45 GJ reads `0.5 GJ` and 8.55 GJ reads `8.6 GJ`. A failed snapshot hides
-the gauges and shows `Ship snapshot offline`, and the forms stay.
+setpoints beside the loads. Each gauge rounds the snapshot's eight-digit
+reading, so 0.45 GJ reads `0.5 GJ` and 8.55 GJ reads `8.6 GJ`. A failed
+snapshot hides the gauges and shows `Ship snapshot offline`, and the forms stay.
 
 The FTL drive section lists six gauges:
 
@@ -266,10 +266,10 @@ reactor with the `MERIDIAN_POWER_BUDGET` text: at tick 0 it has 0 MW free. A jum
 `The FTL drive holds N GJ of the 90 GJ a jump needs.` with its `Fix:` line.
 `tests/routes/ftl.spec.tsx` runs the page on `nexusTest` with
 `fakeBridgeLink`, fed seed 7's readings of the FTL scenario rounded to four
-significant digits as `/sim` sends them. It reads the gauges at tick 0, on the
-first tick of the spool, on the tick the router sheds it, at the full charge
-and on the tick after the jump, and it reads the gauge names and the three
-section headings. When the snapshot fails, the page reads
+significant digits, as the golden holds them. `/sim` sends eight. It reads the
+gauges at tick 0, on the first tick of the spool, on the tick the router sheds
+it, at the full charge and on the tick after the jump, and it reads the gauge
+names and the three section headings. When the snapshot fails, the page reads
 `Ship snapshot offline` and keeps its controls. The spool button posts and
 shows the tick it queues for, and a refused spool shows its `Fix:` line. The
 select lists the charted stars, and `Jump` posts the star. A refused jump shows
@@ -315,14 +315,14 @@ the router has 0 MW free beside the loads above it." and the `Fix:` line. Once
 the mount is armed, a fire never refuses for power, and it replaces the range of
 a shot that still waits. `tests/routes/weapons.spec.tsx` runs the page on
 `nexusTest` with `fakeBridgeLink`, fed readings in the shape of seed 7's weapons
-scenario rounded to four significant digits as `/sim` sends them. It reads the
-gauges at tick 0, with a shot waiting at tick 31, after the hit at tick 32, at
-the full capacitor at tick 35, a tick later with the load at 0 W, after the miss
-at tick 37 and with the router shedding the load at tick 62. It reads the gauge
-names and the two section headings. When the snapshot fails, the page reads
-`Ship snapshot offline` and keeps its form. The range field is bounded and
-starts at 10,000, and `Fire` posts that range or the one the reader typed. A
-refused fire shows its text and its `Fix:` line.
+scenario rounded to four significant digits, as the golden holds them. `/sim`
+sends eight. It reads the gauges at tick 0, with a shot waiting at tick 31,
+after the hit at tick 32, at the full capacitor at tick 35, a tick later with
+the load at 0 W, after the miss at tick 37 and with the router shedding the load
+at tick 62. It reads the gauge names and the two section headings. When the
+snapshot fails, the page reads `Ship snapshot offline` and keeps its form. The
+range field is bounded and starts at 10,000, and `Fire` posts that range or the
+one the reader typed. A refused fire shows its text and its `Fix:` line.
 
 ## The Airlock Page
 

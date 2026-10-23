@@ -925,7 +925,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
 
       await advance(nexus, 1);
       const shed = await reading(nexus);
-      expect(shed.setpoints.helm).toEqual({ heading: 0.733 });
+      expect(shed.setpoints.helm).toEqual({ heading: 0.73303829 });
       expect(shed.setpoints.drive).toEqual({ throttle: 1 });
       expect(shed.helm).toEqual({ attitude: 0, rate: 0, torque: 0 });
       expect(shed.power.loads).toContainEqual({
@@ -949,8 +949,8 @@ describe.each(['hono', 'express', 'fastify'] as const)(
       await advance(nexus, 1);
       const turning = await reading(nexus);
       expect(turning.helm).toEqual({
-        attitude: 0.0003788,
-        rate: 0.0007576,
+        attitude: 0.00037878788,
+        rate: 0.00075757576,
         torque: 5_000_000,
       });
       expect(turning.power.loads).toContainEqual({
@@ -999,7 +999,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
       ).toEqual({ status: 202, body: { tick: 1 } });
       expect(ship.get(AUDIT_LOG).calls).toEqual([]);
       await advance(ship, 1);
-      expect((await reading(ship)).setpoints.helm.heading).toBe(-2.74);
+      expect((await reading(ship)).setpoints.helm.heading).toBe(-2.7401669);
     });
 
     const refused = async (ship: Nexus) => {
@@ -1340,7 +1340,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
       });
       expect(hit.setpoints.weapons).toEqual({ armed: true, range: null });
       expect(railgun(hit)).toEqual(load(300_000_000));
-      expect(hit.coolant.temperature).toBe(507.7);
+      expect(hit.coolant.temperature).toBe(507.67563);
       expect(hit.safety.alarms).toEqual([]);
 
       await advance(3);

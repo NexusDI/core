@@ -77,8 +77,8 @@ describe('SnapshotFeed', () => {
     const sink = new RecordingSink();
     feed.subscribe(sink);
     expect(sink.frames).toEqual([readShip(state.snapshot(), deck)]);
-    expect(sink.frames[0].compartments.habitat.pressure).toBe(101_300);
-    expect(sink.frames[0].compartments.habitat.temperature).toBe(293.1);
+    expect(sink.frames[0].compartments.habitat.pressure).toBe(101_342.68);
+    expect(sink.frames[0].compartments.habitat.temperature).toBe(293.12346);
   });
 
   it('sends one reading per tick, the same object to every sink', () => {
@@ -90,7 +90,7 @@ describe('SnapshotFeed', () => {
     const ship = at(state, 1);
     loop.tick(ship);
     expect(a.frames[1]).toEqual(readShip(ship, deck));
-    expect(a.frames[1].compartments.habitat.temperature).toBe(293.1);
+    expect(a.frames[1].compartments.habitat.temperature).toBe(293.12346);
     expect(b.frames[1]).toBe(a.frames[1]);
   });
 
