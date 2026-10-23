@@ -3,6 +3,7 @@ import type { LifeSupportRecord, RoomPlan } from '../physics/atmosphere';
 import type { CommsRecord } from '../physics/comms';
 import type { DoorPlan } from '../physics/doors';
 import type { FloodPlan } from '../physics/fire';
+import type { FtlRecord } from '../physics/ftl';
 import type { Gas } from '../physics/gas';
 import type { DriveRecord, HelmRecord } from '../physics/motion';
 import type { PowerRecord } from '../physics/power';
@@ -62,6 +63,7 @@ export interface ShipSnapshot {
   readonly comms: CommsRecord;
   readonly drive: DriveRecord;
   readonly helm: HelmRecord;
+  readonly ftl: FtlRecord;
   readonly safety: SafetyRecord<CompartmentId>;
   readonly setpoints: Setpoints;
 }
