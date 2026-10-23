@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import drawn from '../graph.json';
 import { MISSION } from '../src/ship/contracts';
 import {
+  FtlDrive,
   Meridian,
   OfflineMeridian,
   offlineMeridian,
@@ -33,11 +34,20 @@ describe('the bridge API graph', () => {
     ).not.toThrow();
   });
 
+  it('compiles the FTL drive as a load of both roots', () => {
+    for (const root of [Meridian, OfflineMeridian])
+      expect(() =>
+        Nexus.check(root, { plugins: bridgePlugins(), load: [FtlDrive] }),
+      ).not.toThrow();
+  });
+
   it('matches graph.json, the graph the CLI draws', () => {
     // nexusdi graph makes the same inspect() call and writes it with
     // JSON.stringify, which drops undefined fields.
     const live = JSON.parse(
-      JSON.stringify(inspect(Meridian, { plugins: graphPlugins })),
+      JSON.stringify(
+        inspect(Meridian, { plugins: graphPlugins, load: [FtlDrive] }),
+      ),
     );
     expect(
       live,
@@ -159,6 +169,20 @@ describe('the bridge API graph', () => {
     const bridgeProviders = providers.filter((p) => ids.includes(p.module));
     expect(bridgeProviders.length).toBeGreaterThan(0);
     for (const provider of bridgeProviders) expect(provider.notes).toEqual([]);
+  });
+
+  it('labels the loaded FTL drive with its system in the development graph', async () => {
+    await using ship = await Nexus.create(offlineMeridian(), {
+      plugins: bridgePlugins({ dev: true }),
+    });
+    await ship.load(FtlDrive);
+    const { modules, providers } = graph(ship);
+    const ftl = modules.find((m) => m.name === 'FtlDrive');
+    expect(
+      providers
+        .filter((p) => p.module === ftl?.id)
+        .map((p) => [p.token, p.notes]),
+    ).toEqual([['FtlDrive', ['system: FtlDrive']]]);
   });
 
   it('fails the check when a provider has no MISSION to read', () => {

@@ -10,7 +10,8 @@
         "m3",
         "m4",
         "m14",
-        "m15"
+        "m15",
+        "m16"
       ],
       "exports": []
     },
@@ -260,6 +261,15 @@
         "m2"
       ],
       "exports": []
+    },
+    {
+      "id": "m16",
+      "name": "FtlDrive",
+      "global": false,
+      "imports": [],
+      "exports": [
+        "p54"
+      ]
     }
   ],
   "providers": [
@@ -912,6 +922,18 @@
       "internal": false
     },
     {
+      "id": "p54",
+      "token": "FtlDrive",
+      "module": "m16",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "JumpDrive",
+      "internal": false
+    },
+    {
       "id": "request",
       "token": "REQUEST",
       "module": "m0",
@@ -1353,6 +1375,26 @@
     {
       "from": "p52",
       "to": "p50",
+      "kind": "required"
+    },
+    {
+      "from": "p54",
+      "to": "p4",
+      "kind": "required"
+    },
+    {
+      "from": "p54",
+      "to": "p8",
+      "kind": "required"
+    },
+    {
+      "from": "p54",
+      "to": "p37",
+      "kind": "required"
+    },
+    {
+      "from": "p54",
+      "to": "p15",
       "kind": "required"
     }
   ]

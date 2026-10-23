@@ -36,7 +36,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "examples/bridge-api",
-        "command": "nexusdi graph src/ship/meridian.ts#Meridian --plugins src/ship/plugins.ts#graphPlugins -f json -o graph.json && git diff --exit-code graph.json"
+        "command": "nexusdi graph src/ship/meridian.ts#Meridian --load src/ship/meridian.ts#FtlDrive --plugins src/ship/plugins.ts#graphPlugins -f json -o graph.json && git diff --exit-code graph.json"
       }
     },
     "bench": {
