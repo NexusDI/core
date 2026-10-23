@@ -13,8 +13,11 @@ const request = () => ({ mission: { id: 'survey-7', target: 'Kepler-442b' } });
 /** Containers the mocked nexus.server built, disposed after the file's tests. */
 export const built: Nexus[] = [];
 
-/** Charts that plot every course at heading 42. */
-export const fakeCharts = { plot: (to: string) => ({ to, heading: 42 }) };
+/** Charts that hold every star and plot every course at heading 42. */
+export const fakeCharts = {
+  has: () => true,
+  plot: (to: string) => ({ to, heading: 42 }),
+};
 
 /** A watch log that records without the mission prefix. */
 class MemoryWatchLog {

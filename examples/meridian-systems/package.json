@@ -21,6 +21,11 @@
       "import": "./src/systems/safety/pressure-interlock.ts",
       "default": "./src/systems/safety/pressure-interlock.ts"
     },
+    "./charts": {
+      "types": "./src/systems/tactical/star-charts.ts",
+      "import": "./src/systems/tactical/star-charts.ts",
+      "default": "./src/systems/tactical/star-charts.ts"
+    },
     "./package.json": "./package.json"
   },
   "dependencies": {

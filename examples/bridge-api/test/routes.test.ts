@@ -983,7 +983,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
     const reading = async (ship: Nexus) =>
       (await call(ship, 'GET', '/sim')).body as ShipReading;
     const helmUsage =
-      'It takes course with a star to steer for and burn with a level from 0 to 1.';
+      'It takes course with a charted star to steer for and burn with a level from 0 to 1.';
     const refusals = [
       {
         sent: { system: 'helm', action: 'burn', level: 1.5 },
@@ -1011,7 +1011,10 @@ describe.each(['hono', 'express', 'fastify'] as const)(
           body: { tick: 1 },
         });
       }
-      expect(nexus.get(AUDIT_LOG).calls).toEqual(['plot Kepler-442b']);
+      expect(nexus.get(AUDIT_LOG).calls).toEqual([
+        'has Kepler-442b',
+        'plot Kepler-442b',
+      ]);
 
       await advance(nexus, 1);
       const shed = await reading(nexus);
@@ -1054,8 +1057,12 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         { code: 'LOAD_SHED', subject: 'main-drive' },
       ]);
       expect(
-        nexus.get(AUDIT_LOG).calls.filter((entry) => entry.startsWith('plot ')),
-      ).toEqual(['plot Kepler-442b']);
+        nexus
+          .get(AUDIT_LOG)
+          .calls.filter(
+            (entry) => entry.startsWith('has ') || entry.startsWith('plot '),
+          ),
+      ).toEqual(['has Kepler-442b', 'plot Kepler-442b']);
       expect(await call(nexus, 'GET', '/commands')).toEqual({
         status: 200,
         body: [
@@ -1110,5 +1117,35 @@ describe.each(['hono', 'express', 'fastify'] as const)(
       });
       await refused(ship);
     });
+
+    test.each(['Vega', 'constructor', '__proto__'])(
+      'POST /commands answers 400 for a course to %s on the offline ship, which the charts do not hold',
+      async (to) => {
+        await using ship = await Nexus.create(OfflineMeridian, {
+          plugins: bridgePlugins(),
+        });
+        expect(
+          await call(
+            ship,
+            'POST',
+            '/commands',
+            json({ system: 'helm', action: 'course', to }),
+          ),
+        ).toEqual({
+          status: 400,
+          body: {
+            code: 'MERIDIAN_BAD_COMMAND',
+            message: `helm course got an argument it cannot use. ${helmUsage}`,
+            fix: 'send the arguments in the ranges above.',
+          },
+        });
+        await advance(ship, 1);
+        const after = await reading(ship);
+        expect(after.setpoints.helm).toEqual({ heading: 0 });
+        expect(
+          after.safety.alarms.filter((alarm) => alarm.code === 'LOAD_SHED'),
+        ).toEqual([]);
+      },
+    );
   },
 );

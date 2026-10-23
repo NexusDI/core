@@ -228,6 +228,24 @@ describe('the helm and the drive', () => {
     expect(ship.get(SHIP_STATE).log()).toEqual([]);
   });
 
+  it('refuses a course to Vega, constructor and __proto__, which the charts do not hold', async () => {
+    await using ship = await Nexus.create(meridianSystems(options));
+    const desk = ship.get(COMMAND_DESK);
+
+    for (const to of ['Vega', 'constructor', '__proto__']) {
+      expect(() => course(desk, to)).toThrow(
+        expect.objectContaining({
+          code: 'MERIDIAN_BAD_COMMAND',
+          reason: 'argument',
+          system: 'helm',
+          action: 'course',
+          expected: HELM_ACTIONS,
+        }),
+      );
+    }
+    expect(ship.get(SHIP_STATE).log()).toEqual([]);
+  });
+
   it("steers the charted heading offline and from the relay's table", async () => {
     await using offline = await Nexus.create(meridianSystems(options));
     expect(course(offline.get(COMMAND_DESK), 'TRAPPIST-1e')).toEqual({

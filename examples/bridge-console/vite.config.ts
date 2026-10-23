@@ -15,6 +15,10 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  // The library exports .ts source, so the server build bundles it.
+  ssr: {
+    noExternal: ['@nexusdi/meridian-systems'],
+  },
   test: {
     name: '@nexusdi/bridge-console',
     watch: false,

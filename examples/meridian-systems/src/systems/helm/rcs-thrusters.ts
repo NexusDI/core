@@ -12,6 +12,11 @@ export class RcsThrusters implements IThrusters {
   constructor(private readonly state: IShipState) {}
 
   steer(heading: number): QueuedCommand {
+    if (!Number.isFinite(heading)) {
+      throw new RangeError(
+        `steer() takes a finite heading in rad, and got ${heading}.`,
+      );
+    }
     return this.state.queue({ helm: { heading: wrap(heading) } });
   }
 }

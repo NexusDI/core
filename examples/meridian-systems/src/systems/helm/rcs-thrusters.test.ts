@@ -23,4 +23,14 @@ describe('RcsThrusters', () => {
       { tick: 1, change: { helm: { heading: 4 - 2 * Math.PI } } },
     ]);
   });
+
+  it.each([NaN, Infinity])('refuses to steer a heading of %o', (heading) => {
+    const state = new ShipStateStore(deck satisfies DeckPlan);
+    expect(() => new RcsThrusters(state).steer(heading)).toThrow(
+      new RangeError(
+        `steer() takes a finite heading in rad, and got ${heading}.`,
+      ),
+    );
+    expect(state.log()).toEqual([]);
+  });
 });

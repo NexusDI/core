@@ -52,8 +52,10 @@ code imports the module.
   `Diagnostics are off on this bridge`, and a backend that fails gives
   `The bridge is unreachable` under the status strip.
 
-The console imports `@nexusdi/meridian-systems` and `@nexusdi/devtools` with
-`import type` only. A case in `e2e/fresh-server.spec.ts` checks that no
+The console imports `@nexusdi/devtools` and the main entry of
+`@nexusdi/meridian-systems` with `import type` only. `Tactical` and the helm
+page import the star charts from `@nexusdi/meridian-systems/charts`, which
+holds no simulation code. A case in `e2e/fresh-server.spec.ts` checks that no
 script of the client build holds a description of the simulation's tokens,
 such as `TickLoop` or `TelemetryFeed`.
 
@@ -76,9 +78,11 @@ reloads them after each command. A backend that fails gives
 status. The answer prints one line under `Queued for tick N` per flight-log
 entry. The console imports `ShipCommand` from
 `@nexusdi/meridian-systems` with `import type`, so no simulation code reaches
-its bundle. `tests/routes/engineering.spec.tsx` runs the page on `nexusTest`
-with `fakeBridgeLink`, whose idle reactor refuses a shields raise and queues
-any other command for tick 1.
+its bundle. The console's `Tactical` and the helm page import the star charts
+from `@nexusdi/meridian-systems/charts`, which holds the chart table and no
+simulation code. `tests/routes/engineering.spec.tsx` runs the page on
+`nexusTest` with `fakeBridgeLink`, whose idle reactor refuses a shields raise
+and queues any other command for tick 1.
 
 ## The Life-Support Page
 
@@ -196,12 +200,12 @@ stay.
 
 Two forms post helm commands through `systemAction('helm', ...)` and
 `BRIDGE_LINK.command(cmd)`. The course form holds a select of the stars in
-`app/bridge/charts.json` and the button `Plot course`, and posts
-`command=course` with the star as `to`. The burn form is `LevelForm`
-(`system-page.tsx`), a number field from 0 to 1 with the button `Burn`, and
-posts `command=burn` with the level. The engineering page's throttle form is
-a `LevelForm` too. The page shows the answer to the last command as the other
-pages do: `Queued for tick N`, or a refusal with its `Fix:` line.
+`BUNDLED_CHARTS` and the button `Plot course`, and posts `command=course`
+with the star as `to`. The burn form is `LevelForm` (`system-page.tsx`), a
+number field from 0 to 1 with the button `Burn`, and posts `command=burn`
+with the level. The engineering page's throttle form is a `LevelForm` too.
+The page shows the answer to the last command as the other pages do:
+`Queued for tick N`, or a refusal with its `Fix:` line.
 
 A turn needs power. The thrusters ask for 20 MW at full torque, and the
 router sheds them while the reactor gives less, so a crew that plots a

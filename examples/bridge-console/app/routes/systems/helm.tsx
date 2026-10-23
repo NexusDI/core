@@ -1,7 +1,7 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
+import { BUNDLED_CHARTS } from '@nexusdi/meridian-systems/charts';
 import { Form } from 'react-router';
 
-import charts from '../../bridge/charts.json';
 import type { CommandAnswer } from '../../bridge/bridge-link';
 import { bearing, fixed, megawatts, turnRate } from '../../bridge/fixed';
 import { Button } from '../../components';
@@ -96,8 +96,12 @@ export default function Helm({
       <ControlSection title="Course">
         <Form method="post" className="flex gap-2 items-center">
           <label htmlFor="to">Star</label>
-          <select id="to" name="to" defaultValue={Object.keys(charts)[0]}>
-            {Object.keys(charts).map((star) => (
+          <select
+            id="to"
+            name="to"
+            defaultValue={Object.keys(BUNDLED_CHARTS)[0]}
+          >
+            {Object.keys(BUNDLED_CHARTS).map((star) => (
               <option key={star} value={star}>
                 {star}
               </option>

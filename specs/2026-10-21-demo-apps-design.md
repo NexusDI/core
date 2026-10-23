@@ -228,7 +228,7 @@ The layout follows react spec section 9.1.
 app/
   bridge/bridge-link.ts      BRIDGE_LINK, IBridgeLink, BridgeApiLink, the BridgeLink module
   bridge/contracts.ts        NAV_CHARTS and WATCH_LOG, typed by `import type` from bridge-api
-  bridge/tactical.ts         the console's Tactical: NAV_CHARTS over charts.json (ChartTable)
+  bridge/tactical.ts         the console's Tactical: NAV_CHARTS over BUNDLED_CHARTS (ChartTable)
   bridge/watch.ts            the Watch module: the scoped WATCH_LOG over REQUEST
   bridge/bridge.client.ts    the client graph, BridgeClient (the console's Tactical)
   navigation/navigation.module.ts    the Navigation section, loaded by di.load
@@ -252,10 +252,13 @@ for the e2e server and for the link test, and `vite.config.ts` drops
 `ssr.noExternal: ['@nexusdi/bridge-api']`.
 
 - The console's `Tactical` binds `NAV_CHARTS` (`Token<INavCharts>('NavCharts')`, the
-  console's own token) with `useClass: ChartTable`, over a copy of `bridge-api`'s
-  `charts.json` in `app/bridge/charts.json`. A unit test asserts the two files are equal.
-  The shell's `Tactical` is the precedent: each app's `Tactical` provides its own
-  `NAV_CHARTS`.
+  console's own token) with `useClass: ChartTable`. `ChartTable` extends the library's
+  `StarCharts` over `BUNDLED_CHARTS`, both from `@nexusdi/meridian-systems/charts`, so the
+  console keeps no copy of `charts.json`. `@nexusdi/meridian-systems` is a dependency of
+  the console, and `vite.config.ts` sets `ssr.noExternal: ['@nexusdi/meridian-systems']`,
+  since the package exports `.ts` source. `tests/tactical.test.ts` checks that
+  `NAV_CHARTS` resolves to a `StarCharts`. The shell's `Tactical` is the precedent: each
+  app's `Tactical` provides its own `NAV_CHARTS`.
 - `Watch` binds `WATCH_LOG` (`Token<IWatchLog>('WatchLog')`) with
   `useClass: WatchLog, lifetime: 'scoped'`. `WatchLog` takes `REQUEST` and prefixes each
   entry with `request.mission.id`, so the console needs no `MISSION` token, and core's
@@ -787,7 +790,7 @@ uses them.
 | The bridge console  | The React Router app `examples/bridge-console`. Its server root is `BridgeConsole`, and its client graph is `BridgeClient`.                                                 |
 | The bridge link     | `IBridgeLink` behind the scoped `BRIDGE_LINK`, bound with `useClass: BridgeApiLink` in `BridgeLink`, configured by `BridgeLink.forRoot({ url })`. Double: `fakeBridgeLink`. |
 | The watch log       | `IWatchLog` behind the scoped `WATCH_LOG`, bound with `useClass: WatchLog` (deps `[REQUEST]`) in the console's `Watch` module. The console's counterpart of `FLIGHT_LOG`.   |
-| The chart table     | `ChartTable implements INavCharts`, bound to the console's `NAV_CHARTS` in the console's `Tactical`, over `app/bridge/charts.json`.                                         |
+| The chart table     | `ChartTable extends StarCharts`, bound to the console's `NAV_CHARTS` in the console's `Tactical`, over `BUNDLED_CHARTS` from `@nexusdi/meridian-systems/charts`.            |
 | A decorated section | `Command`, an `@Module` class binding `BRIDGE` (`IBridge`) to `Bridge`, whose `@Inject(NAV_CHARTS) accessor charts` reads the contract token.                               |
 
 `Bridge` and `BRIDGE` exist in §7.1 and on `/decorators/`. `NAV_ROUTES`, `SectorRoutes`,

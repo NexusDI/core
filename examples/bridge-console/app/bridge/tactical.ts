@@ -1,13 +1,12 @@
 import { defineModule, provide } from '@nexusdi/core';
+import { BUNDLED_CHARTS, StarCharts } from '@nexusdi/meridian-systems/charts';
 
-import charts from './charts.json';
-import { NAV_CHARTS, type Course, type INavCharts } from './contracts';
+import { NAV_CHARTS } from './contracts';
 
-/** The star charts over the table in charts.json, a copy of the simulation's. */
-class ChartTable implements INavCharts {
-  readonly #headings: Readonly<Record<string, number>> = charts;
-  plot(to: string): Course {
-    return { to, heading: this.#headings[to] ?? 0 };
+/** The library's star charts over the table the ship carries. */
+class ChartTable extends StarCharts {
+  constructor() {
+    super(BUNDLED_CHARTS);
   }
 }
 

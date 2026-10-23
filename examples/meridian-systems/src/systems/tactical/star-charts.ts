@@ -11,7 +11,13 @@ export class StarCharts implements INavCharts {
     return new StarCharts(await link.receive<Record<string, number>>('charts'));
   }
   constructor(private readonly headings: Readonly<Record<string, number>>) {}
+  /** The bundled table and the downloaded one go through this check, so an entry that is not a finite number reads as uncharted. */
+  has(to: string): boolean {
+    return (
+      Object.hasOwn(this.headings, to) && Number.isFinite(this.headings[to])
+    );
+  }
   plot(to: string): Course {
-    return { to, heading: this.headings[to] ?? 0 };
+    return { to, heading: this.has(to) ? this.headings[to] : 0 };
   }
 }

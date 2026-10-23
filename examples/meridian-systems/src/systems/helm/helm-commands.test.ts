@@ -107,21 +107,21 @@ describe('HelmCommands', () => {
 
   it('words the refusals in sentences of shipText', () => {
     expect(HELM_ACTIONS).toBe(
-      'course with a star to steer for and burn with a level from 0 to 1',
+      'course with a charted star to steer for and burn with a level from 0 to 1',
     );
     expect(explained({ system: 'helm', action: 'warp' })).toEqual({
       message:
-        "helm has no action 'warp'. It takes course with a star to steer for and burn with a level from 0 to 1.",
+        "helm has no action 'warp'. It takes course with a charted star to steer for and burn with a level from 0 to 1.",
       fix: 'send one of the actions above with its arguments.',
     });
     expect(explained({ system: 'helm', action: 'burn', level: 2 })).toEqual({
       message:
-        'helm burn got an argument it cannot use. It takes course with a star to steer for and burn with a level from 0 to 1.',
+        'helm burn got an argument it cannot use. It takes course with a charted star to steer for and burn with a level from 0 to 1.',
       fix: 'send the arguments in the ranges above.',
     });
     expect(explained({ system: 'helm', action: 'course', to: 42 })).toEqual({
       message:
-        'helm course got an argument it cannot use. It takes course with a star to steer for and burn with a level from 0 to 1.',
+        'helm course got an argument it cannot use. It takes course with a charted star to steer for and burn with a level from 0 to 1.',
       fix: 'send the arguments in the ranges above.',
     });
   });

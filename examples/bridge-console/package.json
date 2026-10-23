@@ -5,6 +5,7 @@
   "dependencies": {
     "@nexusdi/core": "*",
     "@nexusdi/errors": "*",
+    "@nexusdi/meridian-systems": "*",
     "@nexusdi/node": "*",
     "@nexusdi/react": "*",
     "@nexusdi/react-router": "*",
@@ -21,7 +22,6 @@
     "@hono/node-server": "2.1.5",
     "@nexusdi/bridge-api": "*",
     "@nexusdi/devtools": "*",
-    "@nexusdi/meridian-systems": "*",
     "@nexusdi/testing": "*",
     "@nexusdi/vitest": "*",
     "@nx/devkit": "23.3.0",
