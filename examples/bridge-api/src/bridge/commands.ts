@@ -1,12 +1,7 @@
-import { isNexusError } from '@nexusdi/core';
-import {
-  BadCommandError,
-  type ICommandDesk,
-  type QueuedCommand,
-} from '@nexusdi/meridian-systems';
+import type { ICommandDesk, QueuedCommand } from '@nexusdi/meridian-systems';
 
 import type { IFlightLog } from '../ship/contracts';
-import { type Refusal, refusalOf } from './refusal';
+import { type RefusedReply, refusedReply } from './refusal';
 
 /** The status and body `POST /commands` answers. */
 export type CommandReply =
@@ -14,7 +9,7 @@ export type CommandReply =
       readonly status: 202;
       readonly body: QueuedCommand & { readonly flightLog?: readonly string[] };
     }
-  | { readonly status: 400 | 409; readonly body: Refusal };
+  | RefusedReply;
 
 /**
  * Hands `body` to the desk. A queued command answers 202 with its tick, and
@@ -38,8 +33,6 @@ export function answerCommand(
           : { ...queued, flightLog: [...flightLog] },
     };
   } catch (error) {
-    if (!isNexusError(error)) throw error;
-    const status = error instanceof BadCommandError ? 400 : 409;
-    return { status, body: refusalOf(error) };
+    return refusedReply(error);
   }
 }
