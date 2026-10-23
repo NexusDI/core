@@ -19,6 +19,7 @@ export default [
       route('systems/comms', 'routes/systems/comms.tsx'),
       route('systems/helm', 'routes/systems/helm.tsx'),
       route('systems/ftl', 'routes/systems/ftl.tsx'),
+      route('systems/weapons', 'routes/systems/weapons.tsx'),
       route('airlock', 'routes/airlock.tsx'),
     ]),
   ]),
