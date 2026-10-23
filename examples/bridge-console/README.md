@@ -168,7 +168,8 @@ array cannot send it. On a bridge-api with no relay, the status reads
 `fakeBridgeLink`. It reads the gauges at tick 0, on the tick the array sends,
 while it waits for the reply, after a hail the router shed, on the tick of the
 reply and on a ship with no link. It also reads the message list and the three
-headings. It also reads the offline snapshot, and posts a hail that queues for tick 1.
+headings. Its last two cases read the offline snapshot and post a hail that
+queues for tick 1.
 
 ## The Airlock Page
 
