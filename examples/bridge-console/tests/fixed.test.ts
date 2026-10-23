@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { fixed, kilopascals, megawatts } from '../app/bridge/fixed';
+import {
+  bearing,
+  fixed,
+  kilopascals,
+  megawatts,
+  turnRate,
+} from '../app/bridge/fixed';
 
 describe('fixed', () => {
   it("rounds a float's noise away", () => {
@@ -42,5 +48,43 @@ describe('megawatts', () => {
     expect(megawatts(5_000_000.000000001)).toBe('5.0 MW');
     expect(megawatts(12_100_000)).toBe('12.1 MW');
     expect(megawatts(0)).toBe('0.0 MW');
+  });
+});
+
+describe('bearing', () => {
+  it('writes radians as degrees to 0.1', () => {
+    expect(bearing(0)).toBe('0.0°');
+    expect(bearing(0.733)).toBe('42.0°');
+    expect(bearing(0.2567)).toBe('14.7°');
+    expect(bearing(Math.PI)).toBe('180.0°');
+  });
+
+  it('folds a negative angle into 0 to 360', () => {
+    expect(bearing(-Math.PI / 2)).toBe('270.0°');
+    expect(bearing(-2.74)).toBe('203.0°');
+  });
+
+  it('reads an angle just under zero as 0.0° and 203 degrees as 203.0°', () => {
+    expect(bearing(-1e-7)).toBe('0.0°');
+    expect(bearing((203 * Math.PI) / 180)).toBe('203.0°');
+  });
+
+  it('rounds to 0.1 before it folds, so 360.0° never shows', () => {
+    expect(bearing(-1e-4)).toBe('0.0°');
+    expect(bearing(2 * Math.PI - 1e-5)).toBe('0.0°');
+  });
+});
+
+describe('turnRate', () => {
+  it('writes rad/s as °/s to two decimals', () => {
+    expect(turnRate(0.01322)).toBe('0.76 °/s');
+    expect(turnRate(0.0007576)).toBe('0.04 °/s');
+    expect(turnRate(-0.01322)).toBe('-0.76 °/s');
+  });
+
+  it('prints a zero and a negative zero as 0.00 °/s', () => {
+    expect(turnRate(0)).toBe('0.00 °/s');
+    expect(turnRate(-0)).toBe('0.00 °/s');
+    expect(turnRate(-1e-9)).toBe('0.00 °/s');
   });
 });
