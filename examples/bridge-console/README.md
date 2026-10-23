@@ -222,6 +222,62 @@ headings. When the snapshot fails, the page reads `Ship snapshot offline` and
 keeps its controls. It posts a course and a burn, and shows a refused burn
 with its `Fix:` line.
 
+## The FTL Page
+
+`/systems/ftl` sits in the ship layout beside the other system pages, and the
+root layout's nav links it as `FTL`, after `Helm`. The page shows the jump
+drive and posts the crew's spool and jump. Its loader reads the snapshot alone
+through `snapshotLoader`, since the snapshot holds the FTL record and its
+setpoints beside the loads. Each gauge rounds the snapshot's four-digit reading,
+so 0.45 GJ reads `0.5 GJ` and 8.55 GJ reads `8.6 GJ`. A failed snapshot hides
+the gauges and shows `Ship snapshot offline`, and the forms stay.
+
+The FTL drive section lists six gauges:
+
+- `Status` is the record's status. It reads `offline` until the backend has
+  loaded the drive and the drive has taken its first step, then `idle`,
+  `held`, `spooling` or `charged`.
+- `Armed` reads `Yes` or `No` from the setpoint.
+- `Spool charge` is the charge in GJ to 0.1, and `Spool power` is the
+  allocated power of the `ftl-spool` load in MW to 0.1. It reads `0.0 MW`
+  before the drive loads, since the load is not on the router yet.
+- `Sector` is the star the ship sits at, `Sol` before the first jump.
+  `Last jump` reads `tick N`, or `none` before the first jump. Words and ticks
+  carry no unit.
+
+Two forms post the FTL commands. The spool form is the button `Spool drive`,
+which posts `command=spool`. The jump form is `StarSelect`
+(`star-select.tsx`), a select of the stars in `BUNDLED_CHARTS` and the button
+`Jump`, which posts `command=jump` with the star as `to`. The helm page's
+course form is a `StarSelect` too. `ftlAction()` in `system-action.server.ts`
+reads `command` and `to` and calls `BRIDGE_LINK.spool()` or
+`BRIDGE_LINK.jump(to)`. Any other command goes to `command()` for the system
+`ftl`, and the page shows the backend's refusal. The two posts go to
+`POST /ftl/spool` and `POST /ftl/jump`, outside `POST /commands`. They share
+the link's private `#post` with `command()`, so the reading of the 202, 400
+and 409 answers exists once. The page shows the answer to the last command as
+the other pages do: `Queued for tick N`, or a refusal with its `Fix:` line.
+
+A spool needs power. It asks for 900 MW at priority 7. On a reactor at full
+output a main drive that burns at level 1 leaves 384.9 MW. The spool never fits
+beside the burning drive, and it charges only with the reactor at level 0.9 or
+more, so a crew cuts the burn first. The router refuses a spool on a cold
+reactor with the `MERIDIAN_POWER_BUDGET` text: at tick 0 it has 0 MW free. A jump below the full 90 GJ shows
+`The FTL drive holds N GJ of the 90 GJ a jump needs.` with its `Fix:` line.
+`tests/routes/ftl.spec.tsx` runs the page on `nexusTest` with
+`fakeBridgeLink`, fed seed 7's readings of the FTL scenario rounded to four
+significant digits as `/sim` sends them. It reads the gauges at tick 0, on the
+first tick of the spool, on the tick the router sheds it, at the full charge
+and on the tick after the jump, and it reads the gauge names and the three
+section headings. When the snapshot fails, the page reads
+`Ship snapshot offline` and keeps its controls. The spool button posts and
+shows the tick it queues for, and a refused spool shows its `Fix:` line. The
+select lists the charted stars, and `Jump` posts the star. A refused jump shows
+its text. A command that is neither the spool nor the jump reaches
+`command()` for `ftl`. `tests/bridge-link.test.ts` covers both posts: the
+spool with no body, the jump with its star, the 409 for a jump below the full
+charge and a rejection for a 500.
+
 ## The Airlock Page
 
 `/airlock` sits in the ship layout and the root layout's nav links it as
@@ -311,8 +367,8 @@ starts the fill with the vent shut, and the inner door stays refused. After
 opens `habitat-airlock`, which reads `survey-7: opened habitat-airlock`. After
 20 ticks the inner door reads `Open` with its sides within 0.5 kPa. The case
 ends with `No alarms` on `/systems/safety` and no console error. The
-`chromium` project ignores the life-support, safety, airlock, helm and comms
-cases. Those five cases share their helpers in `e2e/growth/ship.ts`.
+`chromium` project ignores the life-support, safety, airlock, helm, ftl and
+comms cases. Those six cases share their helpers in `e2e/growth/ship.ts`.
 
 `e2e/growth/helm.spec.ts` runs in a fifth project, `helm`, that depends on
 `airlock`. The shared ship holds a throttle of 0.01 with life support online,
@@ -330,10 +386,28 @@ reload the drive gauges read `Thrust 14,400 N`, `Propellant flow 0.288 kg/s`,
 `Acceleration 0.0036 m/s²`, `Velocity 0.72 m/s`, `Distance 72 m` and
 `Drive power 600.0 MW`. The case ends with `No alarms` on `/systems/safety`
 and no console error. It leaves the drive thrusting on the shared ship, and
-the comms case after it reads the array at 0 W.
+the ftl case after it cuts the burn.
 
-`e2e/growth/comms.spec.ts` runs in a sixth project, `comms`, that depends on
-`helm`. The backend's ship has no subspace link, so the hail stays queued
+`e2e/growth/ftl.spec.ts` runs in a sixth project, `ftl`, that depends on
+`helm`. The shared ship holds a throttle of 0.6 and a burning drive, and the
+spool fits only beside a reactor at level 0.9 with the drive cut. The case
+reads the ship's tick `t` from the backend, sets the throttle to 1 on
+`/systems/engineering` and the burn to 0 on `/systems/helm`, and each reads
+`Queued for tick` `t + 1`. It posts 40 ticks to the backend. The level climbs
+from 0.6 to 0.9 in 30 ticks, so the spool draws from tick `t + 41` on any
+start tick. On `/systems/ftl` the gauges read `offline`, `0.0 GJ` and `Sol`,
+since no earlier case loads the drive. `Spool drive` reads `Queued for tick`
+`t + 41`. After 200 more ticks and a reload, the page reads `charged` and
+`90.0 GJ`. The case selects Proxima-b and clicks `Jump`, which reads
+`Queued for tick` `t + 241`. After 1 tick and a reload the gauges read
+`idle`, `0.0 GJ`, `Proxima-b` and `tick t + 241`. The case ends with
+`No alarms` on `/systems/safety` and no console error. The backend is a Node
+server with `nodeScopes()`, so the first spool runs the adapter's section and
+its extend. The spool does not touch the array, so the comms case after it
+still reads 0 W.
+
+`e2e/growth/comms.spec.ts` runs in a seventh project, `comms`, that depends on
+`ftl`. The backend's ship has no subspace link, so the hail stays queued
 for good, and the case runs after every other case. It reads the ship's tick
 from the backend and opens `/systems/comms`, where the status reads `standby`
 and the hail flag `No`. The case clicks `Hail fleet traffic control` and reads
