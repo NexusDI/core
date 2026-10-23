@@ -13,6 +13,7 @@ import { MAIN_DRIVE_LOAD, THRUSTERS_LOAD } from '../physics/motion';
 import { allocatePower, DEFLECTOR_GRID } from '../physics/power';
 import type { SafetyRecord, SafetySetpoints } from '../physics/safety';
 import { LITHIUM_LOOP } from '../physics/thermal';
+import { RAILGUN_LOAD } from '../physics/weapons';
 import type {
   DeepPartial,
   LoggedChange,
@@ -328,6 +329,7 @@ function initialSnapshot(deck: DeckPlan): ShipSnapshot {
     { ...COMMS_LOAD, demand: 0 },
     { ...THRUSTERS_LOAD, demand: 0 },
     { ...MAIN_DRIVE_LOAD, demand: 0 },
+    { ...RAILGUN_LOAD, demand: 0 },
   ]);
   return Object.freeze({
     tick: 0,

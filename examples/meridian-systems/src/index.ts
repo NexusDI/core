@@ -51,6 +51,13 @@ export type {
   ReactorRating,
   ReactorRecord,
 } from './physics/thermal';
+export type {
+  RailgunRating,
+  RailgunShot,
+  WeaponsRecord,
+  WeaponsSetpoints,
+  WeaponsStatus,
+} from './physics/weapons';
 export * from './simulation/commands';
 export * from './simulation/contracts';
 export { readShip } from './simulation/read-ship';
@@ -112,3 +119,4 @@ export {
   NAV_CHARTS,
 } from './systems/tactical/contracts';
 export { BUNDLED_CHARTS } from './systems/tactical/star-charts';
+export { type IWeaponMount, WEAPON_MOUNT } from './systems/weapons/contracts';

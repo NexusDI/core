@@ -49,7 +49,7 @@ describe('the helm and the drive', () => {
     ).toThrow(
       expect.objectContaining({
         reason: 'system',
-        expected: 'comms, engineering, helm, life-support and safety',
+        expected: 'comms, engineering, helm, life-support, safety and weapons',
       }),
     );
   });

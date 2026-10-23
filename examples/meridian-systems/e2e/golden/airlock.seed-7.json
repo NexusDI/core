@@ -85,6 +85,12 @@
           "priority": 5,
           "demand": 0,
           "allocated": 0
+        },
+        {
+          "id": "railgun",
+          "priority": 6,
+          "demand": 0,
+          "allocated": 0
         }
       ],
       "shed": []
@@ -294,6 +300,12 @@
         {
           "id": "main-drive",
           "priority": 5,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "railgun",
+          "priority": 6,
           "demand": 0,
           "allocated": 0
         }
@@ -507,6 +519,12 @@
           "priority": 5,
           "demand": 0,
           "allocated": 0
+        },
+        {
+          "id": "railgun",
+          "priority": 6,
+          "demand": 0,
+          "allocated": 0
         }
       ],
       "shed": []
@@ -718,6 +736,12 @@
           "priority": 5,
           "demand": 0,
           "allocated": 0
+        },
+        {
+          "id": "railgun",
+          "priority": 6,
+          "demand": 0,
+          "allocated": 0
         }
       ],
       "shed": []
@@ -927,6 +951,12 @@
         {
           "id": "main-drive",
           "priority": 5,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "railgun",
+          "priority": 6,
           "demand": 0,
           "allocated": 0
         }

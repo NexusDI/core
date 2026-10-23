@@ -146,6 +146,13 @@ describe('the bridge API graph', () => {
     ]) {
       expect(notes[`${token} in Helm`]).toEqual(['system: Helm']);
     }
+    expect(notes['ShipSystems in Weapons']).toEqual([
+      'system: Weapons',
+      'phase: 3',
+    ]);
+    for (const token of ['WeaponMount', 'PowerConsumers', 'CommandHandlers']) {
+      expect(notes[`${token} in Weapons`]).toEqual(['system: Weapons']);
+    }
 
     // The bridge registers the interlock and the flight recorder in its
     // interceptors plugin, outside every ship system.

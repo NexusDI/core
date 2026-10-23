@@ -9,9 +9,9 @@
         "m2",
         "m3",
         "m4",
-        "m14",
         "m15",
-        "m16"
+        "m16",
+        "m17"
       ],
       "exports": []
     },
@@ -58,7 +58,8 @@
         "m10",
         "m11",
         "m12",
-        "m13"
+        "m13",
+        "m14"
       ],
       "exports": [
         "p4",
@@ -70,7 +71,8 @@
         "m10",
         "m11",
         "m12",
-        "m13"
+        "m13",
+        "m14"
       ]
     },
     {
@@ -111,11 +113,13 @@
         "p33",
         "p39",
         "p43",
+        "p47",
         "p18",
         "p24",
         "p30",
         "p35",
-        "p45"
+        "p45",
+        "p49"
       ]
     },
     {
@@ -133,15 +137,18 @@
         "p33",
         "p39",
         "p43",
+        "p47",
         "p23",
         "p34",
         "p40",
         "p44",
+        "p48",
         "p18",
         "p24",
         "p30",
         "p35",
-        "p45"
+        "p45",
+        "p49"
       ]
     },
     {
@@ -159,11 +166,13 @@
         "p33",
         "p39",
         "p43",
+        "p47",
         "p18",
         "p24",
         "p30",
         "p35",
-        "p45"
+        "p45",
+        "p49"
       ]
     },
     {
@@ -180,15 +189,18 @@
         "p33",
         "p39",
         "p43",
+        "p47",
         "p23",
         "p34",
         "p40",
         "p44",
+        "p48",
         "p18",
         "p24",
         "p30",
         "p35",
-        "p45"
+        "p45",
+        "p49"
       ]
     },
     {
@@ -213,10 +225,12 @@
         "p33",
         "p39",
         "p43",
+        "p47",
         "p23",
         "p34",
         "p40",
-        "p44"
+        "p44",
+        "p48"
       ]
     },
     {
@@ -233,28 +247,58 @@
         "p33",
         "p39",
         "p43",
+        "p47",
         "p23",
         "p34",
         "p40",
         "p44",
+        "p48",
         "p18",
         "p24",
         "p30",
         "p35",
-        "p45"
+        "p45",
+        "p49"
       ]
     },
     {
       "id": "m14",
-      "name": "SimDriver",
+      "name": "Weapons",
       "global": false,
       "imports": [],
       "exports": [
-        "p46"
+        "p46",
+        "p17",
+        "p22",
+        "p29",
+        "p33",
+        "p39",
+        "p43",
+        "p47",
+        "p23",
+        "p34",
+        "p40",
+        "p44",
+        "p48",
+        "p18",
+        "p24",
+        "p30",
+        "p35",
+        "p45",
+        "p49"
       ]
     },
     {
       "id": "m15",
+      "name": "SimDriver",
+      "global": false,
+      "imports": [],
+      "exports": [
+        "p50"
+      ]
+    },
+    {
+      "id": "m16",
       "name": "interceptors",
       "global": false,
       "imports": [
@@ -263,12 +307,12 @@
       "exports": []
     },
     {
-      "id": "m16",
+      "id": "m17",
       "name": "FtlDrive",
       "global": false,
       "imports": [],
       "exports": [
-        "p54"
+        "p58"
       ]
     }
   ],
@@ -827,8 +871,56 @@
     },
     {
       "id": "p46",
-      "token": "SimDriver",
+      "token": "WeaponMount",
       "module": "m14",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "RailgunMount",
+      "internal": false
+    },
+    {
+      "id": "p47",
+      "token": "ShipSystems",
+      "module": "m14",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "WeaponsPhysics",
+      "internal": false
+    },
+    {
+      "id": "p48",
+      "token": "PowerConsumers",
+      "module": "m14",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "WeaponsPower",
+      "internal": false
+    },
+    {
+      "id": "p49",
+      "token": "CommandHandlers",
+      "module": "m14",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "WeaponsCommands",
+      "internal": false
+    },
+    {
+      "id": "p50",
+      "token": "SimDriver",
+      "module": "m15",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -838,56 +930,8 @@
       "internal": false
     },
     {
-      "id": "p47",
-      "token": "DriverOptions",
-      "module": "m14",
-      "lifetime": null,
-      "kind": "value",
-      "eager": true,
-      "async": null,
-      "notes": [],
-      "implementation": null,
-      "internal": false
-    },
-    {
-      "id": "p48",
-      "token": "NavAudit",
-      "module": "m15",
-      "lifetime": "singleton",
-      "kind": "class",
-      "eager": true,
-      "async": null,
-      "notes": [],
-      "implementation": "NavAudit",
-      "internal": false
-    },
-    {
-      "id": "p49",
-      "token": "FlightRecorder",
-      "module": "m15",
-      "lifetime": "singleton",
-      "kind": "class",
-      "eager": true,
-      "async": null,
-      "notes": [],
-      "implementation": "FlightRecorder",
-      "internal": false
-    },
-    {
-      "id": "p50",
-      "token": "PressureInterlock",
-      "module": "m15",
-      "lifetime": "singleton",
-      "kind": "class",
-      "eager": true,
-      "async": null,
-      "notes": [],
-      "implementation": "PressureInterlock",
-      "internal": false
-    },
-    {
       "id": "p51",
-      "token": "RequestScopes",
+      "token": "DriverOptions",
       "module": "m15",
       "lifetime": null,
       "kind": "value",
@@ -899,20 +943,56 @@
     },
     {
       "id": "p52",
-      "token": "interceptors registry",
-      "module": "m15",
+      "token": "NavAudit",
+      "module": "m16",
       "lifetime": "singleton",
-      "kind": "factory",
+      "kind": "class",
       "eager": true,
       "async": null,
       "notes": [],
-      "implementation": null,
+      "implementation": "NavAudit",
       "internal": false
     },
     {
       "id": "p53",
-      "token": "interceptors guard",
-      "module": "m15",
+      "token": "FlightRecorder",
+      "module": "m16",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "FlightRecorder",
+      "internal": false
+    },
+    {
+      "id": "p54",
+      "token": "PressureInterlock",
+      "module": "m16",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "PressureInterlock",
+      "internal": false
+    },
+    {
+      "id": "p55",
+      "token": "RequestScopes",
+      "module": "m16",
+      "lifetime": null,
+      "kind": "value",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "p56",
+      "token": "interceptors registry",
+      "module": "m16",
       "lifetime": "singleton",
       "kind": "factory",
       "eager": true,
@@ -922,9 +1002,21 @@
       "internal": false
     },
     {
-      "id": "p54",
-      "token": "FtlDrive",
+      "id": "p57",
+      "token": "interceptors guard",
       "module": "m16",
+      "lifetime": "singleton",
+      "kind": "factory",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "p58",
+      "token": "FtlDrive",
+      "module": "m17",
       "lifetime": "singleton",
       "kind": "class",
       "eager": true,
@@ -1008,6 +1100,11 @@
       "kind": "all"
     },
     {
+      "from": "p4",
+      "to": "p47",
+      "kind": "all"
+    },
+    {
       "from": "p5",
       "to": "p18",
       "kind": "all"
@@ -1030,6 +1127,11 @@
     {
       "from": "p5",
       "to": "p45",
+      "kind": "all"
+    },
+    {
+      "from": "p5",
+      "to": "p49",
       "kind": "all"
     },
     {
@@ -1100,6 +1202,11 @@
     {
       "from": "p15",
       "to": "p44",
+      "kind": "all"
+    },
+    {
+      "from": "p15",
+      "to": "p48",
       "kind": "all"
     },
     {
@@ -1329,7 +1436,7 @@
     },
     {
       "from": "p46",
-      "to": "p4",
+      "to": "p8",
       "kind": "required"
     },
     {
@@ -1339,61 +1446,96 @@
     },
     {
       "from": "p46",
-      "to": "p47",
+      "to": "p15",
+      "kind": "lazy"
+    },
+    {
+      "from": "p47",
+      "to": "p46",
       "kind": "required"
     },
     {
       "from": "p48",
-      "to": "p2",
+      "to": "p46",
+      "kind": "required"
+    },
+    {
+      "from": "p48",
+      "to": "p11",
       "kind": "required"
     },
     {
       "from": "p49",
-      "to": "p51",
+      "to": "p46",
       "kind": "required"
     },
     {
       "from": "p50",
-      "to": "p8",
-      "kind": "required"
-    },
-    {
-      "from": "p50",
-      "to": "p9",
-      "kind": "required"
-    },
-    {
-      "from": "p52",
-      "to": "p48",
-      "kind": "required"
-    },
-    {
-      "from": "p52",
-      "to": "p49",
-      "kind": "required"
-    },
-    {
-      "from": "p52",
-      "to": "p50",
-      "kind": "required"
-    },
-    {
-      "from": "p54",
       "to": "p4",
       "kind": "required"
     },
     {
+      "from": "p50",
+      "to": "p11",
+      "kind": "required"
+    },
+    {
+      "from": "p50",
+      "to": "p51",
+      "kind": "required"
+    },
+    {
+      "from": "p52",
+      "to": "p2",
+      "kind": "required"
+    },
+    {
+      "from": "p53",
+      "to": "p55",
+      "kind": "required"
+    },
+    {
       "from": "p54",
       "to": "p8",
       "kind": "required"
     },
     {
       "from": "p54",
+      "to": "p9",
+      "kind": "required"
+    },
+    {
+      "from": "p56",
+      "to": "p52",
+      "kind": "required"
+    },
+    {
+      "from": "p56",
+      "to": "p53",
+      "kind": "required"
+    },
+    {
+      "from": "p56",
+      "to": "p54",
+      "kind": "required"
+    },
+    {
+      "from": "p58",
+      "to": "p4",
+      "kind": "required"
+    },
+    {
+      "from": "p58",
+      "to": "p8",
+      "kind": "required"
+    },
+    {
+      "from": "p58",
       "to": "p37",
       "kind": "required"
     },
     {
-      "from": "p54",
+      "from": "p58",
       "to": "p15",
       "kind": "required"
     }
