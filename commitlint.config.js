@@ -89,6 +89,8 @@ module.exports = {
         'federation-shell',
         'federation-cartography',
         'federation-command',
+        'federation-engineering',
+        'federation-life-support',
         'federation-contracts',
         // The simulation library the demo apps run (ship systems spec 3.1).
         'meridian-systems',
