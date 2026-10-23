@@ -259,10 +259,77 @@ export const offlineHail: GrowthCase = {
 };
 
 /**
+ * The course and the burn on the offline ship. At tick 11 the crew steers for
+ * Kepler-442b, and the helm turns the ship and settles on 0.733 rad at
+ * tick 697, 103 ticks before the read at tick 800. The burn at tick 801 then
+ * runs along an attitude that equals the course exactly, so the drive reads no
+ * cosine of a non-zero angle and every read compares the same figures on
+ * every engine.
+ */
+export const courseAndBurn: GrowthCase = {
+  name: 'a course and a burn on the offline ship settle the helm on the charted heading and drive the ship along it',
+  async run(fetch) {
+    await send(fetch, command('engineering', 'throttle', { level: 0.6 }), 202, {
+      tick: 1,
+    });
+    await advanceTo(fetch, 10, 10);
+    await send(fetch, command('helm', 'course', { to: 'Kepler-442b' }), 202, {
+      tick: 11,
+    });
+
+    let ship = await advanceTo(fetch, 790, 800);
+    expectEqual('helm at tick 800', ship.helm, {
+      attitude: 0.733,
+      rate: 0,
+      torque: 0,
+    });
+    expectEqual('heading at tick 800', ship.setpoints.helm.heading, 0.733);
+    expectEqual(
+      'helm loads at tick 800',
+      ship.power.loads
+        .filter((load) => load.id === 'thrusters' || load.id === 'main-drive')
+        .map(({ id, demand, allocated }) => ({ id, demand, allocated })),
+      [
+        { id: 'thrusters', demand: 0, allocated: 0 },
+        { id: 'main-drive', demand: 0, allocated: 0 },
+      ],
+    );
+    await send(fetch, command('helm', 'burn', { level: 1 }), 202, {
+      tick: 801,
+    });
+
+    ship = await advanceTo(fetch, 400, 1200);
+    expectEqual('drive at tick 1200', ship.drive, {
+      thrust: 14_400,
+      massFlow: 0.288,
+      acceleration: 0.0036,
+      velocity: 0.72,
+      distance: 72.18,
+    });
+    expectEqual(
+      'main-drive at tick 1200',
+      ship.power.loads.find((load) => load.id === 'main-drive'),
+      {
+        id: 'main-drive',
+        priority: 5,
+        demand: 600_000_000,
+        allocated: 600_000_000,
+      },
+    );
+    const answer = await fetch('/commands');
+    const ticks = (
+      await okJson<{ tick: number }[]>('GET /commands', answer)
+    ).map(({ tick }) => tick);
+    expectEqual('command log ticks', ticks, [1, 11, 801]);
+  },
+};
+
+/**
  * The cases bridge-api's e2e-growth target runs on workerd
  * (test/worker/growth/sim.test.ts), Deno and Bun (test/runtime/growth.ts).
- * The airlock drill and the offline hail also run on the Node servers
- * (e2e/growth/airlock.e2e.ts and e2e/growth/comms.e2e.ts).
+ * Each case this file exports by name also runs on the Node servers
+ * (e2e/growth/airlock.e2e.ts, e2e/growth/comms.e2e.ts and
+ * e2e/growth/helm.e2e.ts).
  */
 export const growthCases: readonly GrowthCase[] = [
   {
@@ -360,4 +427,5 @@ export const growthCases: readonly GrowthCase[] = [
   },
   airlockDrill,
   offlineHail,
+  courseAndBurn,
 ];
