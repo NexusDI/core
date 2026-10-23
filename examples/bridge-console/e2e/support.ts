@@ -1,6 +1,6 @@
-import { test as base, type Page } from '@playwright/test';
+import { expect, test as base, type Page } from '@playwright/test';
 
-export { expect } from '@playwright/test';
+export { expect };
 
 /** The hosts the suite serves: the console and the bridge API. */
 const LOCAL = new Set(['127.0.0.1', 'localhost']);
@@ -23,6 +23,19 @@ export const test = base.extend<{ localOnly: void }>({
     { auto: true },
   ],
 });
+
+/**
+ * Waits until React commits the course route's flight log on the client:
+ * an effect inside the flight log's Suspense boundary sets `data-flight-log`
+ * on the html element. A case that waits here before it reads `problems`
+ * sees the errors of that boundary's hydration or client render too.
+ */
+export async function flightLogCommitted(page: Page): Promise<void> {
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-flight-log',
+    'committed',
+  );
+}
 
 /** Console errors and warnings, and uncaught page errors, from `page`. */
 export function problems(page: Page): string[] {

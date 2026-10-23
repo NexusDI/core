@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { Await } from 'react-router';
 
 import { BRIDGE_LINK, type IBridgeLink } from '../bridge/bridge-link';
@@ -24,6 +24,19 @@ export const loader: (args: Route.LoaderArgs) => Promise<{
   },
 );
 
+/**
+ * Sets `data-flight-log` on the html element once React commits the
+ * flight log on the client. React runs the effect on both paths: when it
+ * hydrates the streamed answer, and when it renders the boundary on the
+ * client. The e2e suite waits on the attribute.
+ */
+function FlightLogCommitted() {
+  useEffect(() => {
+    document.documentElement.dataset.flightLog = 'committed';
+  }, []);
+  return null;
+}
+
 export default function Course({ loaderData }: Route.ComponentProps) {
   return (
     <>
@@ -48,6 +61,7 @@ export default function Course({ loaderData }: Route.ComponentProps) {
           >
             {({ course, entries }) => (
               <>
+                <FlightLogCommitted />
                 <p>{`${course.to}: heading ${course.heading}`}</p>
                 <ul>
                   {entries.map((entry, at) => (
