@@ -100,6 +100,13 @@
       "sent": null,
       "messages": []
     },
+    "weapons": {
+      "status": "idle",
+      "charge": 0,
+      "shots": 0,
+      "hits": 0,
+      "lastShot": null
+    },
     "drive": {
       "thrust": 0,
       "massFlow": 0,
@@ -168,6 +175,10 @@
       },
       "comms": {
         "hail": false
+      },
+      "weapons": {
+        "armed": false,
+        "range": null
       },
       "drive": {
         "throttle": 0
@@ -300,6 +311,13 @@
       "sent": null,
       "messages": []
     },
+    "weapons": {
+      "status": "idle",
+      "charge": 0,
+      "shots": 0,
+      "hits": 0,
+      "lastShot": null
+    },
     "drive": {
       "thrust": 0,
       "massFlow": 0,
@@ -368,6 +386,10 @@
       },
       "comms": {
         "hail": false
+      },
+      "weapons": {
+        "armed": false,
+        "range": null
       },
       "drive": {
         "throttle": 0
@@ -500,6 +522,13 @@
       "sent": null,
       "messages": []
     },
+    "weapons": {
+      "status": "idle",
+      "charge": 0,
+      "shots": 0,
+      "hits": 0,
+      "lastShot": null
+    },
     "drive": {
       "thrust": 0,
       "massFlow": 0,
@@ -568,6 +597,10 @@
       },
       "comms": {
         "hail": false
+      },
+      "weapons": {
+        "armed": false,
+        "range": null
       },
       "drive": {
         "throttle": 0
@@ -700,6 +733,13 @@
       "sent": null,
       "messages": []
     },
+    "weapons": {
+      "status": "idle",
+      "charge": 0,
+      "shots": 0,
+      "hits": 0,
+      "lastShot": null
+    },
     "drive": {
       "thrust": 0,
       "massFlow": 0,
@@ -768,6 +808,10 @@
       },
       "comms": {
         "hail": false
+      },
+      "weapons": {
+        "armed": false,
+        "range": null
       },
       "drive": {
         "throttle": 0
@@ -900,6 +944,13 @@
       "sent": null,
       "messages": []
     },
+    "weapons": {
+      "status": "idle",
+      "charge": 0,
+      "shots": 0,
+      "hits": 0,
+      "lastShot": null
+    },
     "drive": {
       "thrust": 0,
       "massFlow": 0,
@@ -968,6 +1019,10 @@
       },
       "comms": {
         "hail": false
+      },
+      "weapons": {
+        "armed": false,
+        "range": null
       },
       "drive": {
         "throttle": 0

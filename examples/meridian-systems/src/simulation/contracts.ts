@@ -9,6 +9,7 @@ import type { DriveRecord, HelmRecord } from '../physics/motion';
 import type { PowerRecord } from '../physics/power';
 import type { SafetyRecord } from '../physics/safety';
 import type { CoolantRecord, ReactorRecord } from '../physics/thermal';
+import type { WeaponsRecord } from '../physics/weapons';
 import type {
   LoggedChange,
   QueuedCommand,
@@ -61,6 +62,7 @@ export interface ShipSnapshot {
   readonly power: PowerRecord;
   readonly lifeSupport: LifeSupportRecord<CompartmentId>;
   readonly comms: CommsRecord;
+  readonly weapons: WeaponsRecord;
   readonly drive: DriveRecord;
   readonly helm: HelmRecord;
   readonly ftl: FtlRecord;

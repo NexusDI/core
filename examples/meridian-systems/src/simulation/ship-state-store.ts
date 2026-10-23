@@ -351,6 +351,13 @@ function initialSnapshot(deck: DeckPlan): ShipSnapshot {
       sent: null,
       messages: Object.freeze([]),
     }),
+    weapons: Object.freeze({
+      status: 'idle',
+      charge: 0,
+      shots: 0,
+      hits: 0,
+      lastShot: null,
+    }),
     drive: Object.freeze({
       thrust: 0,
       massFlow: 0,
@@ -371,6 +378,7 @@ function initialSnapshot(deck: DeckPlan): ShipSnapshot {
       shields: Object.freeze({ raised: false }),
       lifeSupport: lifeSupport.setpoints,
       comms: Object.freeze({ hail: false }),
+      weapons: Object.freeze({ armed: false, range: null }),
       drive: Object.freeze({ throttle: 0 }),
       helm: Object.freeze({ heading: 0 }),
       ftl: Object.freeze({ armed: false, jump: null }),
