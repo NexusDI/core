@@ -12,6 +12,7 @@ import {
   FUSION_REACTOR,
   LITHIUM_LOOP,
   louvre,
+  pulseCoolant,
   stepCoolant,
   stepReactor,
   tripped,
@@ -97,6 +98,12 @@ describe('the lithium coolant loop', () => {
   it('trips the reactor from 1,450 K', () => {
     expect(tripped({ temperature: 1_449.9 }, LITHIUM_LOOP)).toBe(false);
     expect(tripped({ temperature: 1_450 }, LITHIUM_LOOP)).toBe(true);
+  });
+
+  it('raises 500 K to 500.08992805755395 K with a pulse of 75,000,000 J', () => {
+    expect(pulseCoolant(standby, 75_000_000, LITHIUM_LOOP)).toEqual({
+      temperature: 500.08992805755395,
+    });
   });
 });
 

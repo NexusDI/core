@@ -136,6 +136,21 @@ export function stepCoolant(
   };
 }
 
+/**
+ * The loop after a pulse of `energy` J within one tick:
+ * `T_c' = T_c + energy / (m · c_p)`.
+ */
+export function pulseCoolant(
+  coolant: CoolantRecord,
+  energy: number,
+  rating: CoolantRating,
+): CoolantRecord {
+  return Object.freeze({
+    temperature:
+      coolant.temperature + energy / (rating.mass * rating.heatCapacity),
+  });
+}
+
 /** True when the loop has reached its trip temperature. */
 export function tripped(
   coolant: CoolantRecord,

@@ -3,12 +3,11 @@ import {
   FTL_SPOOL,
   ftlDemand,
   HOME_SECTOR,
-  pulseCoolant,
   stepFtl,
   type FtlRecord,
   type FtlSetpoints,
 } from './ftl';
-import { LITHIUM_LOOP, type ReactorRecord } from './thermal';
+import { LITHIUM_LOOP, pulseCoolant, type ReactorRecord } from './thermal';
 
 const dt = 0.5;
 const power = FTL_SPOOL.power;

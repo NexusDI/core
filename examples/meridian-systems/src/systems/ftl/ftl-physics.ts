@@ -1,10 +1,5 @@
-import {
-  FTL_SPOOL_LOAD,
-  type FtlRating,
-  pulseCoolant,
-  stepFtl,
-} from '../../physics/ftl';
-import { LITHIUM_LOOP } from '../../physics/thermal';
+import { FTL_SPOOL_LOAD, type FtlRating, stepFtl } from '../../physics/ftl';
+import { LITHIUM_LOOP, pulseCoolant } from '../../physics/thermal';
 import type {
   IShipSystem,
   Phase,
