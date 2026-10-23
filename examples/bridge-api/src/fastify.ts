@@ -19,7 +19,7 @@ import Fastify, { type FastifyRequest } from 'fastify';
 import { answerAtmosphere } from './bridge/atmosphere';
 import { answerCommand } from './bridge/commands';
 import { compartmentOf } from './bridge/compartment-of';
-import { answerJump, answerSpool } from './bridge/ftl';
+import { answerJump, answerSpool, ftlRating } from './bridge/ftl';
 import { readJson } from './bridge/json-body';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { telemetryReadable } from './bridge/telemetry-readable';
@@ -123,10 +123,16 @@ export async function createBridge(
     });
     scoped.get(
       '/telemetry',
-      di.inject({ feed: TELEMETRY }, async ({ feed }, _req, reply) =>
+      di.inject({ feed: TELEMETRY }, async ({ feed }, req, reply) =>
         reply
           .headers(SSE_HEADERS)
-          .send(telemetryReadable(feed, options.shutdown)),
+          .send(
+            telemetryReadable(
+              feed,
+              options.shutdown,
+              ftlRating(await di.scope(req)),
+            ),
+          ),
       ),
     );
     scoped.post(

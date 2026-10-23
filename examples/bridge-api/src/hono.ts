@@ -18,7 +18,7 @@ import { streamSSE } from 'hono/streaming';
 import { answerAtmosphere } from './bridge/atmosphere';
 import { answerCommand } from './bridge/commands';
 import { compartmentOf } from './bridge/compartment-of';
-import { answerJump, answerSpool } from './bridge/ftl';
+import { answerJump, answerSpool, ftlRating } from './bridge/ftl';
 import { readJson } from './bridge/json-body';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { SSE_HEADERS, telemetryStream } from './bridge/telemetry-stream';
@@ -122,8 +122,16 @@ export function createBridge(
       })
       .get(
         '/telemetry',
-        di.inject({ feed: TELEMETRY }, ({ feed }, c) =>
-          c.body(telemetryStream(feed, options.shutdown), 200, SSE_HEADERS),
+        di.inject({ feed: TELEMETRY }, async ({ feed }, c) =>
+          c.body(
+            telemetryStream(
+              feed,
+              options.shutdown,
+              ftlRating(await di.scope(c)),
+            ),
+            200,
+            SSE_HEADERS,
+          ),
         ),
       )
       .post(

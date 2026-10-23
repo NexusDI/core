@@ -1,5 +1,9 @@
 import { type Scope, Token } from '@nexusdi/core';
-import type { ShipSnapshot } from '@nexusdi/meridian-systems';
+import type {
+  FtlRating,
+  ShipReading,
+  ShipSnapshot,
+} from '@nexusdi/meridian-systems';
 
 // meridian-systems defines the charts and the link. The bridge re-exports
 // them, so every importer of ./contracts keeps its names.
@@ -40,6 +44,13 @@ export interface ISimDriver {
 
 /** The event names `GET /telemetry` sends: a frame per tick, then `offline`. */
 export type TelemetryEvent = 'snapshot' | 'offline';
+
+/**
+ * The data of a `snapshot` event: the reading of one tick, and from the
+ * frame after the FTL drive loads, the rating of the drive bound to
+ * FTL_DRIVE.
+ */
+export type TelemetryFrame = ShipReading & { readonly ftlRating?: FtlRating };
 
 export const FLIGHT_LOG = new Token<IFlightLog>('FlightLog');
 export const MISSION = new Token<Mission>('Mission');

@@ -19,7 +19,7 @@ import express, { type ErrorRequestHandler, type Request } from 'express';
 import { answerAtmosphere } from './bridge/atmosphere';
 import { answerCommand } from './bridge/commands';
 import { compartmentOf } from './bridge/compartment-of';
-import { answerJump, answerSpool } from './bridge/ftl';
+import { answerJump, answerSpool, ftlRating } from './bridge/ftl';
 import { readJson } from './bridge/json-body';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { telemetryReadable } from './bridge/telemetry-readable';
@@ -118,11 +118,16 @@ export function createBridge(
   });
   bridge.get(
     '/telemetry',
-    di.inject({ feed: TELEMETRY }, ({ feed }, _req, res) => {
+    di.inject({ feed: TELEMETRY }, async ({ feed }, req, res) => {
+      const rating = ftlRating(await di.scope(req));
       res.writeHead(200, SSE_HEADERS);
       // pipeline destroys the source when the client goes, which cancels the
       // stream and unsubscribes it from the feed.
-      pipeline(telemetryReadable(feed, options.shutdown), res, () => {});
+      pipeline(
+        telemetryReadable(feed, options.shutdown, rating),
+        res,
+        () => {},
+      );
     }),
   );
   bridge.post(

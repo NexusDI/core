@@ -1,10 +1,14 @@
-import type {
-  ITelemetryFeed,
-  ShipReading,
-  TelemetrySink,
+import type { Scope } from '@nexusdi/core';
+import {
+  FTL_DRIVE,
+  type FtlStatus,
+  type ITelemetryFeed,
+  type ShipReading,
+  type TelemetrySink,
 } from '@nexusdi/meridian-systems';
 import { describe, expect, it, vi } from 'vitest';
 
+import { ftlRating } from '../src/bridge/ftl';
 import { SSE_HEADERS, telemetryStream } from '../src/bridge/telemetry-stream';
 import type { TelemetryEvent } from '../src/ship/contracts';
 
@@ -194,5 +198,91 @@ describe('telemetryStream', () => {
       'content-type': 'text/event-stream',
       'cache-control': 'no-cache, no-transform',
     });
+  });
+});
+
+describe('telemetryStream with the FTL rating', () => {
+  const rating = {
+    energy: 90e9,
+    power: 900e6,
+    pulseShare: 0.1,
+    reactorLevel: 0.9,
+    coolantLimit: 1_300,
+  };
+  /** A frame of tick and FTL status only. */
+  const ftlAt = (tick: number, status: FtlStatus) =>
+    ({ tick, ftl: { status } }) as ShipReading;
+
+  /** A scope that records its extend and get calls and answers the drive's rating. */
+  function fakeScope(extend: () => Promise<void> = async () => {}) {
+    const calls: string[] = [];
+    const scope = {
+      extend: vi.fn(async () => {
+        calls.push('extend');
+        await extend();
+      }),
+      get: vi.fn((token: unknown) => {
+        calls.push('get');
+        expect(token).toBe(FTL_DRIVE);
+        return { rating };
+      }),
+    };
+    return { calls, scope, frameRating: ftlRating(scope as unknown as Scope) };
+  }
+
+  it('calls no extend for a frame whose FTL record reads offline', async () => {
+    const { calls, frameRating } = fakeScope();
+    const reader = telemetryStream(
+      new FakeFeed(ftlAt(0, 'offline')),
+      undefined,
+      frameRating,
+    ).getReader();
+    expect(await read(reader)).toBe(
+      sse('snapshot', JSON.stringify(ftlAt(0, 'offline'))),
+    );
+    expect(calls).toEqual([]);
+  });
+
+  it('extends the scope once before it reads the drive on the first frame past offline', async () => {
+    const { calls, frameRating } = fakeScope();
+    const feed = new FakeFeed(ftlAt(0, 'offline'));
+    const reader = telemetryStream(feed, undefined, frameRating).getReader();
+    await read(reader);
+    feed.sink?.next(ftlAt(1, 'idle'));
+    expect(await read(reader)).toBe(
+      sse(
+        'snapshot',
+        JSON.stringify({ ...ftlAt(1, 'idle'), ftlRating: rating }),
+      ),
+    );
+    expect(calls).toEqual(['extend', 'get']);
+  });
+
+  it('reuses the rating for every later frame', async () => {
+    const { calls, scope, frameRating } = fakeScope();
+    const feed = new FakeFeed(ftlAt(1, 'idle'));
+    const reader = telemetryStream(feed, undefined, frameRating).getReader();
+    await read(reader);
+    feed.sink?.next(ftlAt(2, 'spooling'));
+    expect(await read(reader)).toBe(
+      sse(
+        'snapshot',
+        JSON.stringify({ ...ftlAt(2, 'spooling'), ftlRating: rating }),
+      ),
+    );
+    expect(calls).toEqual(['extend', 'get']);
+    expect(scope.extend).toHaveBeenCalledTimes(1);
+  });
+
+  it('errors the stream when the extend rejects', async () => {
+    const { frameRating } = fakeScope(async () => {
+      throw new Error('the scope closed');
+    });
+    const reader = telemetryStream(
+      new FakeFeed(ftlAt(1, 'idle')),
+      undefined,
+      frameRating,
+    ).getReader();
+    await expect(reader.read()).rejects.toThrow('the scope closed');
   });
 });
