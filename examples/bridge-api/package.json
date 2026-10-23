@@ -27,14 +27,14 @@
     "hono": "4.13.13"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "1.4.4",
+    "@cloudflare/vitest-plugin": "1.4.6",
     "@edge-runtime/vm": "5.0.0",
     "@nexusdi/cli": "*",
     "@nexusdi/testing": "*",
     "@nexusdi/vitest": "*",
     "@types/express": "5.0.6",
     "esbuild": "0.28.2",
-    "wrangler": "4.148.0"
+    "wrangler": "4.151.3"
   },
   "nx": {
     "tags": [
