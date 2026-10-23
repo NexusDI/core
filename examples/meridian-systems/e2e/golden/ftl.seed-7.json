@@ -1,0 +1,620 @@
+[
+  {
+    "tick": 101,
+    "time": 50.5,
+    "compartments": {
+      "bridge": {
+        "moles": {
+          "O2": 524,
+          "N2": 1946,
+          "CO2": 0.998,
+          "H2O": 22.46,
+          "volatiles": 1.497
+        },
+        "temperature": 293
+      },
+      "habitat": {
+        "moles": {
+          "O2": 1048,
+          "N2": 3892,
+          "CO2": 1.996,
+          "H2O": 44.91,
+          "volatiles": 2.994
+        },
+        "temperature": 293
+      },
+      "reactor-bay": {
+        "moles": {
+          "O2": 698.6,
+          "N2": 2595,
+          "CO2": 1.331,
+          "H2O": 29.94,
+          "volatiles": 1.996
+        },
+        "temperature": 293
+      },
+      "airlock": {
+        "moles": {
+          "O2": 104.8,
+          "N2": 389.2,
+          "CO2": 0.1996,
+          "H2O": 4.491,
+          "volatiles": 0.2994
+        },
+        "temperature": 293
+      }
+    },
+    "reactor": {
+      "level": 1,
+      "thermal": 3630000000,
+      "electric": 1210000000,
+      "tripped": false
+    },
+    "coolant": {
+      "temperature": 571.9
+    },
+    "power": {
+      "output": 1210000000,
+      "loads": [
+        {
+          "id": "life-support",
+          "priority": 1,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "shields",
+          "priority": 2,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "comms",
+          "priority": 3,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "thrusters",
+          "priority": 4,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "main-drive",
+          "priority": 5,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "ftl-spool",
+          "priority": 7,
+          "demand": 900000000,
+          "allocated": 900000000
+        }
+      ],
+      "shed": []
+    },
+    "lifeSupport": {
+      "heaters": {
+        "bridge": 0,
+        "habitat": 0
+      }
+    },
+    "comms": {
+      "status": "standby",
+      "sent": null,
+      "messages": []
+    },
+    "drive": {
+      "thrust": 0,
+      "massFlow": 0,
+      "acceleration": 0,
+      "velocity": 0,
+      "distance": 0
+    },
+    "helm": {
+      "attitude": 0,
+      "rate": 0,
+      "torque": 0
+    },
+    "ftl": {
+      "status": "spooling",
+      "charge": 450000000,
+      "sector": "Sol",
+      "jumped": null
+    },
+    "safety": {
+      "fires": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0,
+        "airlock": 0
+      },
+      "flooded": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0
+      },
+      "alarms": []
+    },
+    "setpoints": {
+      "reactor": {
+        "throttle": 1
+      },
+      "shields": {
+        "raised": false
+      },
+      "lifeSupport": {
+        "online": false,
+        "heaters": {
+          "bridge": {
+            "on": true,
+            "target": 293
+          },
+          "habitat": {
+            "on": true,
+            "target": 293
+          }
+        },
+        "scrubbers": {
+          "bridge": true,
+          "habitat": true
+        },
+        "oxygen": {
+          "bridge": true,
+          "habitat": true
+        },
+        "vents": {
+          "airlock": false
+        },
+        "pumps": {
+          "airlock": "off"
+        }
+      },
+      "comms": {
+        "hail": false
+      },
+      "drive": {
+        "throttle": 0
+      },
+      "helm": {
+        "heading": 0
+      },
+      "ftl": {
+        "armed": true,
+        "jump": null
+      },
+      "safety": {
+        "doors": {
+          "bridge-habitat": false,
+          "habitat-reactor-bay": false,
+          "habitat-airlock": false,
+          "airlock-outer": false
+        },
+        "floods": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        },
+        "drills": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        }
+      }
+    }
+  },
+  {
+    "tick": 300,
+    "time": 150,
+    "compartments": {
+      "bridge": {
+        "moles": {
+          "O2": 524,
+          "N2": 1946,
+          "CO2": 0.998,
+          "H2O": 22.46,
+          "volatiles": 1.497
+        },
+        "temperature": 293
+      },
+      "habitat": {
+        "moles": {
+          "O2": 1048,
+          "N2": 3892,
+          "CO2": 1.996,
+          "H2O": 44.91,
+          "volatiles": 2.994
+        },
+        "temperature": 293
+      },
+      "reactor-bay": {
+        "moles": {
+          "O2": 698.6,
+          "N2": 2595,
+          "CO2": 1.331,
+          "H2O": 29.94,
+          "volatiles": 1.996
+        },
+        "temperature": 293
+      },
+      "airlock": {
+        "moles": {
+          "O2": 104.8,
+          "N2": 389.2,
+          "CO2": 0.1996,
+          "H2O": 4.491,
+          "volatiles": 0.2994
+        },
+        "temperature": 293
+      }
+    },
+    "reactor": {
+      "level": 1,
+      "thermal": 3630000000,
+      "electric": 1210000000,
+      "tripped": false
+    },
+    "coolant": {
+      "temperature": 832.6
+    },
+    "power": {
+      "output": 1210000000,
+      "loads": [
+        {
+          "id": "life-support",
+          "priority": 1,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "shields",
+          "priority": 2,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "comms",
+          "priority": 3,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "thrusters",
+          "priority": 4,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "main-drive",
+          "priority": 5,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "ftl-spool",
+          "priority": 7,
+          "demand": 900000000,
+          "allocated": 900000000
+        }
+      ],
+      "shed": []
+    },
+    "lifeSupport": {
+      "heaters": {
+        "bridge": 0,
+        "habitat": 0
+      }
+    },
+    "comms": {
+      "status": "standby",
+      "sent": null,
+      "messages": []
+    },
+    "drive": {
+      "thrust": 0,
+      "massFlow": 0,
+      "acceleration": 0,
+      "velocity": 0,
+      "distance": 0
+    },
+    "helm": {
+      "attitude": 0,
+      "rate": 0,
+      "torque": 0
+    },
+    "ftl": {
+      "status": "charged",
+      "charge": 90000000000,
+      "sector": "Sol",
+      "jumped": null
+    },
+    "safety": {
+      "fires": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0,
+        "airlock": 0
+      },
+      "flooded": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0
+      },
+      "alarms": []
+    },
+    "setpoints": {
+      "reactor": {
+        "throttle": 1
+      },
+      "shields": {
+        "raised": false
+      },
+      "lifeSupport": {
+        "online": false,
+        "heaters": {
+          "bridge": {
+            "on": true,
+            "target": 293
+          },
+          "habitat": {
+            "on": true,
+            "target": 293
+          }
+        },
+        "scrubbers": {
+          "bridge": true,
+          "habitat": true
+        },
+        "oxygen": {
+          "bridge": true,
+          "habitat": true
+        },
+        "vents": {
+          "airlock": false
+        },
+        "pumps": {
+          "airlock": "off"
+        }
+      },
+      "comms": {
+        "hail": false
+      },
+      "drive": {
+        "throttle": 0
+      },
+      "helm": {
+        "heading": 0
+      },
+      "ftl": {
+        "armed": true,
+        "jump": null
+      },
+      "safety": {
+        "doors": {
+          "bridge-habitat": false,
+          "habitat-reactor-bay": false,
+          "habitat-airlock": false,
+          "airlock-outer": false
+        },
+        "floods": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        },
+        "drills": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        }
+      }
+    }
+  },
+  {
+    "tick": 301,
+    "time": 150.5,
+    "compartments": {
+      "bridge": {
+        "moles": {
+          "O2": 524,
+          "N2": 1946,
+          "CO2": 0.998,
+          "H2O": 22.46,
+          "volatiles": 1.497
+        },
+        "temperature": 293
+      },
+      "habitat": {
+        "moles": {
+          "O2": 1048,
+          "N2": 3892,
+          "CO2": 1.996,
+          "H2O": 44.91,
+          "volatiles": 2.994
+        },
+        "temperature": 293
+      },
+      "reactor-bay": {
+        "moles": {
+          "O2": 698.6,
+          "N2": 2595,
+          "CO2": 1.331,
+          "H2O": 29.94,
+          "volatiles": 1.996
+        },
+        "temperature": 293
+      },
+      "airlock": {
+        "moles": {
+          "O2": 104.8,
+          "N2": 389.2,
+          "CO2": 0.1996,
+          "H2O": 4.491,
+          "volatiles": 0.2994
+        },
+        "temperature": 293
+      }
+    },
+    "reactor": {
+      "level": 1,
+      "thermal": 3630000000,
+      "electric": 1210000000,
+      "tripped": false
+    },
+    "coolant": {
+      "temperature": 844.4
+    },
+    "power": {
+      "output": 1210000000,
+      "loads": [
+        {
+          "id": "life-support",
+          "priority": 1,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "shields",
+          "priority": 2,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "comms",
+          "priority": 3,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "thrusters",
+          "priority": 4,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "main-drive",
+          "priority": 5,
+          "demand": 0,
+          "allocated": 0
+        },
+        {
+          "id": "ftl-spool",
+          "priority": 7,
+          "demand": 0,
+          "allocated": 0
+        }
+      ],
+      "shed": []
+    },
+    "lifeSupport": {
+      "heaters": {
+        "bridge": 0,
+        "habitat": 0
+      }
+    },
+    "comms": {
+      "status": "standby",
+      "sent": null,
+      "messages": []
+    },
+    "drive": {
+      "thrust": 0,
+      "massFlow": 0,
+      "acceleration": 0,
+      "velocity": 0,
+      "distance": 0
+    },
+    "helm": {
+      "attitude": 0,
+      "rate": 0,
+      "torque": 0
+    },
+    "ftl": {
+      "status": "idle",
+      "charge": 0,
+      "sector": "Kepler-442b",
+      "jumped": 301
+    },
+    "safety": {
+      "fires": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0,
+        "airlock": 0
+      },
+      "flooded": {
+        "bridge": 0,
+        "habitat": 0,
+        "reactor-bay": 0
+      },
+      "alarms": []
+    },
+    "setpoints": {
+      "reactor": {
+        "throttle": 1
+      },
+      "shields": {
+        "raised": false
+      },
+      "lifeSupport": {
+        "online": false,
+        "heaters": {
+          "bridge": {
+            "on": true,
+            "target": 293
+          },
+          "habitat": {
+            "on": true,
+            "target": 293
+          }
+        },
+        "scrubbers": {
+          "bridge": true,
+          "habitat": true
+        },
+        "oxygen": {
+          "bridge": true,
+          "habitat": true
+        },
+        "vents": {
+          "airlock": false
+        },
+        "pumps": {
+          "airlock": "off"
+        }
+      },
+      "comms": {
+        "hail": false
+      },
+      "drive": {
+        "throttle": 0
+      },
+      "helm": {
+        "heading": 0
+      },
+      "ftl": {
+        "armed": false,
+        "jump": null
+      },
+      "safety": {
+        "doors": {
+          "bridge-habitat": false,
+          "habitat-reactor-bay": false,
+          "habitat-airlock": false,
+          "airlock-outer": false
+        },
+        "floods": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        },
+        "drills": {
+          "bridge": false,
+          "habitat": false,
+          "reactor-bay": false
+        }
+      }
+    }
+  }
+]
