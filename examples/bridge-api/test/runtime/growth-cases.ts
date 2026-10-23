@@ -525,6 +525,67 @@ export const fireRailgun: GrowthCase = {
   },
 };
 
+/** The short id and the pinned ticks of each pinned case, besides `final`. */
+const pinnedCases = new Map<string, { id: string; ticks: readonly number[] }>([
+  [offlineHail.name, { id: 'hail', ticks: [] }],
+  [courseAndBurn.name, { id: 'course', ticks: [800] }],
+  [spoolAndJump.name, { id: 'spool', ticks: [300] }],
+  [fireRailgun.name, { id: 'weapons', ticks: [35] }],
+]);
+
+/** The FNV-1a 32-bit hash of the UTF-8 bytes of `bytes`, as 8 hex digits. */
+function fnv1a(bytes: Uint8Array): string {
+  let hash = 0x811c9dc5;
+  for (const byte of bytes) {
+    hash ^= byte;
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, '0');
+}
+
+/**
+ * Runs `each` on `fetch` and, for a case whose `/sim` bodies the ship systems
+ * spec pins, prints one `sim-pin` line per pinned body after the case passes:
+ * the leg, the case, the tick (or `final`), the UTF-8 length of the body text
+ * as the route sent it, and its FNV-1a hash. The line changes no assertion.
+ * Every leg runs its cases through this function, so the lines share a format.
+ */
+export async function runGrowthCase(
+  leg: string,
+  each: GrowthCase,
+  fetch: BridgeFetch,
+): Promise<void> {
+  const pin = pinnedCases.get(each.name);
+  if (pin === undefined) return each.run(fetch);
+  const reads: { tick: number; bytes: number; hash: string }[] = [];
+  await each.run(async (path, init) => {
+    const res = await fetch(path, init);
+    if (path === '/sim' && (init?.method ?? 'GET') === 'GET') {
+      const text = await res.clone().text();
+      const bytes = new TextEncoder().encode(text);
+      reads.push({
+        tick: (JSON.parse(text) as ShipReading).tick,
+        bytes: bytes.length,
+        hash: fnv1a(bytes),
+      });
+    }
+    return res;
+  });
+  const shown = [
+    ...pin.ticks.map(
+      (tick) =>
+        [String(tick), reads.filter((r) => r.tick === tick).at(-1)] as const,
+    ),
+    ['final', reads.at(-1)] as const,
+  ];
+  for (const [at, read] of shown)
+    console.log(
+      read === undefined
+        ? `sim-pin leg=${leg} case=${pin.id} at=${at} missing`
+        : `sim-pin leg=${leg} case=${pin.id} at=${at} bytes=${read.bytes} fnv1a=${read.hash}`,
+    );
+}
+
 /**
  * The cases bridge-api's e2e-growth target runs on workerd
  * (test/worker/growth/sim.test.ts), Deno and Bun (test/runtime/growth.ts).

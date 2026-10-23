@@ -4,7 +4,7 @@ import { nodeScopes } from '@nexusdi/node';
 import { createBridge } from '../../src/hono';
 import { OfflineMeridian } from '../../src/ship/meridian';
 import { bridgePlugins } from '../../src/ship/plugins';
-import { growthCases } from './growth-cases';
+import { growthCases, runGrowthCase } from './growth-cases';
 import { serve } from './serve';
 
 // bridge-api's growth cases on Deno or Bun. Each case gets a fresh
@@ -19,7 +19,11 @@ for (const each of growthCases) {
   const ship = await Nexus.create(OfflineMeridian, { plugins });
   const bridge = await serve(createBridge(ship, { scopes }).fetch);
   try {
-    await each.run((path, init) => fetch(`${bridge.url}${path}`, init));
+    await runGrowthCase(
+      'Bun' in globalThis ? 'bun' : 'deno',
+      each,
+      (path, init) => fetch(`${bridge.url}${path}`, init),
+    );
   } catch (error) {
     failures.push(`${each.name}: ${(error as Error).message}`);
   } finally {

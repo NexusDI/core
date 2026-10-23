@@ -1,8 +1,12 @@
 import { Nexus } from '@nexusdi/core';
 import type { ShipReading } from '@nexusdi/meridian-systems';
 import { nodeScopes } from '@nexusdi/node';
-import { expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
+import {
+  type GrowthCase,
+  runGrowthCase,
+} from '../../test/runtime/growth-cases';
 import { offlineMeridian, type ShipSetup } from '../../src/ship/meridian';
 import { bridgePlugins } from '../../src/ship/plugins';
 import { servers } from '../servers';
@@ -61,4 +65,21 @@ export async function withShip(
   } finally {
     await bridge.close();
   }
+}
+
+/**
+ * Runs `each` on the hono, express and fastify servers, each on a fresh
+ * ship, and prints its `sim-pin` lines as `node-<framework>`. `title` is the
+ * suite name with `%s` for the framework.
+ */
+export function describeOnNode(title: string, each: GrowthCase): void {
+  describe.each(['hono', 'express', 'fastify'] as const)(title, (framework) => {
+    it(each.name, () =>
+      withShip(framework, manual, (url) =>
+        runGrowthCase(`node-${framework}`, each, (path, init) =>
+          fetch(`${url}${path}`, init),
+        ),
+      ),
+    );
+  });
 }
