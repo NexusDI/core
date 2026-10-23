@@ -37,3 +37,19 @@ export function flagArgument(
   if (typeof value !== 'boolean') throw refuse(command.action);
   return value;
 }
+
+/**
+ * The level argument `name` of `command`, a number from 0 to 1. Throws the
+ * argument refusal for any other value, NaN included.
+ */
+export function levelArgument(
+  command: ShipCommand,
+  name: string,
+  refuse: CommandRefusal,
+): number {
+  const value = command[name];
+  if (typeof value !== 'number' || !(value >= 0 && value <= 1)) {
+    throw refuse(command.action);
+  }
+  return value;
+}
