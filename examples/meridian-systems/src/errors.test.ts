@@ -3,6 +3,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import {
   BadCommandError,
+  FtlNotSpooledError,
   InterlockError,
   PowerBudgetError,
   UnknownCompartmentError,
@@ -151,6 +152,33 @@ describe('InterlockError', () => {
   it('links its one-line message to the README anchor of its code', () => {
     expect(interlock().message).toBe(
       `[MERIDIAN_INTERLOCK] door=habitat-airlock difference=70585 limit=5000. ${DOCS}MERIDIAN_INTERLOCK`,
+    );
+  });
+});
+
+const notSpooled = () =>
+  new FtlNotSpooledError({ charge: 22.5e9, energy: 90e9 });
+
+describe('FtlNotSpooledError', () => {
+  it('carries its code, its name and its fields', () => {
+    const error = notSpooled();
+    expect(error).toBeInstanceOf(NexusError);
+    expect(error.code).toBe('MERIDIAN_FTL_NOT_SPOOLED');
+    expect(error.name).toBe('FtlNotSpooledError');
+    expect({ ...error }).toEqual({ charge: 22.5e9, energy: 90e9 });
+  });
+
+  it('narrows through isNexusError by its code', () => {
+    const error: unknown = notSpooled();
+    expect(isNexusError(error, 'MERIDIAN_FTL_NOT_SPOOLED')).toBe(true);
+    expect(isNexusError(error, 'MERIDIAN_POWER_BUDGET')).toBe(false);
+    if (isNexusError(error, 'MERIDIAN_FTL_NOT_SPOOLED'))
+      expectTypeOf(error).toEqualTypeOf<FtlNotSpooledError>();
+  });
+
+  it('links its one-line message to the README anchor of its code', () => {
+    expect(notSpooled().message).toBe(
+      `[MERIDIAN_FTL_NOT_SPOOLED] charge=22500000000 energy=90000000000. ${DOCS}MERIDIAN_FTL_NOT_SPOOLED`,
     );
   });
 });

@@ -5,12 +5,15 @@ import {
   type ShipSystemClass,
   TICK_LOOP,
 } from './simulation/contracts';
+import { FtlDrive } from './systems/ftl/ftl-drive.module';
 
 /**
  * Labels each ship provider `system: <module name>` for the devtools graph.
  * It finds the module that binds the `TICK_LOOP` the root resolves, then walks
  * that module's imports transitively, so a module outside that walk, such as
- * one the root imports beside the ship, stays unlabelled.
+ * one the root imports beside the ship, stays unlabelled. The one exception
+ * is `FtlDrive`: `load()` adds it as an import of the root, so the walk also
+ * starts from it, or from a module a plugin put in its place.
  * A `SHIP_SYSTEMS` class provider whose class declares a static `phase` also
  * gets `phase: <n>`.
  * The shape matches devtools' `GraphAnnotator`, so the library needs no
@@ -25,7 +28,14 @@ export function shipNotes(
 
   const modules = new Map(view.modules.map((module) => [module.id, module]));
   const ship = new Set<string>();
-  const pending = [loop.module];
+  const pending = [
+    loop.module,
+    ...view.modules
+      .filter(({ definition, replaced }) =>
+        [definition, replaced].includes(FtlDrive),
+      )
+      .map(({ id }) => id),
+  ];
   for (let id = pending.pop(); id !== undefined; id = pending.pop()) {
     if (ship.has(id)) continue;
     ship.add(id);

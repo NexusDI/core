@@ -1,10 +1,12 @@
-import { defineModule, provide, Token } from '@nexusdi/core';
+import { defineModule, NEXUS_PLUGIN_API, provide, Token } from '@nexusdi/core';
 import { inspect, type NexusGraph } from '@nexusdi/devtools';
 import { describe, expect, it } from 'vitest';
 
 import { meridianSystems } from '../src/meridian-systems.module';
 import { shipNotes } from '../src/notes';
 import { Simulation } from '../src/simulation/simulation.module';
+import { FTL_DRIVE, type IFtlDrive } from '../src/systems/ftl/contracts';
+import { FtlDrive } from '../src/systems/ftl/ftl-drive.module';
 import { ShipUnderTest } from './ship-under-test';
 
 interface IHelm {
@@ -86,6 +88,54 @@ describe('shipNotes', () => {
     expect(byModule.ProbeSystems.flat()).not.toContainEqual(
       expect.stringMatching(/^phase: /),
     );
+  });
+
+  it('labels the loaded FTL drive, and a module that stands in for it, with no phase note', () => {
+    const notesOf = (graph: NexusGraph, implementation: string) =>
+      graph.providers.find(
+        (provider) => provider.implementation === implementation,
+      )?.notes;
+    // Under a root, so FtlDrive sits outside the walk from TICK_LOOP's module.
+    const ship = defineModule({
+      name: 'Root',
+      imports: [meridianSystems({ seed: 7, dt: 0.5 })],
+    });
+    const loaded = inspect(ship, { load: [FtlDrive], annotate: [shipNotes] });
+    expect(notesOf(loaded, 'JumpDrive')).toEqual(['system: FtlDrive']);
+
+    /** A drive that refuses every command, for the stand-in module. */
+    class StandInDrive implements IFtlDrive {
+      readonly rating = {
+        energy: 0,
+        power: 0,
+        pulseShare: 0,
+        reactorLevel: 0,
+        coolantLimit: 0,
+      };
+      spool(): never {
+        throw new Error('the graph builds nothing');
+      }
+      jump(): never {
+        throw new Error('the graph builds nothing');
+      }
+    }
+    const StandIn = defineModule({
+      name: 'StandIn',
+      providers: [provide(FTL_DRIVE, { useClass: StandInDrive })],
+      exports: [FTL_DRIVE],
+    });
+    const replaced = inspect(ship, {
+      load: [FtlDrive],
+      annotate: [shipNotes],
+      plugins: [
+        {
+          name: 'stand-in',
+          apiVersion: NEXUS_PLUGIN_API,
+          compile: { module: (m) => (m === FtlDrive ? StandIn : undefined) },
+        },
+      ],
+    });
+    expect(notesOf(replaced, 'StandInDrive')).toEqual(['system: StandIn']);
   });
 
   it('gives no note to a root without TICK_LOOP', () => {
