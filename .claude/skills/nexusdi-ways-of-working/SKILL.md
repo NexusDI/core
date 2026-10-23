@@ -141,6 +141,26 @@ Content rules:
 - Posts lead with what NexusDI does for the reader. The design reasoning stays
   in the specs.
 
+## Worktree lifecycle
+
+- Create: `git worktree add -b <branch> .claude/worktrees/<branch> origin/<base>`,
+  then `npm ci` in it. Check the hooks with `test -x .husky/_/commit-msg`. On a
+  branch cut before `.husky/_` was committed, `npm ci` installs the hooks, so
+  do not commit there before it has run. A checkout that switches to such a
+  branch deletes the tracked hooks. Run `npx husky` or `npm ci` after the
+  switch, then check again with `test -x .husky/_/commit-msg`.
+- Work: use absolute paths. When agents share a worktree, each commits only its
+  own files with `git add <paths> && git commit -- <paths>`. Never bypass
+  hooks: no `HUSKY=0`, no `--no-verify`, no `git commit-tree`, no
+  `-c core.hooksPath`.
+- After merge: `git worktree remove <path>`, delete the local branch and any
+  backup branches, then run `node ~/.claude/scripts/clean-worktrees.mjs --apply`.
+- Heavy jobs (run-many, next build, e2e, Playwright): on weekdays 09:00 to
+  17:00, one at a time across all agents. Take the lock with
+  `until mkdir /tmp/nexusdi-heavy.lock 2>/dev/null; do sleep 30; done`, release
+  it with `rmdir`, and pass `--parallel=2`. If the holder died, remove the lock
+  by hand. Run at most 2 subagents then, and at most 4 at other times.
+
 ## Git rules
 
 - Never skip hooks: no `--no-verify`, no `-c core.hooksPath=/dev/null`. Fix what
