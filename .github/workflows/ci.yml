@@ -130,7 +130,7 @@ jobs:
       # runs in Chromium through Playwright.
       - run: npx playwright install --with-deps chromium
 
-      # The four federation demo projects carry the demo-frontend tag. They
+      # The six federation demo projects carry the demo-frontend tag. They
       # build with rspack, and the demo-apps job below runs their targets, so
       # this step and release.yml's verify step leave them out. bridge-api
       # and bridge-console carry only the demo tag and stay here.
@@ -210,7 +210,8 @@ jobs:
   # rulesets never require this check, so a red growth case shows on the run
   # and blocks no merge or release. A case moves into its app's e2e target,
   # and so into demo-apps, after a green rc cycle. bridge-api,
-  # bridge-console and meridian-systems each hold an e2e-growth target.
+  # bridge-console, federation-shell and meridian-systems each hold an
+  # e2e-growth target.
   demo-growth:
     runs-on: ubuntu-latest
     timeout-minutes: 20
