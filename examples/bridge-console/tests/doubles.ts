@@ -181,6 +181,14 @@ export class FakeBridgeLink implements IBridgeLink {
       fix: 'raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
     };
   }
+  /** Queues the spool for tick 1. */
+  async spool(): Promise<CommandAnswer> {
+    return { accepted: true, tick: 1 };
+  }
+  /** Queues the jump for tick 1. */
+  async jump(): Promise<CommandAnswer> {
+    return { accepted: true, tick: 1 };
+  }
 }
 
 /** The override of BRIDGE_LINK the route tests use. */

@@ -9,7 +9,11 @@
 import type { ShipCommand } from '@nexusdi/meridian-systems';
 import type { ActionFunctionArgs } from 'react-router';
 
-import { BRIDGE_LINK, type CommandAnswer } from '../../bridge/bridge-link';
+import {
+  BRIDGE_LINK,
+  type CommandAnswer,
+  type IBridgeLink,
+} from '../../bridge/bridge-link';
 import { di } from '../../nexus.server';
 
 /**
@@ -67,6 +71,20 @@ export function commandFrom(
 }
 
 /**
+ * A route action that reads the submitted form, hands it to `post` with the
+ * request's bridge link, and answers what the link answers.
+ */
+function linkAction(
+  post: (link: IBridgeLink, form: FormData) => Promise<CommandAnswer>,
+): (args: ActionFunctionArgs) => Promise<CommandAnswer> {
+  return di.inject(
+    { link: BRIDGE_LINK },
+    async ({ link }, { request }: ActionFunctionArgs) =>
+      post(link, await request.formData()),
+  );
+}
+
+/**
  * A route action that posts the submitted form to bridge-api as a command
  * for `system` (one name, or the system of each action), read by
  * `commandFrom` with `args`. It answers the queued tick or the backend's
@@ -76,9 +94,24 @@ export function systemAction(
   system: SystemOf,
   args: Readonly<Record<string, ArgumentKind>>,
 ): (args: ActionFunctionArgs) => Promise<CommandAnswer> {
-  return di.inject(
-    { link: BRIDGE_LINK },
-    async ({ link }, { request }: ActionFunctionArgs) =>
-      link.command(commandFrom(await request.formData(), system, args)),
+  return linkAction((link, form) =>
+    link.command(commandFrom(form, system, args)),
   );
+}
+
+/**
+ * A route action for the FTL page: the form's `command` is `spool` or `jump`,
+ * and a jump reads the star from the `to` field. The FTL routes sit outside
+ * `POST /commands`, so the action calls the link's own posts. Any other
+ * command goes to `POST /commands` and comes back as the backend's refusal.
+ */
+export function ftlAction(): (
+  args: ActionFunctionArgs,
+) => Promise<CommandAnswer> {
+  return linkAction((link, form) => {
+    const command = String(form.get('command') ?? '');
+    if (command === 'spool') return link.spool();
+    if (command === 'jump') return link.jump(String(form.get('to') ?? ''));
+    return link.command(commandFrom(form, 'ftl', {}));
+  });
 }

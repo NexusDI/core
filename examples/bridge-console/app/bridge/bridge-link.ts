@@ -55,6 +55,13 @@ export interface IBridgeLink {
   graph(): Promise<NexusGraph | null>;
   /** Posts `cmd` to `POST /commands`. Any status but 202, 400 and 409 rejects. */
   command(cmd: ShipCommand): Promise<CommandAnswer>;
+  /**
+   * Posts the spool to `POST /ftl/spool`. The backend loads the FTL drive on
+   * the first spool or jump.
+   */
+  spool(): Promise<CommandAnswer>;
+  /** Posts a jump to the charted star `to`, to `POST /ftl/jump`. */
+  jump(to: string): Promise<CommandAnswer>;
 }
 export const BRIDGE_LINK = new Token<IBridgeLink>('BridgeLink');
 const BRIDGE_LINK_OPTIONS = new Token<{ readonly url: string }>(
@@ -113,6 +120,12 @@ class BridgeApiLink implements IBridgeLink {
   }
   async command(cmd: ShipCommand): Promise<CommandAnswer> {
     return this.#post('commands', cmd);
+  }
+  async spool(): Promise<CommandAnswer> {
+    return this.#post('ftl/spool');
+  }
+  async jump(to: string): Promise<CommandAnswer> {
+    return this.#post('ftl/jump', { to });
   }
 
   /**
