@@ -23,7 +23,7 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: /(life-support|safety|airlock|helm|comms)\.spec\.ts/,
+      testIgnore: /(life-support|safety|airlock|helm|ftl|comms)\.spec\.ts/,
     },
     // Life support's online command is one-way on the shared manual ship, so
     // its case runs after every case that reads the idle ship.
@@ -59,13 +59,21 @@ export default defineConfig({
       testMatch: /helm\.spec\.ts/,
       dependencies: ['airlock'],
     },
+    // The ftl case raises the throttle to 1 and cuts the burn, so the spool fits
+    // beside the other loads.
+    {
+      name: 'ftl',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /ftl\.spec\.ts/,
+      dependencies: ['helm'],
+    },
     // The hail stays queued on the shared ship for good, because the ship has
     // no subspace link, so the comms case runs after every other case.
     {
       name: 'comms',
       use: { ...devices['Desktop Chrome'] },
       testMatch: /comms\.spec\.ts/,
-      dependencies: ['helm'],
+      dependencies: ['ftl'],
     },
   ],
 });
