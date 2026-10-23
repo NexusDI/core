@@ -23,6 +23,12 @@
       "cache": true,
       "inputs": ["production", "^production"],
       "outputs": ["{projectRoot}/dist/main"]
+    },
+    "test": {
+      "inputs": [
+        "...",
+        "{workspaceRoot}/examples/meridian-systems/e2e/golden/idle.seed-7.json"
+      ]
     }
   }
 }
