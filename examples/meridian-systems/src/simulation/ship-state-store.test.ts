@@ -612,15 +612,15 @@ describe('ShipStateStore drive and helm', () => {
     expect(ship.setpoints.drive).toStrictEqual({ throttle: 0 });
     expect(ship.setpoints.helm).toStrictEqual({ heading: 0 });
     expect(Object.keys(ship).slice(-4)).toEqual([
-      'drive',
       'helm',
+      'ftl',
       'safety',
       'setpoints',
     ]);
     expect(Object.keys(ship.setpoints).slice(-4)).toEqual([
-      'comms',
       'drive',
       'helm',
+      'ftl',
       'safety',
     ]);
     for (const record of [
@@ -644,5 +644,24 @@ describe('ShipStateStore drive and helm', () => {
     expect(Object.isFrozen(ship.setpoints.helm)).toBe(true);
     expect(ship.drive).toBe(drive);
     expect(ship.helm).toBe(helm);
+  });
+});
+
+describe('ShipStateStore ftl', () => {
+  it('starts the ftl record offline at Sol and the setpoints idle after helm, frozen', () => {
+    const ship = new ShipStateStore(plan).snapshot();
+    expect(ship.ftl).toStrictEqual({
+      status: 'offline',
+      charge: 0,
+      sector: 'Sol',
+      jumped: null,
+    });
+    expect(ship.setpoints.ftl).toStrictEqual({ armed: false, jump: null });
+    const keys = Object.keys(ship);
+    expect(keys.indexOf('ftl')).toBe(keys.indexOf('helm') + 1);
+    const setpoints = Object.keys(ship.setpoints);
+    expect(setpoints.indexOf('ftl')).toBe(setpoints.indexOf('helm') + 1);
+    expect(Object.isFrozen(ship.ftl)).toBe(true);
+    expect(Object.isFrozen(ship.setpoints.ftl)).toBe(true);
   });
 });

@@ -7,6 +7,7 @@ import {
   type PumpMode,
 } from '../physics/atmosphere';
 import { COMMS_LOAD } from '../physics/comms';
+import { HOME_SECTOR } from '../physics/ftl';
 import { AIR, molesAt } from '../physics/gas';
 import { MAIN_DRIVE_LOAD, THRUSTERS_LOAD } from '../physics/motion';
 import { allocatePower, DEFLECTOR_GRID } from '../physics/power';
@@ -358,6 +359,12 @@ function initialSnapshot(deck: DeckPlan): ShipSnapshot {
       distance: 0,
     }),
     helm: Object.freeze({ attitude: 0, rate: 0, torque: 0 }),
+    ftl: Object.freeze({
+      status: 'offline',
+      charge: 0,
+      sector: HOME_SECTOR,
+      jumped: null,
+    }),
     safety: safety.record,
     setpoints: Object.freeze({
       reactor: Object.freeze({ throttle: 0 }),
@@ -366,6 +373,7 @@ function initialSnapshot(deck: DeckPlan): ShipSnapshot {
       comms: Object.freeze({ hail: false }),
       drive: Object.freeze({ throttle: 0 }),
       helm: Object.freeze({ heading: 0 }),
+      ftl: Object.freeze({ armed: false, jump: null }),
       safety: safety.setpoints,
     }),
   });

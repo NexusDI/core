@@ -47,6 +47,7 @@ export const shipAtStart: ShipReading = {
   comms: { status: 'standby', sent: null, messages: [] },
   drive: { thrust: 0, massFlow: 0, acceleration: 0, velocity: 0, distance: 0 },
   helm: { attitude: 0, rate: 0, torque: 0 },
+  ftl: { status: 'offline', charge: 0, sector: 'Sol', jumped: null },
   safety: {
     fires: { bridge: 0, habitat: 0, 'reactor-bay': 0, airlock: 0 },
     flooded: { bridge: 0, habitat: 0, 'reactor-bay': 0 },
@@ -69,6 +70,7 @@ export const shipAtStart: ShipReading = {
     comms: { hail: false },
     drive: { throttle: 0 },
     helm: { heading: 0 },
+    ftl: { armed: false, jump: null },
     safety: {
       doors: {
         'bridge-habitat': false,

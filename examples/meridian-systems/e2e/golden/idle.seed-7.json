@@ -112,6 +112,12 @@
       "rate": 0,
       "torque": 0
     },
+    "ftl": {
+      "status": "offline",
+      "charge": 0,
+      "sector": "Sol",
+      "jumped": null
+    },
     "safety": {
       "fires": {
         "bridge": 0,
@@ -168,6 +174,10 @@
       },
       "helm": {
         "heading": 0
+      },
+      "ftl": {
+        "armed": false,
+        "jump": null
       },
       "safety": {
         "doors": {
@@ -302,6 +312,12 @@
       "rate": 0,
       "torque": 0
     },
+    "ftl": {
+      "status": "offline",
+      "charge": 0,
+      "sector": "Sol",
+      "jumped": null
+    },
     "safety": {
       "fires": {
         "bridge": 0,
@@ -358,6 +374,10 @@
       },
       "helm": {
         "heading": 0
+      },
+      "ftl": {
+        "armed": false,
+        "jump": null
       },
       "safety": {
         "doors": {
@@ -492,6 +512,12 @@
       "rate": 0,
       "torque": 0
     },
+    "ftl": {
+      "status": "offline",
+      "charge": 0,
+      "sector": "Sol",
+      "jumped": null
+    },
     "safety": {
       "fires": {
         "bridge": 0,
@@ -548,6 +574,10 @@
       },
       "helm": {
         "heading": 0
+      },
+      "ftl": {
+        "armed": false,
+        "jump": null
       },
       "safety": {
         "doors": {
