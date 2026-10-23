@@ -42,7 +42,10 @@
         "inputs": [
           "default",
           "repoChecks",
-          "^production"
+          "^production",
+          {
+            "runtime": "git ls-files -s .husky/_"
+          }
         ]
       }
     }
