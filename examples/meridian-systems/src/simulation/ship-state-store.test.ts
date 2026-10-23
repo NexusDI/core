@@ -595,3 +595,52 @@ describe('ShipStateStore comms', () => {
     expect(ship.comms).toBe(record);
   });
 });
+
+describe('ShipStateStore drive and helm', () => {
+  it('starts the drive and the helm at rest after comms, frozen', () => {
+    const ship = new ShipStateStore(plan).snapshot();
+    expect(ship.drive).toStrictEqual({
+      thrust: 0,
+      massFlow: 0,
+      acceleration: 0,
+      velocity: 0,
+      distance: 0,
+    });
+    expect(ship.helm).toStrictEqual({ attitude: 0, rate: 0, torque: 0 });
+    expect(ship.setpoints.drive).toStrictEqual({ throttle: 0 });
+    expect(ship.setpoints.helm).toStrictEqual({ heading: 0 });
+    expect(Object.keys(ship).slice(-4)).toEqual([
+      'drive',
+      'helm',
+      'safety',
+      'setpoints',
+    ]);
+    expect(Object.keys(ship.setpoints).slice(-4)).toEqual([
+      'comms',
+      'drive',
+      'helm',
+      'safety',
+    ]);
+    for (const record of [
+      ship.drive,
+      ship.helm,
+      ship.setpoints.drive,
+      ship.setpoints.helm,
+    ]) {
+      expect(Object.isFrozen(record)).toBe(true);
+    }
+  });
+
+  it('applies a queued throttle and course and leaves the records to phase 2', () => {
+    const store = new ShipStateStore(plan);
+    const { drive, helm } = store.snapshot();
+    store.queue({ drive: { throttle: 1 } });
+    store.queue({ helm: { heading: 0.5 } });
+    const ship = store.applyQueued(1);
+    expect(ship.setpoints.drive).toEqual({ throttle: 1 });
+    expect(ship.setpoints.helm).toEqual({ heading: 0.5 });
+    expect(Object.isFrozen(ship.setpoints.helm)).toBe(true);
+    expect(ship.drive).toBe(drive);
+    expect(ship.helm).toBe(helm);
+  });
+});

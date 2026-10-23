@@ -1,6 +1,7 @@
 import { MultiToken, Token } from '@nexusdi/core';
 import type { LifeSupportSetpoints } from '../physics/atmosphere';
 import type { CommsSetpoints } from '../physics/comms';
+import type { DriveSetpoints, HelmSetpoints } from '../physics/motion';
 import type { SafetySetpoints } from '../physics/safety';
 import type { CompartmentId, DoorId } from './contracts';
 
@@ -13,6 +14,8 @@ export interface Setpoints {
   readonly shields: { readonly raised: boolean };
   readonly lifeSupport: LifeSupportSetpoints<CompartmentId>;
   readonly comms: CommsSetpoints;
+  readonly drive: DriveSetpoints;
+  readonly helm: HelmSetpoints;
   readonly safety: SafetySetpoints<CompartmentId, DoorId>;
 }
 

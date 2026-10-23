@@ -88,6 +88,18 @@
       "sent": 1,
       "messages": []
     },
+    "drive": {
+      "thrust": 0,
+      "massFlow": 0,
+      "acceleration": 0,
+      "velocity": 0,
+      "distance": 0
+    },
+    "helm": {
+      "attitude": 0,
+      "rate": 0,
+      "torque": 0
+    },
     "safety": {
       "fires": {
         "bridge": 0,
@@ -138,6 +150,12 @@
       },
       "comms": {
         "hail": false
+      },
+      "drive": {
+        "throttle": 0
+      },
+      "helm": {
+        "heading": 0
       },
       "safety": {
         "doors": {
@@ -254,6 +272,18 @@
         }
       ]
     },
+    "drive": {
+      "thrust": 0,
+      "massFlow": 0,
+      "acceleration": 0,
+      "velocity": 0,
+      "distance": 0
+    },
+    "helm": {
+      "attitude": 0,
+      "rate": 0,
+      "torque": 0
+    },
     "safety": {
       "fires": {
         "bridge": 0,
@@ -304,6 +334,12 @@
       },
       "comms": {
         "hail": false
+      },
+      "drive": {
+        "throttle": 0
+      },
+      "helm": {
+        "heading": 0
       },
       "safety": {
         "doors": {
@@ -420,6 +456,18 @@
         }
       ]
     },
+    "drive": {
+      "thrust": 0,
+      "massFlow": 0,
+      "acceleration": 0,
+      "velocity": 0,
+      "distance": 0
+    },
+    "helm": {
+      "attitude": 0,
+      "rate": 0,
+      "torque": 0
+    },
     "safety": {
       "fires": {
         "bridge": 0,
@@ -470,6 +518,12 @@
       },
       "comms": {
         "hail": false
+      },
+      "drive": {
+        "throttle": 0
+      },
+      "helm": {
+        "heading": 0
       },
       "safety": {
         "doors": {
