@@ -46,6 +46,9 @@ export default function Layout(props: Route.ComponentProps) {
         <Button as="link" to="/systems/ftl" variant="outline">
           FTL
         </Button>
+        <Button as="link" to="/systems/weapons" variant="outline">
+          Weapons
+        </Button>
         <Button as="link" to="/airlock" variant="outline">
           Airlock
         </Button>
