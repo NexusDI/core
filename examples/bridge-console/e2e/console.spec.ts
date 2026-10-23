@@ -1,4 +1,4 @@
-import { expect, problems, test } from './support';
+import { expect, flightLogCommitted, problems, test } from './support';
 
 test('renders a document request with the request mission and its own watch log', async ({
   request,
@@ -65,13 +65,19 @@ test("streams the backend's course, with the watch and flight log entries of one
   );
   const res = await page.goto('/course/Kepler-442b');
   expect(res?.status()).toBe(200);
+  // React streams the answer into a hidden div under body and reveals it
+  // into the boundary later. When hydration renders the boundary on the
+  // client first, the hidden copy stays in the body until the reveal runs,
+  // so the case reads the flight log inside main.
+  const main = page.getByRole('main');
   // The console's own request scope, on the console's server.
-  await expect(page.getByText('survey-9: docked')).toBeVisible();
+  await expect(main.getByText('survey-9: docked')).toBeVisible();
   // The backend's request scope, on bridge-api, reached through BRIDGE_LINK.
-  await expect(page.getByText('survey-9: plotting Kepler-442b')).toBeVisible();
+  await expect(main.getByText('survey-9: plotting Kepler-442b')).toBeVisible();
   // The flight log entry reaches the page only if the request's scope stays
   // open until the stream ends: a disposed scope fails the backend call.
-  await expect(page.getByText('Kepler-442b: heading 42')).toBeVisible();
+  await expect(main.getByText('Kepler-442b: heading 42')).toBeVisible();
+  await flightLogCommitted(page);
   expect(seen).toEqual([]);
 });
 
