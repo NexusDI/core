@@ -160,14 +160,16 @@ describe('BridgeTelemetry', () => {
     expect(FakeSource.opened).toHaveLength(1);
   });
 
-  it('reads offline when the endpoint cannot be read', async () => {
-    const feed = new BridgeTelemetry(
-      endpoint(Promise.reject(new Error('/bridge.json answered 404'))),
-    );
+  it('reads offline when the endpoint cannot be read and logs the cause', async () => {
+    const cause = new Error('/bridge.json answered 404');
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const feed = new BridgeTelemetry(endpoint(Promise.reject(cause)));
     feed.subscribe(() => {});
     await settle();
 
     expect(feed.state()).toEqual({ status: 'offline', reading: null });
     expect(FakeSource.opened).toEqual([]);
+    expect(log).toHaveBeenCalledWith(expect.any(String), cause);
+    log.mockRestore();
   });
 });

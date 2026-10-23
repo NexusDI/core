@@ -69,8 +69,10 @@ export class BridgeTelemetry implements IStationTelemetry {
         source.addEventListener('offline', () => this.#offline());
         source.addEventListener('error', () => this.#offline());
       },
-      () => {
-        if (generation === this.#generation) this.#offline();
+      (error: unknown) => {
+        if (generation !== this.#generation) return;
+        console.error('The shell cannot read the bridge address', error);
+        this.#offline();
       },
     );
   }
