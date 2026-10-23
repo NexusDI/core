@@ -54,8 +54,11 @@ class AtmosphereDesk implements IAtmosphereDesk {
     if (!reading) return null;
     return Object.entries(reading.compartments).map(([id, air]) => {
       const total = Object.values(air.moles).reduce((sum, n) => sum + n, 0);
+      // An evacuated compartment holds no moles, so every partial is zero.
       const partial = (gas: string) =>
-        ((air.pressure * (air.moles[gas] ?? 0)) / total / KILO).toFixed(2);
+        total > 0
+          ? ((air.pressure * (air.moles[gas] ?? 0)) / total / KILO).toFixed(2)
+          : (0).toFixed(2);
       return {
         id,
         gauges: [

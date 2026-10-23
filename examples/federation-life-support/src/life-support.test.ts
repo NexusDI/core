@@ -109,6 +109,19 @@ describe('LifeSupportStation', () => {
     ]);
   });
 
+  it('reads 0.00 kPa partial pressures in an evacuated compartment', async () => {
+    const vacuum: TelemetryReading = {
+      ...idle,
+      compartments: {
+        airlock: { temperature: 3, pressure: 0, moles: { O2: 0, CO2: 0 } },
+      },
+    };
+    await using ship = await createTestingContainer(Meridian).create();
+    const rows = ship.get(ATMOSPHERE_DESK).compartments(online(vacuum));
+    const gauges = rows?.[0]?.gauges.map(([, value]) => value) ?? [];
+    expect(gauges).toEqual(['3.0 K', '0.0 kPa', '0.00 kPa', '0.00 kPa']);
+  });
+
   it('has no rows before the first reading', async () => {
     await using ship = await createTestingContainer(Meridian).create();
     expect(ship.get(ATMOSPHERE_DESK).compartments(online(null))).toBeNull();
