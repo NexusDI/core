@@ -1,5 +1,5 @@
 {
-  "name": "federation-life-support",
+  "name": "@nexusdi/federation-life-support",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "examples/federation-life-support/src",
   "projectType": "application",
@@ -11,14 +11,18 @@
         "command": "rspack serve --mode=development",
         "cwd": "examples/federation-life-support"
       },
-      "dependsOn": ["@nexusdi/federation-shell:serve"]
+      "dependsOn": ["^build", "@nexusdi/federation-shell:serve"]
     },
     "build": {
       "executor": "nx:run-commands",
       "options": {
         "command": "rspack build --mode=production",
         "cwd": "examples/federation-life-support"
-      }
+      },
+      "dependsOn": ["^build"],
+      "cache": true,
+      "inputs": ["production", "^production"],
+      "outputs": ["{projectRoot}/dist/main"]
     }
   }
 }
