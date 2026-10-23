@@ -35,6 +35,8 @@ describe('startRemotes', () => {
     expect(stations).toEqual({
       federation_cartography: 'registered',
       federation_command: 'registered',
+      federation_engineering: 'failed',
+      federation_life_support: 'failed',
     });
   });
 
@@ -47,6 +49,8 @@ describe('startRemotes', () => {
     expect(await startRemotes()).toEqual({
       federation_cartography: 'registered',
       federation_command: 'failed',
+      federation_engineering: 'failed',
+      federation_life_support: 'failed',
     });
   });
 
@@ -61,6 +65,8 @@ describe('startRemotes', () => {
     expect(await startRemotes()).toEqual({
       federation_cartography: 'failed',
       federation_command: 'failed',
+      federation_engineering: 'failed',
+      federation_life_support: 'failed',
     });
     expect(registerRemotes).not.toHaveBeenCalled();
   });
@@ -74,6 +80,8 @@ describe('startRemotes', () => {
     expect(await startRemotes()).toEqual({
       federation_cartography: 'failed',
       federation_command: 'failed',
+      federation_engineering: 'failed',
+      federation_life_support: 'failed',
     });
   });
 });

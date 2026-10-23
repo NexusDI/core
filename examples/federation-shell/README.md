@@ -2,13 +2,17 @@
 
 The host of the federation demo: the Meridian shell. It holds the container `ship`, whose
 root `Meridian` imports `Tactical`, the global module that provides the contract's
-`NAV_CHARTS`. Two stations join the ship at runtime as sections, each a remote built and
-served on its own:
+`NAV_CHARTS`, `TELEMETRY_FEED` and `COMMAND_LINK`. Four stations join the ship at runtime
+as sections, each a remote built and served on its own:
 
 - `/charts` loads `cartography` (`examples/federation-cartography`) and renders its
   `StarMap`.
 - `/command` loads `command` (`examples/federation-command`), whose classes use
-  decorators, and renders its `CommandDeck`.
+  decorators, and renders its `CommandDeck`, which sends helm orders.
+- `/engineering` loads `engineering` (`examples/federation-engineering`) and renders its
+  `EngineeringPanel`.
+- `/life-support` loads `life-support` (`examples/federation-life-support`) and renders
+  its `LifeSupportPanel`.
 
 At startup the shell reads `/remotes.json`, a list of `{ name, entry }`, and registers it
 with the Module Federation runtime. `public/remotes.json` holds the development ports. A
@@ -16,15 +20,24 @@ station that fails to load renders `SectionFailed` with the error code and messa
 its retry button loads the section again. The contract lives in
 `examples/federation-contracts`, which the shell owns.
 
-The ports: the shell on 4300, `cartography` on 4301 and `command` on 4302.
+`TELEMETRY_FEED` reads bridge-api's `GET /telemetry` stream, and `COMMAND_LINK` posts to
+its `POST /commands`. The shell reads bridge-api's address from `/bridge.json`,
+`{ "url": "..." }`, the first time a station asks for either, so startup fetches nothing.
+`public/bridge.json` names `http://localhost:3000/`, bridge-api's dev port, and bridge-api's
+Hono entry answers the shell's origin, `http://localhost:4300`, with CORS headers.
+
+The ports: the shell on 4300, `cartography` on 4301, `command` on 4302, `engineering` on
+4305 and `life-support` on 4306.
 
 ## Commands
 
-The first command serves both remotes in development, and each remote's `serve` starts
-the shell's.
+The first command serves the four remotes in development, and each remote's `serve`
+starts the shell's, so five dev servers run side by side. The second starts bridge-api,
+which the stations read and command.
 
 ```sh
-npx nx run-many -t serve --projects=@nexusdi/federation-cartography,@nexusdi/federation-command
+npx nx run-many -t serve --projects=@nexusdi/federation-cartography,@nexusdi/federation-command,@nexusdi/federation-engineering,@nexusdi/federation-life-support
+npx nx dev @nexusdi/bridge-api
 npx nx build @nexusdi/federation-shell           # production build in dist/main
 npx nx build-e2e @nexusdi/federation-shell       # production build with devtools(), in dist/e2e
 npx nx test @nexusdi/federation-shell
