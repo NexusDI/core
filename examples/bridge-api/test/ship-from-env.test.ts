@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   isDev,
   setupFromEnv,
+  shellOrigins,
   shipFromEnv,
   stopOnSigterm,
 } from '../src/ship-from-env';
@@ -87,6 +88,32 @@ describe('isDev', () => {
     expect(isDev({})).toBe(true);
     expect(isDev({ NODE_ENV: 'development' })).toBe(true);
     expect(isDev({ NODE_ENV: 'production' })).toBe(false);
+  });
+});
+
+describe('shellOrigins', () => {
+  it("allows the shell's dev server when SHELL_ORIGIN is unset or empty", () => {
+    expect(shellOrigins({})).toEqual(['http://localhost:4300']);
+    expect(shellOrigins({ SHELL_ORIGIN: '' })).toEqual([
+      'http://localhost:4300',
+    ]);
+  });
+
+  it('reads a comma-separated SHELL_ORIGIN', () => {
+    expect(
+      shellOrigins({
+        SHELL_ORIGIN: 'http://127.0.0.1:4330,http://localhost:4330',
+      }),
+    ).toEqual(['http://127.0.0.1:4330', 'http://localhost:4330']);
+  });
+
+  it('allows no origin in production, whatever SHELL_ORIGIN holds', () => {
+    expect(
+      shellOrigins({
+        NODE_ENV: 'production',
+        SHELL_ORIGIN: 'http://127.0.0.1:4330',
+      }),
+    ).toEqual([]);
   });
 });
 

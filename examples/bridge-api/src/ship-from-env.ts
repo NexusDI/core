@@ -34,6 +34,16 @@ export function setupFromEnv(env: Env = process.env): ShipSetup {
 export const isDev = (env: Env): boolean => env.NODE_ENV !== 'production';
 
 /**
+ * The browser origins the Hono entry answers with CORS headers: SHELL_ORIGIN,
+ * a comma-separated list, or the federation shell's dev server at
+ * http://localhost:4300. Production answers none, whatever SHELL_ORIGIN holds.
+ */
+export function shellOrigins(env: Env = process.env): readonly string[] {
+  if (!isDev(env)) return [];
+  return (env.SHELL_ORIGIN || 'http://localhost:4300').split(',');
+}
+
+/**
  * The container the Node servers start: the relay graph when RELAY_URL is
  * set, the offline graph otherwise, with errors() and devtools() outside
  * production. The flight recorder reads the request scope from `scopes`, the
