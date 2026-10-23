@@ -53,6 +53,13 @@
         {
           "projects": ["@nexusdi/federation-command"],
           "target": "build"
+        },
+        {
+          "projects": [
+            "@nexusdi/federation-engineering",
+            "@nexusdi/federation-life-support"
+          ],
+          "target": "build"
         }
       ],
       "inputs": [

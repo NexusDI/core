@@ -12,7 +12,20 @@ export const REMOTE_DISTS = [
 ] as const;
 
 /**
+ * The two station builds. The gating suite serves neither one and checks
+ * both for simulation code; the growth suite serves them.
+ */
+const STATION_DISTS = [
+  'federation-engineering/dist/main',
+  'federation-life-support/dist/main',
+] as const;
+
+/**
  * Every build the e2e target builds first (project.json), as a path under
  * examples/.
  */
-export const DISTS = [SHELL_DIST, ...REMOTE_DISTS.map(({ dist }) => dist)];
+export const DISTS = [
+  SHELL_DIST,
+  ...REMOTE_DISTS.map(({ dist }) => dist),
+  ...STATION_DISTS,
+];
