@@ -54,16 +54,28 @@ const vent = (open: boolean) =>
 const door = (action: string, id: string) =>
   command('safety', action, { door: id });
 
+/** Posts `body` to `path` and checks the status and answer; `what` names the step. */
+async function post(
+  fetch: BridgeFetch,
+  what: string,
+  path: string,
+  body: unknown,
+  status: number,
+  expected: object,
+): Promise<void> {
+  const res = await fetch(path, json(body));
+  expectEqual(`${what} status`, res.status, status);
+  expectEqual(`${what} answer`, await res.json(), expected);
+}
+
 /** Posts `command` and checks the status and body the desk answers. */
-async function send(
+function send(
   fetch: BridgeFetch,
   command: { action: string },
   status: number,
   expected: object,
 ): Promise<void> {
-  const res = await fetch('/commands', json(command));
-  expectEqual(`${command.action} status`, res.status, status);
-  expectEqual(`${command.action} answer`, await res.json(), expected);
+  return post(fetch, command.action, '/commands', command, status, expected);
 }
 
 /** Opens door `id` and checks that the interlock refuses it. */
@@ -325,11 +337,98 @@ export const courseAndBurn: GrowthCase = {
 };
 
 /**
+ * The spool and the jump on the offline ship. The reactor is cold at tick 0, so
+ * the first spool finds no power and the drive loads all the same. The spool at tick 101 charges 450 MJ a tick and
+ * holds 90 GJ at tick 300. A second spool at tick 300 queues nothing, and a jump to
+ * a star the charts lack is refused. The jump to Kepler-442b at tick 301 moves
+ * the sector and empties the charge. Every value is an integer or a string,
+ * and `jumped` reads null before the jump, so each read compares exactly on
+ * every engine.
+ */
+export const spoolAndJump: GrowthCase = {
+  name: 'a spool and a jump on the offline ship charge the drive and move the ship to the charted star',
+  async run(fetch) {
+    const spool = (ship: ShipReading) =>
+      ship.power.loads.find((load) => load.id === 'ftl-spool');
+    await send(fetch, command('engineering', 'throttle', { level: 1 }), 202, {
+      tick: 1,
+    });
+    await post(fetch, 'spool', '/ftl/spool', {}, 409, {
+      code: 'MERIDIAN_POWER_BUDGET',
+      message:
+        'The ftl-spool load needs 900 MW, and the router has 0 MW free beside the loads above it.',
+      fix: 'raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
+    });
+
+    let ship = await advanceTo(fetch, 100, 100);
+    expectEqual('ftl at tick 100', ship.ftl, {
+      status: 'idle',
+      charge: 0,
+      sector: 'Sol',
+      jumped: null,
+    });
+    expectEqual('ftl-spool at tick 100', spool(ship), {
+      id: 'ftl-spool',
+      priority: 7,
+      demand: 0,
+      allocated: 0,
+    });
+    await post(fetch, 'spool', '/ftl/spool', {}, 202, { tick: 101 });
+    await post(fetch, 'jump', '/ftl/jump', { to: 'Kepler-442b' }, 409, {
+      code: 'MERIDIAN_FTL_NOT_SPOOLED',
+      message: 'The FTL drive holds 0 GJ of the 90 GJ a jump needs.',
+      fix: 'spool the drive and wait until it holds the full charge, then jump.',
+    });
+
+    ship = await advanceTo(fetch, 200, 300);
+    expectEqual('ftl at tick 300', ship.ftl, {
+      status: 'charged',
+      charge: 90_000_000_000,
+      sector: 'Sol',
+      jumped: null,
+    });
+    expectEqual('ftl-spool at tick 300', spool(ship), {
+      id: 'ftl-spool',
+      priority: 7,
+      demand: 900_000_000,
+      allocated: 900_000_000,
+    });
+    await post(fetch, 'spool', '/ftl/spool', {}, 202, { tick: 301 });
+    await post(fetch, 'jump', '/ftl/jump', { to: 'Vega' }, 400, {
+      code: 'MERIDIAN_BAD_COMMAND',
+      message:
+        'ftl jump got an argument it cannot use. It takes spool with no arguments and jump with a charted star to jump to.',
+      fix: 'send the arguments in the ranges above.',
+    });
+    await post(fetch, 'jump', '/ftl/jump', { to: 'Kepler-442b' }, 202, {
+      tick: 301,
+    });
+
+    ship = await advanceTo(fetch, 1, 301);
+    expectEqual('ftl at tick 301', ship.ftl, {
+      status: 'idle',
+      charge: 0,
+      sector: 'Kepler-442b',
+      jumped: 301,
+    });
+    expectEqual(
+      'command log',
+      await okJson('GET /commands', await fetch('/commands')),
+      [
+        { tick: 1, change: { reactor: { throttle: 1 } } },
+        { tick: 101, change: { ftl: { armed: true } } },
+        { tick: 301, change: { ftl: { jump: 'Kepler-442b' } } },
+      ],
+    );
+  },
+};
+
+/**
  * The cases bridge-api's e2e-growth target runs on workerd
  * (test/worker/growth/sim.test.ts), Deno and Bun (test/runtime/growth.ts).
  * Each case this file exports by name also runs on the Node servers
- * (e2e/growth/airlock.e2e.ts, e2e/growth/comms.e2e.ts and
- * e2e/growth/helm.e2e.ts).
+ * (e2e/growth/airlock.e2e.ts, e2e/growth/comms.e2e.ts,
+ * e2e/growth/helm.e2e.ts and e2e/growth/ftl.e2e.ts).
  */
 export const growthCases: readonly GrowthCase[] = [
   {
@@ -428,4 +527,5 @@ export const growthCases: readonly GrowthCase[] = [
   airlockDrill,
   offlineHail,
   courseAndBurn,
+  spoolAndJump,
 ];
