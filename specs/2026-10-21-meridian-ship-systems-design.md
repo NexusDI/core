@@ -1,7 +1,7 @@
 # Meridian ship systems
 
 Status: proposed, 2026-10-21. The owner answered Q1 on 2026-10-21 (section 14). The tech
-lead settles the rest. The rulings of G1 to G7 and the decisions of their runs amend
+lead settles the rest. The rulings of G1 to G8 and the decisions of their runs amend
 sections 3 to 13, and section 15 lists the rulings.
 
 Packages: no published package is added or changed. New private project:
@@ -76,7 +76,7 @@ Two constraints pull against that:
 ```text
 examples/meridian-systems/
   src/physics/          pure functions: gas.ts, atmosphere.ts, thermal.ts, power.ts, motion.ts, rng.ts,
-                        doors.ts, fire.ts, safety.ts (G3), comms.ts (G5), ftl.ts (G7)
+                        doors.ts, fire.ts, safety.ts (G3), comms.ts (G5), ftl.ts (G7), weapons.ts (G8)
   src/meridian-systems.module.ts   the aggregate MeridianSystems, which binds TICK_LOOP and COMMAND_DESK
   src/simulation/       the Simulation module: clock, random source, state, the loop class,
                         the command contracts and the command desk class
@@ -89,6 +89,7 @@ examples/meridian-systems/
   src/systems/propulsion/   Propulsion: the main drive (G6)
   src/systems/helm/     Helm: the thrusters and the helm (G6)
   src/systems/ftl/      FtlDrive: the jump drive, loaded with load() (G7)
+  src/systems/weapons/   Weapons: the railgun (G8)
   src/telemetry/        the Telemetry module: the feed's contracts and SnapshotFeed
   src/notes.ts          shipNotes, a devtools graph annotator
   deck/meridian.deck.json   the deck plan: compartments, volumes, doors, equipment, initial gas
@@ -151,6 +152,14 @@ an entry point that fails alone. The index also exports the token `FTL_DRIVE`, t
 and `FtlStatus`. `FtlDrive` stays out of the aggregate, and the aggregate's file does not
 change.
 
+From G8 the aggregate imports and re-exports `Weapons` after `Helm`, and its file holds 106
+lines. The index exports the token `WEAPON_MOUNT` and the types `IWeaponMount`,
+`RailgunRating`, `RailgunShot`, `WeaponsRecord`, `WeaponsSetpoints` and `WeaponsStatus`. It
+exports no module object for `Weapons`, as it exports none for `Propulsion` and `Helm`.
+`pulseCoolant` moves from `src/physics/ftl.ts` to `src/physics/thermal.ts` beside the
+coolant step, since `FtlPhysics` and `WeaponsPhysics` both call it. The index never
+exported it.
+
 `.fallowrc.jsonc` gains entries for the library, so `fallow dead-code` keeps the files
 nothing imports. G0 adds `e2e/**/*.ts` and `vitest.e2e-growth.config.ts` (the `e2e-growth`
 target runs them by path) and `e2e/golden/*.json` (the snapshot matcher reads it). G1 adds
@@ -183,7 +192,7 @@ for the role, and one class bound with `useClass` (docs §7.3). Names in the exi
 | `Propulsion`      | the main drive                     | `MAIN_DRIVE`, `SHIP_SYSTEMS`, `POWER_CONSUMERS`                                                                      | none                                                                                | growth G6                                                             |
 | `Helm`            | manoeuvring                        | `THRUSTERS`, `HELM`, `SHIP_SYSTEMS`, `POWER_CONSUMERS`, `COMMAND_HANDLERS`                                           | none                                                                                | growth G6                                                             |
 | `FtlDrive`        | the FTL drive                      | `FTL_DRIVE`; attaches its physics to `TICK_LOOP` and its load to `POWER_ROUTER`                                      | none; added with `ship.load()`                                                      | growth G7                                                             |
-| `Weapons`         | weapons                            | `WEAPON_MOUNT`                                                                                                       | none                                                                                | growth G8                                                             |
+| `Weapons`         | weapons                            | `WEAPON_MOUNT`, `SHIP_SYSTEMS`, `POWER_CONSUMERS`, `COMMAND_HANDLERS`                                                | none                                                                                | growth G8                                                             |
 | `Telemetry`       | the telemetry feed                 | `TELEMETRY`                                                                                                          | none                                                                                | growth G0b                                                            |
 | `Tactical`        | navigation                         | `NAV_CHARTS`                                                                                                         | none; `Tactical` downloads the charts, `OfflineTactical` bundles them               | in §7.1; the library's from G5                                        |
 | `BridgeApi`       | the request side                   | `MISSION`, `FLIGHT_LOG`                                                                                              | none                                                                                | in §7.1 and `bridge-api`; unchanged                                   |
@@ -206,7 +215,8 @@ A system adds its power load through the contribution point `POWER_CONSUMERS` (G
 takes `all(POWER_CONSUMERS)` inside `Engineering`, and that `all()` reads LifeSupport's
 contribution through the global `MeridianSystems`, which re-exports LifeSupport. From G5
 it reads Comms' `CommsPower` through the aggregate's re-export of the comms module. From
-G6 it reads `PropulsionPower` and `HelmPower` the same way, and G8 adds its load through the same point.
+G6 it reads `PropulsionPower` and `HelmPower` the same way, and from G8 `WeaponsPower`, the
+capacitor's load.
 A module that `load()` adds attaches its consumer with `POWER_ROUTER.attach()`, since the
 router's `all()` is the list at its construction. From G7 `JumpDrive` attaches `FtlPower`
 that way, and `loads(ship)` lists it after the `POWER_CONSUMERS` entries.
@@ -290,7 +300,10 @@ constructor and declares tokens in `static deps`.
 | `IPowerConsumer`     | `POWER_CONSUMERS`, Helm's contribution                                    | `HelmPower`                                                                                                                    | singleton | `[THRUSTERS]`                                           |
 | `ICommandHandler`    | `COMMAND_HANDLERS`, Helm's contribution                                   | `HelmCommands`                                                                                                                 | singleton | `[HELM]`                                                |
 | `IFtlDrive`          | `FTL_DRIVE = new Token<IFtlDrive>('FtlDrive')`                            | `JumpDrive`                                                                                                                    | singleton | `[TICK_LOOP, SHIP_STATE, NAV_CHARTS, POWER_ROUTER]`     |
-| `IWeaponMount`       | `WEAPON_MOUNT = new Token<IWeaponMount>('WeaponMount')`                   | `RailgunMount`                                                                                                                 | singleton | `[SHIP_STATE, RNG]`                                     |
+| `IWeaponMount`       | `WEAPON_MOUNT = new Token<IWeaponMount>('WeaponMount')`                   | `RailgunMount`                                                                                                                 | singleton | `[SHIP_STATE, SIM_OPTIONS, lazy(POWER_ROUTER)]`         |
+| `IShipSystem`        | `SHIP_SYSTEMS`, Weapons' contribution                                     | `WeaponsPhysics`                                                                                                               | singleton | `[WEAPON_MOUNT]`                                        |
+| `IPowerConsumer`     | `POWER_CONSUMERS`, Weapons' contribution                                  | `WeaponsPower`                                                                                                                 | singleton | `[WEAPON_MOUNT, SIM_OPTIONS]`                           |
+| `ICommandHandler`    | `COMMAND_HANDLERS`, Weapons' contribution                                 | `WeaponsCommands`                                                                                                              | singleton | `[WEAPON_MOUNT]`                                        |
 | `ITelemetryFeed`     | `TELEMETRY = new Token<ITelemetryFeed>('TelemetryFeed')`                  | `SnapshotFeed`                                                                                                                 | singleton | `[TICK_LOOP, SHIP_STATE, DECK_PLAN]`                    |
 | `ITelemetryClient`   | `TELEMETRY_CLIENT = new Token<ITelemetryClient>('TelemetryClient')`       | `EventSourceTelemetry`                                                                                                         | singleton | none; the console's `TelemetryClient` module            |
 
@@ -330,6 +343,18 @@ a loaded module would reach no singleton built before it, and a reader would tak
 working contribution. The interface and the token live in `src/systems/ftl/contracts.ts`
 beside `FTL_ACTIONS`. The rating, the load, the record and the pure step live in
 `src/physics/ftl.ts`.
+From G8 `Weapons` binds `WEAPON_MOUNT` with `RailgunMount` and contributes `WeaponsPhysics`,
+`WeaponsPower` and `WeaponsCommands`. The interface and the token live in
+`src/systems/weapons/contracts.ts` beside `WEAPONS_ACTIONS`. The rating, the load, the
+records and the pure step live in `src/physics/weapons.ts`. `RailgunMount` reads the router
+through `lazy(POWER_ROUTER)`, since the router reads the mount's load through
+`POWER_CONSUMERS`. A direct `POWER_ROUTER` dep fails the build with
+`NEXUS_BLUEPRINT_INVALID` and `NEXUS_CIRCULAR_DEPENDENCY` on
+`["PowerRouter","PowerConsumers","WeaponMount","PowerRouter"]`. The mount's constructor
+never calls the thunk. The mount and `WeaponsPower` read `SIM_OPTIONS` through the global
+`Simulation`. The hit draw runs in the phase-3 step on `TickContext.rng`, so the mount takes
+no `RNG`. `WeaponsPhysics` and `WeaponsPower` read the rating through `WEAPON_MOUNT`, so a
+test that binds a mount with another rating changes the step and the load together.
 
 `ITickLoop` has two members: `advance(ticks)` and `listen(listener: TickListener)`, with
 `type TickListener = (ship: ShipSnapshot) => void`. `listen` returns a function that
@@ -362,8 +387,9 @@ plain data shape keeps its name with no prefix, as §7.1's `Mission`, `Diagnosti
 `CommsOptions` do: `DeckPlan`, `CompartmentId`, `ShipSnapshot`, `ShipReading`,
 `CompartmentReading`, `TickListener`, `SimOptions` and `LifeSupportOptions`, from G5
 `MeridianSystemsOptions`, `CommsRecord`, `CommsSetpoints`, `CommsMessage` and `Course`, and
-from G6 `DriveRecord`, `DriveSetpoints`, `HelmRecord` and `HelmSetpoints`, and from G7
-`FtlRecord`, `FtlSetpoints` and `FtlRating`.
+from G6 `DriveRecord`, `DriveSetpoints`, `HelmRecord` and `HelmSetpoints`, from G7
+`FtlRecord`, `FtlSetpoints` and `FtlRating`, and from G8 `WeaponsRecord`,
+`WeaponsSetpoints`, `RailgunShot` and `RailgunRating`.
 
 Options tokens, each the value of a configurable module: `SIM_OPTIONS` (`SimOptions`:
 `seed`, `dt`) and `LIFE_SUPPORT_OPTIONS` (`LifeSupportOptions`: `calibration`, the
@@ -435,7 +461,8 @@ reason `action`. `SAFETY_ACTIONS` reads "open and close with a door of bridge-ha
 habitat-reactor-bay, habitat-airlock or airlock-outer, and flood and drill with a
 compartment of bridge, habitat or reactor-bay". The desk's list of the systems it serves
 reads "engineering, life-support and safety", from G5 "comms, engineering, life-support and
-safety", and from G6 "comms, engineering, helm, life-support and safety".
+safety", from G6 "comms, engineering, helm, life-support and safety", and from G8 "comms,
+engineering, helm, life-support, safety and weapons".
 
 From G5 `ICommsArray` has `readonly linked: boolean`, true when the ship's graph binds
 `SUBSPACE_LINK`, and `hail(): QueuedCommand`. `PhasedArray` reads `linked` from its
@@ -502,6 +529,33 @@ is allowed. The FTL commands take their own routes (section 7.1), so `FtlDrive` 
 command handler, and the desk's list stays "comms, engineering, helm, life-support and
 safety". The desk's `all(COMMAND_HANDLERS)` is also the list at its construction. G7 adds
 no stand-down command.
+
+From G8 `IWeaponMount` has `readonly rating: RailgunRating` and `fire(range)`, which
+returns `QueuedCommand`. `fire(range)` throws `RangeError` "fire() takes a range from 0 to
+100000 m, and got -1." for a range outside 0 to 100,000 m or NaN, so a caller that skips
+the desk queues nothing. On an unarmed mount it asks `POWER_ROUTER.divert()` for
+`{ id: 'railgun', priority: 6, demand, heatShare: 0 }`. The `demand` is the load the next
+tick asks once the mount is armed,
+`railgunDemand(ship.weapons, { ...ship.setpoints.weapons, armed: true }, rating, dt)`:
+300 MW at dt 0.5 and 200 MW at dt 2. A fire the router cannot fit throws
+`PowerBudgetError` and queues nothing: at tick 0 it answers "The railgun load needs
+300 MW, and the router has 0 MW free beside the loads above it." The first fire queues
+`{ weapons: { armed: true, range } }`, and the mount stays armed from then on. On an armed
+mount `fire(range)` asks no `divert` and queues `{ weapons: { range } }`, since a second
+router check would refuse a shot on a tick the router sheds the capacitor. A fire on an
+uncharged capacitor answers `{ tick: t + 1 }`, and the shot leaves on the first tick the
+capacitor holds 300 MJ. A later fire before the shot replaces the waiting range.
+
+`WeaponsCommands` serves `weapons` with `fire`. It reads `range` through
+`numberArgument(command, 'range', 0, rating.range, refuse)` in
+`src/simulation/command-arguments.ts`, which takes the bounds with both ends allowed, and
+`levelArgument` calls `numberArgument` with 0 and 1. A range that is no number from 0 to
+100,000, such as `'10000'`, `NaN`, `null` or a missing one, answers reason `argument`, and
+any other action answers reason `action`, each with `expected: WEAPONS_ACTIONS`.
+`WEAPONS_ACTIONS` reads "fire with a range from 0 to 100,000 m", so `weapons reload`
+answers "weapons has no action 'reload'. It takes fire with a range from 0 to 100,000 m."
+and a bad range "weapons fire got an argument it cannot use. It takes fire with a range
+from 0 to 100,000 m." G8 adds no stand-down command, as G7 adds none.
 
 Engineering's physics class, `EngineeringPhysics`, takes `REACTOR`, `COOLANT_LOOP` and
 `POWER_ROUTER` (`static deps = [REACTOR, COOLANT_LOOP, POWER_ROUTER] as const`). It reads the ratings
@@ -589,8 +643,8 @@ G2, so the devices draw what the router allocated in phase 1.
 ### 4.1 The snapshot
 
 `ShipSnapshot` is a plain frozen object: the tick number, one record per compartment
-(moles per gas and temperature), the reactor, coolant, power, life-support, comms, drive,
-helm, weapons, FTL and safety records, and the setpoints. A step
+(moles per gas and temperature), the reactor, coolant, power, life-support, comms, weapons,
+drive, helm, FTL and safety records, and the setpoints. A step
 returns a new snapshot and shares the records it left alone. `SHIP_STATE.snapshot()`
 returns the current one. The telemetry feed and `bridge-api`'s `/sim` routes send
 `readShip(snapshot, deck)`, the snapshot with each compartment's pressure and every
@@ -639,6 +693,26 @@ unarmed below a full charge, `held` armed with no power on the tick, `spooling` 
 charging, and `charged` a full charge. The setpoints start at tick 0, since `queue()`
 merges a change over them.
 
+From G8 the weapons record, `weapons: WeaponsRecord`, holds the `status` (`idle`, `held`,
+`charging` or `charged`), the capacitor's `charge` in J, the `shots` fired since tick 0,
+the `hits` among them and the newest shot in `lastShot`, a `RailgunShot`
+`{ tick, range, hit }` with the range in m, or null before the first. `setpoints.weapons`
+holds `armed`, true from the first fire, and `range`, the range in m of the shot that
+waits for the charge, or null. Both sit directly after `comms`, and the store freezes both
+at every level. `ShipStateStore` starts them at
+`{ status: 'idle', charge: 0, shots: 0, hits: 0, lastShot: null }` and
+`{ armed: false, range: null }`. `Weapons` is a static module, so the record has no
+`offline` status. `idle` is unarmed below a full bank, `held` armed below a full bank on a
+tick the router shed the capacitor, `charging` armed below a full bank, and `charged` a
+full bank. At dt 0.5 the charge moves in steps of 50,000,000 J, and the record keeps no hit
+chance, since `Math.exp` is not fixed bit for bit across engines (section 8.3).
+
+The snapshot's keys then read `tick`, `time`, `compartments`, `reactor`, `coolant`,
+`power`, `lifeSupport`, `comms`, `weapons`, `drive`, `helm`, `ftl`, `safety` and
+`setpoints`, and the setpoints' read `reactor`, `shields`, `lifeSupport`, `comms`,
+`weapons`, `drive`, `helm`, `ftl` and `safety`. That order keeps every earlier assertion on
+a key position as committed, and `/sim`, the frames and the goldens read keys by name.
+
 ### 4.2 The tick
 
 `FixedStepLoop.advance(ticks)` runs this for each tick, with `dt` from `SIM_OPTIONS`
@@ -674,7 +748,9 @@ change)` merges plain objects key by key at every level: it skips undefined, rep
    records from `start`, so the order changes no figure. From G6 `Propulsion` reads the
    helm's attitude at the start of the tick. The loop sorts once, at
    construction and on `attach()`, so the order never depends on `all()`'s
-   registration order.
+   registration order. From G8 `FtlDrive` and `Weapons` both add a pulse to the coolant
+   in phase 3. On a tick with a jump and a shot `FtlDrive` sorts first, so the two pulses
+   add in one fixed order.
 
 3. Advance the clock, commit the result to `SHIP_STATE`, then call every tick listener
    with the committed snapshot, in subscription order. The loop walks a copy of its
@@ -712,6 +788,10 @@ gives the same sequence on every JavaScript engine. `next()` returns the next `u
 divided by 2³². `fork(label)` returns a new source seeded with FNV-1a of
 `${seed}:${label}`. The loop hands each system `rng.fork(system.name)` once, so the
 numbers the fire model draws stay the same when a weapons system joins the ship (S5).
+From G8 `WeaponsPhysics` draws each hit from `TickContext.rng`, the loop's
+`fork('Weapons')`, and draws only on a shot tick, so shot n reads the nth number of that
+stream. Seed 7 gives 0.5776788084767759, 0.8633130805101246 and 0.5764941128436476 there,
+and `fork('Safety')` reads the same stream with and without `fork('Weapons')` drawn first.
 
 No file under `examples/meridian-systems/src` reads the wall clock or an unseeded
 random source. The library's ESLint config enforces this on the syntax tree, so
@@ -1044,15 +1124,18 @@ temperature:
 
 ```text
 λ    = clamp((T_c − 500 K) / 50 K, 0, 1)
-T_c' = T_c + dt · (P_th − P_e + Σ_i h_i · P_i + Q_pulse − λ · ε · σ · A_rad · (T_c⁴ − T_bg⁴)) / C_c
+T_c' = T_c + dt · (P_th − P_e + Σ_i h_i · P_i − λ · ε · σ · A_rad · (T_c⁴ − T_bg⁴)) / C_c
 ```
 
 At idle λ is 0, and the loop holds 500 K exactly. `h_i` is the share of consumer `i`'s
 allocated power that ends in the loop: 0.25 for the shield grid in G1. G2 adds 0 for life
 support: a heater's power heats its room, and the model drops the heat of the other
 devices. G5 adds 0 for comms, and G6 adds 0.4 for the main drive and 0 for the thrusters.
-Later increments add 0.25 for a railgun shot and 0.1 for the FTL spool. `Q_pulse` is a
-one-tick heat pulse from a shot or a jump. `T_bg` is 4 K. At full output and no load, λ is
+G7 adds 0.1 for the FTL spool. G8 adds 0 for the railgun's capacitor, which stores its
+power; a shot puts 0.25 of `E_shot` into the loop as a pulse (section 5.9). A jump and a
+shot add their pulses to the loop in phase 3 (section 5.9). This equation first carried a
+term `Q_pulse` for both pulses, which is always 0 once both enter in phase 3, so G8 drops
+it. `T_bg` is 4 K. At full output and no load, λ is
 1 and the loop settles at
 
 ```text
@@ -1084,12 +1167,20 @@ output holds the loop at 1,214.0 K, and at reactor level 0.6 at 1,084.2 K. The g
 scenario of section 5.13 reaches 1,064.4 K at tick 1,200.
 
 From G7 the spool's heat share is 0.1, 90 MW while it charges. The jump's pulse enters the
-loop in phase 3, in the drive's own step (section 5.9), so a jump adds nothing to the
-phase-1 `Q_pulse`, and G8 decides how its shot reaches the loop. At full output the loop
+loop in phase 3, in the drive's own step (section 5.9). At full output the loop
 settles at 1,196.5 K with the spool, and the hottest equilibrium with the spool is
 1,202.4 K, beside the raised shields. The spool never runs beside the drive at full, so the
 hottest reachable equilibrium stays 1,219.6 K, and the spool's 1,300 K limit is out of
 reach.
+
+From G8 the shot's pulse enters the loop the same way. `WeaponsPhysics` calls
+`pulseCoolant(coolant, pulse, LITHIUM_LOOP)` in phase 3, the call the jump makes, and the
+rise is `0.25 · E_shot / C_c`, 0.08992805755395683 K. On the golden's shot tick, tick 32,
+the loop reads 507.6756283905922 K, 0.08992805755394784 K above the same run with no shot.
+A `Q_pulse` field that Engineering read in phase 1 of the next tick would add a snapshot
+field and a one-tick delay, and the jump and the shot would reach the loop by two
+mechanisms. A shot that always waits fires every 2 ticks, so the railgun draws 300 MW and
+puts 75 MW into the loop on average.
 
 ### 5.7 The power budget
 
@@ -1117,7 +1208,8 @@ and 84.93 MW remain beside the main drive and the weapons capacitor. With the ma
 burning, 385 MW remain: the weapons capacitor fits and the FTL spool never does, so the
 router sheds the spool. With the drive cut, 985 MW remain, and the spool fits only while
 the weapons capacitor draws nothing. So a pilot who wants to jump cuts the drive and lets
-the railgun go cold, which is the trade-off a player makes in Stationeers. A spool command
+the railgun go cold, which is the trade-off a player makes in Stationeers. From G8 a full
+bank draws 0 W, so the railgun goes cold once the crew stops firing. A spool command
 that the router cannot fit answers `MERIDIAN_POWER_BUDGET`, and a shed consumer raises
 `LOAD_SHED` from G3.
 
@@ -1184,17 +1276,42 @@ From G7 `FtlPower` draws `ftl-spool` at priority 7 with heat share 0.1 from the 
 900 MW while armed below a full charge, with the reactor at 0.9 or more and the coolant
 under 1,300 K, and 0 W otherwise. The drive attaches the load when it loads, so the power
 record lists `ftl-spool` at 0 W after `main-drive` from the tick after the load. A ship
-that never loads the drive keeps its five loads. `spool()` asks `divert`. A spool alone
-fits from reactor level 0.7438, beside the raised shields from 0.9091, and beside
-priorities 1 to 4 at full from 0.9298. Priorities 1 to 4 at full leave 984.93 MW. A
-throttle of 1 queued at tick 0 gives 895.4 MW at tick 74, where a spool answers
-`MERIDIAN_POWER_BUDGET`, and 907.5 MW at tick 75, where a spool queues for tick 76. A spool
+that never loads the drive keeps its five loads (six from G8, with `railgun`). `spool()`
+asks `divert`. A spool alone fits from reactor level 0.7438, beside the raised shields
+from 0.9091, and beside priorities 1 to 4 at full from 0.9298. Priorities 1 to 4 at full
+leave 984.93 MW. A throttle of 1 queued at tick 0 gives 895.4 MW at tick 74, where a
+spool answers `MERIDIAN_POWER_BUDGET`, and 907.5 MW at tick 75, where a spool queues for
+tick 76. A spool
 the router fits under 90 % holds at 0 W with the status `held` and no alarm until the
 reactor reaches 0.9, which that ramp gives at the start of tick 91. A refusal under 90 %
 would refuse a load the router can serve, so the record's `held` tells the crew why the
 spool waits. A spool the router sheds raises `LOAD_SHED ftl-spool`: at level 0.9 beside the
 raised shields 889 MW remain. At throttle 0.01 with life support online a spool answers
 with 12.1 MW free.
+
+From G8 `WeaponsPower` draws `railgun` at priority 6 with heat share 0 from the pure
+`railgunDemand` in `src/physics/weapons.ts`, read from the snapshot at the start of the
+tick: `min(P_max, (E_max − E) / dt)` while armed below a full bank, and 0 W otherwise. The
+capacitor stores what it draws, so none of its power heats the loop, and a shot puts its
+quarter into the loop as the pulse of section 5.6. A heat share of 0.25 on the charge would
+heat the loop twice for one shot. `WeaponsPower` reads `dt` from `SIM_OPTIONS`, and the
+tick-0 power record lists the 0 W `railgun` load after `main-drive`, and a loaded drive's
+`ftl-spool` follows it. At dt 0.5 an empty bank charges to 150, 300 and 400 MJ at 300,
+300 and 200 MW, and after a
+shot from a full bank to 250 and 400 MJ at 300 MW each. The tick that fills the bank asks
+only what fits, so no tick loses energy, where the clamp alone would draw 300 MW on the
+third tick and lose 50,000,000 J. An unarmed fire asks `divert`, and an armed fire asks
+none (section 3.3).
+
+The railgun alone fits from reactor level 0.2479, beside the raised shields from 0.4132,
+beside priorities 1 to 4 at full from 0.4339, beside the main drive from 0.7438 and beside
+priorities 1 to 4 and the drive from 0.9298. A throttle of 1 queued at tick 0 gives
+290.4 MW at tick 24, where a fire answers `MERIDIAN_POWER_BUDGET` with `available`
+290,400,000.00000006, and 302.5 MW at tick 25. At full output the railgun fits beside the
+spool with 10 MW left, and beside the raised shields and the spool the router serves the
+railgun and sheds `ftl-spool`. A shed capacitor holds its charge with the status `held`,
+and Safety raises `LOAD_SHED railgun`: at throttle 0.6 a burn at level 1 sheds it at
+tick 62, with 726 MW of output for the drive's 600 MW and the railgun's 300 MW.
 
 Life support runs on the reactor, and G2 has no battery. At throttle 0 the reactor gives
 no power, so the router sheds `life-support` from the first online tick. Every powered
@@ -1291,10 +1408,38 @@ comes within 1° at 114 s and settles at tick 687 (343.5 s), and a turn from 42�
 The railgun's capacitor charges from its allocation and fires on command:
 
 ```text
-E' = min(E_max, E + P_w · dt)                  E_max = 400 MJ
-fire when E ≥ E_shot (300 MJ): E −= E_shot, Q_pulse += 0.25 · E_shot / dt
+demand = min(P_max, (E_max − E) / dt) while armed below E_max, else 0 W
+E'     = min(E_max, E + P_w · dt)                  E_max = 400 MJ, the charge first
+fire when E' ≥ E_shot (300 MJ) and a range waits: E' −= E_shot, T_c' = T_c + 0.25 · E_shot / C_c
 hit when rng.next() < 0.8 · exp(−range / 50 km)
 ```
+
+`E` is the charge in J at the start of the tick, `P_max` the rating's 300 MW and `P_w` the
+router's `railgun` allocation on the tick, 0 W when the router sheds it. From G8
+`stepWeapons(weapons, setpoints, { tick, dt, allocated, shed, draw }, rating)` in
+`src/physics/weapons.ts` runs it and returns `{ weapons, setpoints, pulse }`, or the
+objects it got when nothing changes. The step charges first and then fires, so an empty
+bank fires on its second charging tick: two ticks reach `E_shot` from empty, and three
+reach `E_max`. A shot spends the charge, calls `draw` once, counts the shot and the hit,
+writes `lastShot`, clears the waiting range and gives a pulse of 75,000,000 J. `draw` runs
+on a shot tick alone. The step derives the status on every tick: `charged` at a full bank,
+else `idle` unarmed, else `held` when the router shed the capacitor, else `charging`. On
+the tick a full bank fires the status reads `charging` with the tick's load at 0 W, since
+the bank holds 100 MJ from that tick on. A fifth status `fired` would hold for one tick and
+tell the crew nothing `lastShot.tick` does not. This section first gave the order "charge,
+then fire when `E ≥ E_shot`" with no tick rule, and the pulse as
+`Q_pulse += 0.25 · E_shot / dt` in the phase-1 equation of section 5.6.
+
+The demand line tapers the tick that fills the bank (section 5.7). The clamp stays, with
+`P_w` the allocation, and guards rounding at a `dt` where `(x / dt) · dt` differs from `x`
+by an ulp. `RAILGUN` holds
+`{ capacity: 400e6, shot: 300e6, power: 300e6, pulseShare: 0.25, accuracy: 0.8, falloff: 50_000, range: 100_000 }`
+in J, W and m, and `RAILGUN_LOAD` holds `{ id: 'railgun', priority: 6, heatShare: 0 }`.
+`hitChance(range, rating)` gives 0.8, 0.6549846024623855, 0.2943035529371539 and
+0.10826822658929017 at 0, 10,000, 50,000 and 100,000 m. Seed 7's first draw of
+`fork('Weapons')` hits up to 16,279.68540639589 m, so a shot at 16,279 m hits and one at
+16,280 m misses. Its second draw, 0.8633130805101246, sits above the 0.8 ceiling and misses
+at any range.
 
 The FTL drive spools while armed, with the reactor at 90 % or more and the coolant below
 1,300 K at the start of the tick:
@@ -1536,7 +1681,8 @@ which the golden holds.
 - `Nexus.check(meridianSystems(options), { load: [FtlDrive] })` passes, and
   `Nexus.check(FtlDrive)` fails with `NEXUS_MISSING_PROVIDER` for `TickLoop`, `ShipState`,
   `NavCharts` and `PowerRouter`.
-- The load: before it the root has no `FTL_DRIVE`, and tick 1 lists five loads and reads
+- The load: before it the root has no `FTL_DRIVE`, and tick 1 lists five loads (six from
+  G8, with `railgun`) and reads
   `{ status: 'offline', charge: 0, sector: 'Sol', jumped: null }`. Two concurrent loads
   build one drive. Tick 2 reads `{ status: 'idle', charge: 0, sector: 'Sol', jumped: null }`
   as a new object and lists `ftl-spool` at 0 W after `main-drive`, and tick 3 keeps the
@@ -1569,6 +1715,59 @@ which the golden holds.
   and after `await scope.extend()` it reads the root's drive. The scope needs a request,
   since `COMPARTMENT` is request-scoped.
 
+### 5.15 The weapons in the ship
+
+From G8 `WeaponsPhysics` (phase 3, `name: 'Weapons'`, deps `[WEAPON_MOUNT]`) delegates to
+the pure `stepWeapons` of section 5.9. It reads the `railgun` allocation from
+`ship.power.loads` and the shed from `power.shed`, and hands the step a `draw` that calls
+`TickContext.rng.next()`. It writes the record. On a shot it also writes the setpoints and
+the loop's pulse. On a tick that changes nothing it returns the ship it got.
+`WeaponsPower` draws the load from `railgunDemand`. Both read the rating through
+`WEAPON_MOUNT`.
+
+The figures below come from `meridianSystems({ seed: 7, dt: 0.5 })` on the offline graph,
+with `FtlDrive` loaded by `ship.load` where an item says so. `test/weapons.test.ts` asserts
+each one (section 8.2), except the coolant's 507.1, 509.1 and 512.5 K at ticks 31, 35 and
+41, which the golden holds.
+
+- `Nexus.check` passes with and without `load: [FtlDrive]`. The root reads `WEAPON_MOUNT`
+  with `RAILGUN`, `SHIP_SYSTEMS` holds `Weapons` at phase 3, the desk refuses an unknown
+  system with `expected: 'comms, engineering, helm, life-support, safety and weapons'`, and
+  the snapshot's keys follow the order of section 4.1.
+- The start: tick 0 reads `{ status: 'idle', charge: 0, shots: 0, hits: 0, lastShot: null }`
+  and `{ armed: false, range: null }`, both frozen, and the loads `life-support`, `shields`,
+  `comms`, `thrusters`, `main-drive` and `railgun`, the last at
+  `{ id: 'railgun', priority: 6, demand: 0, allocated: 0 }`. Tick 1 keeps the record by
+  identity.
+- The refusals: a fire at tick 0 refuses with `available` 0, and at tick 24 of a throttle-1
+  ramp with `available` 290,400,000.00000006. The ranges −1, 100,001, `NaN`, `'10000'`,
+  `undefined`, `null` and `Infinity` refuse with reason `argument`, and `weapons reload`
+  with reason `action`. The log stays empty.
+- The golden scenario: throttle 1 at tick 0 and a fire at 10,000 m after tick 30, which
+  answers `{ tick: 31 }`. Tick 31 reads `charging` with 150,000,000 J and the load at
+  300,000,000 W. Tick 32 reads the hit `{ tick: 32, range: 10000, hit: true }` with
+  `charge` 0 and the loop 0.08992805755394784 K above the same run with no shot, to
+  1 × 10⁻⁹. Tick 35 reads `charged` with 400,000,000 J and the load at 200,000,000 W, and
+  tick 36 the load at 0 W. A fire at 50,000 m after tick 40 answers `{ tick: 41 }`, and
+  tick 41 reads the miss with `charge` 100,000,000 and the demand at 0 W. Tick 42 reads
+  250,000,000 J at 300,000,000 W, and tick 43 `charged`. The log holds ticks 1, 31 and 41.
+- Two fires at tick 30 answer `{ tick: 31 }` and log one entry with the later range,
+  20,000 m. A fire while the shot waits answers `{ tick: 32 }`, asks no `divert` and
+  replaces the range with 30,000 m, and the one shot leaves at tick 32.
+- The shed: throttle 0.6, a fire at 0 m after tick 60 (`{ tick: 61 }`) and a burn at
+  level 1 after tick 61 (`{ tick: 62 }`). Tick 62 reads `held` with 150,000,000 J,
+  `power.shed` `['railgun']`, the alarm `LOAD_SHED railgun` and the electric output
+  726,000,000 W.
+- Beside the spool: `FtlDrive` loaded, throttle 1, life support online, a spool after
+  tick 100 and a fire at 10,000 m after tick 101. Ticks 102 to 105 shed nothing and
+  serve the spool at 900,000,000 W beside the railgun at 300,000,000 W, and the shot of
+  tick 103 hits on the first draw. The raised shields shed `ftl-spool` at tick 106, with
+  the railgun at 200,000,000 W and `charged`. A fire after tick 106 leaves the full bank
+  at tick 107 and misses on the second draw, and the spool draws 900,000,000 W beside the
+  railgun's 0 W. Tick 108 sheds the spool again and raises `LOAD_SHED ftl-spool`, with
+  the railgun at 300,000,000 W.
+- The stream: a first shot at 16,279 m hits and one at 16,280 m misses.
+
 ## 6. Feature map
 
 This is the core of the spec. Each row pairs a NexusDI capability with the ship system
@@ -1576,37 +1775,37 @@ that shows it, and says why a ship engineer would reach for it there. Every publ
 package has a row. "When" is the increment that brings the row, and 0.4 means the
 0.4 minimum.
 
-| Capability                                 | Package                                                 | Ship system and how it shows                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Why it fits                                                                                                       | App                   | When                |
-| ------------------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | --------------------- | ------------------- |
-| Interface-first tokens and `useClass`      | `@nexusdi/core`                                         | every system: `provide(ATMOSPHERE_SENSOR, { useClass: GasAnalyzer })`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | a ship swaps hardware behind a fixed interface; a test swaps a fake behind the same token                         | `bridge-api`          | G0                  |
-| Modules, imports and exports               | `@nexusdi/core`                                         | one module per system; `Engineering` exports `POWER_ROUTER` and keeps `COOLANT_LOOP` to itself                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | a system is a bulkhead: other systems see its panel and never its pipes                                           | `bridge-api`          | G1                  |
-| Global module and `forRoot`                | `@nexusdi/core`                                         | `Simulation.forRoot({ seed: 7, dt: 0.5 })` is global, so every system and a loaded module see the clock and the state                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | every system needs the ship's clock; an import in each module would be noise                                      | `bridge-api`          | G0                  |
-| `forRootAsync` calibration                 | `@nexusdi/core`                                         | `LifeSupport.forRootAsync({ deps: [DECK_PLAN], useFactory: readCalibration })` reads the analyzers' noise and resolution from `deck/sensors.calibration.json` before the first tick; the aggregate imports and re-exports that one instance                                                                                                                                                                                                                                                                                                                                                                                          | sensors read nothing true until they are calibrated, and the calibration comes from a file                        | `bridge-api`          | G2                  |
-| Compartment-scoped atmosphere              | `@nexusdi/core`                                         | `GET /compartments/:id/atmosphere` opens a request scope whose `REQUEST` names the compartment; the library augments `NexusRequest` with `compartment?: string`, and `COMPARTMENT` is scoped over `REQUEST` with `eager: false`; an unknown id answers 404 with `MERIDIAN_UNKNOWN_COMPARTMENT`                                                                                                                                                                                                                                                                                                                                       | a reading belongs to one room; the scope carries the room so no method takes it as an argument                    | `bridge-api`          | G2                  |
-| Transient sensor reads                     | `@nexusdi/core`                                         | `ATMOSPHERE_SENSOR` is transient: each `get()` builds a `GasAnalyzer` that samples its compartment at construction and draws its noise from ``rng.fork(`AtmosphereSensor:${compartment}:${tick}`)``                                                                                                                                                                                                                                                                                                                                                                                                                                  | a sensor read is a sample of one tick; reads in two ticks differ, and a cached sensor would hide a leak           | `bridge-api`          | G2                  |
-| Multi providers and `all()`                | `@nexusdi/core`                                         | `SHIP_SYSTEMS` collects each system's physics; `PlasmaRouter` reads `all(POWER_CONSUMERS)` for each system's load, with `CommsPower`, Comms' load, from G5 and `HelmPower` and `PropulsionPower` from G6; `MASTER_ALARM` reads `all(ALARM_SINKS)`, which reaches `bridge-api`'s global `AlarmPanel`                                                                                                                                                                                                                                                                                                                                  | a ship adds a system, a power load or an alarm panel without editing the loop, the router or the alarm            | `bridge-api`          | G0, G2, G3, G5, G6  |
-| `optional()`                               | `@nexusdi/core`                                         | `PhasedArray` takes `optional(SUBSPACE_LINK)`; the offline graph imports `OfflineComms`, which binds no link, so after `comms hail` the array reports `no subspace link` and keeps the hail queued at 0 W                                                                                                                                                                                                                                                                                                                                                                                                                            | a ship flies out of relay range; comms degrades and the ship runs                                                 | `bridge-api`          | G5                  |
-| `lazy()` edges                             | `@nexusdi/core`                                         | `PlasmaRouter` takes `lazy(SHIELD_GRID)` and `DeflectorGrid` takes `POWER_ROUTER`, the §7.1 cycle: `PlasmaRouter.loads()` reads the grid's draw through the thunk on every tick, and `DeflectorGrid.raise()` asks `POWER_ROUTER.divert()` to fit its load                                                                                                                                                                                                                                                                                                                                                                            | the grid draws from the router and the router sheds the grid; the cycle is physical                               | `bridge-api`          | G1                  |
-| `load()` of a section                      | `@nexusdi/core`                                         | `di.load(FtlDrive)` runs `ship.load(FtlDrive)` on the first FTL request, a spool or a jump; `JumpDrive.onInit()` attaches its physics to the loop and its load to the router                                                                                                                                                                                                                                                                                                                                                                                                                                                         | the FTL drive is the biggest module and most voyages never jump                                                   | `bridge-api`          | G7                  |
-| `scope.extend()` after `load()`            | `@nexusdi/core`                                         | the telemetry stream's request scope opens before the first spool loads the FTL drive; on the first frame whose `ftl.status` is no longer `offline` the stream calls `extend()` and reads `FTL_DRIVE.rating` into the frame's `ftlRating` (`NEXUS_LOADED_AFTER_SCOPE` otherwise)                                                                                                                                                                                                                                                                                                                                                     | a long-lived stream outlives the graph it opened on                                                               | `bridge-api`          | G7                  |
-| `onInit` order                             | `@nexusdi/core`                                         | `SnapshotFeed` and `MasterAlarm` subscribe to the loop in `onInit`, after the loop is built                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | a listener must never see a loop that is not ready                                                                | `bridge-api`          | G0b                 |
-| Dispose order on shutdown                  | `@nexusdi/core`                                         | `ship[Symbol.asyncDispose]()`: the driver stops its timer, the alarm unsubscribes, the feed closes its streams with `ship offline`, and the reactor scram runs last; G1's test asserts `SimDriver`, then `TelemetryFeed`, before `ReactorCore`, and from G3 it asserts `SimDriver`, `MasterAlarm`, `TelemetryFeed` and `ReactorCore` in that order. From G0b, `stopOnSigterm(server, shutdown, { close?, drain?, signals? })` closes the server, then aborts `shutdown`, which ends the telemetry streams; the entry disposes the ship once the server has closed, so a request in flight at `SIGTERM` answers with the ship running | a ship stops its consumers before the reactor; the reverse creation order gives that with no code                 | `bridge-api`          | G0b, G1, G3         |
-| `Nexus.check`                              | `@nexusdi/core`                                         | `test/check.test.ts` checks `Meridian` with every system, and the console checks its own graphs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | a broken wiring fails CI before a tick runs                                                                       | `bridge-api`, console | 0.4                 |
-| Request scopes on Node                     | `@nexusdi/node`                                         | `nodeScopes()` makes the request's scope current for the whole handler, so `FlightRecorder`, a singleton interceptor on `BLAST_DOORS`, records `survey-7: opened habitat-airlock` into the request's scoped `FLIGHT_LOG` with no argument, and `POST /commands` answers the entry beside the tick                                                                                                                                                                                                                                                                                                                                    | a singleton interceptor serves every request, so it finds the request's log through the current scope             | `bridge-api`          | 0.4, G3             |
-| Server adapters                            | `@nexusdi/hono`, `@nexusdi/express`, `@nexusdi/fastify` | the three entries serve `/sim/*` from G0, `/telemetry` (SSE) from G0b and `/commands` from G1 over one graph, and the e2e cases run against each. The three Node entries stop through `stopOnSigterm`, which after `SIGTERM` closes each keep-alive connection as its response finishes                                                                                                                                                                                                                                                                                                                                              | a ship's bridge picks its server; the systems never notice                                                        | `bridge-api`          | 0.4, G0, G0b, G1    |
-| Interceptors as safety interlocks          | `@nexusdi/interceptors`                                 | `PressureInterlock` wraps `BLAST_DOORS.open` and throws `MERIDIAN_INTERLOCK` when the two sides differ by more than 5 kPa; `FlightRecorder` wraps `open` and `close` and records after `next()` returns, so a refused open records nothing; `NavAudit` stays on `NAV_CHARTS`, and from G6 records the helm's plot of a course, which `HelmControl` makes once, at the command                                                                                                                                                                                                                                                        | an interlock is a rule around an action, owned apart from the door; the door class stays plain                    | `bridge-api`          | 0.4, G3, G6         |
-| `errors()` text in console messages        | `@nexusdi/errors`                                       | a refused command answers 400 or 409 with `explain(error, { text: [shipText] })`, and from G3 with `explain(error, { text: SHIP_TEXT })`, where `SHIP_TEXT` is `[shipText, interceptorsText]`; the console shows the message and its `Fix:` line                                                                                                                                                                                                                                                                                                                                                                                     | a crew member who is refused needs the reason and the fix, in words                                               | `bridge-api`, console | G1, G3              |
-| A text pack from outside the core packages | `@nexusdi/errors`                                       | `@nexusdi/meridian-systems/text` exports `shipText` for the `MERIDIAN_*` codes, registered in development as `errors({ text: SHIP_TEXT })` beside `devtools()`; core's `formatError` words only the errors core raises and the errors a plugin passes to `context.format`, so no refusal body depends on the plugin                                                                                                                                                                                                                                                                                                                  | the simulation owns its codes and their words (P1, P2) through the public points any package outside NexusDI uses | `bridge-api`          | G3                  |
-| Devtools graph                             | `@nexusdi/devtools`                                     | `devtools({ annotate: [shipNotes] })` labels each provider with its system, and each `SHIP_SYSTEMS` class with its static phase; the console's diagnostics page draws `graph(ship)`                                                                                                                                                                                                                                                                                                                                                                                                                                                  | an engineer reads the ship's wiring by system                                                                     | `bridge-api`, console | G0b                 |
-| Trace                                      | `@nexusdi/devtools`                                     | `trace()` records the dispose events the shutdown test asserts                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | the dispose order is a fact a test can read                                                                       | `bridge-api`          | G1                  |
-| Profiler on the startup graph              | `@nexusdi/devtools`, `@nexusdi/cli`                     | `nexusdi profile src/ship/meridian.ts#OfflineMeridian` shows the `LifeSupport` calibration, the `LifeSupportOptions` factory, as the async startup step; `test/profile.test.ts` finds it through `profile()`; from G5 a second case overrides `SUBSPACE_LINK` on `Meridian` with `LoopbackLink` and finds the `NavCharts` factory in `Tactical`, awaited at level 1 after the `LifeSupportOptions` factory at level 0. The CLI cannot show that download, since `DEFAULT_RELAY_URL` is an `.invalid` host                                                                                                                            | a ship that takes long to start needs to know which system it waits on                                            | `bridge-api`          | G2, G5              |
-| Graph CLI                                  | `@nexusdi/cli`                                          | the `graph` target draws `graph.json` with every system and `--load src/ship/meridian.ts#FtlDrive`, which re-exports the library's `FtlDrive`, and fails on a diff                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | a system added without its wiring reviewed fails CI                                                               | `bridge-api`          | 0.4, G7             |
-| Testing container and overrides            | `@nexusdi/testing`                                      | `override(ATMOSPHERE_SENSOR, { useClass: FailingSensor })` answers an empty 500 on the atmosphere route from G2, and `override(ATMOSPHERE_PROBE, { useClass: FailingProbe })` raises `SENSOR_FAULT` from G3; `override(SUBSPACE_LINK, { useClass: LoopbackLink })` profiles the charts download from G5; from G7 `overrideModule(FtlDrive, SimulatedFtlDrive, { lazy: true })` stubs the loaded drive                                                                                                                                                                                                                                | a test breaks one sensor and watches the alarm; from G7 a test of a jump does not spool a real drive              | `bridge-api`          | 0.4, G2, G3, G5, G7 |
-| Vitest fixtures                            | `@nexusdi/vitest`                                       | `nexusTest(base, Meridian, { setup })` gives each test a ship at seed 7; `test.override` changes the seed or the sensors per suite                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | each test gets a fresh ship and the fixture disposes it, so a timer or listener never leaks into the next test    | `bridge-api`, console | 0.4, G0             |
-| React provider, `useService` and sections  | `@nexusdi/react`                                        | the console's system pages are `lazySection`s inside `SectionBoundary`; `useService(TELEMETRY_CLIENT)` reads the stream                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | a bridge shows the panel for the system in front of it, loaded when opened                                        | console               | 0.4, G0b            |
-| React Router request scopes                | `@nexusdi/react-router`                                 | the console's loaders read `BRIDGE_LINK` with `di.inject`; the command form's action posts through it; `/course/:to` streams a deferred loader                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | each console request carries its mission to the backend                                                           | console               | 0.4, G1             |
-| Federation contracts                       | `@nexusdi/federation`                                   | each station is a remote; the contract `meridian` gains `TELEMETRY_FEED` and `COMMAND_LINK`, and a remote built at a newer minor fails with `NEXUS_CONTRACT_VERSION`                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | each station is built by its own team against the bridge's contract                                               | federation            | 0.4, G9             |
-| Decorators in a remote                     | `@nexusdi/decorators`                                   | the `command` station writes its classes with `@Injectable` and `@Inject`: `Bridge` reads `NAV_CHARTS`, and in G9 `HelmOrders` sends helm commands over `COMMAND_LINK`                                                                                                                                                                                                                                                                                                                                                                                                                                                               | a team that prefers decorators writes its station that way, and the shell's core reads it                         | federation            | 0.4, G9             |
+| Capability                                 | Package                                                 | Ship system and how it shows                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Why it fits                                                                                                       | App                   | When                   |
+| ------------------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | --------------------- | ---------------------- |
+| Interface-first tokens and `useClass`      | `@nexusdi/core`                                         | every system: `provide(ATMOSPHERE_SENSOR, { useClass: GasAnalyzer })`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | a ship swaps hardware behind a fixed interface; a test swaps a fake behind the same token                         | `bridge-api`          | G0                     |
+| Modules, imports and exports               | `@nexusdi/core`                                         | one module per system; `Engineering` exports `POWER_ROUTER` and keeps `COOLANT_LOOP` to itself                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | a system is a bulkhead: other systems see its panel and never its pipes                                           | `bridge-api`          | G1                     |
+| Global module and `forRoot`                | `@nexusdi/core`                                         | `Simulation.forRoot({ seed: 7, dt: 0.5 })` is global, so every system and a loaded module see the clock and the state                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | every system needs the ship's clock; an import in each module would be noise                                      | `bridge-api`          | G0                     |
+| `forRootAsync` calibration                 | `@nexusdi/core`                                         | `LifeSupport.forRootAsync({ deps: [DECK_PLAN], useFactory: readCalibration })` reads the analyzers' noise and resolution from `deck/sensors.calibration.json` before the first tick; the aggregate imports and re-exports that one instance                                                                                                                                                                                                                                                                                                                                                                                          | sensors read nothing true until they are calibrated, and the calibration comes from a file                        | `bridge-api`          | G2                     |
+| Compartment-scoped atmosphere              | `@nexusdi/core`                                         | `GET /compartments/:id/atmosphere` opens a request scope whose `REQUEST` names the compartment; the library augments `NexusRequest` with `compartment?: string`, and `COMPARTMENT` is scoped over `REQUEST` with `eager: false`; an unknown id answers 404 with `MERIDIAN_UNKNOWN_COMPARTMENT`                                                                                                                                                                                                                                                                                                                                       | a reading belongs to one room; the scope carries the room so no method takes it as an argument                    | `bridge-api`          | G2                     |
+| Transient sensor reads                     | `@nexusdi/core`                                         | `ATMOSPHERE_SENSOR` is transient: each `get()` builds a `GasAnalyzer` that samples its compartment at construction and draws its noise from ``rng.fork(`AtmosphereSensor:${compartment}:${tick}`)``                                                                                                                                                                                                                                                                                                                                                                                                                                  | a sensor read is a sample of one tick; reads in two ticks differ, and a cached sensor would hide a leak           | `bridge-api`          | G2                     |
+| Multi providers and `all()`                | `@nexusdi/core`                                         | `SHIP_SYSTEMS` collects each system's physics; `PlasmaRouter` reads `all(POWER_CONSUMERS)` for each system's load, with `CommsPower`, Comms' load, from G5, `HelmPower` and `PropulsionPower` from G6 and `WeaponsPower` from G8; `MASTER_ALARM` reads `all(ALARM_SINKS)`, which reaches `bridge-api`'s global `AlarmPanel`                                                                                                                                                                                                                                                                                                          | a ship adds a system, a power load or an alarm panel without editing the loop, the router or the alarm            | `bridge-api`          | G0, G2, G3, G5, G6, G8 |
+| `optional()`                               | `@nexusdi/core`                                         | `PhasedArray` takes `optional(SUBSPACE_LINK)`; the offline graph imports `OfflineComms`, which binds no link, so after `comms hail` the array reports `no subspace link` and keeps the hail queued at 0 W                                                                                                                                                                                                                                                                                                                                                                                                                            | a ship flies out of relay range; comms degrades and the ship runs                                                 | `bridge-api`          | G5                     |
+| `lazy()` edges                             | `@nexusdi/core`                                         | `PlasmaRouter` takes `lazy(SHIELD_GRID)` and `DeflectorGrid` takes `POWER_ROUTER`, the §7.1 cycle: `PlasmaRouter.loads()` reads the grid's draw through the thunk on every tick, and `DeflectorGrid.raise()` asks `POWER_ROUTER.divert()` to fit its load; from G8 `RailgunMount` takes `lazy(POWER_ROUTER)`, since the router reads the mount's load through `POWER_CONSUMERS`, and a direct dep fails the build with `NEXUS_CIRCULAR_DEPENDENCY`                                                                                                                                                                                   | the grid draws from the router and the router sheds the grid; the cycle is physical                               | `bridge-api`          | G1, G8                 |
+| `load()` of a section                      | `@nexusdi/core`                                         | `di.load(FtlDrive)` runs `ship.load(FtlDrive)` on the first FTL request, a spool or a jump; `JumpDrive.onInit()` attaches its physics to the loop and its load to the router                                                                                                                                                                                                                                                                                                                                                                                                                                                         | the FTL drive is the biggest module and most voyages never jump                                                   | `bridge-api`          | G7                     |
+| `scope.extend()` after `load()`            | `@nexusdi/core`                                         | the telemetry stream's request scope opens before the first spool loads the FTL drive; on the first frame whose `ftl.status` is no longer `offline` the stream calls `extend()` and reads `FTL_DRIVE.rating` into the frame's `ftlRating` (`NEXUS_LOADED_AFTER_SCOPE` otherwise)                                                                                                                                                                                                                                                                                                                                                     | a long-lived stream outlives the graph it opened on                                                               | `bridge-api`          | G7                     |
+| `onInit` order                             | `@nexusdi/core`                                         | `SnapshotFeed` and `MasterAlarm` subscribe to the loop in `onInit`, after the loop is built                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | a listener must never see a loop that is not ready                                                                | `bridge-api`          | G0b                    |
+| Dispose order on shutdown                  | `@nexusdi/core`                                         | `ship[Symbol.asyncDispose]()`: the driver stops its timer, the alarm unsubscribes, the feed closes its streams with `ship offline`, and the reactor scram runs last; G1's test asserts `SimDriver`, then `TelemetryFeed`, before `ReactorCore`, and from G3 it asserts `SimDriver`, `MasterAlarm`, `TelemetryFeed` and `ReactorCore` in that order. From G0b, `stopOnSigterm(server, shutdown, { close?, drain?, signals? })` closes the server, then aborts `shutdown`, which ends the telemetry streams; the entry disposes the ship once the server has closed, so a request in flight at `SIGTERM` answers with the ship running | a ship stops its consumers before the reactor; the reverse creation order gives that with no code                 | `bridge-api`          | G0b, G1, G3            |
+| `Nexus.check`                              | `@nexusdi/core`                                         | `test/check.test.ts` checks `Meridian` with every system, and the console checks its own graphs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | a broken wiring fails CI before a tick runs                                                                       | `bridge-api`, console | 0.4                    |
+| Request scopes on Node                     | `@nexusdi/node`                                         | `nodeScopes()` makes the request's scope current for the whole handler, so `FlightRecorder`, a singleton interceptor on `BLAST_DOORS`, records `survey-7: opened habitat-airlock` into the request's scoped `FLIGHT_LOG` with no argument, and `POST /commands` answers the entry beside the tick                                                                                                                                                                                                                                                                                                                                    | a singleton interceptor serves every request, so it finds the request's log through the current scope             | `bridge-api`          | 0.4, G3                |
+| Server adapters                            | `@nexusdi/hono`, `@nexusdi/express`, `@nexusdi/fastify` | the three entries serve `/sim/*` from G0, `/telemetry` (SSE) from G0b and `/commands` from G1 over one graph, and the e2e cases run against each. The three Node entries stop through `stopOnSigterm`, which after `SIGTERM` closes each keep-alive connection as its response finishes                                                                                                                                                                                                                                                                                                                                              | a ship's bridge picks its server; the systems never notice                                                        | `bridge-api`          | 0.4, G0, G0b, G1       |
+| Interceptors as safety interlocks          | `@nexusdi/interceptors`                                 | `PressureInterlock` wraps `BLAST_DOORS.open` and throws `MERIDIAN_INTERLOCK` when the two sides differ by more than 5 kPa; `FlightRecorder` wraps `open` and `close` and records after `next()` returns, so a refused open records nothing; `NavAudit` stays on `NAV_CHARTS`, and from G6 records the helm's plot of a course, which `HelmControl` makes once, at the command                                                                                                                                                                                                                                                        | an interlock is a rule around an action, owned apart from the door; the door class stays plain                    | `bridge-api`          | 0.4, G3, G6            |
+| `errors()` text in console messages        | `@nexusdi/errors`                                       | a refused command answers 400 or 409 with `explain(error, { text: [shipText] })`, and from G3 with `explain(error, { text: SHIP_TEXT })`, where `SHIP_TEXT` is `[shipText, interceptorsText]`; the console shows the message and its `Fix:` line                                                                                                                                                                                                                                                                                                                                                                                     | a crew member who is refused needs the reason and the fix, in words                                               | `bridge-api`, console | G1, G3                 |
+| A text pack from outside the core packages | `@nexusdi/errors`                                       | `@nexusdi/meridian-systems/text` exports `shipText` for the `MERIDIAN_*` codes, registered in development as `errors({ text: SHIP_TEXT })` beside `devtools()`; core's `formatError` words only the errors core raises and the errors a plugin passes to `context.format`, so no refusal body depends on the plugin                                                                                                                                                                                                                                                                                                                  | the simulation owns its codes and their words (P1, P2) through the public points any package outside NexusDI uses | `bridge-api`          | G3                     |
+| Devtools graph                             | `@nexusdi/devtools`                                     | `devtools({ annotate: [shipNotes] })` labels each provider with its system, and each `SHIP_SYSTEMS` class with its static phase; the console's diagnostics page draws `graph(ship)`                                                                                                                                                                                                                                                                                                                                                                                                                                                  | an engineer reads the ship's wiring by system                                                                     | `bridge-api`, console | G0b                    |
+| Trace                                      | `@nexusdi/devtools`                                     | `trace()` records the dispose events the shutdown test asserts                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | the dispose order is a fact a test can read                                                                       | `bridge-api`          | G1                     |
+| Profiler on the startup graph              | `@nexusdi/devtools`, `@nexusdi/cli`                     | `nexusdi profile src/ship/meridian.ts#OfflineMeridian` shows the `LifeSupport` calibration, the `LifeSupportOptions` factory, as the async startup step; `test/profile.test.ts` finds it through `profile()`; from G5 a second case overrides `SUBSPACE_LINK` on `Meridian` with `LoopbackLink` and finds the `NavCharts` factory in `Tactical`, awaited at level 1 after the `LifeSupportOptions` factory at level 0. The CLI cannot show that download, since `DEFAULT_RELAY_URL` is an `.invalid` host                                                                                                                            | a ship that takes long to start needs to know which system it waits on                                            | `bridge-api`          | G2, G5                 |
+| Graph CLI                                  | `@nexusdi/cli`                                          | the `graph` target draws `graph.json` with every system and `--load src/ship/meridian.ts#FtlDrive`, which re-exports the library's `FtlDrive`, and fails on a diff                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | a system added without its wiring reviewed fails CI                                                               | `bridge-api`          | 0.4, G7                |
+| Testing container and overrides            | `@nexusdi/testing`                                      | `override(ATMOSPHERE_SENSOR, { useClass: FailingSensor })` answers an empty 500 on the atmosphere route from G2, and `override(ATMOSPHERE_PROBE, { useClass: FailingProbe })` raises `SENSOR_FAULT` from G3; `override(SUBSPACE_LINK, { useClass: LoopbackLink })` profiles the charts download from G5; from G7 `overrideModule(FtlDrive, SimulatedFtlDrive, { lazy: true })` stubs the loaded drive                                                                                                                                                                                                                                | a test breaks one sensor and watches the alarm; from G7 a test of a jump does not spool a real drive              | `bridge-api`          | 0.4, G2, G3, G5, G7    |
+| Vitest fixtures                            | `@nexusdi/vitest`                                       | `nexusTest(base, Meridian, { setup })` gives each test a ship at seed 7; `test.override` changes the seed or the sensors per suite                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | each test gets a fresh ship and the fixture disposes it, so a timer or listener never leaks into the next test    | `bridge-api`, console | 0.4, G0                |
+| React provider, `useService` and sections  | `@nexusdi/react`                                        | the console's system pages are `lazySection`s inside `SectionBoundary`; `useService(TELEMETRY_CLIENT)` reads the stream                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | a bridge shows the panel for the system in front of it, loaded when opened                                        | console               | 0.4, G0b               |
+| React Router request scopes                | `@nexusdi/react-router`                                 | the console's loaders read `BRIDGE_LINK` with `di.inject`; the command form's action posts through it; `/course/:to` streams a deferred loader                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | each console request carries its mission to the backend                                                           | console               | 0.4, G1                |
+| Federation contracts                       | `@nexusdi/federation`                                   | each station is a remote; the contract `meridian` gains `TELEMETRY_FEED` and `COMMAND_LINK`, and a remote built at a newer minor fails with `NEXUS_CONTRACT_VERSION`                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | each station is built by its own team against the bridge's contract                                               | federation            | 0.4, G9                |
+| Decorators in a remote                     | `@nexusdi/decorators`                                   | the `command` station writes its classes with `@Injectable` and `@Inject`: `Bridge` reads `NAV_CHARTS`, and in G9 `HelmOrders` sends helm commands over `COMMAND_LINK`                                                                                                                                                                                                                                                                                                                                                                                                                                                               | a team that prefers decorators writes its station that way, and the shell's core reads it                         | federation            | 0.4, G9                |
 
 `@nexusdi/next` is out of the set until 0.5 (integrations section 10.1), and
 `examples/next-bridge` keeps its gate canary.
@@ -1845,8 +2044,8 @@ declare module '@nexusdi/core' {
 with a comma by a regular expression, so the text is the same on every runtime and locale
 (`toLocaleString` is not). Five codes: `MERIDIAN_INTERLOCK` (a door across a pressure
 difference), `MERIDIAN_POWER_BUDGET` (a command whose demand the router cannot meet, such
-as a shields raise above the reactor's output or a spool the router cannot fit, such as
-one on a cold reactor),
+as a shields raise above the reactor's output, a spool the router cannot fit, such as
+one on a cold reactor, or from G8 the first fire of the railgun),
 `MERIDIAN_BAD_COMMAND` (a command the desk or its system cannot read),
 `MERIDIAN_FTL_NOT_SPOOLED` (a jump before the spool is full) and
 `MERIDIAN_UNKNOWN_COMPARTMENT` (a request that names no compartment or one the deck lacks,
@@ -1885,6 +2084,12 @@ has 0 MW free beside the loads above it." The router fits a spool from reactor l
 0.7438, so a spool at 0.75 to 0.9 passes the router and holds in the tick (section 5.7).
 `bridge-api` matches the refusals through `isNexusError` and `BadCommandError`, the
 library's public names.
+
+G8 adds no code. The first fire on a cold reactor answers `PowerBudgetError` with "The
+railgun load needs 300 MW, and the router has 0 MW free beside the loads above it." and the
+fix "raise the reactor throttle and wait for the output to climb, or lower a load of higher
+priority." A range outside 0 to 100,000 m answers `BadCommandError` with reason
+`argument`, as section 3.3 words it.
 
 Against P1 to P5: the simulation owns its codes, their classes and their text (P1). It
 extends core's open `NexusErrorByCode` by augmentation (P2). It reaches core through
@@ -2195,9 +2400,10 @@ and the frames up to tick 1 end on `idle` with
 per framework. A spool on the cold reactor answers 202 `{ tick: 1 }`, and after one tick
 the jump to Proxima-b answers 202 `{ tick: 2 }`. One tick later the record reads
 `{ status: 'idle', charge: 0, sector: 'Proxima-b', jumped: 2 }` with
-`{ armed: false, jump: null }`, five loads and the coolant at 500 K. The root's drive is a
-`SimulatedJumpDrive`, and the telemetry frame at tick 1 carries `ftlRating.power` 0, since
-the stream reads the bound drive. A case without `lazy` fails `create()` with
+`{ armed: false, jump: null }`, five loads (six from G8, with `railgun`) and the coolant
+at 500 K. The root's drive is a `SimulatedJumpDrive`, and the telemetry frame at tick 1
+carries `ftlRating.power` 0, since the stream reads the bound drive. A case without `lazy`
+fails `create()` with
 `NEXUS_BLUEPRINT_INVALID`, which carries `NEXUS_OVERRIDE_UNUSED`.
 
 `spoolAndJump` joins `growthCases` as the seventh case, named "a spool and a jump on the
@@ -2216,6 +2422,51 @@ A new helper `post` sends to the FTL
 routes, and `send` calls it with the label, so every failure message of an earlier case
 stays as it was.
 
+G8 adds no route and changes no file under `src`. `weapons fire` goes through
+`POST /commands`, and `GET /sim`, `/sim/advance` and the telemetry frames carry `weapons`,
+`setpoints.weapons` and the `railgun` load. `test/routes.test.ts` gains
+`the weapons commands on %s` on Hono, Express and Fastify, after every existing block, on
+`OfflineMeridian` with `bridgePlugins()`. From tick 0 a fire at 10,000 m answers 409
+`{ code: 'MERIDIAN_POWER_BUDGET', message: 'The railgun load needs 300 MW, and the router has 0 MW free beside the loads above it.', fix }`,
+and throttle 1 answers 202 `{ tick: 1 }`. After 30 ticks a fire with the range `'10000'`,
+100,001, −1 or none answers 400 `MERIDIAN_BAD_COMMAND` with "weapons fire got an argument
+it cannot use. It takes fire with a range from 0 to 100,000 m.", and `weapons reload`
+answers 400 with "weapons has no action 'reload'. It takes fire with a range from 0 to
+100,000 m." Two fires at 10,000 m each answer 202 `{ tick: 31 }`. One tick later `GET /sim`
+holds `{ status: 'charging', charge: 150000000, shots: 0, hits: 0, lastShot: null }`,
+`{ armed: true, range: 10000 }` and the load allocated 300,000,000 W. One more tick holds
+`{ status: 'charging', charge: 0, shots: 1, hits: 1, lastShot: { tick: 32, range: 10000, hit: true } }`,
+`{ armed: true, range: null }`, the coolant at 507.7 and no alarm, and three more hold
+`charged` with 400,000,000 J and the load allocated 200,000,000 W at tick 35. A fire at
+50,000 m answers 202 `{ tick: 36 }`, and one tick later the record reads
+`{ status: 'charging', charge: 100000000, shots: 2, hits: 1, lastShot: { tick: 36, range: 50000, hit: false } }`.
+`GET /commands` holds `{ reactor: { throttle: 1 } }` at tick 1,
+`{ weapons: { armed: true, range: 10000 } }` at tick 31 and
+`{ weapons: { range: 50000 } }` at tick 36.
+
+`check.test.ts`'s notes case gains `['system: Weapons', 'phase: 3']` for
+`ShipSystems in Weapons` and `['system: Weapons']` for `WeaponMount`, `PowerConsumers` and
+`CommandHandlers in Weapons`, and `notes.ts` does not change. `graph.json` redraws:
+`MeridianSystems` imports `Weapons` after `Helm`, and the module brings four providers and
+ten edges. The edges are the loop's, the desk's and the router's `all` edges to the three
+contributions, `WeaponMount` to `ShipState` and to `SimOptions`, `WeaponMount` to
+`PowerRouter` (lazy), the three contributions to `WeaponMount`, and
+`PowerConsumers in Weapons` to `SimOptions in Simulation`. The graph grows from 17 to 18
+modules, 56 to 60 providers and 90 to 100 edges, and loses none. `test/ftl.test.ts` reads
+six loads where it read five.
+
+`fireRailgun` joins `growthCases` as the eighth case, named "two railgun shots on the
+offline ship charge the capacitor, hit at 10 km and miss at 50 km", and
+`e2e/growth/weapons.e2e.ts` runs it on the three Node servers through `withShip`, so it
+runs on six runtimes. From tick 0 a fire at 10,000 m answers 409 with the 0 MW text, and
+throttle 1 answers 202 `{ tick: 1 }`. At tick 30 the record reads `idle` with the load at
+0 W. Fires at the range `'far'` and at 100,001 answer 400, and a fire at 10,000 m answers
+202 `{ tick: 31 }`. Tick 31 reads 150,000,000 J with the load at 300,000,000 W, tick 32 the
+hit, and tick 35 400,000,000 J with the load at 200,000,000 W. A fire at 50,000 m answers
+202 `{ tick: 36 }`, tick 36 reads the miss with 100,000,000 J, and `GET /commands` lists
+ticks 1, 31 and 36. The case reads through `send`, `advanceTo`, `okJson` and `expectEqual`
+alone, and every value it compares is an integer, a string, a boolean or `null`.
+
 ### 7.2 The bridge console
 
 The console's server calls `bridge-api` over HTTP, and the browser calls the console only
@@ -2233,6 +2484,7 @@ The console's server calls `bridge-api` over HTTP, and the browser calls the con
 | `/systems/comms`                                  | a static route with the array's status, its queued hail, the tick of its last hail and its power, the messages it received, a hail button, and the answer to the last command                                                                                    | G5        |
 | `/systems/helm`                                   | a static route with the heading, the course, the turn rate and the thrusters' torque and power, the drive's burn level, power, thrust, propellant flow, acceleration, velocity and distance, a course select and a burn form, and the answer to the last command | G6        |
 | `/systems/ftl`                                    | a static route with the drive's status, the arm, the spool's charge in GJ and its power, the sector and the last jump, a spool button and a jump select, and the answer to the last command                                                                      | G7        |
+| `/systems/weapons`                                | a static route with the mount's status, the arm, the capacitor's charge in MJ and its power, the shot that waits, the shots, the hits and the last shot, a range form, and the answer to the last command                                                        | G8        |
 | `/systems/:system`                                | one `lazySection` per system in `SectionBoundary`: gauges and a command form                                                                                                                                                                                     | after G0b |
 | `/diagnostics`                                    | `graph(ship)` from `GET /graph`, each module with its providers and their notes                                                                                                                                                                                  | G0b       |
 
@@ -2373,6 +2625,32 @@ select lists the charted stars, and "Jump" for Proxima-b calls `jump('Proxima-b'
 refused jump shows the 0 GJ text. `shipAtStart` gains the record at `offline` and its
 setpoints, and `fakeBridgeLink` gains `spool` and `jump`.
 
+G8 adds the weapons page at `/systems/weapons`, a static route in the `ship-layout.tsx`
+group, with a nav link "Weapons" after "FTL". Its loader is `snapshotLoader` and its action
+`systemAction('weapons', { range: 'number' })`. The page shows `SnapshotOffline` when the
+call fails, and `BRIDGE_LINK` gains no method. Its Railgun section shows the gauges
+`Railgun gauges`: `Status` (`weapons.status`), `Armed` (`Yes` or `No`), `Capacitor charge`
+in MJ to 0.1 (`fixed(charge / 1e6, 1)`), `Capacitor power` (the `railgun` allocation
+through `megawatts()`), `Shot waiting` (the range in whole m, or `none`), `Shots fired`,
+`Hits` and `Last shot` (such as `hit at 10,000 m, tick 32`, or `none`). The joule and the
+watt are SI units, and mega an SI prefix. Words and ticks carry no unit. Its Fire section
+holds a `NumberForm` with the field `range`, the label `Range (m)`, 0 to 100,000 in steps
+of 1, the default 10,000 and the button "Fire".
+`NumberForm({ command, name, label, button, min, max, step, defaultValue })` joins
+`system-page.tsx`, and `LevelForm` renders it with `name="level"`, 0 to 1 and step 0.01, so
+the engineering and helm specs pass unchanged. `weapons.tsx` imports the library's main
+entry with `import type` alone, so the bundle check stays green.
+
+`tests/routes/weapons.spec.tsx` reads `idle`, `No`, `0.0 MJ`, `0.0 MW`, `none`, `0`, `0`
+and `none` at tick 0; `charging`, `Yes`, `150.0 MJ`, `300.0 MW` and `10,000 m` at golden
+tick 31; `0.0 MJ`, `300.0 MW`, `1`, `1` and `hit at 10,000 m, tick 32` at golden tick 32;
+`charged`, `400.0 MJ` and `200.0 MW` at golden tick 35; `charged`, `400.0 MJ` and `0.0 MW`
+at tick 36; `charging`, `100.0 MJ`, `0.0 MW`, `2`, `1` and `miss at 50,000 m, tick 37` at
+tick 37; and `held`, `150.0 MJ`, `0.0 MW` and `0 m` on the shed tick 62. "Fire" posts
+`{ system: 'weapons', action: 'fire', range: 10000 }` and shows `Queued for tick 1`, and a
+refused fire shows the 0 MW text and its `Fix:` line. `shipAtStart` gains the record and
+its setpoints after `comms` and the 0 W `railgun` load.
+
 The engineering page's growth case runs in the console's `e2e-growth` target under
 `playwright.e2e-growth.config.mts`, and the gating config ignores `e2e/growth/`. The
 console takes the types by `import type` only. Its double `fakeBridgeLink` gains the same
@@ -2441,6 +2719,10 @@ G7 adds one module, `FtlDrive`, loaded after startup, with phase 3 physics and i
 routes. The desk gains no command. Every earlier golden gains the FTL record and setpoints
 alone, and `graph.json` redraws with the load.
 
+G8 adds one static module, `Weapons`, with phase 3 physics and the crew command
+`weapons fire`. Every earlier golden gains the weapons fields and the 0 W `railgun` load
+alone, and `graph.json` redraws.
+
 The suggested order, each step depending only on G0 and the steps it names:
 
 | Step | Increment                                                                                                                                                                                                                                                                                | Needs  |
@@ -2454,7 +2736,7 @@ The suggested order, each step depending only on G0 and the steps it names:
 | G5   | `Comms` and `Tactical` move into the library, with `COMMS_ARRAY`, the optional link, the hail and the console's comms page                                                                                                                                                               | G0     |
 | G6   | `Propulsion` and `Helm`: the main drive, the thrusters, the helm's course and burn commands, and the console's helm page                                                                                                                                                                 | G1, G5 |
 | G7   | `FtlDrive`, loaded with `load()`: the spool, the jump, the FTL routes and the console's FTL page                                                                                                                                                                                         | G1, G6 |
-| G8   | `Weapons`                                                                                                                                                                                                                                                                                | G1     |
+| G8   | `Weapons`: the railgun's capacitor on the power router, the shot and its hit draw, the crew command `weapons fire` and the console's weapons page                                                                                                                                        | G1     |
 | G9   | the engineering and life-support stations, the contract tokens, helm orders from `command`                                                                                                                                                                                               | G1, G2 |
 
 G1 to G3 come first because they carry the owner's Stationeers picture (air, power,
@@ -2487,7 +2769,8 @@ The physics tests import `src/physics/*` and no NexusDI code:
 - `thermal.test.ts`: with its thermostat at 293 K, the habitat stays between 292.4 K and
   292.7 K from tick 2,400 to tick 7,200 (model 292.552 K), and the bridge settles at
   292.726 K ± 0.05 K at 2,745 W (model 292.725 K); the coolant loop at full output settles at 1,186 K ± 5 K; the trip fires at
-  1,450 K.
+  1,450 K. From G8 `pulseCoolant` lives in `thermal.ts`, and a pulse of 75,000,000 J
+  raises 500 K to 500.08992805755395 K.
 - `power.test.ts`: the router fills by priority and sheds a consumer whose demand does
   not fit, with a property test over random demands that the allocation never exceeds
   `P_e`.
@@ -2529,7 +2812,18 @@ The physics tests import `src/physics/*` and no NexusDI code:
   `{ status: 'idle', charge: 0, sector, jumped: tick }`, `{ armed: false, jump: null }`
   and a pulse of 9,000,000,000 J, and a jump below full changes nothing; `stepFtl` on the
   store's `offline` record with no allocation returns a new `idle` record;
-  `pulseCoolant` raises 500 K to 510.7913669064748 K; every built record is frozen.
+  `pulseCoolant` raises 500 K to 510.7913669064748 K; every built record is frozen. From G8
+  the file imports `pulseCoolant` from `./thermal`, and both cases keep their bodies.
+- `weapons.test.ts` (G8): three charging ticks reach 150,000,000, 300,000,000 and
+  400,000,000 J and a fourth keeps 400,000,000; the third charging tick from empty asks
+  200,000,000 W; at dt 1 a bank at 300,000,000 J asks 100,000,000 W, and at dt 2 an empty
+  armed bank asks 200,000,000 W; `railgunDemand` asks 0 W unarmed or full; `stepWeapons`
+  returns the objects it got unarmed, and reads `charging` with an allocation, `held` when
+  shed and `charged` at full; a shot waits at 150,000,000 J and leaves at 300,000,000 J
+  with `charge` 0, and a shot from a full bank leaves 100,000,000 J; a draw of 0 hits and a
+  draw of 0.99 misses; the shot writes `lastShot`, `shots`, `hits`, `range: null` and a
+  pulse of 75,000,000 J; `draw` runs on a shot tick alone; `hitChance(0)` is 0.8 and
+  `hitChance(50_000)` is `0.8 / Math.E` to 1 × 10⁻¹⁵; every built record is frozen.
 - `tools/repo-checks/src/meridian-purity.test.ts`: the library's ESLint config holds the
   replay rules of section 4.3, and ESLint refuses each known bypass of them. No file
   under `src/physics` imports `@nexusdi/*`, and no `*.module.ts` file passes 120 lines.
@@ -2556,6 +2850,14 @@ tick.
 and its detach removes it and runs twice safely. `ship-state-store.test.ts` reads the
 record `offline` and the setpoints idle after `helm`, frozen, and its two `slice(-4)` reads
 become `['helm', 'ftl', 'safety', 'setpoints']` and `['drive', 'helm', 'ftl', 'safety']`.
+
+From G8 `ship-state-store.test.ts` gains "starts the weapons record idle and the setpoints
+unarmed after comms, frozen", which reads `indexOf('weapons')` at `indexOf('comms') + 1`
+in the snapshot and in the setpoints, and its tick-0 load list gains the `railgun` row.
+Its two `slice(-4)` reads stay as G7 committed them. `command-arguments.test.ts` gains
+`numberArgument`: it reads a number between its bounds, both ends allowed, and refuses
+`NaN`, `Infinity`, a string, a missing value, null and a number outside. `levelArgument`'s
+cases stay as they were.
 
 ### 8.2 Module tests on the vitest fixtures
 
@@ -2655,6 +2957,31 @@ drive holds 22.5 GJ of the 90 GJ a jump needs." `test/notes.test.ts` gains a cas
 labels the drive's provider `system: FtlDrive` with no phase note, and a module a plugin
 compiles in place of `FtlDrive` gets its own name, such as `system: StandIn`.
 
+G8's `test/weapons.test.ts` builds `meridianSystems({ seed: 7, dt: 0.5 })` offline and
+asserts the figures of section 5.15 in eight cases. `RailgunMount`, `WeaponsPhysics`,
+`WeaponsPower` and `WeaponsCommands` each have a test beside the class.
+`railgun-mount.test.ts` runs on fakes: the rating is `RAILGUN`, and the constructor never
+calls the router thunk. An unarmed fire diverts
+`{ id: 'railgun', priority: 6, demand: 300e6, heatShare: 0 }` and queues
+`{ weapons: { armed: true, range } }`, and at dt 2 it diverts 200,000,000 W. A refused
+divert queues nothing, and an armed fire asks no `divert` and queues
+`{ weapons: { range } }`. A range of −1, 100,001, `NaN` or `Infinity` throws `RangeError`,
+and 0 and 100,000 m both fire. `weapons-physics.test.ts` reads phase 3 and the name
+`Weapons`, and an idle ship comes back as it went in with no draw. A shot draws once from
+`TickContext.rng` and writes the record and the setpoints, and the loop reads 0.0899 K
+higher in a frozen snapshot. A draw of 0.99 misses. `weapons-power.test.ts` reads `dt`
+from a fake `SimOptions`: an armed bank at 300,000,000 J asks 200,000,000 W at dt 0.5 and
+100,000,000 W at dt 1, and a mount with another rating changes the load.
+`weapons-commands.test.ts` hands fires at 0, 10,000 and 100,000 m to the mount and refuses
+`reload` and each bad range with `expected: WEAPONS_ACTIONS`. It words both refusals
+through `shipText`.
+
+Five enumerating assertions of earlier tests gain an id, a row, a line or a count, and none
+rewrites an earlier value: the tick-0 load list of `ship-state-store.test.ts`, the desk's
+list in `test/comms.test.ts`, `test/helm.test.ts`, `test/simulation.test.ts` and
+`test/ftl.test.ts`, the load ids of `test/ftl.test.ts`, `bridge-api`'s six loads in its
+`test/ftl.test.ts` and the `Weapons` notes of `check.test.ts`.
+
 `bridge-api`'s `test/ftl.test.ts` holds the jump suite over `SimulatedFtlDrive` that
 section 8.2 gave the module tests and G6 moved to G7. `bridge-api` holds the doubles and
 the routes the stub serves, and the stub exists so a bridge test of a jump never spools a
@@ -2728,7 +3055,18 @@ Every e2e server starts with `SIM_MODE=manual SIM_SEED=7`. A case drives ticks w
    tick 300, pinned at ticks 101, 300 and 301 in 620 lines. Tick 101 holds the first spool
    tick at 900,000,000 W and the coolant at `571.9`, tick 300 the full charge and the
    coolant at `832.6`, and tick 301 the jump with the load at 0 W and the coolant at
-   `844.4`.
+   `844.4`. G8 adds the weapons record, its setpoints and the 0 W `railgun` load to the
+   idle, life-support, safety, airlock, comms, helm and ftl goldens, which gain 51, 51,
+   51, 85, 51, 68 and 51 lines and change none by Myers, histogram, patience and `diff`.
+   The record and the setpoints came first, at 33, 33, 33, 55, 33, 44 and 33 lines, 11 a
+   snapshot, and the wiring added the load, at 18, 18, 18, 30, 18, 24 and 18, 6 a
+   snapshot. With the G8 fields stripped, each replay equals the committed golden byte
+   for byte. G8 adds `e2e/golden/weapons.seed-7.json` (`e2e/weapons.e2e.ts`) on the
+   offline graph: throttle 1 at tick 0, a fire at 10,000 m after tick 30 and a fire at
+   50,000 m after tick 40, pinned at ticks 31, 32, 35 and 41 in 882 lines. The railgun
+   load reads 300, 300, 200 and 0 MW at those ticks, and the coolant `507.1`, `507.7`,
+   `509.1` and `512.5`, where the same run with no shot reads `507.6` at tick 32. Tick 35
+   holds `charged` at 400,000,000 J, and tick 41 the miss with 100,000,000 J.
 
 The goldens run on Node only, and on the version `.nvmrc` names: the golden suite reads
 `.nvmrc` and fails, naming both versions, when `process.versions.node` differs. A golden
@@ -2736,20 +3074,23 @@ is then written and read on one Node. A case in the library's `test` target asse
 rounded idle values that hold on any Node. `Math.exp` and `Math.cos` are not required to
 round identically across engines, and a threshold such as a fire's ignition draw can flip
 on the last bit. The workerd, Deno and Bun legs of `bridge-api`'s `e2e-growth` target run
-seven cases: the shape of `/sim` at tick 0, 600 ticks to rounded values far from any
+eight cases: the shape of `/sim` at tick 0, 600 ticks to rounded values far from any
 threshold, a first telemetry frame (section 7.1), from G4 the airlock drill, whose reads
 sit far from each threshold (the outer door opens 1,051 Pa under the interlock, and the
 inner door five fill ticks from the limit on either side), from G5 a hail on the offline
 ship, where every number it reads is an integer, from G6 a course and an aligned burn, and
 from G7 a spool and a jump on the offline ship, where every value it reads is an integer, a
-string or null.
+string or null, and from G8 two railgun shots on the offline ship, where every value it
+reads is an integer, a string, a boolean or `null`.
 Node, Deno and Bun agree on the hail byte for byte: the final `/sim` of the case reads
 1,656 bytes with FNV-1a `cab1e7fa` on each. They agree on the course and the burn too,
 and so does the Node bundle: the case's `/sim` at tick 800 reads 1,965 bytes with FNV-1a
 `32548374`, and its final `/sim` 2,001 bytes with `ef7c70c9`. The workerd leg runs the
 case with no hash probe. Node, the Node bundle, Deno and Bun agree on the spool and the
 jump: the case's `/sim` at tick 300 reads 2,138 bytes with FNV-1a `d6e57e57`, and its
-final `/sim` 2,119 bytes with `61ebb8cf`.
+final `/sim` 2,119 bytes with `61ebb8cf`. Node, the Node bundle, Deno, Bun and workerd
+agree on the two shots: the case's `/sim` at tick 35 reads 2,283 bytes with FNV-1a
+`c26a8ac8`, and its final `/sim` 2,267 bytes with `7c92885a`.
 
 `Math.cos` differs by one ulp between Node 24.20.0, Deno 2.9.6 and Bun 1.4.2 on about 3 %
 of angles (606, 841 and 853 of 20,000 seeded angles in (−π, π] for the three pairs), and
@@ -2779,11 +3120,20 @@ Its gates compare the reactor level, which the ramp's arithmetic fixes, and the 
 whose `t ** 4` ECMA-262 does not fix. The coolant sits near 830 K, 470 K under the 1,300 K
 gate, so every engine takes the same branch, and `spoolAndJump` reads no coolant figure.
 
+The railgun's charge uses `+ − · /`, `Math.min` and compares, which ECMA-262 fixes bit for
+bit, and at dt 0.5 every charge is a multiple of 50,000,000 J. The hit compares a draw with
+`0.8 · exp(−range / 50 km)`, and ECMA-262 does not fix `Math.exp`, so a draw near the
+chance could flip on the last bit. `fireRailgun` fires at 10 km on the first draw (0.5777
+against 0.6550, a gap of 0.077) and at 50 km on the second (0.8633, above the 0.8 ceiling
+of any range), so no engine can disagree on a hit. The record keeps no hit chance, so
+`/sim` sends no result of `Math.exp`, and `fireRailgun` reads no coolant figure.
+
 From G4 a gating case in
 `test/routes.test.ts` posts life-support commands to the bridge on the three frameworks
 (section 7.1), from G5 `the comms commands on %s` posts the hail on each, and from G6
-`the helm commands on %s` posts a course and a burn on each, and from G7
-`the ftl commands on %s` posts a spool and a jump on each.
+`the helm commands on %s` posts a course and a burn on each, from G7
+`the ftl commands on %s` posts a spool and a jump on each, and from G8
+`the weapons commands on %s` posts its fires on each.
 
 S6 keeps old cases stable. In the seeded scenario, a new system starts at zero demand and
 zero effect, and only its own cases command it. The RNG forks of S5 keep the numbers
@@ -2859,6 +3209,18 @@ tick and a reload the page reads `idle`, `0.0 GJ`, `Proxima-b` and `tick t + 241
 `/systems/safety` reads `No alarms`, with no console error. The level climbs from 0.6 to
 0.9 in 30 ticks, so the spool draws from `t + 41` on any start tick and each read is exact.
 The backend is a Node server with `nodeScopes()`, so the case runs the section's extend.
+G8 adds an eighth project, `weapons`, which depends on `ftl`, and `comms` moves to
+`dependencies: ['weapons']`, so the comms case still runs last. The `chromium` project's
+`testIgnore` becomes `/(life-support|safety|airlock|helm|ftl|weapons|comms)\.spec\.ts/`. The
+case, `e2e/growth/weapons.spec.ts`, starts from the ship's tick `t` at throttle 1 with
+life support online, the burn at 0 and the FTL drive disarmed after its jump, and
+advances the backend through `POST /sim/advance`. `/systems/weapons` reads
+`idle`, `No` and `0.0 MJ`, and "Fire" at 10,000 m shows `Queued for tick t + 1`. After one
+backend tick and a reload the page reads `charging`, `150.0 MJ`, `300.0 MW` and
+`10,000 m`, and after one more `1`, `1` and `hit at 10,000 m, tick t + 2`. After four more
+ticks it reads `charged`, `400.0 MJ` and `0.0 MW`. `/systems/safety` reads `No alarms`,
+with no console error. The server starts fresh with `SIM_SEED=7`, and no earlier project
+fires, so the shot draws the first number of `fork('Weapons')` and hits on every run.
 
 ## 9. Risks
 
@@ -2906,7 +3268,7 @@ rows. Until they reach that branch, no docs page uses them.
 | `IThrusters`         | `THRUSTERS`                                                                       | `RcsThrusters`                                                  | singleton | `Helm`, `[SHIP_STATE]`                                                                                                     |
 | `IHelm`              | `HELM`                                                                            | `HelmControl`                                                   | singleton | `Helm`, `[THRUSTERS, MAIN_DRIVE, NAV_CHARTS]`                                                                              |
 | `IFtlDrive`          | `FTL_DRIVE`                                                                       | `JumpDrive`                                                     | singleton | `FtlDrive`, `[TICK_LOOP, SHIP_STATE, NAV_CHARTS, POWER_ROUTER]`                                                            |
-| `IWeaponMount`       | `WEAPON_MOUNT`                                                                    | `RailgunMount`                                                  | singleton | `Weapons`, `[SHIP_STATE, RNG]`                                                                                             |
+| `IWeaponMount`       | `WEAPON_MOUNT`                                                                    | `RailgunMount`                                                  | singleton | `Weapons`, `[SHIP_STATE, SIM_OPTIONS, lazy(POWER_ROUTER)]`                                                                 |
 | `ITelemetryFeed`     | `TELEMETRY`, described `'TelemetryFeed'`                                          | `SnapshotFeed`                                                  | singleton | `Telemetry`, `[TICK_LOOP, SHIP_STATE, DECK_PLAN]`                                                                          |
 | `ITelemetryClient`   | `TELEMETRY_CLIENT`, described `'TelemetryClient'`                                 | `EventSourceTelemetry`                                          | singleton | the console's `TelemetryClient`, no deps                                                                                   |
 | `ISimDriver`         | `SIM_DRIVER`                                                                      | `WallClockDriver`                                               | singleton | `bridge-api`'s `SimDriver`, `[TICK_LOOP, SIM_OPTIONS, DRIVER_OPTIONS]`                                                     |
@@ -2945,6 +3307,11 @@ keeps its §7.1 row for the docs regions, and the simulation binds none.
 From G7 `ITickLoop` gains `attach(system)` and `IPowerRouter` gains `attach(consumer)`,
 each returning a detach that runs twice safely. The `IFtlDrive` row keeps its deps, and
 `IFtlDrive` has `rating`, `spool()` and `jump(to)`.
+From G8 the `IWeaponMount` row reads `[SHIP_STATE, SIM_OPTIONS, lazy(POWER_ROUTER)]`, where
+it first read `[SHIP_STATE, RNG]`, and `IWeaponMount` has `rating` and `fire(range)`.
+`IShipSystem` gains `WeaponsPhysics`, Weapons' contribution, with `[WEAPON_MOUNT]`,
+`IPowerConsumer` gains `WeaponsPower` with `[WEAPON_MOUNT, SIM_OPTIONS]`, and
+`ICommandHandler` gains `WeaponsCommands` with `[WEAPON_MOUNT]`.
 
 ### 10.2 Proposed §7.1 rows, other things
 
@@ -2961,15 +3328,16 @@ each returning a detach that runs twice safely. The `IFtlDrive` row keeps its de
 | An interlock           | `PressureInterlock`, an interceptor on `BLAST_DOORS.open`, at `@nexusdi/meridian-systems/interlock`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | An alarm               | `HYPOXIA`, `CO2_HIGH`, `PRESSURE_LOW`, `TEMPERATURE`, `FIRE`, `COOLANT_HIGH`, `REACTOR_TRIP`, `LOAD_SHED`, `DECOMPRESSION`, `SENSOR_FAULT`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | The ship's error codes | `MERIDIAN_INTERLOCK`, `MERIDIAN_POWER_BUDGET`, `MERIDIAN_BAD_COMMAND`, `MERIDIAN_FTL_NOT_SPOOLED`, `MERIDIAN_UNKNOWN_COMPARTMENT`, with `InterlockError`, `PowerBudgetError`, `BadCommandError`, `FtlNotSpooledError`, `UnknownCompartmentError` and the text pack `shipText`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| A rating               | The fixed figures of a part, beside its pure functions in `src/physics/`: `ReactorRating` (`FUSION_REACTOR`), `CoolantRating` (`LITHIUM_LOOP`), from G2 the `LifeSupportRatings` (`LIFE_SUPPORT_RATINGS`) of `ELECTRIC_HEATER`, `CO2_SCRUBBER`, `ELECTROLYSER`, `TRANSFER_PUMP` and `SPACE_VENT`, and from G6 `HullRating` (`HULL`), `DriveRating` (`PLASMA_DRIVE`) and `ThrusterRating` (`RCS_THRUSTERS`), beside the helm's control law `HELM_TUNING` and `HELM_SETTLE`, and from G7 `FtlRating` (`FTL_SPOOL`), read through `IFtlDrive.rating`.                                                                                                                                                                                                                                                              |
-| A record               | One part's state in the snapshot: `ReactorRecord`, `CoolantRecord`, `PowerRecord` with its `LoadRecord`s, `LifeSupportRecord` from G2, `SafetyRecord` from G3, `CommsRecord` from G5, `DriveRecord` and `HelmRecord` from G6, `FtlRecord` from G7, and `Setpoints` with `LifeSupportSetpoints`, from G3 `SafetySetpoints`, from G5 `CommsSetpoints`, from G6 `DriveSetpoints` and `HelmSetpoints` and from G7 `FtlSetpoints`.                                                                                                                                                                                                                                                                                                                                                                                   |
-| A load                 | `PowerLoad`, `{ id, priority, demand, heatShare }`, a consumer that asks the router for power on a tick: `life-support`, `shields`, `comms`, from G6 `thrusters` and `main-drive`, and from G7 `ftl-spool`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| A rating               | The fixed figures of a part, beside its pure functions in `src/physics/`: `ReactorRating` (`FUSION_REACTOR`), `CoolantRating` (`LITHIUM_LOOP`), from G2 the `LifeSupportRatings` (`LIFE_SUPPORT_RATINGS`) of `ELECTRIC_HEATER`, `CO2_SCRUBBER`, `ELECTROLYSER`, `TRANSFER_PUMP` and `SPACE_VENT`, and from G6 `HullRating` (`HULL`), `DriveRating` (`PLASMA_DRIVE`) and `ThrusterRating` (`RCS_THRUSTERS`), beside the helm's control law `HELM_TUNING` and `HELM_SETTLE`, from G7 `FtlRating` (`FTL_SPOOL`), read through `IFtlDrive.rating`, and from G8 `RailgunRating` (`RAILGUN`), read through `IWeaponMount.rating`.                                                                                                                                                                                     |
+| A record               | One part's state in the snapshot: `ReactorRecord`, `CoolantRecord`, `PowerRecord` with its `LoadRecord`s, `LifeSupportRecord` from G2, `SafetyRecord` from G3, `CommsRecord` from G5, `DriveRecord` and `HelmRecord` from G6, `FtlRecord` from G7, `WeaponsRecord` with its `RailgunShot` from G8, and `Setpoints` with `LifeSupportSetpoints`, from G3 `SafetySetpoints`, from G5 `CommsSetpoints`, from G6 `DriveSetpoints` and `HelmSetpoints`, from G7 `FtlSetpoints` and from G8 `WeaponsSetpoints`.                                                                                                                                                                                                                                                                                                       |
+| A load                 | `PowerLoad`, `{ id, priority, demand, heatShare }`, a consumer that asks the router for power on a tick: `life-support`, `shields`, `comms`, from G6 `thrusters` and `main-drive`, from G7 `ftl-spool` and from G8 `railgun`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | A device               | An entry of a compartment's `equipment`: `heater`, `scrubber`, `oxygen`, `vent`, `pump`. An `AtmosphereReading` is one analyzer sample; `PumpMode` is `off`, `evacuate` or `fill`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| A system's classes     | `<System>Physics` for its `IShipSystem`, `<System>Commands` for its `ICommandHandler` and `<System>Power` for its `IPowerConsumer`: `EngineeringPhysics`, `EngineeringCommands`, `LifeSupportPhysics`, `LifeSupportCommands`, `LifeSupportPower`, `SafetyPhysics`, `SafetyCommands`, from G5 `CommsPhysics`, `CommsCommands`, `CommsPower`, from G6 `PropulsionPhysics`, `PropulsionPower`, `HelmPhysics`, `HelmCommands`, `HelmPower`, and from G7 `FtlPhysics` and `FtlPower`, which `JumpDrive` builds and attaches.                                                                                                                                                                                                                                                                                         |
+| A system's classes     | `<System>Physics` for its `IShipSystem`, `<System>Commands` for its `ICommandHandler` and `<System>Power` for its `IPowerConsumer`: `EngineeringPhysics`, `EngineeringCommands`, `LifeSupportPhysics`, `LifeSupportCommands`, `LifeSupportPower`, `SafetyPhysics`, `SafetyCommands`, from G5 `CommsPhysics`, `CommsCommands`, `CommsPower`, from G6 `PropulsionPhysics`, `PropulsionPower`, `HelmPhysics`, `HelmCommands`, `HelmPower`, from G7 `FtlPhysics` and `FtlPower`, which `JumpDrive` builds and attaches, and from G8 `WeaponsPhysics`, `WeaponsPower` and `WeaponsCommands`.                                                                                                                                                                                                                         |
 | A station              | A remote of the federation app that shows one system: `cartography`, `command`, `engineering`, `life-support`. Its section is `<Name>Station` from G9 on.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | Simulation doubles     | `FailingSensor implements IAtmosphereSensor` (`bridge-api`'s `test/doubles.ts` in G2), `FailingProbe implements IAtmosphereProbe` and `MemoryAlarmSink implements IAlarmSink` (the same file in G3), `LoopbackLink implements ISubspaceLink` (§7.1's double, in the same file in G5), `SimulatedFtlDrive` (a module in the same file in G7: it binds `FTL_DRIVE` to `SimulatedJumpDrive` with `[TICK_LOOP, SHIP_STATE]` and exports it; `spool()` and `jump(to)` queue with no check, its phase-3 system named `FtlDrive` fills the charge on an armed tick and jumps with no pulse. Its first unarmed step after the load writes `idle` once, as the drive's does. Its rating is `{ energy: 90e9, power: 0, pulseShare: 0, reactorLevel: 0, coolantLimit: Number.MAX_VALUE }`), `ShipUnderTest` (a test root). |
 | A hail                 | `comms hail`, which queues `setpoints.comms.hail`; the reply is a `CommsMessage`, `{ tick, from, text }`: `fleet traffic control: sector clear`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | A jump                 | `POST /ftl/spool` arms the spool, and `POST /ftl/jump` with a charted star moves the ship's sector there on a full charge; the ship starts in `Sol`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| A shot                 | `weapons fire` with a `range` in m from 0 to 100,000, which arms the mount and queues the range; the capacitor fires it on the first tick it holds 300 MJ, and `lastShot` records `{ tick, range, hit }`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | A course               | `helm course to <star>`, which plots the star on `NAV_CHARTS` and steers its heading in rad; `helm burn level <x>` sets the main drive's throttle.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | The bundled charts     | `BUNDLED_CHARTS`, the headings in `deck/charts.json` that `OfflineTactical` plots and `bridge-api`'s test relay serves.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | Ship notes             | `shipNotes`, a `GraphAnnotator` that labels each provider of the module that binds `TICK_LOOP`, and of every module it imports transitively, `system: <module name>`; the `phase: <n>` label joins in G1, and from G7 the walk also starts from a loaded `FtlDrive`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
@@ -3064,6 +3432,12 @@ a jump suite in `bridge-api`'s `test/ftl.test.ts`. G7 changes no federation file
 nothing under `apps/docs`, `examples/meridian/src` or any `libs/*/README.md` names
 `FTL_DRIVE`, `FtlDrive` or `JumpDrive`. `apps/docs/content/load.mdx` teaches `load()`,
 `extend()` and `di.load` with its own `Survey` and `Navigation` modules.
+
+G8 leaves out a stand-down command, a target model, ammunition, a cooldown past the
+charge, damage, a hit chance on the wire and a seventh bundle sentinel. G8 changes no
+federation file, and nothing under `apps/docs`, `examples/meridian/src`,
+`examples/federation-*` or any `libs/*/README.md` names `WEAPON_MOUNT`, `WeaponMount`,
+`RailgunMount` or `railgun`.
 
 ## 14. Owner question
 
@@ -3222,6 +3596,21 @@ library's `e2e-growth` target holds the goldens, and `demo-growth` runs it too.
 | 2026-10-23 | The console gains `/systems/ftl` with the charge in GJ and a growth project `ftl` between `helm` and `comms`; `BRIDGE_LINK` gains `spool()` and `jump(to)`                                                                                                                                                                                                                                                           | tech lead, G7 ruling 14         |
 | 2026-10-23 | Two enumerating unit assertions grow with the ship, and `check.test.ts` draws the graph with the load                                                                                                                                                                                                                                                                                                                | tech lead, G7 ruling 13         |
 | 2026-10-23 | G7 changes no docs page or docs region, and `npx fallow dupes` stays at 2.15 % or under from 2.1359 %                                                                                                                                                                                                                                                                                                                | tech lead, G7 ruling 15         |
+| 2026-10-23 | The snapshot gains `weapons` (`status`, `charge` in J, `shots`, `hits`, `lastShot`) and the setpoints `weapons` (`armed`, `range`), both directly after `comms`, from tick 0 and frozen                                                                                                                                                                                                                              | tech lead, G8 rulings 2 and 10  |
+| 2026-10-23 | The step charges first and then fires; an empty bank fires on its second charging tick, and `draw` runs on a shot tick alone                                                                                                                                                                                                                                                                                         | tech lead, G8 ruling 3          |
+| 2026-10-23 | The shot heats the loop in phase 3 through the jump's `pulseCoolant`, and §5.6 drops its `Q_pulse` term                                                                                                                                                                                                                                                                                                              | tech lead, G8 ruling 4          |
+| 2026-10-23 | The capacitor draws `railgun` at priority 6 with heat share 0                                                                                                                                                                                                                                                                                                                                                        | tech lead, G8 ruling 5          |
+| 2026-10-23 | The charger tapers on the tick that fills the bank, so no energy leaves the model, and `WeaponsPower` and `RailgunMount` read `SIM_OPTIONS`                                                                                                                                                                                                                                                                          | tech lead, G8 ruling 6          |
+| 2026-10-23 | `weapons fire` takes a range from 0 to 100,000 m through `POST /commands`; the first fire arms the mount and G8 adds no stand-down command                                                                                                                                                                                                                                                                           | tech lead, G8 ruling 7          |
+| 2026-10-23 | A fire on an uncharged capacitor answers 202 and waits for the charge; an unarmed fire asks the router and an armed fire asks none                                                                                                                                                                                                                                                                                   | tech lead, G8 ruling 7          |
+| 2026-10-23 | `RailgunMount` takes `[SHIP_STATE, SIM_OPTIONS, lazy(POWER_ROUTER)]` and `Weapons` exports four tokens                                                                                                                                                                                                                                                                                                               | tech lead, G8 ruling 8          |
+| 2026-10-23 | `graph.json` gains the module, four providers and ten edges                                                                                                                                                                                                                                                                                                                                                          | tech lead, G8 ruling 9          |
+| 2026-10-23 | Five enumerating unit assertions grow with the ship, and no earlier assertion is rewritten                                                                                                                                                                                                                                                                                                                           | tech lead, G8 ruling 11         |
+| 2026-10-23 | The library gains `test/weapons.test.ts` and the golden `weapons.seed-7.json`; every earlier golden only gains lines                                                                                                                                                                                                                                                                                                 | tech lead, G8 rulings 10 and 12 |
+| 2026-10-23 | `bridge-api` gains `the weapons commands on %s` and the eighth runtime case `fireRailgun`                                                                                                                                                                                                                                                                                                                            | tech lead, G8 ruling 13         |
+| 2026-10-23 | The console gains `/systems/weapons` in MJ, MW and m and a growth project `weapons` before `comms`; the range form and `LevelForm` share `NumberForm`                                                                                                                                                                                                                                                                | tech lead, G8 ruling 14         |
+| 2026-10-23 | `pulseCoolant` moves from `physics/ftl.ts` to `physics/thermal.ts`                                                                                                                                                                                                                                                                                                                                                   | tech lead, G8 ruling 15         |
+| 2026-10-23 | G8 changes no docs page or docs region, and `npx fallow dupes` stays at 2.15 % or under from 2.1137 %                                                                                                                                                                                                                                                                                                                | tech lead, G8 ruling 17         |
 
 The owner made the rows whose source is "owner". The architect proposed the "tech lead"
 rows and the tech lead decided them, as `specs/plans/2026-10-21-meridian-g0-kernel.md`,
@@ -3231,8 +3620,9 @@ rows and the tech lead decided them, as `specs/plans/2026-10-21-meridian-g0-kern
 `specs/plans/2026-10-21-meridian-g3-safety.md`,
 `specs/plans/2026-10-21-meridian-g4-airlock.md`,
 `specs/plans/2026-10-21-meridian-g5-comms.md`,
-`specs/plans/2026-10-21-meridian-g6-propulsion.md` and
-`specs/plans/2026-10-21-meridian-g7-ftl.md` record under their rulings. The
+`specs/plans/2026-10-21-meridian-g6-propulsion.md`,
+`specs/plans/2026-10-21-meridian-g7-ftl.md` and
+`specs/plans/2026-10-21-meridian-g8-weapons.md` record under their rulings. The
 controller corrected G2 ruling 7 with 7a on a fact of core's behaviour.
 
 G6 goes past the spec's G6 text in these points, which its plan lists for the owner. None
@@ -3327,3 +3717,35 @@ changes a public docs page.
   notes case for the loaded drive (G7 rulings 5, 10, 11 and 12).
 - Spec text fixed in G7 beside the G7 rulings: the wording of the console's chart copy in
   the G6 list above (G7 ruling 16).
+
+G8 goes past the spec's G8 text, which read "`Weapons`" alone, in these points, which its
+plan lists for the owner. None changes a public docs page or removes a public export. G8
+adds no runtime dependency between packages.
+
+- The crew command `weapons fire` with a `range` in m from 0 to 100,000, through
+  `POST /commands` as `comms hail` and the helm's commands go. The first fire arms the
+  mount, which stays armed, and G8 adds no stand-down command (G8 ruling 7).
+- A fire on an uncharged capacitor answers 202, and the shot leaves when the bank holds
+  300 MJ. An unarmed fire refuses with `MERIDIAN_POWER_BUDGET` when the router cannot fit
+  the charger, and an armed mount never refuses for power. G8 adds no error code (G8
+  ruling 7).
+- Behaviour past section 5.9's text: the charger tapers on the tick that fills the bank
+  (200 MW at dt 0.5), so no energy leaves the model, and the clamp stays (G8 ruling 6).
+- The shot heats the loop in phase 3 through the jump's `pulseCoolant`, and section 5.6
+  drops its `Q_pulse` term, which nothing feeds (G8 ruling 4).
+- The snapshot and the setpoints place `weapons` directly after `comms`, and section 4.1's
+  order sentence changes to match, so no earlier assertion is rewritten (G8 ruling 10).
+- Deps that differ from section 3.3 as first written: `RailgunMount` takes
+  `[SHIP_STATE, SIM_OPTIONS, lazy(POWER_ROUTER)]` where the spec gave `[SHIP_STATE, RNG]`,
+  and `WeaponsPower` reads `SIM_OPTIONS` (G8 rulings 6 and 8).
+- New public exports of the library: `WEAPON_MOUNT` and the types `IWeaponMount`,
+  `RailgunRating`, `RailgunShot`, `WeaponsRecord`, `WeaponsSetpoints` and `WeaponsStatus`.
+  `/sim` and every telemetry frame gain `weapons`, `setpoints.weapons` and the `railgun`
+  load (G8 ruling 8).
+- Five enumerating unit assertions grow with the ship, each by an appended id, row, line
+  or count, and G7's placement case stays as committed. Earlier goldens only gain lines
+  (G8 ruling 11).
+- The internal `pulseCoolant` moves from `physics/ftl.ts` to `physics/thermal.ts`, and the
+  index never exported it (G8 ruling 15).
+- The console page `/systems/weapons` in MJ, MW and m, with a growth project `weapons`
+  before `comms`. The page's range form and `LevelForm` share `NumberForm` (G8 ruling 14).
