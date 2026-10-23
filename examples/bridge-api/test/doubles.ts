@@ -1,13 +1,25 @@
+import { defineModule, provide } from '@nexusdi/core';
 import {
   type Alarm,
   BUNDLED_CHARTS,
+  FTL_DRIVE,
+  type FtlRating,
+  type FtlRecord,
   type IAlarmSink,
   type IAtmosphereProbe,
   type IAtmosphereSensor,
+  type IFtlDrive,
+  type IShipState,
   type ISubspaceLink,
   type ITelemetryFeed,
+  type ITickLoop,
+  type QueuedCommand,
+  SHIP_STATE,
   type ShipReading,
+  type ShipSnapshot,
   type TelemetrySink,
+  TICK_LOOP,
+  type TickContext,
 } from '@nexusdi/meridian-systems';
 
 import type { IFlightLog, INavCharts } from '../src/ship/contracts';
@@ -87,3 +99,82 @@ export class LoopbackLink implements ISubspaceLink {
     return BUNDLED_CHARTS as T;
   }
 }
+
+/**
+ * An FTL drive with no spool to wait for: `spool()` and `jump(to)` queue
+ * their setpoints with no check, and the drive's step fills the charge on
+ * an armed tick and jumps on a commanded one with no pulse. Its rating draws
+ * 0 W, and every field is finite, so a telemetry frame carries it as JSON.
+ */
+export class SimulatedJumpDrive implements IFtlDrive, Disposable {
+  static deps = [TICK_LOOP, SHIP_STATE] as const;
+
+  readonly rating: FtlRating = {
+    energy: 90e9,
+    power: 0,
+    pulseShare: 0,
+    reactorLevel: 0,
+    coolantLimit: Number.MAX_VALUE,
+  };
+
+  private detach: () => void = () => {};
+
+  constructor(
+    private readonly loop: ITickLoop,
+    private readonly state: IShipState,
+  ) {}
+
+  onInit(): void {
+    this.detach = this.loop.attach({
+      name: 'FtlDrive',
+      phase: 3,
+      step: (ship, tick) => this.step(ship, tick),
+    });
+  }
+
+  spool(): QueuedCommand {
+    return this.state.queue({ ftl: { armed: true } });
+  }
+
+  jump(to: string): QueuedCommand {
+    return this.state.queue({ ftl: { jump: to } });
+  }
+
+  [Symbol.dispose](): void {
+    this.detach();
+  }
+
+  private step(ship: ShipSnapshot, { tick }: TickContext): ShipSnapshot {
+    const { ftl, setpoints } = ship;
+    if (setpoints.ftl.jump !== null) {
+      return Object.freeze({
+        ...ship,
+        ftl: Object.freeze({
+          status: 'idle',
+          charge: 0,
+          sector: setpoints.ftl.jump,
+          jumped: tick,
+        }),
+        setpoints: Object.freeze({
+          ...setpoints,
+          ftl: Object.freeze({ armed: false, jump: null }),
+        }),
+      });
+    }
+    const write = (next: FtlRecord): ShipSnapshot =>
+      Object.freeze({ ...ship, ftl: Object.freeze(next) });
+    // The first unarmed step after the load writes idle, as the drive's does.
+    if (ftl.status === 'offline' && !setpoints.ftl.armed) {
+      return write({ ...ftl, status: 'idle' });
+    }
+    if (!setpoints.ftl.armed || ftl.status === 'charged') return ship;
+    return write({ ...ftl, status: 'charged', charge: this.rating.energy });
+  }
+}
+
+/** Stands in for FtlDrive with `overrideModule(FtlDrive, SimulatedFtlDrive, { lazy: true })`. */
+export const SimulatedFtlDrive = defineModule({
+  name: 'SimulatedFtlDrive',
+  providers: [provide(FTL_DRIVE, { useClass: SimulatedJumpDrive })],
+  exports: [FTL_DRIVE],
+});
