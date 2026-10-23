@@ -12,6 +12,7 @@ import {
 } from '@nexusdi/meridian-systems';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
+import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { streamSSE } from 'hono/streaming';
 
@@ -35,6 +36,11 @@ export interface BridgeOptions {
   graph?: () => NexusGraph;
   /** Ends every open `GET /telemetry` stream with `ship offline` when it aborts. */
   shutdown?: AbortSignal;
+  /**
+   * The browser origins the bridge answers with CORS headers, such as the
+   * federation shell's. Without one, the bridge sends no CORS header.
+   */
+  origins?: readonly string[];
 }
 
 export function createBridge(
@@ -65,9 +71,21 @@ export function createBridge(
   // The drive loads on the first FTL request, and the section extends a
   // request scope that opened before the load.
   const ftl = di.load(FtlDrive);
+  const app = new Hono();
+  // First, so a preflight answers before any route and every answer carries
+  // the headers. The shell sends only content-type.
+  if (options.origins?.length) {
+    app.use(
+      cors({
+        origin: [...options.origins],
+        allowMethods: ['GET', 'POST'],
+        allowHeaders: ['content-type'],
+      }),
+    );
+  }
 
   return (
-    new Hono()
+    app
       // Before the middleware, so they never have a scope handle.
       .get('/health', (c) => c.text('ok'))
       .get('/graph', (c) =>

@@ -10,6 +10,7 @@ import {
   isDev,
   listening,
   port,
+  shellOrigins,
   shipFromEnv,
   stopOnSigterm,
 } from './ship-from-env';
@@ -22,6 +23,7 @@ const bridge = createBridge(ship, {
   scopes,
   graph: isDev(process.env) ? () => graph(ship) : undefined,
   shutdown: shutdown.signal,
+  origins: shellOrigins(),
 });
 const server = serve({ fetch: bridge.fetch, port: port() }, (info) =>
   listening(info.port),
