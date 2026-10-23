@@ -357,7 +357,7 @@ A hail waits while the array cannot send it, and the status says why. Without th
 
 The relay answers `fleet traffic control: sector clear` 2 s after the send. That is 4 ticks at `dt` 0.5, so a hail sent at tick 10 is still `awaiting reply` at tick 13 and back to `standby` at tick 14, and at `dt` 1 the reply comes 2 ticks after the send. No call goes to the relay for the reply, since the simulation models the traffic.
 
-`CommsPower` asks the router for 5 MW at priority 3 on each tick a hail waits on a linked array with no reply outstanding, and 0 W otherwise, with heat share 0. The load reads the snapshot at the start of the tick, as `stepComms` does, so the router allocates the power on the tick that sends. The router sheds the load when the reactor gives no power. The router lists `comms` in `power.shed`, and Safety raises `LOAD_SHED` for subject `comms` while the hail waits under `no power`.
+`CommsPower` asks the router for 5 MW at priority 3 on each tick a hail waits on a linked array with no reply outstanding, and 0 W otherwise, with heat share 0. The load reads the snapshot at the start of the tick, as `stepComms` does, so the router allocates the power on the tick that sends. The router sheds the load when less than 5 MW of the reactor's output remains after life support and the shields take their allocations. The router lists `comms` in `power.shed`, and Safety raises `LOAD_SHED` for subject `comms` while the hail waits under `no power`.
 
 Four scenarios from `test/comms.test.ts` fix the figures, each on seed 7 and `dt` 0.5:
 
