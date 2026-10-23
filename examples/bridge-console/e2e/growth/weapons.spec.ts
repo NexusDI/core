@@ -6,10 +6,10 @@ import { advance, bridgeApi, gauge } from './ship';
 test('fires the railgun from /systems/weapons', async ({ page, request }) => {
   const seen = problems(page);
   // The growth cases share one manual ship, which keeps its tick and its state
-  // across the cases: the ftl case leaves the throttle at 1, the burn at 0 and
-  // the drive disarmed after its jump. The first fire arms the mount, the
-  // capacitor takes 150 MJ a tick, and the shot leaves one tick after the
-  // command with the bank at 300 MJ.
+  // across the cases. The ftl case leaves the throttle at 1 and the burn at 0,
+  // and its jump disarms the drive. The fire queues for t + 1 and arms the
+  // mount on that tick. The capacitor takes 150 MJ a tick, so the shot leaves
+  // at t + 2 with the bank at 300 MJ.
   const { tick } = (await (
     await request.get(`${bridgeApi}/sim`)
   ).json()) as ShipReading;
