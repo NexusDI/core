@@ -347,12 +347,22 @@ function initialSnapshot(deck: DeckPlan): ShipSnapshot {
       sent: null,
       messages: Object.freeze([]),
     }),
+    drive: Object.freeze({
+      thrust: 0,
+      massFlow: 0,
+      acceleration: 0,
+      velocity: 0,
+      distance: 0,
+    }),
+    helm: Object.freeze({ attitude: 0, rate: 0, torque: 0 }),
     safety: safety.record,
     setpoints: Object.freeze({
       reactor: Object.freeze({ throttle: 0 }),
       shields: Object.freeze({ raised: false }),
       lifeSupport: lifeSupport.setpoints,
       comms: Object.freeze({ hail: false }),
+      drive: Object.freeze({ throttle: 0 }),
+      helm: Object.freeze({ heading: 0 }),
       safety: safety.setpoints,
     }),
   });
