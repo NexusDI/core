@@ -7,6 +7,11 @@ component `CommandDeck`. `Command` binds `BRIDGE` to `Bridge`, which reads the c
 `@nexusdi/decorators`, so `CommandDeck` shows `course to Kepler-442b, heading 42` only
 when the shell's core reads the metadata this bundle wrote.
 
+`Command` also binds `HELM_ORDERS` to `HelmOrders`, an `@Injectable({ deps: [COMMAND_LINK] })`
+class that sends `helm course` and `helm burn` over the contract's `COMMAND_LINK`. The
+deck's `Steer for Kepler-442b` and `Burn at 0.5` buttons send them, and its status line
+shows the receipt text the shell words.
+
 It serves on port 4302, and the shell (`examples/federation-shell`) loads it on
 `/command`.
 
