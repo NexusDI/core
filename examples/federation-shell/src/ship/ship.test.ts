@@ -1,7 +1,12 @@
 import { Nexus } from '@nexusdi/core';
 import { federation } from '@nexusdi/federation';
-import { NAV_CHARTS } from '@nexusdi/federation-contracts';
-import { describe, expect, it } from 'vitest';
+import {
+  NAV_CHARTS,
+  TELEMETRY_FEED,
+  type TelemetryReading,
+} from '@nexusdi/federation-contracts';
+import type { ShipReading } from '@nexusdi/meridian-systems';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import { Meridian } from './meridian';
 import { createShip } from './ship';
@@ -20,6 +25,14 @@ describe('the shell', () => {
 
   it("exports the contract's NAV_CHARTS from Tactical", () => {
     expect(Tactical.exports).toContain(NAV_CHARTS);
+  });
+
+  it("exports the contract's TELEMETRY_FEED from Tactical", () => {
+    expect(Tactical.exports).toContain(TELEMETRY_FEED);
+  });
+
+  it('reads a ship reading as the telemetry reading the stations show', () => {
+    expectTypeOf<ShipReading>().toExtend<TelemetryReading>();
   });
 
   it('plots Kepler-442b at heading 42', async () => {
