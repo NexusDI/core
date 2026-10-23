@@ -272,7 +272,7 @@ export const offlineHail: GrowthCase = {
 
 /**
  * The course and the burn on the offline ship. At tick 11 the crew steers for
- * Kepler-442b, and the helm turns the ship and settles on 0.733 rad at
+ * Kepler-442b, and the helm turns the ship and settles on 0.73303829 rad at
  * tick 697, 103 ticks before the read at tick 800. The burn at tick 801 then
  * runs along an attitude that equals the course exactly, so the drive reads no
  * cosine of a non-zero angle and every read compares the same figures on
@@ -291,11 +291,11 @@ export const courseAndBurn: GrowthCase = {
 
     let ship = await advanceTo(fetch, 790, 800);
     expectEqual('helm at tick 800', ship.helm, {
-      attitude: 0.733,
+      attitude: 0.73303829,
       rate: 0,
       torque: 0,
     });
-    expectEqual('heading at tick 800', ship.setpoints.helm.heading, 0.733);
+    expectEqual('heading at tick 800', ship.setpoints.helm.heading, 0.73303829);
     expectEqual(
       'helm loads at tick 800',
       ship.power.loads

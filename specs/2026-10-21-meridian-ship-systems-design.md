@@ -657,7 +657,10 @@ drive, helm, FTL and safety records, and the setpoints. A step
 returns a new snapshot and shares the records it left alone. `SHIP_STATE.snapshot()`
 returns the current one. The telemetry feed and `bridge-api`'s `/sim` routes send
 `readShip(snapshot, deck)`, the snapshot with each compartment's pressure and every
-number rounded to four significant digits.
+number rounded to eight significant digits (issue 191). The golden rounds to four with
+`roundSnapshot`. A console gauge rounds the eight-digit reading once to its own decimals,
+so 2.0652 m/s reads `2.07 m/s`. Four digits send 2.065, and a two-decimal gauge prints
+2.06.
 
 From G3 the safety record, `safety: SafetyRecord<CompartmentId>`, holds each
 compartment's fire intensity in `fires` (0 for no fire) and the moles of N₂ each running
@@ -1387,7 +1390,7 @@ The settle (`HELM_SETTLE`) gives the loop a rest state. Without it the floating-
 never rests: after a 42° turn the error sticks at 2.0 × 10⁻¹⁵ rad and the record last
 changes at tick 2,272, with a torque of 2.0 × 10⁻²³ N·m. From then on the thrusters ask
 8.1 × 10⁻²³ W on every tick. The snap moves the ship 9.94 × 10⁻⁷ rad at tick 687 of a 42°
-turn from rest, under the four significant digits every reading shows, and it makes
+turn from rest, under the four significant digits the golden shows, and it makes
 `θ − θ_course` exactly 0. `stepHelm` returns the record it got whenever the step changes
 no field, a shed tick at rest included.
 
@@ -2596,8 +2599,8 @@ degrees and the console prints `heading 42` on the home and course pages, so one
 reads in one unit; the SI accepts the degree for use beside its units, and the snapshot
 keeps rad. Torque reads whole N·m, thrust whole N, the flow kg/s to 3 decimals, the
 acceleration m/s² to 4, the velocity m/s to 2, the distance whole m and the powers MW to
-0.1 through `megawatts()`. Each gauge rounds the snapshot's four-digit reading, so its last
-digit can sit one unit off the ship's own value. The Course section selects a charted star and posts it from
+0.1 through `megawatts()`. Each gauge rounds the eight-digit reading once to its own
+decimals. The Course section selects a charted star and posts it from
 "Plot course" through `systemAction('helm', { to: 'text', level: 'number' })`, and the
 Burn section posts a level from "Burn". `LevelForm({ command, label, button, defaultValue })`
 joins `system-page.tsx`, and the engineering page's throttle form moves onto it with the
@@ -3022,7 +3025,9 @@ Every e2e server starts with `SIM_MODE=manual SIM_SEED=7`. A case drives ticks w
 
 1. Events at a tick: "after `open habitat-airlock` is refused and the pump runs, the door
    opens at tick 190", read from the command log.
-2. Rounded values: four significant digits, as the telemetry rounds them.
+2. Rounded values: the golden prints four significant digits, and the telemetry sends
+   eight (issue 191). Eight digits still hide a last-bit difference of `Math.exp` or
+   `Math.cos` between engines in a value far from a rounding boundary.
 3. A golden file per scenario, `e2e/golden/<scenario>.seed-7.json`, with the snapshot at
    chosen ticks. A test rewrites it with `-u`, and its diff is reviewed like
    `graph.json`'s. The goldens run in the library's `e2e-growth` target, and
@@ -3110,15 +3115,16 @@ ship, where every number it reads is an integer, from G6 a course and an aligned
 from G7 a spool and a jump on the offline ship, where every value it reads is an integer, a
 string or null, and from G8 two railgun shots on the offline ship, where every value it
 reads is an integer, a string, a boolean or `null`.
-Node, Deno and Bun agree on the hail byte for byte: the final `/sim` of the case reads
-1,656 bytes with FNV-1a `cab1e7fa` on each. They agree on the course and the burn too,
-and so does the Node bundle: the case's `/sim` at tick 800 reads 1,965 bytes with FNV-1a
-`32548374`, and its final `/sim` 2,001 bytes with `ef7c70c9`. The workerd leg runs the
-case with no hash probe. Node, the Node bundle, Deno and Bun agree on the spool and the
-jump: the case's `/sim` at tick 300 reads 2,138 bytes with FNV-1a `d6e57e57`, and its
-final `/sim` 2,119 bytes with `61ebb8cf`. Node, the Node bundle, Deno, Bun and workerd
-agree on the two shots: the case's `/sim` at tick 35 reads 2,283 bytes with FNV-1a
-`c26a8ac8`, and its final `/sim` 2,267 bytes with `7c92885a`.
+Each of the four pinned cases prints a `sim-pin` line per leg with the size and FNV-1a hash of each pinned
+`/sim` body, and CI's demo-growth job measured these figures on the Hono, Express and
+Fastify servers under Node, on workerd, on Deno 2.9.6 and on Bun 1.4.2. All six legs agree
+on the hail byte for byte: the final `/sim` of the case reads 2,288 bytes with FNV-1a
+`181f9840` on each. They agree on the course and the burn too: the case's `/sim` at tick
+800 reads 2,333 bytes with FNV-1a `3466c837`, and its final `/sim` 2,370 bytes with
+`fd72940e`. They agree on the spool and the jump: the case's `/sim` at tick 300 reads 2,395
+bytes with FNV-1a `db4dbc5a`, and its final `/sim` 2,376 bytes with `6694a911`. They agree
+on the two shots: the case's `/sim` at tick 35 reads 2,372 bytes with FNV-1a `172abcf9`,
+and its final `/sim` 2,356 bytes with `4099bd3d`.
 
 `Math.cos` differs by one ulp between Node 24.20.0, Deno 2.9.6 and Bun 1.4.2 on about 3 %
 of angles (606, 841 and 853 of 20,000 seeded angles in (−π, π] for the three pairs), and
@@ -3730,7 +3736,7 @@ changes a public docs page.
 - The docblock of the console's `app/bridge/fixed.ts` said the ship sends raw floats.
   `readShip` rounds every number to four significant digits before `/sim` and the
   telemetry frames send it, so G6 corrects the sentence, and the console's test doubles
-  feed the rounded reading.
+  feed the rounded reading. From the eight-digit fix (issue 191), `readShip` keeps eight.
 - The library's two vitest configs set `testTimeout: 30_000`, so a slow hour of ticks on a
   loaded machine fails on its assertions alone, and no earlier `it(...)` call changes
   (G6 ruling 21). `.prettierignore` leaves the library's goldens out of the format check,

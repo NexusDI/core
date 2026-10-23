@@ -81,8 +81,9 @@ const steering: ShipReading['setpoints'] = {
 
 /**
  * Seed 7's helm scenario as the golden holds it, rounded to four significant
- * digits as `/sim` sends it: the course 0.733 rad and a burn at level 1, both
- * queued at tick 0. The router sheds both new loads on this tick.
+ * digits, which is coarser than the eight `/sim` sends: the course 0.733 rad
+ * and a burn at level 1, both queued at tick 0. The router sheds both new
+ * loads on this tick.
  */
 const shed: ShipReading = {
   ...shipAtStart,

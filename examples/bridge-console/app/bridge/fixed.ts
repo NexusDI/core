@@ -1,8 +1,10 @@
 /**
  * `value` with `digits` decimals and a comma between each group of three
- * integer digits. The ship's reading arrives rounded to four significant
- * digits, and a figure such as 0.003188 still carries more decimals than its
- * gauge shows, so every gauge on the console writes its figure through this.
+ * integer digits. The ship's reading arrives rounded to eight significant
+ * digits, and a figure such as 0.0031878788 still carries more decimals than
+ * its gauge shows, so every gauge on the console writes its figure through
+ * this and rounds the reading once. Eight digits keep 2.0652, so a two-decimal
+ * gauge prints 2.07.
  */
 export function fixed(value: number, digits: number): string {
   const [whole = '', fraction] = value.toFixed(digits).split('.');

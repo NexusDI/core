@@ -87,8 +87,8 @@ const armed: ShipReading['setpoints'] = {
 
 /**
  * Seed 7's FTL scenario as the golden holds it, rounded to four significant
- * digits as `/sim` sends it: the spool armed at tick 101 draws 900 MW and
- * charges 450 MJ a tick.
+ * digits, which is coarser than the eight `/sim` sends: the spool armed at
+ * tick 101 draws 900 MW and charges 450 MJ a tick.
  */
 const spooling: ShipReading = {
   ...shipAtStart,

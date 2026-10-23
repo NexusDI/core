@@ -81,8 +81,8 @@ const armedAt = (range: number | null): ShipReading['setpoints'] => ({
 
 /**
  * Seed 7's weapons scenario as the golden holds it, rounded to four
- * significant digits as `/sim` sends it. Tick 31: the shot at 10 km waits
- * while the capacitor holds 150 MJ and draws 300 MW.
+ * significant digits, which is coarser than the eight `/sim` sends. Tick 31:
+ * the shot at 10 km waits while the capacitor holds 150 MJ and draws 300 MW.
  */
 const waiting: ShipReading = {
   ...shipAtStart,
