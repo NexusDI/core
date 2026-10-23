@@ -1,9 +1,22 @@
+import {
+  FTL_DRIVE,
+  type IShipState,
+  type IShipSystem,
+  type ITickLoop,
+  type ShipReading,
+  type ShipSnapshot,
+  type TickContext,
+} from '@nexusdi/meridian-systems';
 import { nodeScopes } from '@nexusdi/node';
+import { createTestingContainer } from '@nexusdi/testing';
 import { describe, expect, test } from 'vitest';
 
 import { servers } from '../e2e/servers';
 import type { TelemetryFrame } from '../src/ship/contracts';
-import { json, type Payload, scopedShip } from './route-helpers';
+import { FtlDrive, OfflineMeridian } from '../src/ship/meridian';
+import { bridgePlugins } from '../src/ship/plugins';
+import { SimulatedFtlDrive, SimulatedJumpDrive } from './doubles';
+import { calls, json, type Payload, scopedShip } from './route-helpers';
 import { events } from './sse';
 
 /** Reads `stream`'s snapshot frames until the one at `tick`. */
@@ -69,3 +82,110 @@ describe.each(['hono', 'express', 'fastify'] as const)(
     });
   },
 );
+
+/** The offline ship with SimulatedFtlDrive standing in for the FTL drive at load(). */
+const simulatedShip = () =>
+  createTestingContainer(OfflineMeridian)
+    .overrideModule(FtlDrive, SimulatedFtlDrive, { lazy: true })
+    .create({ plugins: bridgePlugins() });
+
+describe.each(['hono', 'express', 'fastify'] as const)(
+  'the simulated drive on %s',
+  (framework) => {
+    const call = calls[framework];
+
+    test('a spool on a cold reactor and a jump move the ship with no charge to wait for', async () => {
+      await using ship = await simulatedShip();
+      const advance = () =>
+        call(ship, 'POST', '/sim/advance', json({ ticks: 1 }));
+      expect(await call(ship, 'POST', '/ftl/spool')).toEqual({
+        status: 202,
+        body: { tick: 1 },
+      });
+      await advance();
+      expect(
+        await call(ship, 'POST', '/ftl/jump', json({ to: 'Proxima-b' })),
+      ).toEqual({ status: 202, body: { tick: 2 } });
+      await advance();
+      const reading = (await call(ship, 'GET', '/sim')).body as ShipReading;
+      expect(reading.ftl).toEqual({
+        status: 'idle',
+        charge: 0,
+        sector: 'Proxima-b',
+        jumped: 2,
+      });
+      expect(reading.setpoints.ftl).toEqual({ armed: false, jump: null });
+      expect(reading.power.loads).toHaveLength(5);
+      expect(reading.coolant.temperature).toBe(500);
+      expect(ship.get(FTL_DRIVE)).toBeInstanceOf(SimulatedJumpDrive);
+    });
+
+    test('the telemetry stream sends the rating of the simulated drive', async () => {
+      await using ship = await simulatedShip();
+      const bridge = await servers[framework](ship);
+      try {
+        const abort = new AbortController();
+        const stream = events(
+          await fetch(`${bridge.url}/telemetry`, { signal: abort.signal }),
+        );
+        const first = await frameAt(stream, 0);
+        expect(first.ftl.status).toBe('offline');
+        expect(first).not.toHaveProperty('ftlRating');
+        expect(
+          (await fetch(`${bridge.url}/ftl/spool`, { method: 'POST' })).status,
+        ).toBe(202);
+        await fetch(`${bridge.url}/sim/advance`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ticks: 1 }),
+        });
+        const loaded = await frameAt(stream, 1);
+        expect(loaded.ftl.status).toBe('charged');
+        expect(loaded.ftlRating?.power).toBe(0);
+        abort.abort();
+      } finally {
+        await bridge.close();
+      }
+    });
+  },
+);
+
+test('an override of the FTL drive without lazy fails create() as unused', async () => {
+  let thrown: unknown;
+  try {
+    await createTestingContainer(OfflineMeridian)
+      .overrideModule(FtlDrive, SimulatedFtlDrive)
+      .create({ plugins: bridgePlugins() });
+  } catch (error) {
+    thrown = error;
+  }
+  expect(thrown).toMatchObject({
+    code: 'NEXUS_BLUEPRINT_INVALID',
+    errors: [{ code: 'NEXUS_OVERRIDE_UNUSED', token: 'FtlDrive' }],
+  });
+});
+
+test('the simulated drive writes idle once after the load and keeps a charged armed ship', () => {
+  let system: IShipSystem | undefined;
+  const loop = {
+    attach(attached: IShipSystem) {
+      system = attached;
+      return () => {};
+    },
+  } as unknown as ITickLoop;
+  new SimulatedJumpDrive(loop, {} as IShipState).onInit();
+  const step = (ship: ShipSnapshot) =>
+    system?.step(ship, { tick: 1 } as TickContext);
+  const shipAt = (status: 'offline' | 'charged', armed: boolean) =>
+    ({
+      ftl: { status, charge: 0, sector: 'Sol', jumped: null },
+      setpoints: { ftl: { armed, jump: null } },
+    }) as unknown as ShipSnapshot;
+
+  const offline = shipAt('offline', false);
+  const idle = step(offline);
+  expect(idle?.ftl).toEqual({ ...offline.ftl, status: 'idle' });
+  expect(idle && step(idle)).toBe(idle);
+  const charged = shipAt('charged', true);
+  expect(step(charged)).toBe(charged);
+});
