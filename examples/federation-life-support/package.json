@@ -1,24 +1,35 @@
 {
-  "name": "federation-life-support",
+  "name": "@nexusdi/federation-life-support",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "rspack serve --mode=development",
     "build": "rspack build --mode=production"
   },
   "dependencies": {
-    "@module-federation/enhanced": "^2.4.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "@module-federation/enhanced": "2.9.2",
+    "@nexusdi/core": "*",
+    "@nexusdi/federation-contracts": "*",
+    "@nexusdi/react": "*",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
   },
   "devDependencies": {
-    "@rspack/cli": "^2.0.3",
-    "@rspack/core": "^2.0.3",
+    "@nexusdi/federation": "*",
+    "@nexusdi/testing": "*",
+    "@rspack/cli": "2.2.9",
+    "@rspack/core": "2.2.9",
     "@rspack/dev-server": "2.0.1",
-    "@rspack/plugin-react-refresh": "^2.0.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "react-refresh": "~0.14.0",
-    "typescript": "~6.0.3"
+    "@rspack/plugin-react-refresh": "2.0.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "react-refresh": "0.19.0",
+    "typescript": "6.0.3"
+  },
+  "nx": {
+    "tags": [
+      "demo-frontend"
+    ]
   }
 }
