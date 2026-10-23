@@ -7,7 +7,7 @@ import { Button, Section } from '../../components';
 import { snapshotLoader } from '../snapshot-loader.server';
 import type { Route } from './+types/engineering';
 import { systemAction } from './system-action.server';
-import { ControlSection, Gauges, SystemPage } from './system-page';
+import { ControlSection, Gauges, LevelForm, SystemPage } from './system-page';
 
 /** Sends the submitted form to bridge-api as an engineering command. */
 export const action: (args: Route.ActionArgs) => Promise<CommandAnswer> =
@@ -47,21 +47,12 @@ export default function Engineering({
         <EngineeringGauges ship={loaderData} />
       </Section>
       <ControlSection title="Reactor">
-        <Form method="post" className="flex gap-2 items-center">
-          <input type="hidden" name="command" value="throttle" />
-          <label htmlFor="level">Throttle</label>
-          <input
-            id="level"
-            name="level"
-            type="number"
-            min={0}
-            max={1}
-            step={0.01}
-            defaultValue={1}
-            required
-          />
-          <Button type="submit">Set throttle</Button>
-        </Form>
+        <LevelForm
+          command="throttle"
+          label="Throttle"
+          button="Set throttle"
+          defaultValue={1}
+        />
       </ControlSection>
       <ControlSection title="Shields">
         <Form method="post" className="flex gap-2">

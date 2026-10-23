@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { createRoutesStub } from 'react-router';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
 import { commandFrom } from '../../app/routes/systems/system-action.server';
@@ -6,6 +7,7 @@ import {
   ControlSection,
   Gauges,
   ItemList,
+  LevelForm,
   SystemPage,
 } from '../../app/routes/systems/system-page';
 import { built } from '../support/testing-di';
@@ -213,5 +215,35 @@ describe('the system page pieces', () => {
     expect(screen.getByRole('alert').textContent).toBe(
       'Refused.Fix: Try later.',
     );
+  });
+
+  it('posts a level from 0 to 1 under the command it is given', async () => {
+    const Stub = createRoutesStub([
+      {
+        path: '/',
+        Component: () => (
+          <LevelForm
+            command="burn"
+            label="Burn level"
+            button="Burn"
+            defaultValue={0.5}
+          />
+        ),
+      },
+    ]);
+    render(<Stub />);
+    const input = await screen.findByLabelText('Burn level');
+    expect(input.getAttribute('name')).toBe('level');
+    expect(input.getAttribute('type')).toBe('number');
+    expect(input.getAttribute('min')).toBe('0');
+    expect(input.getAttribute('max')).toBe('1');
+    expect(input.getAttribute('step')).toBe('0.01');
+    expect((input as HTMLInputElement).value).toBe('0.5');
+    expect((input as HTMLInputElement).required).toBe(true);
+    const form = input.closest('form');
+    expect(
+      form?.querySelector<HTMLInputElement>('input[name="command"]')?.value,
+    ).toBe('burn');
+    expect(screen.getByRole('button', { name: 'Burn' })).toBeDefined();
   });
 });

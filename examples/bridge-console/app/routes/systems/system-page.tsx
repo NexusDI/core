@@ -166,3 +166,39 @@ export function CommandSelect({
     </Form>
   );
 }
+
+/**
+ * A form of one number named `level`, from 0 to 1 in steps of 0.01, that
+ * posts `command` with the level when the reader presses `button`. `label`
+ * names the field and `defaultValue` fills it. The field's id is `level`, so
+ * a page holds one `LevelForm`.
+ */
+export function LevelForm({
+  command,
+  label,
+  button,
+  defaultValue,
+}: {
+  command: string;
+  label: string;
+  button: string;
+  defaultValue: number;
+}) {
+  return (
+    <Form method="post" className="flex gap-2 items-center">
+      <input type="hidden" name="command" value={command} />
+      <label htmlFor="level">{label}</label>
+      <input
+        id="level"
+        name="level"
+        type="number"
+        min={0}
+        max={1}
+        step={0.01}
+        defaultValue={defaultValue}
+        required
+      />
+      <Button type="submit">{button}</Button>
+    </Form>
+  );
+}
