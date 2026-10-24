@@ -94,15 +94,20 @@ protocol:
    from the bundle's external imports, `reflect-metadata` first, so every package
    resolves from the cell as the bundle's own imports do. Library import time is already
    the cold-start figure.
-2. Reads the retained heap (`base`) after a settle loop: pause 10 ms, `gc()` twice, read,
-   and stop when two reads in a row are equal or after ten passes. At this read the
-   loop's own allocations (0.1 to 5 KB per pass) keep any two reads apart, so the base
-   read always makes all ten passes. The final read of step 7 usually stops after four.
-   Both reads hold the same loop allocations, so they cancel in `heap-ready`. The loop
-   waits for V8's background work: concurrent compile jobs still running at this read
-   made `heap-ready` negative in 6 of 180 parallel runs. The array of indexes step 6
-   resolves is built before this read from the model's provider count and target, so it
-   sits in `base`.
+2. Runs one settle loop and discards its read, then reads the retained heap (`base`) after
+   a second one. A settle loop is: pause 10 ms, `gc()` twice, read, and stop when the
+   last three reads lie within 1 KB of each other or after ten passes; the read is the
+   smallest of those three. The first loop runs cold: its own code and timers grow the
+   heap by 0.4 to 5.5 KB per pass, so it never agrees and always makes ten passes. The
+   loops after it grow the heap by about 100 bytes per pass and agree in four to six
+   passes, so the base read and the final read of step 7 are alike. The loop waits for V8's background work:
+   concurrent compile jobs still running at a read made `heap-ready` negative in 6 of 180
+   parallel runs. V8 can also hold a transient of about 200 KB in `trusted_space` for one
+   pass, which gave a `heap-ready` of -202,480 in CI when the base read caught it. A
+   transient only adds to a read, so it breaks the agreement of the window, and the
+   smallest read drops one that is present in part of the window. The array of indexes
+   step 6 resolves is built before this read from the model's provider count and target,
+   so it sits in `base`.
 3. Times `await import(bundle)`: `load`.
 4. Times `create`: `create`. Nothing collects before it.
 5. Times `get(target)`: `first-get`.
@@ -114,7 +119,7 @@ protocol:
 9. Sends `{ load, create, firstGet, rest, heapReady }` and disconnects from the send
    callback (a disconnect straight after `send` lost a 200 KB message in 60 of 60 runs).
 
-The only `gc()` calls sit in the two settle loops. A forced `gc()` before `create` was in
+The only `gc()` calls sit in the three settle loops (warm-up, base read, final read). A forced `gc()` before `create` was in
 the protocol until the check of section 7.4 measured its effect: it collects the garbage
 the bundle's own load leaves, which a real app collects during `create`, and the
 collection hid a cost of the library that leaves it. Without it NexusDI's startup, over
