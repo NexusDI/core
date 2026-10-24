@@ -353,6 +353,9 @@ describe('the child protocol', () => {
   it('collects only inside the settle loops: the warm-up, the base read and the final read, each three to ten passes of two', async () => {
     const { gcCalls } = await run([], true);
     expect(gcCalls % 2).toBe(0);
+    // 18 is the least a three-loop child can make (three passes of two per
+    // loop). Under this preload a child without the warm-up loop makes 14 to
+    // 24 calls, so the source test below pins the loop.
     expect(gcCalls).toBeGreaterThanOrEqual(18);
     expect(gcCalls).toBeLessThanOrEqual(60);
   }, 60_000);
@@ -365,6 +368,12 @@ describe('the child protocol', () => {
       src.indexOf('const others'),
     );
     expect(loop).toContain('collect()');
+  });
+  it('runs a discarded settle loop right before the base read', () => {
+    const src = readFileSync(CHILD, 'utf8');
+    expect(src).toMatch(
+      /^await settledHeap\(\);\n(?:\/\/.*\n)*const base = await settledHeap\(\);$/m,
+    );
   });
 });
 

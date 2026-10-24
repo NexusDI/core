@@ -99,15 +99,15 @@ protocol:
    last three reads lie within 1 KB of each other or after ten passes; the read is the
    smallest of those three. The first loop runs cold: its own code and timers grow the
    heap by 0.4 to 5.5 KB per pass, so it never agrees and always makes ten passes. The
-   loops after it grow the heap by about 100 bytes per pass and agree in four to six
-   passes, so the base read and the final read of step 7 are alike. The loop waits for V8's background work:
-   concurrent compile jobs still running at a read made `heap-ready` negative in 6 of 180
-   parallel runs. V8 can also hold a transient of about 200 KB in `trusted_space` for one
-   pass, which gave a `heap-ready` of -202,480 in CI when the base read caught it. A
-   transient only adds to a read, so it breaks the agreement of the window, and the
-   smallest read drops one that is present in part of the window. The array of indexes
-   step 6 resolves is built before this read from the model's provider count and target,
-   so it sits in `base`.
+   loops after it grow the heap by about 100 bytes per pass and agree in three to six
+   passes, so the base read and the final read of step 7 are alike. The loop waits for
+   V8's background work: concurrent compile jobs still running at a read made
+   `heap-ready` negative in 6 of 180 parallel runs. V8 can also hold a transient of
+   about 200 KB in `trusted_space` for one pass, which gave a `heap-ready` of -202,480
+   in CI when the base read caught it. A transient only adds to a read, so it breaks
+   the agreement of the window, and the smallest read drops one that is present in
+   part of the window. The array of indexes step 6 resolves is built before this read
+   from the model's provider count and target, so it sits in `base`.
 3. Times `await import(bundle)`: `load`.
 4. Times `create`: `create`. Nothing collects before it.
 5. Times `get(target)`: `first-get`.
