@@ -1778,12 +1778,26 @@ inlines. Core's size report goes from 18,317 to 18,328 bytes gzipped (+11). Rewr
 four negated guards (`applyConstruct`, `formatThrown`, `guardAsync`, `runSetup`) as
 `if (HOOK_SITES && ...)` blocks takes it to 18,315. The first K14 runs then measured
 get-2000 at 1.032 [1.001, 1.053] over 30 pairs. Every transient build made three hook checks, for the tracer's clock, the construct hooks and the trace emit. `RootState.buildHooks`, true when a plugin has a construct
-or an observe hook, now guards all three in `buildTransient`. After it, two runs measured
+or an observe hook, then guarded all three in `buildTransient`. After it, two runs measured
 get-2000 at 1.013 [0.999, 1.029] and 1.025 [1.011, 1.053], and every case passed. The flag
 takes core to 18,353 bytes gzipped (+38 against 18,315, +36 against 18,317 before K14). The
 `construct` hook's `container` parameter (D1), replayed from `feat/core-0.4`, takes it to
 18,485 bytes. A Node user who runs core's `dist` without a bundler reads one immutable
 module binding per site, which V8 treats as a constant once optimised.
+
+The transient split. `resolveId` now tests `root.buildHooks` once per transient `get()`.
+With no construct or observe hook it calls `construct` and hands the result to
+`buildTransient`. With one it passes `construct`'s result between two clock readings, and
+a defined `start` selects the construct hooks and the trace emit inside `buildTransient`.
+Core's size report goes from 20,016 to 20,028 bytes gzipped (+12). On Node 24.20, the
+version `.nvmrc` pins and the only one K14 runs on, two runs measured get-50 at 0.856 and
+0.875. The ratio sits below 1 because V8 inlines the off build's smaller `buildTransient`
+into `resolveId` and calls the on build's out of line, and the inlined form is slower: the
+off build runs transient lookups about 5% slower than before the split (514 against 494
+ns). The slower baseline hides about 13% of get-50 headroom, so a hook-site cost of that
+size on the get path would still pass the gate. The reviewer's figures on Node 22.12 show
+no inversion: transient lookups at 1.084 on/off (461 against 424 ns) and get-50 at 1.067.
+Issue #206 tracks the off baseline.
 
 The two builds. `libs/core/bench/build.mjs` bundles `libs/core/src/index.ts` twice with
 the same esbuild options (`--bundle --format=esm --platform=node --minify-syntax`, no
