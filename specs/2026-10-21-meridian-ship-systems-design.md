@@ -3699,6 +3699,8 @@ library's `e2e-growth` target holds the goldens, and `demo-growth` runs it too.
 | 2026-10-24 | Game-scale metrics: main corridors at least 2.0 m, secondary corridors 1.5 m, doors 1.5 m wide, pressure hatches 1.5 m by 2.0 m and decks 3.2 m floor to floor (section 16.1)                                                                                                                                                                                                                                        | owner                           |
 | 2026-10-24 | Gravity plating: the floors face dorsal, the deck plan is a true top-down view, and thrust is cosmetic (section 16.1)                                                                                                                                                                                                                                                                                                | owner                           |
 | 2026-10-24 | No tank section as a compartment, and reactor shielding does not drive the layout; tanks appear in the art only as exterior or cutaway detail, and a tank is no room (section 16.1)                                                                                                                                                                                                                                  | owner                           |
+| 2026-10-24 | The hull number is `SV-01`: the Meridian is the lead ship of the Meridian-class survey vessels, SV is the role and 01 the first hull of the class, with no link to the mission id `survey-7` (section 16.6)                                                                                                                                                                                                          | owner                           |
+| 2026-10-24 | The art draws compact "unobtanium" radiator wings, about 96 m in span and swept aft, so the ship fits on screen and reads well on the demo app, the front page, the docs and the Academy; the simulation keeps its heat figures (section 16.6)                                                                                                                                                                       | owner                           |
 
 The owner made the rows whose source is "owner". The architect proposed the "tech lead"
 rows and the tech lead decided them, as `specs/plans/2026-10-21-meridian-g0-kernel.md`,
@@ -4202,11 +4204,12 @@ narrows to the bells on the long axis at the stern. In the cutaway, tanks fill t
 between engineering and the reactor bay at 41 to 43 m.
 
 The radiator wings are thin panels that sweep aft and outboard from the reactor bay and
-stand edge-on to the bow: wide from above, nearly gone from ahead. The rule of cool sets
-their drawn size. Section 5.6's 24,000 m² would need wings 100 m outboard each, a 216 m
-span, and the simulation keeps that figure. The art draws each wing about 40 m outboard
-and 20 m in chord, swept 35° so its tip reaches the stern, which gives a deployed span of
-about 96 m. Stowed, the panels fold flat along the flanks, and the compact ship reads as
+stand edge-on to the bow: wide from above, nearly gone from ahead. The owner calls them
+"unobtanium" radiators. The ship teaches on the demo app, the front page, the docs and the
+Academy, so it must fit on screen and read well, and the physics serves that goal. The art
+draws compact wings, each about 40 m outboard and 20 m in chord, swept aft 35° so its tip
+reaches the stern, which gives a deployed span of about 96 m. The simulation keeps the heat
+figures of section 5.6, including its 24,000 m² of radiator. Stowed, the panels fold flat along the flanks, and the compact ship reads as
 docked or idle.
 
 | Feature            | Placement                                                                                                                                          | Code                                   |
@@ -4222,7 +4225,11 @@ docked or idle.
 | drone bay doors    | ventral, 33 to 36 m, 3 m by 2 m                                                                                                                    | `drone-bay-outer`                      |
 | airlock hatch      | port flank at 25 m, 1.5 m by 2.0 m                                                                                                                 | `airlock-outer`                        |
 | main engine bells  | two bells on the long axis, symmetric about it, at 65 to 72 m                                                                                      | `MAIN_DRIVE`                           |
-| markings           | "MERIDIAN" on both bow flanks and the dorsal plate; the hull number `SV-07` on the flanks and the ventral skin                                     | none                                   |
+| markings           | "MERIDIAN" on both bow flanks and the dorsal plate; the hull number `SV-01` on the flanks and the ventral skin                                     | none                                   |
+
+The Meridian is the lead ship of the Meridian-class survey vessels. In `SV-01`, SV is the
+role (survey vessel) and 01 is the first hull of the class. The hull number has no link to
+the mission id `survey-7`.
 
 The views:
 
