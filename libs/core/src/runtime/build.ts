@@ -679,31 +679,40 @@ function settledSingleton(record: ProviderRecord, ctx: Ctx): unknown {
   throw notBuilt(record);
 }
 
-function buildTransient(record: ProviderRecord, ctx: Ctx): unknown {
-  const root = ctx.container.root;
-  // Each guard reads the flag inline: esbuild folds HOOK_SITES && x, and
-  // would leave a local boolean's check in the off build.
-  const start = HOOK_SITES && root.buildHooks ? root.tracer.now() : 0;
-  const built = construct(record, ctx);
-  const returned = HOOK_SITES && root.buildHooks ? root.tracer.now() : 0;
+/**
+ * Finishes a transient build from what `construct` returned. A defined
+ * `start` marks a build with hooks: the construct hooks run over the
+ * instance and the construct event reports `start` and `returned`, the
+ * clock readings around `construct`. resolveId tests `root.buildHooks` once
+ * and passes no readings when no plugin has a construct or observe hook.
+ */
+function buildTransient(
+  record: ProviderRecord,
+  ctx: Ctx,
+  start: number | undefined,
+  built: unknown,
+  returned?: number,
+): unknown {
   // Only a factory result is awaited (spec §6.1); a class instance with a
   // then method is an ordinary value.
   if (record.kind === 'factory' && isThenable(built)) {
     // get() cannot wait on it.
     observeRejection(built);
     // builtAsync reports a transient factory false until now.
-    root.asyncFlags.set(record.id, true);
+    ctx.container.root.asyncFlags.set(record.id, true);
     throw new AsyncTransientError({
       token: record.name,
       module: moduleName(ctx.bp, record),
     });
   }
+  // Each guard reads HOOK_SITES first, so esbuild drops the branch in the
+  // off build.
   const instance =
-    HOOK_SITES && root.buildHooks
+    HOOK_SITES && start !== undefined
       ? applyConstruct(ctx.container, ctx.owner, ctx.bp, record, built)
       : built;
-  takeOwnership(root, ctx.owner, record, instance);
-  if (HOOK_SITES && root.buildHooks)
+  takeOwnership(ctx.container.root, ctx.owner, record, instance);
+  if (HOOK_SITES && start !== undefined)
     traceBuild(
       'construct',
       ctx.container,
@@ -732,6 +741,16 @@ export function resolveId(id: string, ctx: Ctx): unknown {
     case 'scoped':
       return resolveScoped(record, ctx);
     case 'transient':
-      return buildTransient(record, ctx);
+      // JavaScript evaluates arguments left to right, so the first clock
+      // reading precedes construct and the second follows it.
+      return HOOK_SITES && ctx.container.root.buildHooks
+        ? buildTransient(
+            record,
+            ctx,
+            ctx.container.root.tracer.now(),
+            construct(record, ctx),
+            ctx.container.root.tracer.now(),
+          )
+        : buildTransient(record, ctx, undefined, construct(record, ctx));
   }
 }
