@@ -3695,6 +3695,10 @@ library's `e2e-growth` target holds the goldens, and `demo-growth` runs it too.
 | 2026-10-24 | The layout draws the physical conduits the simulation models: power from `PlasmaRouter` to each load, the coolant loop from the reactor bay to the radiator wings, and the atmosphere ducts through the doors (section 16.4)                                                                                                                                                                                         | owner                           |
 | 2026-10-24 | The network overlay, a toggle in the MeridianOS chrome, draws the DI graph over the deck from devtools' graph edges alone, with `lazy()` and `optional()` dashed and a loaded section drawn once loaded; a missing provider or a broken import shows as a broken conduit (section 16.5)                                                                                                                              | owner                           |
 | 2026-10-24 | A physical conduit is drawn only where a real dependency or a physics flow exists (section 16.5)                                                                                                                                                                                                                                                                                                                     | owner                           |
+| 2026-10-24 | The design research gives guidelines, and the rule of cool outranks real-world constraints across the whole layout; the layout adopts the anchor guidelines and the trade-off recommendations section 16.1 lists                                                                                                                                                                                                     | owner                           |
+| 2026-10-24 | Game-scale metrics: main corridors at least 2.0 m, secondary corridors 1.5 m, doors 1.5 m wide, pressure hatches 1.5 m by 2.0 m and decks 3.2 m floor to floor (section 16.1)                                                                                                                                                                                                                                        | owner                           |
+| 2026-10-24 | Gravity plating: the floors face dorsal, the deck plan is a true top-down view, and thrust is cosmetic (section 16.1)                                                                                                                                                                                                                                                                                                | owner                           |
+| 2026-10-24 | No tank section as a compartment, and reactor shielding does not drive the layout; tanks appear in the art only as exterior or cutaway detail, and a tank is no room (section 16.1)                                                                                                                                                                                                                                  | owner                           |
 
 The owner made the rows whose source is "owner". The architect proposed the "tech lead"
 rows and the tech lead decided them, as `specs/plans/2026-10-21-meridian-g0-kernel.md`,
@@ -3880,9 +3884,9 @@ section alone keeps its §7.1 meaning: a module added after startup with `load()
 ### 16.1 The ship
 
 The Starship Meridian is a small survey frigate with a crew of 6 and the 1.21 GW reactor
-of section 5.6. The hull is 72 m long, 16 m in the beam and 11 m high, inside the owner's
+of section 5.6. The hull is 72 m long, 16 m in the beam and 13 m high, inside the owner's
 60 to 80 m. `HULL` keeps its 4.0 × 10⁶ kg and 3.3 × 10⁹ kg·m²: 4,000 t fill the hull's
-box at 316 kg/m³, and a uniform 72 m rod of that mass gives 1.7 × 10⁹ kg·m², so the
+box at 267 kg/m³, and a uniform 72 m rod of that mass gives 1.7 × 10⁹ kg·m², so the
 mass at the stern and in the radiator wings holds the rest. The main drive's 14.4 kN
 moves the ship at 3.6 mm/s².
 
@@ -3890,40 +3894,91 @@ The occupants are one watch: two crew on the bridge, two in the mess and two asl
 the quarters. The bridge holds six stations (helm, cartography, command, engineering,
 life support and comms), and the two crew on watch work them.
 
-The ship has three decks. The main deck runs from the bridge to the main drive and carries
-the crew's route. The upper deck holds the comms relay, the quarters and the capacitor
-room under the spine. The lower deck holds the computer core, the two bays and the FTL
-core. A position below is the distance aft of the bow in metres.
+The layout follows design guidelines, and the owner rules that the rule of cool outranks
+real-world constraints across the whole layout. Where a guideline and the look disagree,
+the look wins. The layout adopts these guidelines:
+
+- The main drive sits on the thrust line through the centre of mass: two bells on the long
+  axis, symmetric about it, with the reactor, the capacitor bank and the FTL core near
+  that axis.
+- The reactor sits aft. Engineering's control room sits forward of it, and the reactor bay
+  is a separate, windowless volume.
+- Thin radiator wings sweep aft and outboard from the reactor bay, edge-on to the bow.
+- The RCS quads sit far from the centre of mass, at the bow and the stern corners, clear
+  of the wings and the drive's plume.
+- The railgun barrel runs above the main deck on the centreline, and the crew spine, the
+  main deck's corridor, runs below it.
+- The shuttle bay sits midship and the drone bay aft of it, both ventral and both ahead of
+  the reactor bay.
+- The comms mast stands on the dorsal ridge ahead of the barrel's breech shroud.
+- The bridge keeps a narrow armoured window band under a brow.
+- One master plan drives every view: section 16.2's decks and positions place every room,
+  door and conduit, and the deck plan, the side view, the top view and the cutaway derive
+  from it.
+
+Gravity plating gives the ship its down. The floors face dorsal, the deck plan is a true
+top-down view, and the main drive's thrust is cosmetic, as its 3.6 mm/s² is.
+
+The metrics are game scale, wider than naval or spacecraft figures, so a player moves
+through the ship with room to spare:
+
+| Item                 | Figure                            |
+| -------------------- | --------------------------------- |
+| main corridor        | at least 2.0 m wide               |
+| secondary corridor   | 1.5 m wide                        |
+| door                 | 1.5 m wide                        |
+| pressure hatch       | 1.5 m by 2.0 m                    |
+| deck, floor to floor | 3.2 m, with a 2.6 m clear ceiling |
+
+The ship has three decks, 9.6 m together, over a 1.6 m keel and under a 1.8 m dorsal
+ridge, which gives the 13 m height. The main deck runs from the bridge to the main drive,
+and its 2.0 m spine carries the crew's route from the bridge to engineering. The upper
+deck holds the comms relay and the quarters on either side of the barrel, and the
+capacitor room at the barrel's breech. The lower deck holds the computer core, the two
+bays and the FTL core. A position below is the distance aft of the bow in metres.
+
+Every door of the deck is a pressure hatch of 1.5 m by 2.0 m, 3.0 m², since each sits
+under `BLAST_DOORS` and the interlock. The two bay doors are larger. A room's `volume` is
+its free gas volume, about 20 % to 60 % of the room under its 2.6 m ceiling in a crew or
+machinery room, where consoles, berths, cabinets and plant fill the rest, and 9 % in the
+reactor bay, where the reactor fills most of a two-deck volume. With the corridors and
+hatches at these widths, every room of section 16.2 fits the 72 m by 16 m hull, so the
+hull keeps its length and beam and grows 2 m in height for the 3.2 m decks.
+
+Tanks may appear in the art as exterior or cutaway detail where they look good, such as
+the band between engineering and the reactor bay. A tank is no room, so it is no
+compartment, and the rule that the art shows no room the simulation lacks holds.
 
 ### 16.2 Compartments
 
 `COMPARTMENT_IDS` keeps the four existing ids first, in their order, and appends the ten
 new ones fore to aft. C is the structure heat capacity and G the hull conductance.
 
-| Id               | Hull section             | Deck and position                        | Volume | Occupants | Equipment                        | C        | G       | Flood charge | Air                     |
-| ---------------- | ------------------------ | ---------------------------------------- | ------ | --------- | -------------------------------- | -------- | ------- | ------------ | ----------------------- |
-| `bridge`         | bridge                   | main, 2 to 10, centreline                | 60 m³  | 2         | heater, scrubber, oxygen         | 2.0 MJ/K | 90 W/K  | 1,000 mol    | pressurised, occupied   |
-| `habitat`        | habitat, galley and mess | main, 14 to 28, centreline               | 120 m³ | 2         | heater, scrubber, oxygen         | 4.0 MJ/K | 150 W/K | 2,000 mol    | pressurised, occupied   |
-| `reactor-bay`    | reactor bay              | main, 42 to 54, shielded                 | 80 m³  | 0         | none; `coolantConductance` 2 W/K | 6.0 MJ/K | 110 W/K | 1,330 mol    | pressurised, unoccupied |
-| `airlock`        | airlock                  | main, 24 to 27, port                     | 12 m³  | 0         | vent, pump into `habitat`        | 0.5 MJ/K | 30 W/K  | none         | pressurised, cycles     |
-| `chart-room`     | chart room               | main, 10 to 14, starboard                | 24 m³  | 0         | heater                           | 0.8 MJ/K | 45 W/K  | 400 mol      | pressurised, unoccupied |
-| `computer-core`  | computer core            | lower, 4 to 9, under the bridge          | 20 m³  | 0         | heater                           | 1.5 MJ/K | 25 W/K  | 330 mol      | pressurised, unoccupied |
-| `quarters`       | habitat, quarters        | upper, 17 to 27                          | 48 m³  | 2         | heater, scrubber, oxygen         | 1.6 MJ/K | 80 W/K  | 800 mol      | pressurised, occupied   |
-| `comms-relay`    | comms                    | upper, 12 to 16, under the array         | 16 m³  | 0         | heater                           | 0.6 MJ/K | 40 W/K  | 270 mol      | pressurised, unoccupied |
-| `shuttle-bay`    | shuttle bay              | lower, 16 to 32, ventral                 | 180 m³ | 0         | none                             | 5.0 MJ/K | 190 W/K | none         | vacuum                  |
-| `drone-bay`      | drone bay                | lower, 32 to 37, ventral                 | 30 m³  | 0         | none                             | 1.0 MJ/K | 60 W/K  | none         | vacuum                  |
-| `capacitor-room` | weapons                  | upper, 32 to 38, at the railgun's breech | 36 m³  | 0         | heater                           | 3.0 MJ/K | 60 W/K  | 600 mol      | pressurised, unoccupied |
-| `engineering`    | engineering              | main, 28 to 42                           | 90 m³  | 0         | heater                           | 4.5 MJ/K | 120 W/K | 1,500 mol    | pressurised, unoccupied |
-| `ftl-core`       | FTL core                 | lower, 37 to 46                          | 50 m³  | 0         | heater                           | 5.0 MJ/K | 80 W/K  | 830 mol      | pressurised, unoccupied |
-| `main-drive`     | main drive               | main, 56 to 66                           | 40 m³  | 0         | heater                           | 4.0 MJ/K | 70 W/K  | 670 mol      | pressurised, unoccupied |
+| Id               | Hull section             | Deck and position                        | Volume | Occupants | Equipment                        | C         | G       | Flood charge | Air                     |
+| ---------------- | ------------------------ | ---------------------------------------- | ------ | --------- | -------------------------------- | --------- | ------- | ------------ | ----------------------- |
+| `bridge`         | bridge                   | main, 2 to 10, centreline                | 60 m³  | 2         | heater, scrubber, oxygen         | 2.0 MJ/K  | 90 W/K  | 1,000 mol    | pressurised, occupied   |
+| `habitat`        | habitat, galley and mess | main, 14 to 28, centreline               | 120 m³ | 2         | heater, scrubber, oxygen         | 4.0 MJ/K  | 150 W/K | 2,000 mol    | pressurised, occupied   |
+| `reactor-bay`    | reactor bay              | main and upper, 43 to 55, windowless     | 80 m³  | 0         | none; `coolantConductance` 2 W/K | 6.0 MJ/K  | 110 W/K | 1,330 mol    | pressurised, unoccupied |
+| `airlock`        | airlock                  | main, 24 to 27, port                     | 12 m³  | 0         | vent, pump into `habitat`        | 0.5 MJ/K  | 30 W/K  | none         | pressurised, cycles     |
+| `chart-room`     | chart room               | main, 10 to 14, starboard                | 24 m³  | 0         | heater                           | 0.8 MJ/K  | 45 W/K  | 400 mol      | pressurised, unoccupied |
+| `computer-core`  | computer core            | lower, 3 to 9, under the bridge          | 20 m³  | 0         | heater                           | 1.5 MJ/K  | 25 W/K  | 330 mol      | pressurised, unoccupied |
+| `quarters`       | habitat, quarters        | upper, 17 to 27, starboard of the barrel | 48 m³  | 2         | heater, scrubber, oxygen         | 1.6 MJ/K  | 80 W/K  | 800 mol      | pressurised, occupied   |
+| `comms-relay`    | comms                    | upper, 12 to 16, port of the barrel      | 16 m³  | 0         | heater                           | 0.6 MJ/K  | 40 W/K  | 270 mol      | pressurised, unoccupied |
+| `shuttle-bay`    | shuttle bay              | lower, 15 to 31, ventral                 | 480 m³ | 0         | none                             | 12.0 MJ/K | 370 W/K | none         | vacuum                  |
+| `drone-bay`      | drone bay                | lower, 32 to 38, ventral                 | 50 m³  | 0         | none                             | 1.5 MJ/K  | 80 W/K  | none         | vacuum                  |
+| `capacitor-room` | weapons                  | upper, 30 to 38, at the breech           | 36 m³  | 0         | heater                           | 3.0 MJ/K  | 60 W/K  | 600 mol      | pressurised, unoccupied |
+| `engineering`    | engineering              | main, 28 to 41                           | 90 m³  | 0         | heater                           | 4.5 MJ/K  | 120 W/K | 1,500 mol    | pressurised, unoccupied |
+| `ftl-core`       | FTL core                 | lower, 38 to 46                          | 50 m³  | 0         | heater                           | 5.0 MJ/K  | 80 W/K  | 830 mol      | pressurised, unoccupied |
+| `main-drive`     | main drive               | main, 55 to 65                           | 40 m³  | 0         | heater                           | 4.0 MJ/K  | 70 W/K  | 670 mol      | pressurised, unoccupied |
 
-The crew totals 6. The pressurised volume is 596 m³, and the two vacuum bays hold 210 m³.
+The crew totals 6. The pressurised volume is 596 m³, and the two vacuum bays hold 530 m³.
 
 The four existing compartments keep their volume, conductance, structure heat capacity,
 flood charge and equipment. The habitat's split forces one change: `habitat` drops from
 4 occupants to 2, since `quarters` takes 2 of the 6 crew. `habitat` keeps its 120 m³ as
-the galley, the mess and the midship companionway, so the door, pump, vent and flood
-figures of sections 5.4, 5.5 and 5.10 hold for it.
+the galley, the mess and the midship companionway, so the pump, vent and flood figures of
+sections 5.4 and 5.10 hold for it. The door figures of section 5.5 change with the
+hatches' 3.0 m².
 
 The new rooms take their figures from the four existing ones:
 
@@ -3941,38 +3996,46 @@ The new rooms take their figures from the four existing ones:
   their existing plans. Without one a new room cools toward `T_hull`, and the model has no
   condensation: an unheated comms relay reads 260.0 K and 363 % relative humidity after
   48 h. A scrubber and a generator sit only where crew breathe.
-- The two bays hold vacuum. A bay door opens to space, and a pump-down of the 180 m³
-  shuttle bay into the 120 m³ habitat would stall far above vacuum. A suited crew reaches
+- The two bays hold vacuum. A bay door opens to space, and a pump-down of the 480 m³
+  shuttle bay into the 120 m³ habitat would stall far above vacuum. The shuttle bay's
+  16 m by 7 m by 5 m holds the shuttle beside 480 m³ of free volume. A suited crew reaches
   the shuttle through the airlock, cycled to vacuum, and the hatch `airlock-shuttle-bay`.
 
 The doors, in deck order:
 
 | Door                         | Between                         | Area   | Per tick         | τ      |
 | ---------------------------- | ------------------------------- | ------ | ---------------- | ------ |
-| `bridge-habitat`             | `bridge`, `habitat`             | 1.5 m² | f 0.188064       | 2.4 s  |
-| `habitat-airlock`            | `habitat`, `airlock`            | 1.2 m² | f 0.203297       | 2.2 s  |
-| `airlock-outer`              | `airlock`, `space`              | 1.2 m² | keeps 0.08208    | 0.2 s  |
-| `bridge-chart-room`          | `bridge`, `chart-room`          | 1.2 m² | f 0.300327       | 1.4 s  |
-| `bridge-computer-core`       | `bridge`, `computer-core`       | 0.8 m² | f 0.221199       | 2.0 s  |
-| `habitat-quarters`           | `habitat`, `quarters`           | 1.2 m² | f 0.163536       | 2.8 s  |
-| `habitat-comms-relay`        | `habitat`, `comms-relay`        | 0.8 m² | f 0.136757       | 3.4 s  |
-| `airlock-shuttle-bay`        | `airlock`, `shuttle-bay`        | 1.0 m² | f 0.122087       | 3.84 s |
-| `shuttle-bay-outer`          | `shuttle-bay`, `space`          | 30 m²  | keeps 0.0155039  | 0.12 s |
-| `shuttle-bay-drone-bay`      | `shuttle-bay`, `drone-bay`      | 1.0 m² | f 0.112234       | 4.2 s  |
-| `drone-bay-outer`            | `drone-bay`, `space`            | 6 m²   | keeps 0.00673795 | 0.1 s  |
-| `habitat-engineering`        | `habitat`, `engineering`        | 1.5 m² | f 0.163536       | 2.8 s  |
-| `engineering-capacitor-room` | `engineering`, `capacitor-room` | 1.0 m² | f 0.179969       | 2.52 s |
-| `engineering-ftl-core`       | `engineering`, `ftl-core`       | 1.0 m² | f 0.163536       | 2.8 s  |
-| `engineering-reactor-bay`    | `engineering`, `reactor-bay`    | 1.5 m² | f 0.197953       | 2.27 s |
-| `reactor-bay-main-drive`     | `reactor-bay`, `main-drive`     | 0.8 m² | f 0.153518       | 3.0 s  |
+| `bridge-habitat`             | `bridge`, `habitat`             | 3.0 m² | f 0.340759       | 1.2 s  |
+| `habitat-airlock`            | `habitat`, `airlock`            | 3.0 m² | f 0.433445       | 0.88 s |
+| `airlock-outer`              | `airlock`, `space`              | 3.0 m² | keeps 0.00193045 | 0.08 s |
+| `bridge-chart-room`          | `bridge`, `chart-room`          | 3.0 m² | f 0.590516       | 0.56 s |
+| `bridge-computer-core`       | `bridge`, `computer-core`       | 3.0 m² | f 0.608394       | 0.53 s |
+| `habitat-quarters`           | `habitat`, `quarters`           | 3.0 m² | f 0.360091       | 1.12 s |
+| `habitat-comms-relay`        | `habitat`, `comms-relay`        | 3.0 m² | f 0.423898       | 0.91 s |
+| `airlock-shuttle-bay`        | `airlock`, `shuttle-bay`        | 3.0 m² | f 0.141389       | 3.28 s |
+| `shuttle-bay-outer`          | `shuttle-bay`, `space`          | 50 m²  | keeps 0.0739647  | 0.19 s |
+| `shuttle-bay-drone-bay`      | `shuttle-bay`, `drone-bay`      | 3.0 m² | f 0.131953       | 3.53 s |
+| `drone-bay-outer`            | `drone-bay`, `space`            | 6 m²   | keeps 0.0497871  | 0.17 s |
+| `habitat-engineering`        | `habitat`, `engineering`        | 3.0 m² | f 0.300327       | 1.4 s  |
+| `engineering-capacitor-room` | `engineering`, `capacitor-room` | 3.0 m² | f 0.448569       | 0.84 s |
+| `engineering-ftl-core`       | `engineering`, `ftl-core`       | 3.0 m² | f 0.414749       | 0.93 s |
+| `engineering-reactor-bay`    | `engineering`, `reactor-bay`    | 3.0 m² | f 0.356721       | 1.13 s |
+| `reactor-bay-main-drive`     | `reactor-bay`, `main-drive`     | 3.0 m² | f 0.464739       | 0.8 s  |
 
 `f` is `1 − exp(−dt / τ)` of section 5.5, and a door to space keeps the share of
-`ventFraction` (section 5.4). The door `habitat-reactor-bay` leaves the deck: engineering
-sits between the habitat and the reactor bay, and `engineering-reactor-bay` carries the
-same 1.5 m² on that route. `bridge-habitat`, `habitat-airlock` and `airlock-outer` keep
-their areas and their fractions. Every inner door to a vacuum bay opens only under the
-interlock's 5 kPa (section 6.1), so the airlock pumps and vents down before the hatch to
-the shuttle bay opens.
+`ventFraction` (section 5.4). Every hatch is 1.5 m by 2.0 m. The shuttle bay's ventral
+doors are 10 m by 5 m and the drone bay's 3 m by 2 m. The door `habitat-reactor-bay`
+leaves the deck: engineering sits between the habitat and the reactor bay, and
+`engineering-reactor-bay` carries that route.
+
+The game-scale hatches change the three existing doors. `bridge-habitat` grows from
+1.5 m² to 3.0 m², and `habitat-airlock` and `airlock-outer` from 1.2 m² to 3.0 m². Every
+`f` stays under 1, so the step stays stable. The habitat stays safe at the interlock's
+limit: opening `habitat-airlock` across 5 kPa moves the habitat at −394 Pa/s on the first
+tick, under the 2,000 Pa/s `DECOMPRESSION` limit. The outer hatch opened at 5 kPa empties
+the unoccupied airlock at −9,981 Pa/s on its first tick, and the airlock raises no alarm.
+Every inner door to a vacuum bay opens only under the interlock's 5 kPa (section 6.1), so
+the airlock pumps and vents down before the hatch to the shuttle bay opens.
 
 The balance with life support online at throttle 0.01 (the loop at 514.1 K), after 48 h:
 
@@ -4130,45 +4193,54 @@ monochrome amber or green screens in a block type, framed by chunky physical swi
 The design is original. It copies no franchise's ship silhouettes, logos, type, registry
 formats or interior layouts.
 
-The hull is a long spine with a blunt wedge bow and flat flanks. The reactor bay reads as
-a heavier armoured ring at 42 to 54 m, the wings hinge from it, and the drive section
-narrows to the bells at the stern.
+The hull is a long, boxy spine with a blunt wedge bow, flat flanks and one deliberate
+curve, the brow over the bridge's window band, which gives the ship a face. The barrel's
+shroud runs along the dorsal ridge as one line from the breech hump over the capacitor
+room to the muzzle in the bow face, above the window band. The reactor bay reads as a
+heavier, windowless block at 43 to 55 m, the wings hinge from it, and the drive section
+narrows to the bells on the long axis at the stern. In the cutaway, tanks fill the band
+between engineering and the reactor bay at 41 to 43 m.
 
-The radiator wings carry section 5.6's 24,000 m² of radiator, and the area sets their size.
-Each wing radiates from both faces, so each needs 6,000 m² of planform: 100 m outboard by
-60 m along the hull. Deployed, the ship spans 216 m, three times its length. Stowed, the
-panels fold in a concertina along the flanks from 12 m to 72 m, which suits a loop at or
-under 500 K with the louvres shut. The operating views show the wings deployed. A loop at
-the 1,450 K trip would need 10,700 m², so no loop temperature the reactor allows fits the
-radiator in the hull's own outline.
+The radiator wings are thin panels that sweep aft and outboard from the reactor bay and
+stand edge-on to the bow: wide from above, nearly gone from ahead. The rule of cool sets
+their drawn size. Section 5.6's 24,000 m² would need wings 100 m outboard each, a 216 m
+span, and the simulation keeps that figure. The art draws each wing about 40 m outboard
+and 20 m in chord, swept 35° so its tip reaches the stern, which gives a deployed span of
+about 96 m. Stowed, the panels fold flat along the flanks, and the compact ship reads as
+docked or idle.
 
-| Feature            | Placement                                                                                                      | Code                                   |
-| ------------------ | -------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| bridge windows     | the bow, main deck, facing ahead                                                                               | `bridge`                               |
-| radiator wings     | port and starboard, hinged on the reactor bay at 42 to 54 m, deployed outboard and aft                         | `COOLANT_LOOP`, the louvres' `λ`       |
-| deflector emitters | six: a pair at the bow (2 m), a dorsal and a ventral at midship (30 m), a pair at the stern (64 m)             | `SHIELD_GRID`                          |
-| RCS quads          | four: bow port and starboard at 6 m, stern port and starboard at 62 m                                          | `THRUSTERS`                            |
-| comms array        | a dorsal phased-array plate, 8 m by 4 m, over the comms relay at 12 to 16 m                                    | `COMMS_ARRAY`                          |
-| sensor mast        | dorsal, forward of the array at 10 m, 6 m tall                                                                 | the survey sensors; no token models it |
-| railgun barrel     | along the dorsal spine from the breech over the capacitor room (32 m) to the muzzle above the bow              | `WEAPON_MOUNT`                         |
-| shuttle bay doors  | ventral, 18 to 30 m, 6 m by 5 m                                                                                | `shuttle-bay-outer`                    |
-| drone bay doors    | ventral, 33 to 36 m, 3 m by 2 m                                                                                | `drone-bay-outer`                      |
-| airlock hatch      | port flank at 25 m, 1.2 m²                                                                                     | `airlock-outer`                        |
-| main engine bells  | two bells side by side at the stern, 66 to 72 m                                                                | `MAIN_DRIVE`                           |
-| markings           | "MERIDIAN" on both bow flanks and the dorsal plate; the hull number `SV-07` on the flanks and the ventral skin | none                                   |
+| Feature            | Placement                                                                                                                                          | Code                                   |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| bridge windows     | a narrow armoured band in the bow face, main deck, set back under the brow                                                                         | `bridge`                               |
+| radiator wings     | port and starboard, hinged on the reactor bay at 43 to 55 m, swept aft and outboard, edge-on to the bow                                            | `COOLANT_LOOP`, the louvres' `λ`       |
+| deflector emitters | six: a pair at the bow (2 m), a dorsal and a ventral at midship (30 m), a pair at the stern (64 m)                                                 | `SHIELD_GRID`                          |
+| RCS quads          | four, at the hull's corners: bow port and starboard at 4 m, stern port and starboard at 64 m, clear of the wings and the plume                     | `THRUSTERS`                            |
+| comms mast         | on the dorsal ridge at 12 to 16 m, starboard of the shroud and ahead of the breech hump, carrying the 8 m by 4 m phased array over the comms relay | `COMMS_ARRAY`                          |
+| sensor mast        | on the dorsal ridge at 8 m, starboard of the shroud, 6 m tall                                                                                      | the survey sensors; no token models it |
+| railgun barrel     | in the dorsal shroud above the main deck, from the breech over the capacitor room (30 m) to the muzzle in the bow face                             | `WEAPON_MOUNT`                         |
+| shuttle bay doors  | ventral, 18 to 28 m, 10 m by 5 m                                                                                                                   | `shuttle-bay-outer`                    |
+| drone bay doors    | ventral, 33 to 36 m, 3 m by 2 m                                                                                                                    | `drone-bay-outer`                      |
+| airlock hatch      | port flank at 25 m, 1.5 m by 2.0 m                                                                                                                 | `airlock-outer`                        |
+| main engine bells  | two bells on the long axis, symmetric about it, at 65 to 72 m                                                                                      | `MAIN_DRIVE`                           |
+| markings           | "MERIDIAN" on both bow flanks and the dorsal plate; the hull number `SV-07` on the flanks and the ventral skin                                     | none                                   |
 
 The views:
 
-- The side view (port) shows the full profile: the window line of the bridge, the deck
-  lines, the airlock hatch, both bay doors on the ventral line, the barrel on the spine,
-  the mast and the array, the wings stowed, and the bells.
-- The top view (dorsal) shows the wings deployed across the full 216 m, the six emitters,
-  the four RCS quads, the barrel on the centreline, the array plate and the markings.
+- The side view (port) shows the full profile: the window band under the brow, the deck
+  lines at 3.2 m, the airlock hatch, both bay doors on the ventral line, the barrel's
+  shroud along the ridge, the two masts, the wings as thin fins, and the bells.
+- The top view (dorsal) shows the wings deployed and swept, the six emitters, the four RCS
+  quads, the shroud on the centreline, the masts and the markings.
 - The cutaway (port, cut on the centreline) shows every compartment of section 16.2 at its
-  deck and position, labelled with its id, every door with its id, and the conduits of
-  section 16.4 in one colour per kind. The network overlay draws over the same cutaway as
-  its own layer, and the MeridianOS deck view and the front page's schematic take their
-  geometry from it.
+  deck and position, labelled with its id, every door with its id, the tanks between
+  engineering and the reactor bay, and the conduits of section 16.4 in one colour per kind.
+  The network overlay draws over the same cutaway as its own layer.
+- The deck plan is a true top-down view of each deck, since the floors face dorsal.
+
+One master plan, the decks and positions of section 16.2, drives every view. A vertical
+line through a room's boundary meets the same boundary in the side view, the top view,
+the cutaway and the deck plan, and the MeridianOS deck view and the front page's schematic
+take their geometry from the same plan.
 
 ### 16.7 What an implementation changes
 
@@ -4203,7 +4275,8 @@ The goldens and the tests:
   `tests/doubles.ts` take the new doors. The life-support station keeps its habitat
   commands.
 - The figures of sections 5.2, 5.3 and 5.7 that section 16.2 lists move to their new
-  values. `examples/meridian-systems/README.md` names the new door.
+  values. The 3.0 m² hatches move the door fractions of section 5.5, the outer door's
+  −186.0 kPa/s, and the airlock drill's ticks and rates in sections 5.4 and 5.11. `examples/meridian-systems/README.md` names the new door.
 
 The systems gain per-compartment behaviour:
 
