@@ -30,7 +30,6 @@ import { join } from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
 
 import {
-  blockSize,
   forkWorker,
   interleave,
   pairedRatio,
@@ -56,7 +55,6 @@ import { readCoreRef } from '../release-core.ts';
 import {
   validate,
   type BlockRunner,
-  type Design,
   type LibraryId,
   type Outcome,
   type ScaleCell,
@@ -70,6 +68,7 @@ import {
   SCALE_RATIO_METRICS,
 } from '../schema.ts';
 import { firstLine } from '../text.ts';
+import { design } from '../timings/design.ts';
 import { checkFloor } from '../timings/floor.ts';
 import { pool, scaleCell, type CellResult } from './cells.ts';
 import { documentedVariant } from './deterministic.ts';
@@ -81,7 +80,7 @@ import {
   SIZES,
   type Shape,
 } from './config.ts';
-import { freshBlock, type FreshRow } from './fresh.ts';
+import { emptyFreshRow, freshBlock, type FreshRow } from './fresh.ts';
 import { describeGraph } from './graph.ts';
 import { localExponent, marginalPerProvider } from './growth.ts';
 import {
@@ -420,19 +419,6 @@ export function coreRefOf(
   return { ref: 'workspace', tree };
 }
 
-function design(warmup: number, measured: number): Design {
-  return {
-    order: 'williams',
-    warmup,
-    measured,
-    bootstrap: {
-      resamples: 10000,
-      block: blockSize(measured),
-      prng: 'mulberry32',
-    },
-  };
-}
-
 export interface ScaleRunOptions {
   only?: LibraryId[];
   sizes?: readonly number[];
@@ -476,23 +462,6 @@ export interface RawPart {
   blocks: RawBlock[];
   steady: RawSteady[];
 }
-
-const emptyRow = (
-  library: LibraryId,
-  size: number,
-): Omit<FreshRow, 'library'> & { library: LibraryId } => ({
-  library,
-  size,
-  load: [],
-  create: [],
-  firstGet: [],
-  rest: [],
-  heapReady: [],
-  firstResolve: [],
-  ready: [],
-  startup: [],
-  warmup: [],
-});
 
 /**
  * Builds and verifies the cells of one part, then samples it: a shape's
@@ -572,7 +541,7 @@ export async function runPart(
       [...all].sort(order).map((x) => {
         const row = rows[live.findIndex((l) => l === x)];
         return {
-          ...(row ?? emptyRow(x.lib.id, x.graph.size)),
+          ...(row ?? emptyFreshRow(x.lib.id, x.graph.size)),
           library: x.lib.id,
           variant: x.variant,
           outcome: x.r.outcome,

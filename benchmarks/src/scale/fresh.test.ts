@@ -13,7 +13,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 
 import { spawnChild } from '../timings/spawn.ts';
 import { retainedHeap } from './heap.mjs';
-import { freshBlock, type FreshCell } from './fresh.ts';
+import { emptyFreshRow, freshBlock, type FreshCell } from './fresh.ts';
 import { six } from './six.ts';
 
 const CHILD = join(import.meta.dirname, 'child.mjs');
@@ -228,6 +228,24 @@ export const { scale } = await import(${JSON.stringify(pathToFileURL(FAKE).href)
       /a\/50 fresh-process block mixed round 0: exited with code 1: .*missing\.mjs/s,
     );
   }, 60_000);
+});
+
+describe('emptyFreshRow', () => {
+  it('names the cell and holds an empty array for every metric and the warm-up', () => {
+    expect(emptyFreshRow('nexusdi', 200)).toEqual({
+      library: 'nexusdi',
+      size: 200,
+      load: [],
+      create: [],
+      firstGet: [],
+      rest: [],
+      heapReady: [],
+      firstResolve: [],
+      ready: [],
+      startup: [],
+      warmup: [],
+    });
+  });
 });
 
 describe('retainedHeap', () => {

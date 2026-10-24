@@ -62,7 +62,11 @@ export interface ScaleGraph {
   target: number;
 }
 
-/** The figures scale.json records per graph (ScaleGraphRow). */
+/**
+ * The figures scale.json records per graph (schema.ts aliases it as
+ * ScaleGraphRow). `hash` is the first 12 hex digits of the SHA-256 of the
+ * canonical graph.
+ */
 export interface GraphDescriptor {
   shape: Shape;
   size: number;

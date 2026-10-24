@@ -1,7 +1,47 @@
 import { describe, expect, it } from 'vitest';
 
 import { ROUNDS } from './scale/config.ts';
-import { SCALE_MINIMUM_ROUNDS, SchemaError, validate } from './schema.ts';
+import {
+  SCALE_MINIMUM_ROUNDS,
+  SchemaError,
+  findScaleCell,
+  validate,
+  type ScaleCell,
+} from './schema.ts';
+
+describe('findScaleCell', () => {
+  const cell = (over: Partial<ScaleCell>): ScaleCell => ({
+    library: 'nexusdi',
+    variant: 'plain',
+    shape: 'mixed',
+    size: 200,
+    outcome: 'pass',
+    ...over,
+  });
+  const cells = [
+    cell({ size: 50 }),
+    cell({ variant: 'decorated' }),
+    cell({ shape: 'deep' }),
+    cell({ library: 'awilix', outcome: 'runtime-error' }),
+    cell({}),
+  ];
+
+  it('matches on library, variant, shape and size together', () => {
+    expect(findScaleCell(cells, cell({}))).toBe(cells[4]);
+    expect(findScaleCell(cells, cell({ size: 50 }))).toBe(cells[0]);
+    expect(findScaleCell(cells, cell({ library: 'awilix' }))).toBe(cells[3]);
+  });
+
+  it('ignores the outcome of the cell it looks for', () => {
+    expect(findScaleCell(cells, cell({ outcome: 'compile-error' }))).toBe(
+      cells[4],
+    );
+  });
+
+  it('returns undefined when no cell has all four', () => {
+    expect(findScaleCell(cells, cell({ size: 1000 }))).toBeUndefined();
+  });
+});
 
 const versions = {
   core: '0.4.0',

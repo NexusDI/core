@@ -8,7 +8,7 @@
 import type { PairedRatio, Stats } from '@nexusdi/bench-kit';
 
 import { PER_PROVIDER, SHAPES, SIZES, type Shape } from './scale/config.ts';
-import { PROVIDER_KINDS, type ProviderKind } from './scale/graph.ts';
+import { PROVIDER_KINDS, type GraphDescriptor } from './scale/graph.ts';
 
 export type { PairedRatio, Stats, Shape };
 
@@ -232,23 +232,7 @@ export interface BuildFile {
 }
 
 /** One generated graph as results/scale.json records it (scale spec 3.1). */
-export interface ScaleGraphRow {
-  shape: Shape;
-  size: number;
-  /** The first 12 hex digits of the SHA-256 of the canonical graph. */
-  hash: string;
-  providers: number;
-  edges: number;
-  modules: number;
-  maxDepth: number;
-  /** Rounded to 0.01. */
-  meanFanOut: number;
-  maxFanOut: number;
-  maxFanIn: number;
-  kinds: Record<ProviderKind, number>;
-  target: number;
-  targetClosure: number;
-}
+export type ScaleGraphRow = GraphDescriptor;
 
 /** The outcome of one library-variant on one graph. */
 export interface ScaleCell {
@@ -259,6 +243,20 @@ export interface ScaleCell {
   outcome: Outcome;
   /** The failure, or for not-applicable the reason from libraries.json. */
   message?: string;
+}
+
+/** The cell of `cells` with the same library, variant, shape and size as `like`. */
+export function findScaleCell(
+  cells: readonly ScaleCell[],
+  like: Pick<ScaleCell, 'library' | 'variant' | 'shape' | 'size'>,
+): ScaleCell | undefined {
+  return cells.find(
+    (x) =>
+      x.library === like.library &&
+      x.variant === like.variant &&
+      x.shape === like.shape &&
+      x.size === like.size,
+  );
 }
 
 /** Bundle bytes of one `mixed` cell, core D12's esbuild flags (scale spec 6.3). */

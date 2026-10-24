@@ -72,25 +72,31 @@ function cleanEnv(): NodeJS.ProcessEnv {
   return env;
 }
 
+/** A row with no rounds recorded yet. `L` keeps the caller's narrower library type. */
+export const emptyFreshRow = <L extends string>(
+  library: L,
+  size: number,
+): Omit<FreshRow, 'library'> & { library: L } => ({
+  library,
+  size,
+  load: [],
+  create: [],
+  firstGet: [],
+  rest: [],
+  heapReady: [],
+  firstResolve: [],
+  ready: [],
+  startup: [],
+  warmup: [],
+});
+
 export async function freshBlock(
   cells: readonly FreshCell[],
   opts: FreshOptions,
 ): Promise<FreshRow[]> {
   const spawn = opts.spawn ?? spawnChild;
   const env = cleanEnv();
-  const rows: FreshRow[] = cells.map((c) => ({
-    library: c.library,
-    size: c.size,
-    load: [],
-    create: [],
-    firstGet: [],
-    rest: [],
-    heapReady: [],
-    firstResolve: [],
-    ready: [],
-    startup: [],
-    warmup: [],
-  }));
+  const rows: FreshRow[] = cells.map((c) => emptyFreshRow(c.library, c.size));
   const rounds = opts.warmup + opts.measured;
   for (let round = 0; round < rounds; round++) {
     for (const i of orderFor(round, cells.length, opts.seed)) {
