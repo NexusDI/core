@@ -30,7 +30,7 @@
   "dependencies": {
     "@nexusdi/core": "*",
     "@nexusdi/federation": "*",
-    "react": "19.3.0"
+    "react": "19.3.1"
   },
   "nx": {
     "tags": [
