@@ -13,7 +13,6 @@ import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 import {
-  blockSize,
   forkWorker,
   interleave,
   pairedRatio,
@@ -28,7 +27,6 @@ import { BENCHMARKS, configsFor, type Library } from '../libraries.ts';
 import { versionsOf } from '../matrix.ts';
 import {
   validate,
-  type Design,
   type LibraryId,
   type MatrixFile,
   type Scenario,
@@ -37,6 +35,7 @@ import {
   type Variant,
 } from '../schema.ts';
 import { coldStart } from './cold-start.ts';
+import { design } from './design.ts';
 import { checkFloor } from './floor.ts';
 import {
   fixtureCell,
@@ -164,19 +163,6 @@ export function toTimingRows(
       );
     return row;
   });
-}
-
-function design(warmup: number, measured: number): Design {
-  return {
-    order: 'williams',
-    warmup,
-    measured,
-    bootstrap: {
-      resamples: 10000,
-      block: blockSize(measured),
-      prng: 'mulberry32',
-    },
-  };
 }
 
 /** The scenarios whose matrix section passes on tsc for this library-variant. */

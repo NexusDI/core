@@ -17,6 +17,7 @@ import { argValue } from '../cli.ts';
 import { BENCHMARKS } from '../libraries.ts';
 import {
   LIBRARIES,
+  findScaleCell,
   type LibraryId,
   type ScaleCell,
   type ScaleFile,
@@ -650,13 +651,7 @@ export function problems(input: RenderInput): string[] {
       );
   }
   for (const c of timings.cells) {
-    const s = scale.cells.find(
-      (x) =>
-        x.library === c.library &&
-        x.variant === c.variant &&
-        x.shape === c.shape &&
-        x.size === c.size,
-    );
+    const s = findScaleCell(scale.cells, c);
     if (s !== undefined && s.outcome !== c.outcome)
       found.push(
         `${c.library}/${c.variant} ${c.shape} ${c.size}: the timing file records ${c.outcome}, scale.json records ${s.outcome}`,

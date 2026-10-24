@@ -9,17 +9,18 @@
  */
 import { createHash } from 'node:crypto';
 
-import type {
-  Design,
-  LibraryId,
-  ScaleCell,
-  ScaleFile,
-  ScaleBlockInfo,
-  ScaleGrowth,
-  ScaleMarginal,
-  ScaleTimingRow,
-  ScaleTimingsFile,
-  Variant,
+import {
+  findScaleCell,
+  type Design,
+  type LibraryId,
+  type ScaleCell,
+  type ScaleFile,
+  type ScaleBlockInfo,
+  type ScaleGrowth,
+  type ScaleMarginal,
+  type ScaleTimingRow,
+  type ScaleTimingsFile,
+  type Variant,
 } from '../schema.ts';
 import { SHAPES, type Shape } from './config.ts';
 
@@ -158,13 +159,7 @@ export function mergeParts(
   // The steady part builds the same `mixed` cells; it must have judged them alike.
   if (mixed !== undefined && steady !== undefined)
     for (const c of steady.cells) {
-      const m = mixed.cells.find(
-        (x) =>
-          x.library === c.library &&
-          x.variant === c.variant &&
-          x.shape === c.shape &&
-          x.size === c.size,
-      );
+      const m = findScaleCell(mixed.cells, c);
       if (m !== undefined && m.outcome !== c.outcome)
         problems.push(
           `steady judged ${c.library}/${c.variant} ${c.shape} ${c.size} as ${c.outcome}, the mixed part as ${m.outcome}`,
