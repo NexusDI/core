@@ -6,10 +6,10 @@
  *   node --expose-gc child.mjs <bundle.mjs> <graph.json> <packages.mjs>
  *
  * Imports the cell's packages.mjs untimed, warms the settle loop, reads the
- * settled base heap, then
- * times load, create, first-get and rest with process.hrtime.bigint() and
- * reads the settled heap again with the handle still referenced. Sends one
- * `sample` message in ns and bytes, or exits 1 with the reason on stderr.
+ * settled base heap, then times load, create, first-get and rest with
+ * process.hrtime.bigint() and reads the settled heap again with the handle
+ * still referenced. Sends one `sample` message in ns and bytes, or exits 1
+ * with the reason on stderr.
  *
  * Nothing collects between the base read and the final read except what V8
  * schedules itself: a forced gc() before `create` removed up to 11% of a
