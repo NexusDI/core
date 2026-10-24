@@ -2,7 +2,8 @@
 
 Status: proposed, 2026-10-21. The owner answered Q1 on 2026-10-21 (section 14). The tech
 lead settles the rest. The rulings of G1 to G9 and the decisions of their runs amend
-sections 3 to 13, and section 15 lists the rulings.
+sections 3 to 13, and section 15 lists the rulings. Section 16 plans the ship's layout
+from the owner's decisions of 2026-10-24.
 
 Packages: no published package is added or changed. New private project:
 `examples/meridian-systems` (`@nexusdi/meridian-systems`), a library the growth track
@@ -859,7 +860,8 @@ quantity is SI: moles, kelvin, pascals, cubic metres, watts, joules.
 | `T_hull` | 260 K                                                          | the hull's inner skin                  |
 | `κ`      | 0.02 s/m                                                       | the door and vent exchange constant    |
 
-The deck plan holds four compartments and four doors:
+The deck plan holds four compartments and four doors (section 16.2 plans the full deck of
+fourteen compartments and sixteen doors):
 
 | Compartment   | Volume | Hull conductance `G` | Structure heat capacity | Occupants |
 | ------------- | ------ | -------------------- | ----------------------- | --------- |
@@ -3393,6 +3395,9 @@ interfaces ends in `Service`.
 | A course               | `helm course to <star>`, which plots the star on `NAV_CHARTS` and steers its heading in rad; `helm burn level <x>` sets the main drive's throttle.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | The bundled charts     | `BUNDLED_CHARTS`, the headings in `deck/charts.json` that `OfflineTactical` plots and `bridge-api`'s test relay serves.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | Ship notes             | `shipNotes`, a `GraphAnnotator` that labels each provider of the module that binds `TICK_LOOP`, and of every module it imports transitively, `system: <module name>`; the `phase: <n>` label joins in G1, and from G7 the walk also starts from a loaded `FtlDrive`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| A hull section         | A region of the ship's layout, such as the bridge or the reactor bay, holding one or more compartments (section 16.3). A section alone is a module added with `load()`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| The network overlay    | A toggle in the MeridianOS chrome that draws the DI graph over the deck from `graph(ship)`, with `lazy()` and `optional()` edges dashed and a broken conduit for each missing provider (section 16.5).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| A conduit              | A line of the deck view where a physics flow runs: a power conduit from `PlasmaRouter` to a load, the coolant loop and its branches, or an atmosphere duct through a door (section 16.4).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 The weapons module is `Weapons`. `Tactical` keeps navigation and the survey drone. None of
 the new interfaces ends in `Service`, so the §7.7 pattern passes them. The guard's
@@ -3682,6 +3687,14 @@ library's `e2e-growth` target holds the goldens, and `demo-growth` runs it too.
 | 2026-10-23 | The /federation/ page reads "Six folders hold it" and lists the two new folders                                                                                                                                                                                                                                                                                                                                      | tech lead, G9 ruling 11         |
 | 2026-10-23 | `ci.yml` counts six federation projects in the verify step and names `federation-shell` among the `e2e-growth` holders; the comment that records a four-project run stays                                                                                                                                                                                                                                            | tech lead, G9 ruling 12         |
 | 2026-10-23 | G9's forecast end for `npx fallow dupes` is 2.12 % to 2.14 %, under the 2.15 % ceiling, and `.fallowrc.jsonc` keeps 2.25 %                                                                                                                                                                                                                                                                                           | tech lead, G9 ruling 13         |
+| 2026-10-24 | The Starship Meridian is a small survey frigate: a crew of 6, 60 to 80 m long, with the 1.21 GW reactor (section 16.1)                                                                                                                                                                                                                                                                                               | owner                           |
+| 2026-10-24 | The deck plan grows so that every room the art shows is a live compartment with air, heat and doors; it adds only rooms a system or an Academy mission uses, no room exists only in the art, and the implementation rewrites the goldens once (sections 16.2 and 16.7)                                                                                                                                               | owner                           |
+| 2026-10-24 | The hull sections, fore to aft: bridge, chart room, computer core, habitat (quarters and galley), airlock, shuttle bay, drone bay, comms, weapons, engineering, reactor bay, FTL core and main drive, each with the code and the Academy mission section 16.3 maps                                                                                                                                                   | owner                           |
+| 2026-10-24 | The exterior shows the radiator wings, the deflector emitters, the RCS quads, the dorsal comms array and sensor mast, the spinal railgun barrel, the shuttle and drone bay doors, the airlock hatch, the main engine bells and the markings "MERIDIAN" and a hull number (section 16.6)                                                                                                                              | owner                           |
+| 2026-10-24 | The art is a grounded industrial look with terminal-style panels, an original design that copies no franchise's marks or layouts, and one identity for the MeridianOS demo, the docs front page and the Academy (section 16.6)                                                                                                                                                                                       | owner                           |
+| 2026-10-24 | The layout draws the physical conduits the simulation models: power from `PlasmaRouter` to each load, the coolant loop from the reactor bay to the radiator wings, and the atmosphere ducts through the doors (section 16.4)                                                                                                                                                                                         | owner                           |
+| 2026-10-24 | The network overlay, a toggle in the MeridianOS chrome, draws the DI graph over the deck from devtools' graph edges alone, with `lazy()` and `optional()` dashed and a loaded section drawn once loaded; a missing provider or a broken import shows as a broken conduit (section 16.5)                                                                                                                              | owner                           |
+| 2026-10-24 | A physical conduit is drawn only where a real dependency or a physics flow exists (section 16.5)                                                                                                                                                                                                                                                                                                                     | owner                           |
 
 The owner made the rows whose source is "owner". The architect proposed the "tech lead"
 rows and the tech lead decided them, as `specs/plans/2026-10-21-meridian-g0-kernel.md`,
@@ -3851,3 +3864,360 @@ runtime dependency between packages.
   a three-clause sentence (G9 ruling 1).
 - Three contract unit cases move their literal versions up one minor, and the shell's
   `mf.test.ts` records gain the two station keys (G9 rulings 2 and 7).
+
+## 16. Ship layout
+
+The owner set the ship's class, its hull sections, its exterior and its look on
+2026-10-24 (section 15). This section turns those decisions into a deck plan, a map from
+each hull section to the code, the conduits, the network overlay and a brief for the art.
+The figures come from node runs of the library's own `stepAtmosphere`, `doorFractions`,
+`ventFraction`, `burns`, `transfer` and `pumpStalled` over the planned deck. No code
+follows the plan yet, and section 16.7 lists what an implementation changes.
+
+A hull section is a region of the layout, such as the bridge or the reactor bay. The word
+section alone keeps its §7.1 meaning: a module added after startup with `load()`.
+
+### 16.1 The ship
+
+The Starship Meridian is a small survey frigate with a crew of 6 and the 1.21 GW reactor
+of section 5.6. The hull is 72 m long, 16 m in the beam and 11 m high, inside the owner's
+60 to 80 m. `HULL` keeps its 4.0 × 10⁶ kg and 3.3 × 10⁹ kg·m²: 4,000 t fill the hull's
+box at 316 kg/m³, and a uniform 72 m rod of that mass gives 1.7 × 10⁹ kg·m², so the
+mass at the stern and in the radiator wings holds the rest. The main drive's 14.4 kN
+moves the ship at 3.6 mm/s².
+
+The occupants are one watch: two crew on the bridge, two in the mess and two asleep in
+the quarters. The bridge holds six stations (helm, cartography, command, engineering,
+life support and comms), and the two crew on watch work them.
+
+The ship has three decks. The main deck runs from the bridge to the main drive and carries
+the crew's route. The upper deck holds the comms relay, the quarters and the capacitor
+room under the spine. The lower deck holds the computer core, the two bays and the FTL
+core. A position below is the distance aft of the bow in metres.
+
+### 16.2 Compartments
+
+`COMPARTMENT_IDS` keeps the four existing ids first, in their order, and appends the ten
+new ones fore to aft. C is the structure heat capacity and G the hull conductance.
+
+| Id               | Hull section             | Deck and position                        | Volume | Occupants | Equipment                        | C        | G       | Flood charge | Air                     |
+| ---------------- | ------------------------ | ---------------------------------------- | ------ | --------- | -------------------------------- | -------- | ------- | ------------ | ----------------------- |
+| `bridge`         | bridge                   | main, 2 to 10, centreline                | 60 m³  | 2         | heater, scrubber, oxygen         | 2.0 MJ/K | 90 W/K  | 1,000 mol    | pressurised, occupied   |
+| `habitat`        | habitat, galley and mess | main, 14 to 28, centreline               | 120 m³ | 2         | heater, scrubber, oxygen         | 4.0 MJ/K | 150 W/K | 2,000 mol    | pressurised, occupied   |
+| `reactor-bay`    | reactor bay              | main, 42 to 54, shielded                 | 80 m³  | 0         | none; `coolantConductance` 2 W/K | 6.0 MJ/K | 110 W/K | 1,330 mol    | pressurised, unoccupied |
+| `airlock`        | airlock                  | main, 24 to 27, port                     | 12 m³  | 0         | vent, pump into `habitat`        | 0.5 MJ/K | 30 W/K  | none         | pressurised, cycles     |
+| `chart-room`     | chart room               | main, 10 to 14, starboard                | 24 m³  | 0         | heater                           | 0.8 MJ/K | 45 W/K  | 400 mol      | pressurised, unoccupied |
+| `computer-core`  | computer core            | lower, 4 to 9, under the bridge          | 20 m³  | 0         | heater                           | 1.5 MJ/K | 25 W/K  | 330 mol      | pressurised, unoccupied |
+| `quarters`       | habitat, quarters        | upper, 17 to 27                          | 48 m³  | 2         | heater, scrubber, oxygen         | 1.6 MJ/K | 80 W/K  | 800 mol      | pressurised, occupied   |
+| `comms-relay`    | comms                    | upper, 12 to 16, under the array         | 16 m³  | 0         | heater                           | 0.6 MJ/K | 40 W/K  | 270 mol      | pressurised, unoccupied |
+| `shuttle-bay`    | shuttle bay              | lower, 16 to 32, ventral                 | 180 m³ | 0         | none                             | 5.0 MJ/K | 190 W/K | none         | vacuum                  |
+| `drone-bay`      | drone bay                | lower, 32 to 37, ventral                 | 30 m³  | 0         | none                             | 1.0 MJ/K | 60 W/K  | none         | vacuum                  |
+| `capacitor-room` | weapons                  | upper, 32 to 38, at the railgun's breech | 36 m³  | 0         | heater                           | 3.0 MJ/K | 60 W/K  | 600 mol      | pressurised, unoccupied |
+| `engineering`    | engineering              | main, 28 to 42                           | 90 m³  | 0         | heater                           | 4.5 MJ/K | 120 W/K | 1,500 mol    | pressurised, unoccupied |
+| `ftl-core`       | FTL core                 | lower, 37 to 46                          | 50 m³  | 0         | heater                           | 5.0 MJ/K | 80 W/K  | 830 mol      | pressurised, unoccupied |
+| `main-drive`     | main drive               | main, 56 to 66                           | 40 m³  | 0         | heater                           | 4.0 MJ/K | 70 W/K  | 670 mol      | pressurised, unoccupied |
+
+The crew totals 6. The pressurised volume is 596 m³, and the two vacuum bays hold 210 m³.
+
+The four existing compartments keep their volume, conductance, structure heat capacity,
+flood charge and equipment. The habitat's split forces one change: `habitat` drops from
+4 occupants to 2, since `quarters` takes 2 of the 6 crew. `habitat` keeps its 120 m³ as
+the galley, the mess and the midship companionway, so the door, pump, vent and flood
+figures of sections 5.4, 5.5 and 5.10 hold for it.
+
+The new rooms take their figures from the four existing ones:
+
+- Hull conductance follows `G ≈ 6 W/K · V^(2/3)`, which the existing four fit at 5.7 to
+  5.9. A room with less hull outside it takes less: the chart room 45 W/K (an inner wall
+  to the bridge) and the computer core 25 W/K (the ventral skin alone).
+- Structure heat capacity is 33.3 kJ/(K·m³) in a crew room, as the bridge and the habitat
+  have it. A machinery room carries more mass: 50 kJ/(K·m³) in engineering, 75 in the
+  computer core, 83 in the capacitor room and 100 in the FTL core and the main drive, beside
+  the reactor bay's existing 75.
+- A flood charge is 16.67 mol/m³ of N₂, the bridge's and the habitat's figure. Every
+  flooded room then reads 14.94 % to 15.03 % O₂ at 141.5 to 142.4 kPa, under the 16 %
+  that `burns` needs.
+- Every pressurised room has a heater except the reactor bay and the airlock, which keep
+  their existing plans. Without one a new room cools toward `T_hull`, and the model has no
+  condensation: an unheated comms relay reads 260.0 K and 363 % relative humidity after
+  48 h. A scrubber and a generator sit only where crew breathe.
+- The two bays hold vacuum. A bay door opens to space, and a pump-down of the 180 m³
+  shuttle bay into the 120 m³ habitat would stall far above vacuum. A suited crew reaches
+  the shuttle through the airlock, cycled to vacuum, and the hatch `airlock-shuttle-bay`.
+
+The doors, in deck order:
+
+| Door                         | Between                         | Area   | Per tick         | τ      |
+| ---------------------------- | ------------------------------- | ------ | ---------------- | ------ |
+| `bridge-habitat`             | `bridge`, `habitat`             | 1.5 m² | f 0.188064       | 2.4 s  |
+| `habitat-airlock`            | `habitat`, `airlock`            | 1.2 m² | f 0.203297       | 2.2 s  |
+| `airlock-outer`              | `airlock`, `space`              | 1.2 m² | keeps 0.08208    | 0.2 s  |
+| `bridge-chart-room`          | `bridge`, `chart-room`          | 1.2 m² | f 0.300327       | 1.4 s  |
+| `bridge-computer-core`       | `bridge`, `computer-core`       | 0.8 m² | f 0.221199       | 2.0 s  |
+| `habitat-quarters`           | `habitat`, `quarters`           | 1.2 m² | f 0.163536       | 2.8 s  |
+| `habitat-comms-relay`        | `habitat`, `comms-relay`        | 0.8 m² | f 0.136757       | 3.4 s  |
+| `airlock-shuttle-bay`        | `airlock`, `shuttle-bay`        | 1.0 m² | f 0.122087       | 3.84 s |
+| `shuttle-bay-outer`          | `shuttle-bay`, `space`          | 30 m²  | keeps 0.0155039  | 0.12 s |
+| `shuttle-bay-drone-bay`      | `shuttle-bay`, `drone-bay`      | 1.0 m² | f 0.112234       | 4.2 s  |
+| `drone-bay-outer`            | `drone-bay`, `space`            | 6 m²   | keeps 0.00673795 | 0.1 s  |
+| `habitat-engineering`        | `habitat`, `engineering`        | 1.5 m² | f 0.163536       | 2.8 s  |
+| `engineering-capacitor-room` | `engineering`, `capacitor-room` | 1.0 m² | f 0.179969       | 2.52 s |
+| `engineering-ftl-core`       | `engineering`, `ftl-core`       | 1.0 m² | f 0.163536       | 2.8 s  |
+| `engineering-reactor-bay`    | `engineering`, `reactor-bay`    | 1.5 m² | f 0.197953       | 2.27 s |
+| `reactor-bay-main-drive`     | `reactor-bay`, `main-drive`     | 0.8 m² | f 0.153518       | 3.0 s  |
+
+`f` is `1 − exp(−dt / τ)` of section 5.5, and a door to space keeps the share of
+`ventFraction` (section 5.4). The door `habitat-reactor-bay` leaves the deck: engineering
+sits between the habitat and the reactor bay, and `engineering-reactor-bay` carries the
+same 1.5 m² on that route. `bridge-habitat`, `habitat-airlock` and `airlock-outer` keep
+their areas and their fractions. Every inner door to a vacuum bay opens only under the
+interlock's 5 kPa (section 6.1), so the airlock pumps and vents down before the hatch to
+the shuttle bay opens.
+
+The balance with life support online at throttle 0.01 (the loop at 514.1 K), after 48 h:
+
+| Room                              | T                | Heater         | Air                                     |
+| --------------------------------- | ---------------- | -------------- | --------------------------------------- |
+| `bridge`                          | 292.725 K        | 2,745 W        | CO₂ 25.6 Pa, 40.0 % RH, unchanged       |
+| `habitat`                         | 292.532 K        | 4,680 W        | CO₂ 25.6 Pa, 40.0 % RH                  |
+| `quarters`                        | 292.758 K        | 2,421 W        | CO₂ 25.6 Pa, 40.0 % RH                  |
+| the seven heated unoccupied rooms | 292.6 to 292.9 K | 823 to 3,913 W | 39.6 % to 40.4 % RH                     |
+| `reactor-bay`                     | 265.7 K          | none           | 236 % RH, as section 5.2's law gives it |
+| `airlock`                         | 260.0 K          | none           | 363 % RH, as section 5.3 records        |
+| the two bays                      | 260.0 K          | none           | vacuum, with off-gassing alone          |
+
+The habitat with two occupants settles at 292.532 K and 4,680 W, where four gave
+292.552 K and 4,482 W, and its CO₂ settles at 25.6 Pa, where four gave 51.25 Pa. Its
+generator draws 364.6 W, 30.4 Pa under 21 kPa, the bridge's figure. The loop gain per tick
+`K_t · dt / C` runs from 1.0 × 10⁻³ (the FTL core) to 8.3 × 10⁻³ (the comms relay), far
+from oscillation. The airlock's pump-down into the habitat stalls with the airlock at
+9,174 Pa and the habitat at 110,513 Pa, as section 5.4 gives, since the habitat keeps its
+volume.
+
+Life support's demand at full grows from 68.57 kW to 155.77 kW: ten heaters at 100 kW,
+three scrubbers at 3.6 kW, three generators at 18 kW and the pump at 34.17 kW. It asks
+28.9 kW at the 48 h balance. Section 5.7's figures move by that 87.2 kW:
+
+| Figure of section 5.7                         | Now       | With the full deck |
+| --------------------------------------------- | --------- | ------------------ |
+| priorities 1 to 4 at full                     | 225.07 MW | 225.16 MW          |
+| left beside priorities 1 to 4                 | 984.93 MW | 984.84 MW          |
+| left beside priorities 1 to 5                 | 384.93 MW | 384.84 MW          |
+| reactor level for the drive beside 1, 3 and 4 | 0.5166    | 0.5167             |
+| reactor level for a full turn beside 1 and 3  | 0.02072   | 0.02079            |
+| reactor level for the spool beside 1 to 4     | 0.9298    | 0.9299             |
+| reactor level for the railgun beside 1 to 4   | 0.4339    | 0.4340             |
+| throttle 0.01 over life support at full       | 176 times | 78 times           |
+
+The thresholds move in the fourth decimal at most. A scenario that sits on a threshold
+can move its first served tick, and the rewritten goldens record each such tick.
+
+### 16.3 Hull sections and their code
+
+Each row names the system of the simulation or the Academy mission that uses its hull
+section. A hull section with no such use would get no row and no room. The simulation
+gives every room its air, heat and doors. The code of the computer core and the drone bay
+lives in the docs ship, `examples/meridian`, where the Academy's missions run.
+
+| Hull section  | Compartments                 | Code                                                                                                                                                                                  | What it shows or teaches                                                                                            |
+| ------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Bridge        | `bridge`                     | `Helm`: `HELM` (`HelmControl`) and `THRUSTERS` (`RcsThrusters`); `COMMAND_DESK` over `all(COMMAND_HANDLERS)`; the stations `cartography`, `command`, `engineering` and `life-support` | the command path from a station to a system's handler; federation remotes as stations                               |
+| Chart room    | `chart-room`                 | `Tactical` and `OfflineTactical`: `NAV_CHARTS`, the async factory over `StarCharts`; the console's `Cartography` section                                                              | providers, Academy `02-chart-room`; an async factory                                                                |
+| Computer core | `computer-core`              | `COMPUTER` (`QuantumComputer`) and `DIAGNOSTICS_PANEL` (`StatusBoard` over `all(DIAGNOSTICS)`) in the docs ship                                                                       | multi providers, Academy `09-diagnostics-sweep`                                                                     |
+| Habitat       | `habitat`, `quarters`        | `LifeSupport.forRootAsync`: `ATMOSPHERE_SENSOR` (`GasAnalyzer`, transient, over the scoped `COMPARTMENT`), `ATMOSPHERE_CONTROL`, `ATMOSPHERE_PROBE`; `LifeSupportPower`               | a configured async module; a request that names its compartment through `REQUEST`                                   |
+| Airlock       | `airlock`                    | life support's vent and pump; `BLAST_DOORS` (`BlastDoorControl`) behind `PressureInterlock`                                                                                           | an interceptor that refuses a command, `MERIDIAN_INTERLOCK`; the airlock drill of section 8.3                       |
+| Shuttle bay   | `shuttle-bay`                | `ship.createScope({ request })`; the scoped `MISSION` and `FLIGHT_LOG` (`ShuttleFlightLog`) of `BridgeApi`                                                                            | scopes and `REQUEST`, Academy `06-shuttle-launch`: a shuttle launch is a scope                                      |
+| Drone bay     | `drone-bay`                  | `DRONE` (`ScoutDrone`, transient) in the docs ship's `Tactical`                                                                                                                       | lifetimes, Academy `03-drone-bay`                                                                                   |
+| Comms         | `comms-relay`, the array     | `Comms.forRoot({ frequency, transport, relayUrl })` or `OfflineComms`; `COMMS_ARRAY` (`PhasedArray`) over `optional(SUBSPACE_LINK)`; `CommsPower`                                     | configurable modules, Academy `05-open-channel`; an optional dependency                                             |
+| Weapons       | `capacitor-room`, the barrel | `Weapons`: `WEAPON_MOUNT` (`RailgunMount`) over `lazy(POWER_ROUTER)`; `WeaponsPower`                                                                                                  | a lazy edge to a provider the mount reads at fire time                                                              |
+| Engineering   | `engineering`                | `Engineering`: `REACTOR` (`FusionReactor`), `POWER_ROUTER` (`PlasmaRouter` over `lazy(SHIELD_GRID)` and `all(POWER_CONSUMERS)`), `SHIELD_GRID` (`DeflectorGrid`)                      | disposal, Academy `07-scram-drill`; a lazy cycle, Academy `08-power-loop`; the contribution point `POWER_CONSUMERS` |
+| Reactor bay   | `reactor-bay`, the wings     | `EngineeringPhysics` over `REACTOR` and the private `COOLANT_LOOP` (`RadiatorLoop`)                                                                                                   | a provider a module keeps out of its exports; `COOLANT_HIGH` and `REACTOR_TRIP`                                     |
+| FTL core      | `ftl-core`                   | `FtlDrive`, loaded with `ship.load(FtlDrive)` through `di.load`: `FTL_DRIVE` (`JumpDrive`) attaches its physics to `TICK_LOOP` and `FtlPower` to `POWER_ROUTER`                       | `load()` of a section into a running ship                                                                           |
+| Main drive    | `main-drive`, the bells      | `Propulsion`: `MAIN_DRIVE` (`PlasmaDrive`); `PropulsionPower`                                                                                                                         | a contribution to `POWER_CONSUMERS` whose heat reaches the coolant loop                                             |
+
+Academy `01-first-light` and `04-decks` teach over the whole ship and take no hull section
+of their own. The kernel modules (`Simulation`, `MeridianSystems`, `Telemetry`) and
+`Safety` have no room either, and the network overlay draws them in the computer core
+(section 16.5).
+
+### 16.4 Conduits
+
+The simulation models three kinds of conduit, and the deck view draws each where the
+physics moves something. Every conduit runs through the compartments of section 16.2, so
+a door, a deck and a position place it.
+
+Power runs from `PlasmaRouter` in engineering to each load of `power.loads`. Five loads
+come from `POWER_CONSUMERS`, the router reaches the shields through `lazy(SHIELD_GRID)`, and
+the FTL spool joins through `POWER_ROUTER.attach()` once the drive loads.
+
+| Load           | Route from engineering                                                                                                                                     | Ends at                    |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| `life-support` | to the habitat, then the bridge, chart room, computer core, quarters, comms relay and airlock; to the capacitor room, FTL core, reactor bay and main drive | each room's devices        |
+| `shields`      | through the habitat and the bridge to the bow emitters; through the reactor bay and the main drive to the stern emitters; up and down to the midship pair  | the six deflector emitters |
+| `comms`        | through the habitat to the comms relay                                                                                                                     | the dorsal array           |
+| `thrusters`    | through the habitat and the bridge to the bow quads; through the reactor bay and the main drive to the stern quads                                         | the four RCS quads         |
+| `main-drive`   | through the reactor bay to the main drive                                                                                                                  | the engine bells           |
+| `railgun`      | up to the capacitor room                                                                                                                                   | the bank and the barrel    |
+| `ftl-spool`    | down to the FTL core, drawn from the tick after the drive loads                                                                                            | the jump drive             |
+
+A power conduit glows with its load's allocation over its demand. A load that `power.shed`
+lists goes dark on that tick, beside its `LOAD_SHED` alarm, and a 0 W load draws an idle
+line.
+
+The coolant loop runs from the reactor bay out to both radiator wings and back. Branches
+run to each consumer whose heat reaches the loop in section 5.6: the main drive (heat share
+0.4), the deflector emitters (0.25), the FTL core (0.1, and the jump's pulse) and the
+capacitor room (the shot's pulse). Life support, comms and the thrusters put no heat in the
+loop, so they get no branch. The loop's colour follows `coolant.temperature` from 500 K to
+the 1,450 K trip, the wings show the louvres' opening `λ`, and a jump or a shot sends a
+pulse from its room to the loop on that tick.
+
+An atmosphere duct runs through each of the sixteen doors, beside the pump line between
+the airlock and the habitat and the vent from the airlock to space. An open door's duct
+shows the exchange of section 5.5, its direction from `doorPressures` and its rate from
+`fromA` and `fromB`. The pump line flows in the direction of its mode and stops when the
+pump stalls. The vent and each door to space show the outflow. A door that `DECOMPRESSION`
+closes shows shut in the alarm's colour.
+
+### 16.5 The network overlay
+
+The network overlay is a toggle in the MeridianOS chrome that draws the DI graph over the
+deck. Every edge comes from the real graph. MeridianOS reads `GET /graph`, which answers
+`graph(ship)` with `shipNotes` in development (section 7.1), when the overlay opens and
+again after a command that loads a section, a spool or a jump. Outside development the
+route answers 404, and the toggle stays disabled. The docs front page and the Academy run
+the real core in the browser and draw the overlay from `inspect()` of the ship's root.
+
+- A node is a provider, placed in the hull section of its module by section 16.3. The
+  `system:` note of `shipNotes` names the module. A module with no hull section draws in
+  the computer core.
+- A module import is a conduit between two hull sections, from `modules[].imports`.
+- A provider edge takes its style from its `kind`: `required` solid, `optional` and `lazy`
+  dashed, `all` a fan from the consumer to each contribution of the multi token, and
+  `alias` a thin line.
+- A section that `load()` adds appears once loaded: `FtlDrive` and its edges join after the
+  first spool or jump.
+
+A missing provider or a broken import shows as a broken conduit. When `Nexus.check` throws
+`NEXUS_BLUEPRINT_INVALID`, the overlay reads each `MissingProviderError` in it. The
+`requester` gets a conduit that ends at an empty socket labelled with the `token`, and a
+`not-imported` or `not-exported` near miss draws the module import between the requester's
+module and the near miss's module as broken. The front page's pre-flight check runs this
+path: a visitor cuts a conduit, and the overlay shows the break `Nexus.check` names.
+
+The two layers share the deck's geometry. A physical conduit is drawn only where a real
+dependency or a physics flow exists:
+
+| Physical conduit   | Its DI edge                                                                                                                                     | Its physics flow                                     |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| a power conduit    | `PlasmaRouter`'s `all(POWER_CONSUMERS)` to the load's consumer, its `lazy(SHIELD_GRID)`, and `JumpDrive`'s edge to `POWER_ROUTER` for the spool | the allocation of section 5.7                        |
+| the coolant loop   | `EngineeringPhysics` to `COOLANT_LOOP`                                                                                                          | the loop's balance of section 5.6                    |
+| a coolant branch   | none                                                                                                                                            | a heat share or a pulse of section 5.6               |
+| an atmosphere duct | none                                                                                                                                            | the door, pump and vent laws of sections 5.4 and 5.5 |
+
+With the overlay on, a power conduit and its DI edge draw on the same route, so a reader
+sees the router's multi-token read as the power bus.
+
+### 16.6 Exterior and silhouette brief
+
+This brief serves the concept boards and a later illustrator. One identity serves the
+MeridianOS demo, the docs front page and the Academy.
+
+The look is grounded and industrial: flat slab panels with visible seams, access plates,
+exposed trusses at the wing roots, stencilled compartment ids at each hatch, hazard
+banding at bay doors and hatches, and wear along the panel edges. The terminal panels are
+monochrome amber or green screens in a block type, framed by chunky physical switches.
+The design is original. It copies no franchise's ship silhouettes, logos, type, registry
+formats or interior layouts.
+
+The hull is a long spine with a blunt wedge bow and flat flanks. The reactor bay reads as
+a heavier armoured ring at 42 to 54 m, the wings hinge from it, and the drive section
+narrows to the bells at the stern.
+
+The radiator wings carry section 5.6's 24,000 m² of radiator, and the area sets their size.
+Each wing radiates from both faces, so each needs 6,000 m² of planform: 100 m outboard by
+60 m along the hull. Deployed, the ship spans 216 m, three times its length. Stowed, the
+panels fold in a concertina along the flanks from 12 m to 72 m, which suits a loop at or
+under 500 K with the louvres shut. The operating views show the wings deployed. A loop at
+the 1,450 K trip would need 10,700 m², so no loop temperature the reactor allows fits the
+radiator in the hull's own outline.
+
+| Feature            | Placement                                                                                                      | Code                                   |
+| ------------------ | -------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| bridge windows     | the bow, main deck, facing ahead                                                                               | `bridge`                               |
+| radiator wings     | port and starboard, hinged on the reactor bay at 42 to 54 m, deployed outboard and aft                         | `COOLANT_LOOP`, the louvres' `λ`       |
+| deflector emitters | six: a pair at the bow (2 m), a dorsal and a ventral at midship (30 m), a pair at the stern (64 m)             | `SHIELD_GRID`                          |
+| RCS quads          | four: bow port and starboard at 6 m, stern port and starboard at 62 m                                          | `THRUSTERS`                            |
+| comms array        | a dorsal phased-array plate, 8 m by 4 m, over the comms relay at 12 to 16 m                                    | `COMMS_ARRAY`                          |
+| sensor mast        | dorsal, forward of the array at 10 m, 6 m tall                                                                 | the survey sensors; no token models it |
+| railgun barrel     | along the dorsal spine from the breech over the capacitor room (32 m) to the muzzle above the bow              | `WEAPON_MOUNT`                         |
+| shuttle bay doors  | ventral, 18 to 30 m, 6 m by 5 m                                                                                | `shuttle-bay-outer`                    |
+| drone bay doors    | ventral, 33 to 36 m, 3 m by 2 m                                                                                | `drone-bay-outer`                      |
+| airlock hatch      | port flank at 25 m, 1.2 m²                                                                                     | `airlock-outer`                        |
+| main engine bells  | two bells side by side at the stern, 66 to 72 m                                                                | `MAIN_DRIVE`                           |
+| markings           | "MERIDIAN" on both bow flanks and the dorsal plate; the hull number `SV-07` on the flanks and the ventral skin | none                                   |
+
+The views:
+
+- The side view (port) shows the full profile: the window line of the bridge, the deck
+  lines, the airlock hatch, both bay doors on the ventral line, the barrel on the spine,
+  the mast and the array, the wings stowed, and the bells.
+- The top view (dorsal) shows the wings deployed across the full 216 m, the six emitters,
+  the four RCS quads, the barrel on the centreline, the array plate and the markings.
+- The cutaway (port, cut on the centreline) shows every compartment of section 16.2 at its
+  deck and position, labelled with its id, every door with its id, and the conduits of
+  section 16.4 in one colour per kind. The network overlay draws over the same cutaway as
+  its own layer, and the MeridianOS deck view and the front page's schematic take their
+  geometry from it.
+
+### 16.7 What an implementation changes
+
+The deck and the library:
+
+- `deck/meridian.deck.json` holds the fourteen compartments and sixteen doors of section
+  16.2. A compartment plan gains `pressurised`, true when absent. A room with `false`
+  starts with no gas, and `ShipStateStore` throws a plain `Error` for such a room that
+  lists equipment or a flood charge.
+- `COMPARTMENT_IDS` appends the ten new ids. `DOOR_IDS` drops `habitat-reactor-bay` and
+  gains thirteen doors. `CompartmentId` and `DoorId` widen with them, so every
+  `Partial<Record<CompartmentId, …>>` setpoint takes the new keys.
+- `deck/sensors.calibration.json` gains an entry for each new room, since
+  `readAtmosphere` throws for a room it lacks.
+- The gas laws keep their code. Unit tests pin an empty room: `burns` answers false, and
+  `stepAtmosphere`, `exchange` and `readAtmosphere` stay finite at 0 mol.
+- `graph.json` and `check.test.ts` stay as they are, since the layout adds no token, no
+  provider and no module.
+
+The goldens and the tests:
+
+- Every golden under `examples/meridian-systems/e2e/golden/` rewrites once: the idle,
+  life-support, airlock, safety, comms, helm, FTL and weapons scenarios. Each lists the
+  new rooms and doors, and the life-support load and the habitat's air change with its two
+  occupants.
+- The unit and module tests that name the door `habitat-reactor-bay` move to
+  `engineering-reactor-bay`: `doors.test.ts`, `gas.test.ts`, `safety.test.ts`,
+  `ship-state-store.test.ts`, `blast-door-control.test.ts`, `safety-commands.test.ts`,
+  `test/safety.test.ts` and `bridge-api`'s `test/routes.test.ts`. The cases that enumerate
+  compartments or doors gain the new ids.
+- The console's doors page and its `airlock.spec.tsx`, `safety.spec.tsx` and
+  `tests/doubles.ts` take the new doors. The life-support station keeps its habitat
+  commands.
+- The figures of sections 5.2, 5.3 and 5.7 that section 16.2 lists move to their new
+  values. `examples/meridian-systems/README.md` names the new door.
+
+The systems gain per-compartment behaviour:
+
+- Fire: eleven rooms carry a flood charge, so `drill` and `flood` reach each of them. The
+  vacuum bays cannot burn, and the airlock carries no flood charge.
+- Doors: sixteen doors, three of them to space, each under `PressureInterlock`. A shuttle
+  launch cycles the airlock, opens `airlock-shuttle-bay` under 5 kPa and then
+  `shuttle-bay-outer`.
+- Alarms: the five atmosphere alarms read the three occupied rooms, so the quarters gain
+  them. `FIRE` and `SENSOR_FAULT` read every room, and `DECOMPRESSION` closes every door
+  of the occupied room it names.
+- Telemetry: the frames carry the new rooms and doors. The conduits draw from records the
+  snapshot already holds (`power.loads`, `power.shed`, `coolant`, the doors and the
+  life-support setpoints), and the network overlay reads `GET /graph`.
+
+The vocabulary: section 10.2's compartment and door rows take the lists of section 16.2
+when the deck changes, and the rows for the layout's new terms join it now.
