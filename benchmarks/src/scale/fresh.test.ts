@@ -54,6 +54,14 @@ const INFLATE = join(
   '__test__',
   'inflate-code-space.mjs',
 );
+const TRANSIENT = join(
+  import.meta.dirname,
+  '..',
+  '..',
+  'fixtures',
+  '__test__',
+  'transient-heap.mjs',
+);
 const PHASES = ['load', 'create', 'firstGet', 'rest', 'heapReady'] as const;
 
 describe('freshBlock', () => {
@@ -258,6 +266,37 @@ describe('heap-ready under load', () => {
     const heap = results.map((r) => r.message.heapReady);
     expect(Math.min(...heap)).toBeGreaterThanOrEqual(0);
   }, 120_000);
+
+  // V8 can hold about 200 KB of transient trusted-space data for one pass
+  // (CI saw heap-ready of -202480). Each case holds 1 MB across one settle
+  // pass; p counts passes from the first settle loop, so the cases cover the
+  // warm-up (1 to 10), the base read (from 11) and the final read (after the
+  // base). A case past the last pass of the run holds nothing.
+  const bounded = (heapReady: number) => {
+    expect(heapReady).toBeGreaterThanOrEqual(0);
+    expect(heapReady).toBeLessThan(70_000);
+  };
+  const withTransient = async (env: Record<string, string>) => {
+    const graph = cellsOf(['x'])[0]?.graph ?? '';
+    const { message } = await spawnChild<{ type: string; heapReady: number }>(
+      CHILD,
+      [FAKE, graph, EMPTY_PACKAGES],
+      ['--expose-gc', '--import', TRANSIENT],
+      'sample',
+      { ...process.env, ...env },
+    );
+    return message.heapReady;
+  };
+  it.each(Array.from({ length: 24 }, (_, i) => i + 1))(
+    'ignores a transient heap spike held across settle pass %i',
+    async (pass) => {
+      bounded(await withTransient({ TRANSIENT_PASS: String(pass) }));
+    },
+    60_000,
+  );
+  it('stays non-negative and bounded when every second pass spikes and no window agrees', async () => {
+    bounded(await withTransient({ TRANSIENT_EVERY: '2' }));
+  }, 60_000);
 });
 
 describe('the child protocol', () => {
@@ -293,11 +332,11 @@ describe('the child protocol', () => {
     for (const phase of ['load', 'create', 'firstGet', 'rest', 'heapReady'])
       expect(Number(message[phase])).toBeGreaterThanOrEqual(0);
   }, 60_000);
-  it('collects only inside the two settle loops: ten passes of two for the base read, at least two for the final one', async () => {
+  it('collects only inside the settle loops: the warm-up, the base read and the final read, each three to ten passes of two', async () => {
     const { gcCalls } = await run([], true);
     expect(gcCalls % 2).toBe(0);
-    expect(gcCalls).toBeGreaterThanOrEqual(24);
-    expect(gcCalls).toBeLessThanOrEqual(40);
+    expect(gcCalls).toBeGreaterThanOrEqual(18);
+    expect(gcCalls).toBeLessThanOrEqual(60);
   }, 60_000);
   it('has one collect call site, inside the settle loop, so nothing collects before create', () => {
     const src = readFileSync(CHILD, 'utf8');
