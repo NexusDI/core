@@ -1,3 +1,17 @@
+## 0.4.0-rc.2
+
+### 🚀 Features
+
+- **interceptors:** raise `NEXUS_CORE_NOT_SHARED` for a token from another copy ([76f827b](https://github.com/NexusDI/core/commit/76f827b))
+
+### 🩹 Fixes
+
+- **interceptors:** raise `NEXUS_CORE_NOT_SHARED` for a foreign token in a binding list ([6a4c18f](https://github.com/NexusDI/core/commit/6a4c18f))
+
+### ❤️ Thank You
+
+- Mikael Pettersson @Evanion
+
 ## 0.4.0-rc.1
 
 ### 🩹 Fixes

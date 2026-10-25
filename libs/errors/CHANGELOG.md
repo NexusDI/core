@@ -1,3 +1,29 @@
+## 0.4.0-rc.2
+
+### 🚀 Features
+
+- **core:** give `NEXUS_CORE_NOT_SHARED` its text ([7fc8528](https://github.com/NexusDI/core/commit/7fc8528))
+- **core:** name tokens and modules in `describeValue` ([df01064](https://github.com/NexusDI/core/commit/df01064))
+- ⚠️  **core:** raise `NEXUS_CORE_NOT_SHARED` for a value from another copy ([5c72d5b](https://github.com/NexusDI/core/commit/5c72d5b))
+- **core:** add the `NEXUS_CORE_NOT_SHARED` error ([b18169c](https://github.com/NexusDI/core/commit/b18169c))
+
+### 🩹 Fixes
+
+- **core:** read hostile issue paths and cut a long foreign cause ([#181](https://github.com/NexusDI/core/issues/181))
+- **core:** show a refused schema's issues in the provider failure message ([#176](https://github.com/NexusDI/core/issues/176))
+- **core:** raise `NEXUS_CORE_NOT_SHARED` for every foreign root and deps value ([2a0f286](https://github.com/NexusDI/core/commit/2a0f286))
+
+### ⚠️  Breaking Changes
+
+- **core:** raise `NEXUS_CORE_NOT_SHARED` for a value from another copy  ([5c72d5b](https://github.com/NexusDI/core/commit/5c72d5b))
+  InvalidTokenError, InvalidModuleError and
+  InvalidProviderError lose the otherCopy field that 0.4.0-rc.0 added. Check
+  isNexusError(error, 'NEXUS_CORE_NOT_SHARED').
+
+### ❤️ Thank You
+
+- Mikael Pettersson @Evanion
+
 ## 0.4.0-rc.1
 
 ### 🩹 Fixes

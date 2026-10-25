@@ -67,7 +67,7 @@ await ship[Symbol.asyncDispose]();
 
 - [Use services in React components](https://nexus.js.org/next/react/)
 - [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/react/docs)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.2/libs/react/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License

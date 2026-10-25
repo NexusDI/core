@@ -1,3 +1,22 @@
+## 0.4.0-rc.2
+
+### 🚀 Features
+
+- **decorators:** give a decorated module class a name option ([3de965a](https://github.com/NexusDI/core/commit/3de965a))
+- **core:** name tokens and modules in `describeValue` ([df01064](https://github.com/NexusDI/core/commit/df01064))
+- ⚠️  **core:** raise `NEXUS_CORE_NOT_SHARED` for a value from another copy ([5c72d5b](https://github.com/NexusDI/core/commit/5c72d5b))
+
+### ⚠️  Breaking Changes
+
+- **core:** raise `NEXUS_CORE_NOT_SHARED` for a value from another copy  ([5c72d5b](https://github.com/NexusDI/core/commit/5c72d5b))
+  InvalidTokenError, InvalidModuleError and
+  InvalidProviderError lose the otherCopy field that 0.4.0-rc.0 added. Check
+  isNexusError(error, 'NEXUS_CORE_NOT_SHARED').
+
+### ❤️ Thank You
+
+- Mikael Pettersson @Evanion
+
 ## 0.4.0-rc.1
 
 ### 🩹 Fixes

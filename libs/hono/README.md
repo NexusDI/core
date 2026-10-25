@@ -69,7 +69,7 @@ await ship[Symbol.asyncDispose]();
 - [Scope a Hono request](https://nexus.js.org/next/hono/)
 - [Scopes and REQUEST](https://nexus.js.org/next/scopes/)
 - [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/hono/docs)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.2/libs/hono/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License

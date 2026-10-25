@@ -1,3 +1,7 @@
+## 0.4.0-rc.2
+
+This was a version bump only for @nexusdi/federation to align it with other projects, there were no code changes.
+
 ## 0.4.0-rc.1
 
 ### 🩹 Fixes

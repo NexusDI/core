@@ -1,3 +1,21 @@
+## 0.4.0-rc.2
+
+### 🚀 Features
+
+- **testing:** raise `NEXUS_CORE_NOT_SHARED` for a module from another copy ([92cb9a5](https://github.com/NexusDI/core/commit/92cb9a5))
+- ⚠️  **core:** raise `NEXUS_CORE_NOT_SHARED` for a value from another copy ([5c72d5b](https://github.com/NexusDI/core/commit/5c72d5b))
+
+### ⚠️  Breaking Changes
+
+- **core:** raise `NEXUS_CORE_NOT_SHARED` for a value from another copy  ([5c72d5b](https://github.com/NexusDI/core/commit/5c72d5b))
+  InvalidTokenError, InvalidModuleError and
+  InvalidProviderError lose the otherCopy field that 0.4.0-rc.0 added. Check
+  isNexusError(error, 'NEXUS_CORE_NOT_SHARED').
+
+### ❤️ Thank You
+
+- Mikael Pettersson @Evanion
+
 ## 0.4.0-rc.1
 
 ### 🩹 Fixes

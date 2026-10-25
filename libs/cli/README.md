@@ -63,7 +63,7 @@ The first prints the startup steps, the slowest providers and the critical path.
 
 - [Graph CLI Guide](https://nexus.js.org/next/graph-cli/)
 - [Documentation](https://nexus.js.org/next/)
-- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.1/libs/cli/docs)
+- [Examples](https://github.com/NexusDI/core/tree/@nexusdi/core@0.4.0-rc.2/libs/cli/docs)
 - [NexusDI on GitHub](https://github.com/NexusDI/core)
 
 ## License

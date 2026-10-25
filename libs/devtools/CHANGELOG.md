@@ -1,3 +1,22 @@
+## 0.4.0-rc.2
+
+### 🚀 Features
+
+- **cli:** sample the cpu and merge it into the chrome trace ([f8350b4](https://github.com/NexusDI/core/commit/f8350b4))
+- **devtools:** carry where a report was recorded on its header line ([e284e22](https://github.com/NexusDI/core/commit/e284e22))
+- **devtools:** move live drawing to the @nexusdi/devtools/live subpath ([9fb86f6](https://github.com/NexusDI/core/commit/9fb86f6))
+- **devtools:** write a perfetto trace with dependency flows ([09fcf42](https://github.com/NexusDI/core/commit/09fcf42))
+- **devtools:** write a performance trace for the browser profiler and draw spans live ([5cb108a](https://github.com/NexusDI/core/commit/5cb108a))
+- **devtools:** parse saved reports and profile a startup in one call ([93655b3](https://github.com/NexusDI/core/commit/93655b3))
+- **devtools:** print a startup table and the critical path ([51f9a28](https://github.com/NexusDI/core/commit/51f9a28))
+- **devtools:** record startup runs with profile() ([9eb1039](https://github.com/NexusDI/core/commit/9eb1039))
+- **core:** state on the view which edges order a build and which providers are inline ([3e3ee67](https://github.com/NexusDI/core/commit/3e3ee67))
+- **core:** close every create, load, scope creation and extend() with a run event ([7f60ac9](https://github.com/NexusDI/core/commit/7f60ac9))
+
+### ❤️ Thank You
+
+- Mikael Pettersson @Evanion
+
 ## 0.4.0-rc.1
 
 ### 🚀 Features

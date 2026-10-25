@@ -1,6 +1,6 @@
 {
   "name": "@nexusdi/vitest",
-  "version": "0.4.0-rc.1",
+  "version": "0.4.0-rc.2",
   "description": "Get a NexusDI testing container and scope in every Vitest test, disposed after it.",
   "keywords": [
     "nexusdi",
@@ -48,8 +48,8 @@
     "CHANGELOG.md"
   ],
   "peerDependencies": {
-    "@nexusdi/core": "0.4.0-rc.1",
-    "@nexusdi/testing": "0.4.0-rc.1",
+    "@nexusdi/core": "0.4.0-rc.2",
+    "@nexusdi/testing": "0.4.0-rc.2",
     "vitest": "^4.1.0 || ^5.0.0"
   },
   "publishConfig": {

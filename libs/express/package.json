@@ -1,6 +1,6 @@
 {
   "name": "@nexusdi/express",
-  "version": "0.4.0-rc.1",
+  "version": "0.4.0-rc.2",
   "description": "Give every Express request its own NexusDI scope, disposed when the response is done.",
   "keywords": [
     "nexusdi",
@@ -47,7 +47,7 @@
     "CHANGELOG.md"
   ],
   "peerDependencies": {
-    "@nexusdi/core": "0.4.0-rc.1",
+    "@nexusdi/core": "0.4.0-rc.2",
     "express": "^5.0.0",
     "@types/express": "^5.0.0"
   },

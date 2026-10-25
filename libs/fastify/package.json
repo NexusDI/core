@@ -1,6 +1,6 @@
 {
   "name": "@nexusdi/fastify",
-  "version": "0.4.0-rc.1",
+  "version": "0.4.0-rc.2",
   "description": "Give every Fastify request its own NexusDI scope, disposed when the response is done.",
   "keywords": [
     "nexusdi",
@@ -47,7 +47,7 @@
     "CHANGELOG.md"
   ],
   "peerDependencies": {
-    "@nexusdi/core": "0.4.0-rc.1",
+    "@nexusdi/core": "0.4.0-rc.2",
     "fastify": "^5.0.0"
   },
   "dependencies": {

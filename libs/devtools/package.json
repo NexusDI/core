@@ -1,6 +1,6 @@
 {
   "name": "@nexusdi/devtools",
-  "version": "0.4.0-rc.1",
+  "version": "0.4.0-rc.2",
   "description": "Gain total visibility into your dependency graph and container lifecycle.",
   "keywords": [
     "nexusdi",
@@ -55,10 +55,10 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "@nexusdi/errors": "0.4.0-rc.1"
+    "@nexusdi/errors": "0.4.0-rc.2"
   },
   "peerDependencies": {
-    "@nexusdi/core": "0.4.0-rc.1"
+    "@nexusdi/core": "0.4.0-rc.2"
   },
   "publishConfig": {
     "access": "public",

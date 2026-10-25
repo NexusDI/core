@@ -1,3 +1,24 @@
+## 0.4.0-rc.2
+
+### 🚀 Features
+
+- **cli:** sample the cpu and merge it into the chrome trace ([f8350b4](https://github.com/NexusDI/core/commit/f8350b4))
+- **devtools:** carry where a report was recorded on its header line ([e284e22](https://github.com/NexusDI/core/commit/e284e22))
+- **cli:** profile a startup and write the table and trace files ([e35fca3](https://github.com/NexusDI/core/commit/e35fca3))
+- **cli:** parse the profile command ([3ab076f](https://github.com/NexusDI/core/commit/3ab076f))
+
+### 🩹 Fixes
+
+- **core:** read hostile issue paths and cut a long foreign cause ([#181](https://github.com/NexusDI/core/issues/181))
+- **core:** show a refused schema's issues in the provider failure message ([#176](https://github.com/NexusDI/core/issues/176))
+- **repo:** read a run-commands target's first command in the tsc emit check ([fcae8ea](https://github.com/NexusDI/core/commit/fcae8ea))
+- **cli:** end a refused create or load with a fix line and pin the repeat stop ([7e10f68](https://github.com/NexusDI/core/commit/7e10f68))
+- **repo:** keep the duplication ratio under its ceiling after the rebase ([9c679be](https://github.com/NexusDI/core/commit/9c679be))
+
+### ❤️ Thank You
+
+- Mikael Pettersson @Evanion
+
 ## 0.4.0-rc.1
 
 ### 🩹 Fixes

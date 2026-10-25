@@ -1,3 +1,46 @@
+## 0.4.0-rc.2
+
+### 🚀 Features
+
+- **core:** give `NEXUS_CORE_NOT_SHARED` its text ([7fc8528](https://github.com/NexusDI/core/commit/7fc8528))
+- **core:** name tokens and modules in `describeValue` ([df01064](https://github.com/NexusDI/core/commit/df01064))
+- ⚠️  **core:** raise `NEXUS_CORE_NOT_SHARED` for a value from another copy ([5c72d5b](https://github.com/NexusDI/core/commit/5c72d5b))
+- **core:** add the `NEXUS_CORE_NOT_SHARED` error ([b18169c](https://github.com/NexusDI/core/commit/b18169c))
+- **core:** state on the view which edges order a build and which providers are inline ([3e3ee67](https://github.com/NexusDI/core/commit/3e3ee67))
+- **core:** emit init for eager: false singletons with an init hook, add init:await and init:failed ([c9ebba5](https://github.com/NexusDI/core/commit/c9ebba5))
+- **core:** report a failed build with construct:failed ([a13404d](https://github.com/NexusDI/core/commit/a13404d))
+- **core:** report each build's level, parent and sync, await and finish time ([0fe7a37](https://github.com/NexusDI/core/commit/0fe7a37))
+- **core:** close every create, load, scope creation and extend() with a run event ([7f60ac9](https://github.com/NexusDI/core/commit/7f60ac9))
+- **core:** give every timed trace event its start time ([184adee](https://github.com/NexusDI/core/commit/184adee))
+
+### 🩹 Fixes
+
+- **core:** read hostile issue paths and cut a long foreign cause ([#181](https://github.com/NexusDI/core/issues/181))
+- **core:** show a refused schema's issues in the provider failure message ([#176](https://github.com/NexusDI/core/issues/176))
+- **core:** raise `NEXUS_CORE_NOT_SHARED` for every foreign root and deps value ([2a0f286](https://github.com/NexusDI/core/commit/2a0f286))
+- **core:** name a module class by its class name alone ([ca249c1](https://github.com/NexusDI/core/commit/ca249c1))
+- **core:** keep the compile error when an observer throws while reporting it ([1798da2](https://github.com/NexusDI/core/commit/1798da2))
+
+### 🔥 Performance
+
+- **core:** test build hooks once per transient get ([b8ad76d](https://github.com/NexusDI/core/commit/b8ad76d))
+
+### 💅 Refactors
+
+- **core:** keep `describeValue` beside `displayName` in token.ts ([4d1a316](https://github.com/NexusDI/core/commit/4d1a316))
+- **core:** carry each run as one trace object ([383c91e](https://github.com/NexusDI/core/commit/383c91e))
+
+### ⚠️  Breaking Changes
+
+- **core:** raise `NEXUS_CORE_NOT_SHARED` for a value from another copy  ([5c72d5b](https://github.com/NexusDI/core/commit/5c72d5b))
+  InvalidTokenError, InvalidModuleError and
+  InvalidProviderError lose the otherCopy field that 0.4.0-rc.0 added. Check
+  isNexusError(error, 'NEXUS_CORE_NOT_SHARED').
+
+### ❤️ Thank You
+
+- Mikael Pettersson @Evanion
+
 ## 0.4.0-rc.1
 
 ### 🩹 Fixes
