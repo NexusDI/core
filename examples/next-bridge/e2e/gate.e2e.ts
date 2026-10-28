@@ -41,7 +41,7 @@ function hiddenFields(html: string): FormData {
 // @nexusdi/next moved to 0.5. This test asserts the measured counts. It
 // fails, and the gate flips, when Next evaluates the module once per
 // process; @nexusdi/next waits on that. It runs only in the e2e target.
-describe('the Next gate canary (integrations spec 10.1)', () => {
+describe('the Next gate canary', () => {
   it('evaluates nexus.server.ts once per layer, so two containers per process', async () => {
     const route = await fetch(`${server.url}/api/course/Kepler-442b`, {
       headers: { 'x-mission-id': 'survey-7' },

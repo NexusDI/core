@@ -23,9 +23,9 @@ class ShuttleFlightLog implements IFlightLog {
   }
 }
 
-/** The gate's graph: the request scope of the bridge API, nothing else. */
-export const GateBridge = defineModule({
-  name: 'BridgeApi',
+/** The gate's graph: one request-scoped flight log, nothing else. */
+export const DockingGate = defineModule({
+  name: 'DockingGate',
   providers: [
     provide(MISSION, {
       useFactory: (request) => request.mission,

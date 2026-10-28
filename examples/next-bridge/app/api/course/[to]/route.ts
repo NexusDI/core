@@ -1,5 +1,5 @@
 import { missionScope } from '../../../nexus.server';
-import { FLIGHT_LOG } from '../../../ship/gate.module';
+import { FLIGHT_LOG } from '../../../ship/docking-gate.module';
 
 export const dynamic = 'force-dynamic';
 

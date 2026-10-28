@@ -25,7 +25,7 @@
         "executor": "nx:run-commands",
         "options": {
           "cwd": "examples/toolchain-matrix",
-          "command": "node --test scripts/recipes.test.mjs"
+          "command": "node --test scripts/recipes.test.mjs && vitest run --config vitest.readme.config.mts"
         }
       }
     }

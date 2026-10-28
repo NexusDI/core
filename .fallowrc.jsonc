@@ -101,6 +101,8 @@
     // vitest.e2e.config.ts.
     "examples/next-bridge/e2e/**/*.ts",
     "examples/next-bridge/vitest.e2e.config.ts",
+    // The toolchain-matrix test target runs this config by path.
+    "examples/toolchain-matrix/vitest.readme.config.mts",
     // examples/bridge-api: the e2e suite and the benchmark its nx targets
     // run by path, the Node server entries a user starts, and the Workers
     // entry wrangler bundles (Task 21).
@@ -564,7 +566,7 @@
       // The mission and flight log every adapter example and fixture
       // defines in its own self-contained app: the Next gate's graph and the
       // bridge API's MissionScope module.
-      "examples/next-bridge/app/ship/gate.module.ts",
+      "examples/next-bridge/app/ship/docking-gate.module.ts",
       "examples/bridge-api/src/ship/mission-scope.module.ts",
     ],
   },
