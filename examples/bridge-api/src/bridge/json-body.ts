@@ -16,3 +16,14 @@ export function readJson(
     return undefined;
   }
 }
+
+/**
+ * The field `key` of a JSON body, or `undefined` when the body is not an
+ * object or lacks the field. Every route that reads one field of its body
+ * reads it through this function.
+ */
+export function fieldOf(body: unknown, key: string): unknown {
+  return typeof body === 'object' && body !== null
+    ? Reflect.get(body, key)
+    : undefined;
+}

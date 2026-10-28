@@ -6,6 +6,7 @@ import {
   type NexusRequest,
 } from '@nexusdi/core';
 
+import { MISSION_HEADER } from '@nexusdi/bridge-api/mission';
 import type { NexusGraph } from '@nexusdi/devtools';
 // A type import: the console holds no simulation code.
 import type {
@@ -138,7 +139,7 @@ class BridgeApiLink implements IBridgeLink {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-mission-id': this.request.mission.id,
+        [MISSION_HEADER]: this.request.mission.id,
       },
       body: JSON.stringify(body),
       signal: this.request.signal,
@@ -172,7 +173,7 @@ class BridgeApiLink implements IBridgeLink {
   /** Fetches `url` with the request's mission and abort signal. */
   #fetch(url: URL) {
     return fetch(url, {
-      headers: { 'x-mission-id': this.request.mission.id },
+      headers: { [MISSION_HEADER]: this.request.mission.id },
       signal: this.request.signal,
     });
   }

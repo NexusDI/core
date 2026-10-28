@@ -21,11 +21,12 @@ import { answerCommand } from './bridge/commands';
 import { compartmentOf } from './bridge/compartment-of';
 import { answerJump, answerSpool, ftlRating } from './bridge/ftl';
 import { readJson } from './bridge/json-body';
+import { MISSION_HEADER, requestOf } from './bridge/mission';
+import type { BridgeOptions } from './bridge/options';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { telemetryReadable } from './bridge/telemetry-readable';
 import { SSE_HEADERS } from './bridge/telemetry-stream';
 import { UNCHARTED } from './bridge/uncharted';
-import type { BridgeOptions } from './hono';
 import { FLIGHT_LOG, MISSION, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
 
 export async function createBridge(
@@ -33,16 +34,8 @@ export async function createBridge(
   options: BridgeOptions = {},
 ) {
   const di = nexus(ship, {
-    request: (req) => {
-      const compartment = compartmentOf(req.url);
-      return {
-        mission: {
-          id: String(req.headers['x-mission-id'] ?? 'survey-7'),
-          target: 'Kepler-442b',
-        },
-        ...(compartment === undefined ? {} : { compartment }),
-      };
-    },
+    request: (req) =>
+      requestOf(req.headers[MISSION_HEADER], compartmentOf(req.url)),
     scopes: options.scopes,
     log: options.log,
   });
@@ -83,7 +76,7 @@ export async function createBridge(
       di.inject(
         { charts: NAV_CHARTS, log: FLIGHT_LOG },
         async ({ charts, log }, req) => {
-          if (req.headers['x-mission-id'] === 'missing-provider')
+          if (req.headers[MISSION_HEADER] === 'missing-provider')
             (await di.scope(req)).get(UNCHARTED);
           log.record(`plotting ${req.params.to}`);
           return { course: charts.plot(req.params.to), entries: log.entries() };
@@ -142,6 +135,7 @@ export async function createBridge(
         // A live ship advances on its own timer, so the route exists only in
         // manual mode. The check runs in onRequest, before Fastify parses
         // the body, and callNotFound() answers as Fastify's 404 does.
+        // A hook cannot be a di.inject handler, whose return type is unknown.
         onRequest: async (req, reply) => {
           const driver = (await di.scope(req)).get(SIM_DRIVER);
           if (driver.mode === 'live') return reply.callNotFound();
@@ -156,6 +150,10 @@ export async function createBridge(
         },
       ),
     );
+    scoped.get(
+      '/commands',
+      di.inject({ state: SHIP_STATE }, async ({ state }) => state.log()),
+    );
     scoped.post(
       '/commands',
       { bodyLimit: SIM_BODY_LIMIT },
@@ -166,10 +164,6 @@ export async function createBridge(
           return reply.code(answer.status).send(answer.body);
         },
       ),
-    );
-    scoped.get(
-      '/commands',
-      di.inject({ state: SHIP_STATE }, async ({ state }) => state.log()),
     );
     scoped.post(
       '/ftl/spool',

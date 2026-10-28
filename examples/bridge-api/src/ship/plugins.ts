@@ -41,6 +41,9 @@ const DONE = {
   close: 'closed',
 } as const satisfies Record<keyof IBlastDoors, string>;
 
+const isDoorMethod = (method: string | symbol): method is keyof IBlastDoors =>
+  method === 'open' || method === 'close';
+
 /**
  * Records each door command that went through in the flight log of the
  * request in flight. A singleton serves every request, so it finds the
@@ -53,10 +56,11 @@ class FlightRecorder implements Interceptor {
   intercept(call: CallContext, next: Next) {
     const result = next();
     const [door] = call.args;
-    this.scopes
-      .current()
-      ?.get(FLIGHT_LOG)
-      .record(`${DONE[call.method as keyof IBlastDoors]} ${String(door)}`);
+    if (isDoorMethod(call.method))
+      this.scopes
+        .current()
+        ?.get(FLIGHT_LOG)
+        .record(`${DONE[call.method]} ${String(door)}`);
     return result;
   }
 }

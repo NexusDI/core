@@ -52,6 +52,26 @@ describe('answerAtmosphere', () => {
     });
   });
 
+  it('shows a percent-encoded compartment name decoded in the text', () => {
+    const error = new UnknownCompartmentError({
+      compartment: 'reactor%20bay',
+      expected: ROOMS,
+    });
+    expect(answerAtmosphere(failing(error)).body).toMatchObject({
+      message: `No compartment is named 'reactor bay'. The deck has ${ROOMS}.`,
+    });
+  });
+
+  it('shows a name with a broken escape as the path spells it', () => {
+    const error = new UnknownCompartmentError({
+      compartment: '100%',
+      expected: ROOMS,
+    });
+    expect(answerAtmosphere(failing(error)).body).toMatchObject({
+      message: `No compartment is named '100%'. The deck has ${ROOMS}.`,
+    });
+  });
+
   it('answers 404 with the text for a request that names no compartment', () => {
     const error = new UnknownCompartmentError({ expected: ROOMS });
     expect(answerAtmosphere(failing(error))).toEqual({

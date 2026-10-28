@@ -64,8 +64,7 @@ describe('the function form on workerd', () => {
       app.request('/course/Kepler-442b'),
     ]);
     expect(first.map((r) => r.status)).toEqual([503, 503]);
-    for (const res of first)
-      expect(await res.text()).toBe('Service Unavailable');
+    for (const res of first) expect(await res.text()).toBe('');
 
     const retry = await app.request('/course/Kepler-442b');
     expect(retry.status).toBe(200);

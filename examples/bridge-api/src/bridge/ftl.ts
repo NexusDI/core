@@ -6,6 +6,7 @@ import {
   type QueuedCommand,
 } from '@nexusdi/meridian-systems';
 
+import { fieldOf } from './json-body';
 import { type RefusedReply, refusedReply } from './refusal';
 import type { FrameRating } from './telemetry-stream';
 
@@ -31,16 +32,10 @@ export const answerSpool = (drive: IFtlDrive): FtlReply =>
  * to '', a star no chart holds, so the drive words the refusal.
  */
 export const answerJump = (drive: IFtlDrive, body: unknown): FtlReply =>
-  answer(() =>
-    drive.jump(
-      typeof body === 'object' &&
-        body !== null &&
-        'to' in body &&
-        typeof body.to === 'string'
-        ? body.to
-        : '',
-    ),
-  );
+  answer(() => {
+    const to = fieldOf(body, 'to');
+    return drive.jump(typeof to === 'string' ? to : '');
+  });
 
 /**
  * The FTL rating of each telemetry frame, read through the stream's request

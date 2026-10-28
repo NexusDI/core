@@ -8,6 +8,7 @@
   },
   "exports": {
     "./contracts": "./src/ship/contracts.ts",
+    "./mission": "./src/bridge/mission.ts",
     "./ship": "./src/ship/index.ts",
     "./hono": "./src/hono.ts"
   },

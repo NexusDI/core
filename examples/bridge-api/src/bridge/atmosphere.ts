@@ -30,6 +30,23 @@ export function answerAtmosphere(scope: SensorScope): AtmosphereReply {
     return { status: 200, body: scope.get(ATMOSPHERE_SENSOR).read() };
   } catch (error) {
     if (!(error instanceof UnknownCompartmentError)) throw error;
-    return { status: 404, body: refusalOf(error) };
+    return { status: 404, body: refusalOf(shown(error)) };
+  }
+}
+
+/**
+ * The error with the room name as a person types it: the path spells a space
+ * as `%20`, so the refusal decodes the name. A name with a broken escape
+ * stays as the path spells it.
+ */
+function shown(error: UnknownCompartmentError): UnknownCompartmentError {
+  if (error.compartment === undefined) return error;
+  try {
+    return new UnknownCompartmentError({
+      compartment: decodeURIComponent(error.compartment),
+      expected: error.expected,
+    });
+  } catch {
+    return error;
   }
 }
