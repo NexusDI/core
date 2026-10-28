@@ -122,7 +122,7 @@ export default [
       'no-restricted-imports': 'off',
       '@typescript-eslint/no-restricted-imports': [
         'error',
-        onlyRelativeAnd('@nexusdi/core'),
+        onlyRelativeAnd('@nexusdi/core', 'zod/mini'),
       ],
       // import { type A } keeps a bare import of the package at runtime.
       '@typescript-eslint/no-import-type-side-effects': 'error',

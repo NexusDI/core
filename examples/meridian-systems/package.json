@@ -34,7 +34,8 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@nexusdi/core": "*"
+    "@nexusdi/core": "*",
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "@nexusdi/interceptors": "*"

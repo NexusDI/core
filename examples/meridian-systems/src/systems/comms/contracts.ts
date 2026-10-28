@@ -41,10 +41,13 @@ export interface ISubspaceLink {
   receive<T>(channel: string): Promise<T>;
 }
 
+/** The frequency the link asks for when the options set none: the 21 cm hydrogen line, in MHz. */
+export const DEFAULT_COMMS_FREQUENCY = 1420;
+
 /** The relay the subspace link calls and the frequency it asks for. */
 export interface CommsOptions {
+  /** The frequency the link asks for, in MHz. The schema sets `DEFAULT_COMMS_FREQUENCY` when the options leave it out. */
   readonly frequency: number;
-  readonly transport: 'relay';
   /** The relay's base URL. The link resolves each channel against it. */
   readonly relayUrl: string;
   /** How long the link waits for the relay's answer, in ms. Defaults to `DEFAULT_RELAY_TIMEOUT`. */

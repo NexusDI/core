@@ -6,6 +6,7 @@ import { DECK_PLAN, type SimOptions, TICK_LOOP } from './simulation/contracts';
 import { FixedStepLoop } from './simulation/fixed-step-loop';
 import { Simulation } from './simulation/simulation.module';
 import { Comms, OfflineComms } from './systems/comms/comms.module';
+import { DEFAULT_COMMS_FREQUENCY } from './systems/comms/contracts';
 import { Engineering } from './systems/engineering/engineering.module';
 import { Helm } from './systems/helm/helm.module';
 import { LifeSupport } from './systems/life-support/life-support.module';
@@ -53,8 +54,7 @@ export function meridianSystems({
       ? [OfflineComms, OfflineTactical]
       : [
           Comms.forRoot({
-            frequency: 1420,
-            transport: 'relay',
+            frequency: DEFAULT_COMMS_FREQUENCY,
             relayUrl,
             relayTimeout,
           }),
@@ -77,25 +77,25 @@ export function meridianSystems({
     ],
     providers: [
       // all(SHIP_SYSTEMS) in the loop and all(COMMAND_HANDLERS) in the desk
-      // read this module's own providers plus the exports of its imports and
-      // of the global modules.
+      // read this module's own providers plus the contributions of every
+      // module that names SHIP_SYSTEMS or COMMAND_HANDLERS in its exports.
       provide(TICK_LOOP, { useClass: FixedStepLoop }),
       provide(COMMAND_DESK, { useClass: CommandDesk }),
     ],
+    // A re-export makes a module's plain tokens visible to the root and to
+    // every module that sees this global module. Multi tokens do not travel
+    // that way: SHIP_SYSTEMS, COMMAND_HANDLERS and POWER_CONSUMERS reach
+    // their readers because each system lists them in its own exports.
     // Re-exporting Engineering hands the root REACTOR, POWER_ROUTER and
     // SHIELD_GRID. COOLANT_LOOP stays inside Engineering. Re-exporting
     // LifeSupport hands the root ATMOSPHERE_PROBE, ATMOSPHERE_SENSOR and
-    // ATMOSPHERE_CONTROL, and puts its POWER_CONSUMERS entry where
-    // Engineering's router reads it. Re-exporting Safety hands the root
-    // BLAST_DOORS, FIRE_SUPPRESSION and MASTER_ALARM. The comms
-    // export hands the root COMMS_ARRAY and puts the link where Tactical's
-    // factory reads it. The tactical export hands the root NAV_CHARTS.
-    // The Propulsion export hands the root MAIN_DRIVE, which HelmControl
-    // reads, and puts its POWER_CONSUMERS entry where the router reads it.
-    // The Helm export hands the root THRUSTERS and HELM, and puts the
-    // thrusters' POWER_CONSUMERS entry where the router reads it. The
-    // Weapons export hands the root WEAPON_MOUNT and puts the capacitor's
-    // POWER_CONSUMERS entry where the router reads it.
+    // ATMOSPHERE_CONTROL. Re-exporting Safety hands the root BLAST_DOORS,
+    // FIRE_SUPPRESSION and MASTER_ALARM. The comms export hands the root
+    // COMMS_ARRAY and SUBSPACE_LINK, a plain token that Tactical's factory
+    // reads through this re-export. The tactical export hands the root
+    // NAV_CHARTS. The Propulsion export hands the root MAIN_DRIVE, which
+    // HelmControl reads. The Helm export hands the root THRUSTERS and HELM.
+    // The Weapons export hands the root WEAPON_MOUNT.
     exports: [
       TICK_LOOP,
       TELEMETRY,

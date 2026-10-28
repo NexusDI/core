@@ -5,7 +5,6 @@ import { SubspaceRelay } from './subspace-relay';
 
 const options = (relayUrl: string): CommsOptions => ({
   frequency: 1420,
-  transport: 'relay',
   relayUrl,
 });
 

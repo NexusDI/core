@@ -13,6 +13,7 @@ import {
 } from './contracts';
 import { EnvironmentalController } from './environmental-controller';
 import { GasAnalyzer } from './gas-analyzer';
+import { LIFE_SUPPORT_OPTIONS_SCHEMA } from './life-support-options-schema';
 import { LifeSupportCommands } from './life-support-commands';
 import { LifeSupportPhysics } from './life-support-physics';
 import { LifeSupportPower } from './life-support-power';
@@ -21,6 +22,7 @@ import { LifeSupportPower } from './life-support-power';
 export const LifeSupport = defineModule({
   name: 'LifeSupport',
   options: LIFE_SUPPORT_OPTIONS,
+  schema: LIFE_SUPPORT_OPTIONS_SCHEMA,
   providers: [
     provide(ATMOSPHERE_PROBE, { useClass: CalibratedProbe }),
     // Transient: each get() samples the scope's compartment at the current tick.
