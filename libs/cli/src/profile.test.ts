@@ -109,6 +109,21 @@ describe('nexusdi profile', () => {
     );
   });
 
+  it('exits 2 and names the value core refused when a --load entry is not a module', () => {
+    const run = runCli(
+      [
+        'profile',
+        'meridian.module.js',
+        '--load',
+        'not-a-module.module.js#NotAModule',
+      ],
+      { cwd: DIR },
+    );
+    expect(run.status).toBe(2);
+    expect(run.stderr).toMatch(/load failed:\n.*NEXUS_INVALID_MODULE/);
+    expect(run.stderr).toContain('received=an object');
+  });
+
   it('warns on a disposal error and keeps exit 0', () => {
     const run = runCli(['profile', 'leaky.module.js#Leaky'], { cwd: DIR });
     expect(run.status).toBe(0);

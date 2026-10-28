@@ -291,6 +291,51 @@ describe('nexus', () => {
     expect(count(events, 'scope:extend')).toBe(0);
   });
 
+  it("loads a lazy route with a grant once and lets its loader inject a token built from the granted module's export", async () => {
+    const HELM = new Token<string>('Helm');
+    const COURSE = new Token<string>('Course');
+    const Helm = defineModule({
+      name: 'Helm',
+      providers: [provide(HELM, { useValue: 'helm-1' })],
+      exports: [HELM],
+    });
+    const Chart = defineModule({
+      name: 'Chart',
+      providers: [
+        provide(COURSE, {
+          useFactory: (helm: string) => `course by ${helm}`,
+          deps: [HELM],
+        }),
+      ],
+      exports: [COURSE],
+    });
+    const built = await Nexus.create(
+      defineModule({ name: 'Root', imports: [Meridian, Helm] }),
+    );
+    ships.push(built);
+    const load = vi.spyOn(built, 'load');
+    const di = nexus(built, { request, log: () => {} });
+    const chart = di.load(Chart, { imports: [Helm] });
+    const loader = chart.inject({ course: COURSE }, ({ course }) => course);
+    for (let i = 0; i < 2; i++) {
+      const { response } = await run(di.middleware, async (context) => {
+        const result = await chart(
+          {
+            request: new Request('http://bridge/chart'),
+            context,
+            params: {},
+            unstable_pattern: '/chart',
+          } as never,
+          async () => new Response(await loader({ context })),
+        );
+        return result as Response;
+      });
+      expect(await response.text()).toBe('course by helm-1');
+    }
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(load).toHaveBeenCalledWith(Chart, { imports: [Helm] });
+  });
+
   it('reads a scope the test owns through existingScope and disposes nothing', async () => {
     const built = await ship();
     const di = nexus(built, { request, log: () => {} });

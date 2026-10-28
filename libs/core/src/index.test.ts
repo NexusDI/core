@@ -32,6 +32,7 @@ const RUNTIME_EXPORTS: string[] = [
   'lazy',
   'LazyAsyncError',
   'LifetimeError',
+  'loadOnce',
   'LoadContributionError',
   'LoadGrantError',
   'LoadedAfterScopeError',
@@ -54,6 +55,7 @@ const RUNTIME_EXPORTS: string[] = [
   'REQUEST',
   'RequestMissingError',
   'ScopeRequiredError',
+  'splitLoadEntry',
   'SUPPORTED_PLUGIN_APIS',
   'Token',
 ];

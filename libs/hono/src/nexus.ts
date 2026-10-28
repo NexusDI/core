@@ -2,7 +2,7 @@ import type { Context, Handler, MiddlewareHandler } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 
-import type { ModuleRef, Scope } from '@nexusdi/core';
+import type { LoadOptions, ModuleRef, Scope } from '@nexusdi/core';
 
 import { CLIENT_GONE, serveWithBody } from './internal/dispose-with-body.js';
 import {
@@ -43,7 +43,7 @@ type Inject = <const D extends DepsMap, P extends string = string>(
   handler: HonoHandler<D, P>,
 ) => Handler<NexusEnv, P>;
 
-/** The middleware `di.load(module)` returns: it loads the module once and extends the request's scope before the section's handlers run. */
+/** The middleware `di.load(module, options?)` returns: it loads the module once, with the grant in `options.imports`, and extends the request's scope before the section's handlers run. */
 export interface SectionMiddleware extends MiddlewareHandler<NexusEnv> {
   /** Like di.inject, validated after the section's first successful load. */
   readonly inject: Inject;
@@ -54,7 +54,7 @@ export interface NexusHono {
   readonly middleware: MiddlewareHandler<NexusEnv>;
   readonly inject: Inject;
   scope(c: Context): Promise<Scope>;
-  load(module: ModuleRef): SectionMiddleware;
+  load(module: ModuleRef, options?: LoadOptions): SectionMiddleware;
 }
 
 /** The platform's waitUntil, as Hono's executionCtx exposes it. */
@@ -152,6 +152,7 @@ export function nexus(
       handler: HonoHandler<D, P>,
       checked: () => Promise<void>,
       section?: ModuleRef,
+      grant?: LoadOptions,
     ): Handler<NexusEnv, P> =>
     async (c) => {
       const result = await core.resolve({
@@ -159,6 +160,7 @@ export function nexus(
         deps,
         checked,
         section,
+        options: grant,
       });
       if (!('deps' in result)) return stop(result);
       return handler(result.deps, c);
@@ -168,15 +170,20 @@ export function nexus(
     middleware,
     inject: (deps, handler) => handlerOf(deps, handler, core.definition(deps)),
     scope: async (c) => handleOf(c).scope(),
-    load(module) {
+    load(module, options) {
       const section = createMiddleware<NexusEnv>(async (c, next) => {
-        const result = await core.enter(module, c.get('nexus'));
+        const result = await core.enter(
+          module,
+          c.get('nexus'),
+          undefined,
+          options,
+        );
         if (result !== undefined) return stop(result);
         await next();
         return undefined;
       });
       const sectionInject: Inject = (deps, handler) =>
-        handlerOf(deps, handler, core.sectionCheck(deps), module);
+        handlerOf(deps, handler, core.sectionCheck(deps), module, options);
       return Object.assign(section, { inject: sectionInject });
     },
   };

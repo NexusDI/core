@@ -1,6 +1,6 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 
-import type { ModuleRef, Scope } from '@nexusdi/core';
+import type { LoadOptions, ModuleRef, Scope } from '@nexusdi/core';
 
 import {
   adapterCore,
@@ -42,7 +42,7 @@ export type ExpressHandler<D extends DepsMap> = (
   next: NextFunction,
 ) => unknown;
 
-/** The middleware `di.load(module)` returns: it loads the module once and extends the request's scope before the section's handlers run. */
+/** The middleware `di.load(module, options?)` returns: it loads the module once, with the grant in `options.imports`, and extends the request's scope before the section's handlers run. */
 export interface SectionMiddleware extends RequestHandler {
   /** Like di.inject, validated after the section's first successful load. */
   inject<const D extends DepsMap>(
@@ -59,7 +59,7 @@ export interface NexusExpress {
     handler: ExpressHandler<D>,
   ): RequestHandler;
   scope(req: Request): Promise<Scope>;
-  load(module: ModuleRef): SectionMiddleware;
+  load(module: ModuleRef, options?: LoadOptions): SectionMiddleware;
 }
 
 const handleOf = (req: Request): RequestScope =>
@@ -106,6 +106,7 @@ export function nexus(
       handler: ExpressHandler<D>,
       checked: () => Promise<void>,
       section?: ModuleRef,
+      grant?: LoadOptions,
     ): RequestHandler =>
     async (req, res, next) => {
       const result = await core.resolve({
@@ -113,6 +114,7 @@ export function nexus(
         deps,
         checked,
         section,
+        options: grant,
       });
       if ('deps' in result)
         await handler(result.deps, req, res, next); // Express 5 forwards a rejection to next(err)
@@ -123,15 +125,21 @@ export function nexus(
     middleware,
     inject: (deps, handler) => handlerOf(deps, handler, core.definition(deps)),
     scope: async (req) => handleOf(req).scope(),
-    load(module) {
+    load(module, options) {
       const section: RequestHandler = async (req, res, next) => {
-        const result = await core.enter(module, req.nexus);
+        const result = await core.enter(module, req.nexus, undefined, options);
         if (result === undefined) next();
         else stop(result, res, next);
       };
       return Object.assign(section, {
         inject<const D extends DepsMap>(deps: D, handler: ExpressHandler<D>) {
-          return handlerOf(deps, handler, core.sectionCheck(deps), module);
+          return handlerOf(
+            deps,
+            handler,
+            core.sectionCheck(deps),
+            module,
+            options,
+          );
         },
       });
     },

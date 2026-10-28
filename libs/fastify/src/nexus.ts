@@ -13,7 +13,12 @@ import type {
 } from 'fastify';
 import fp from 'fastify-plugin';
 
-import { isNexusError, type ModuleRef, type Scope } from '@nexusdi/core';
+import {
+  isNexusError,
+  type LoadOptions,
+  type ModuleRef,
+  type Scope,
+} from '@nexusdi/core';
 
 import {
   adapterCore,
@@ -71,7 +76,7 @@ type Inject = <
   handler: FastifyHandler<D, G>,
 ) => Route<G>;
 
-/** The `onRequest` hook `di.load(module)` returns: it loads the module once and extends the request's scope before the section's handlers run. */
+/** The `onRequest` hook `di.load(module, options?)` returns: it loads the module once, with the grant in `options.imports`, and extends the request's scope before the section's handlers run. */
 export interface SectionHook extends onRequestAsyncHookHandler {
   /** Like di.inject, validated after the section's first successful load. */
   inject: Inject;
@@ -84,7 +89,7 @@ export interface NexusFastify {
   readonly encapsulatedPlugin: FastifyPluginAsync;
   inject: Inject;
   scope(req: FastifyRequest): Promise<Scope>;
-  load(module: ModuleRef): SectionHook;
+  load(module: ModuleRef, options?: LoadOptions): SectionHook;
 }
 
 /**
@@ -174,6 +179,7 @@ export function nexus(
     handler: FastifyHandler<D, G>,
     checked: () => Promise<void>,
     section?: ModuleRef,
+    grant?: LoadOptions,
   ): Route<G> => {
     const run = async (
       req: FastifyRequest<G>,
@@ -184,6 +190,7 @@ export function nexus(
         deps,
         checked,
         section,
+        options: grant,
         log: logOf(req),
       });
       if (!('deps' in result)) return stop(result, reply);
@@ -200,13 +207,13 @@ export function nexus(
     encapsulatedPlugin: register,
     inject: (deps, handler) => handlerOf(deps, handler, core.definition(deps)),
     scope: async (req) => handleOf(req).scope(),
-    load(module) {
+    load(module, options) {
       const hook: onRequestAsyncHookHandler = async (req, reply) => {
-        const result = await core.enter(module, req.nexus, logOf(req));
+        const result = await core.enter(module, req.nexus, logOf(req), options);
         if (result !== undefined) stop(result, reply);
       };
       const sectionInject: Inject = (deps, handler) =>
-        handlerOf(deps, handler, core.sectionCheck(deps), module);
+        handlerOf(deps, handler, core.sectionCheck(deps), module, options);
       return Object.assign(hook, { inject: sectionInject });
     },
   };

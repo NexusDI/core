@@ -378,6 +378,42 @@ describe('nexus', () => {
     expect(count(events, 'scope:extend')).toBe(0);
   });
 
+  it("loads a section with a grant once and lets its handler inject a token built from the granted module's export", async () => {
+    const HELM = new Token<string>('Helm');
+    const COURSE = new Token<string>('Course');
+    const Helm = defineModule({
+      name: 'Helm',
+      providers: [provide(HELM, { useValue: 'helm-1' })],
+      exports: [HELM],
+    });
+    const Chart = defineModule({
+      name: 'Chart',
+      providers: [
+        provide(COURSE, {
+          useFactory: (helm: string) => `course by ${helm}`,
+          deps: [HELM],
+        }),
+      ],
+      exports: [COURSE],
+    });
+    const built = await Nexus.create(
+      defineModule({ name: 'Root', imports: [BridgeApi, Helm] }),
+    );
+    ships.push(built);
+    const load = vi.spyOn(built, 'load');
+    const di = nexus(built, { request: survey, log: () => {} });
+    const chart = di.load(Chart, { imports: [Helm] });
+    const section = new Hono<{ Variables: { nexus: never } }>().use(chart).get(
+      '/',
+      chart.inject({ course: COURSE }, ({ course }, c) => c.text(course)),
+    );
+    const app = new Hono().use(di.middleware).route('/chart', section);
+    expect(await (await app.request('/chart')).text()).toBe('course by helm-1');
+    expect(await (await app.request('/chart')).text()).toBe('course by helm-1');
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(load).toHaveBeenCalledWith(Chart, { imports: [Helm] });
+  });
+
   it('extends a scope created before the section loaded', async () => {
     const events: TraceEvent[] = [];
     const di = nexus(await ship(events), { request: survey, log: () => {} });
