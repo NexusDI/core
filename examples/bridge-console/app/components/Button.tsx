@@ -47,9 +47,7 @@ export const Button = ({
   const classes = clsx(buttonVariants({ variant, size, className }));
 
   if (as === 'link') {
-    return (
-      <Link className={classes} viewTransition {...(props as LinkProps)} />
-    );
+    return <Link className={classes} {...(props as LinkProps)} />;
   }
 
   return <button className={classes} {...(props as ButtonProps)} />;
