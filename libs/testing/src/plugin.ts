@@ -49,6 +49,10 @@ function exportsOf(view: BlueprintView, stub: ModuleDefinition): Set<unknown> {
   };
   const module = view.modules.find((m) => m.definition === stub);
   if (module !== undefined) visit(module.id);
+  // A MultiToken the stub names in its exports counts as exported. The view
+  // lists only the stub's own records of it, and a stub with none is legal.
+  for (const entry of stub.exports)
+    if (entry instanceof MultiToken) exported.add(view.canonical(entry));
   return exported;
 }
 

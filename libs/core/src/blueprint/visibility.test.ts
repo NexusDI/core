@@ -5,6 +5,7 @@ import {
   defineModule,
   type ModuleDefinition,
 } from '../definitions/define-module.js';
+import { all } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
 import { REQUEST } from '../definitions/request.js';
 import { MultiToken, Token } from '../definitions/token.js';
@@ -132,31 +133,185 @@ describe('compile', () => {
     ]);
   });
 
-  it('merges MultiToken contributions in walk order, then declaration order', () => {
-    const A = defineModule({
-      name: 'A',
+  it('lists MultiToken contributions in the order the walk first meets their modules, then providers order', () => {
+    const Sensors = defineModule({
+      name: 'Sensors',
       providers: [
-        provide(DIAGNOSTICS, { useValue: 'a1' }),
-        provide(DIAGNOSTICS, { useValue: 'a2' }),
+        provide(DIAGNOSTICS, { useValue: 'sensors1' }),
+        provide(DIAGNOSTICS, { useValue: 'sensors2' }),
       ],
       exports: [DIAGNOSTICS],
     });
-    const B = defineModule({
-      name: 'B',
-      providers: [provide(DIAGNOSTICS, { useValue: 'b' })],
+    const Weapons = defineModule({
+      name: 'Weapons',
+      providers: [provide(DIAGNOSTICS, { useValue: 'weapons' })],
+      exports: [DIAGNOSTICS],
+    });
+    // The walk meets Sensors through Root before it reaches Bridge, so
+    // Sensors comes first in Bridge's list although Bridge imports it last.
+    // Bridge's private record sorts in by its index.
+    const Bridge = defineModule({
+      name: 'Bridge',
+      imports: [Weapons, Sensors],
+      providers: [provide(DIAGNOSTICS, { useValue: 'bridge' })],
+    });
+    const bp = compile({
+      root: defineModule({ name: 'Root', imports: [Sensors, Bridge] }),
+    });
+    const values = (module: string): unknown[] =>
+      visible(bp, module, DIAGNOSTICS).map((id) => bp.providers.get(id)?.value);
+    expect(values('Bridge')).toEqual([
+      'sensors1',
+      'sensors2',
+      'bridge',
+      'weapons',
+    ]);
+    expect(values('Root')).toEqual(['sensors1', 'sensors2', 'weapons']);
+  });
+
+  it('keeps a MultiToken contribution its module does not export inside that module', () => {
+    const Sensors = defineModule({
+      name: 'Sensors',
+      providers: [provide(DIAGNOSTICS, { useValue: 'sensors' })],
+    });
+    const bp = compile({
+      root: defineModule({ name: 'Root', imports: [Sensors] }),
+    });
+    const record = idOf(bp, DIAGNOSTICS, 'Sensors');
+    expect(visible(bp, 'Sensors', DIAGNOSTICS)).toEqual([record]);
+    expect(visible(bp, 'Root', DIAGNOSTICS)).toEqual([]);
+  });
+
+  it('shows every published MultiToken contribution to a module no contributor exports to', () => {
+    const Engine = defineModule({ name: 'Engine' });
+    const Plugins = defineModule({
+      name: 'Plugins',
+      imports: [Engine],
+      providers: [provide(DIAGNOSTICS, { useValue: 'plugin' })],
       exports: [DIAGNOSTICS],
     });
     const bp = compile({
-      root: defineModule({
-        name: 'Root',
-        imports: [A, B],
-        providers: [provide(DIAGNOSTICS, { useValue: 'root' })],
-      }),
+      root: defineModule({ name: 'Root', imports: [Engine, Plugins] }),
     });
-    const values = visible(bp, 'Root', DIAGNOSTICS).map(
-      (id) => bp.providers.get(id)?.value,
+    expect(visible(bp, 'Engine', DIAGNOSTICS)).toEqual([
+      idOf(bp, DIAGNOSTICS, 'Plugins'),
+    ]);
+  });
+
+  it('accepts exports: [T] for a MultiToken the module has no record of, and publishes nothing', () => {
+    const Sensors = defineModule({
+      name: 'Sensors',
+      providers: [provide(DIAGNOSTICS, { useValue: 'sensors' })],
+    });
+    const Relay = defineModule({
+      name: 'Relay',
+      imports: [Sensors],
+      exports: [DIAGNOSTICS],
+    });
+    const bp = compile({
+      root: defineModule({ name: 'Root', imports: [Relay] }),
+    });
+    const relay = [...bp.modules.values()].find((m) => m.name === 'Relay');
+    expect(bp.moduleExports.get(relay?.id ?? '')).toEqual([]);
+    expect(bp.exportedTokens.get(relay?.id ?? '')?.has(DIAGNOSTICS)).toBe(
+      false,
     );
-    expect(values).toEqual(['root', 'a1', 'a2', 'b']);
+    expect(visible(bp, 'Root', DIAGNOSTICS)).toEqual([]);
+    expect(visible(bp, 'Relay', DIAGNOSTICS)).toEqual([]);
+  });
+
+  it('publishes nothing of a MultiToken through a module re-export', () => {
+    const Sensors = defineModule({
+      name: 'Sensors',
+      providers: [provide(DIAGNOSTICS, { useValue: 'sensors' })],
+    });
+    const Relay = defineModule({
+      name: 'Relay',
+      imports: [Sensors],
+      exports: [Sensors],
+    });
+    const bp = compile({
+      root: defineModule({ name: 'Root', imports: [Relay] }),
+    });
+    const relay = [...bp.modules.values()].find((m) => m.name === 'Relay');
+    expect(bp.exportedTokens.get(relay?.id ?? '')?.has(DIAGNOSTICS)).toBe(
+      false,
+    );
+    expect(visible(bp, 'Root', DIAGNOSTICS)).toEqual([]);
+  });
+
+  it('reports NEXUS_LIFETIME_VIOLATION for a singleton collector over a scoped contribution far away', () => {
+    interface IDiagnostics {
+      readonly checks: readonly string[];
+    }
+    const REPORT = new Token<IDiagnostics>('Report');
+    const Sensors = defineModule({
+      name: 'Sensors',
+      providers: [
+        provide(DIAGNOSTICS, {
+          useFactory: () => 'sensors',
+          deps: [],
+          lifetime: 'scoped',
+        }),
+      ],
+      exports: [DIAGNOSTICS],
+    });
+    const Reporting = defineModule({
+      name: 'Reporting',
+      providers: [
+        provide(REPORT, {
+          useFactory: (checks) => ({ checks }),
+          deps: [all(DIAGNOSTICS)],
+        }),
+      ],
+    });
+    expect(
+      compileErrors(
+        defineModule({ name: 'Root', imports: [Reporting, Sensors] }),
+      ),
+    ).toMatchObject([
+      {
+        code: 'NEXUS_LIFETIME_VIOLATION',
+        path: ['Report', 'Diagnostics'],
+        lifetimes: ['singleton', 'scoped'],
+      },
+    ]);
+  });
+
+  it('reports NEXUS_CIRCULAR_DEPENDENCY for a collector and a contributor that depends on it', () => {
+    interface IDiagnostics {
+      readonly checks: readonly string[];
+    }
+    const REPORT = new Token<IDiagnostics>('Report');
+    const Reporting = defineModule({
+      name: 'Reporting',
+      providers: [
+        provide(REPORT, {
+          useFactory: (checks) => ({ checks }),
+          deps: [all(DIAGNOSTICS)],
+        }),
+      ],
+      exports: [REPORT],
+    });
+    const Sensors = defineModule({
+      name: 'Sensors',
+      imports: [Reporting],
+      providers: [
+        provide(DIAGNOSTICS, {
+          useFactory: (report) => `sensors after ${report.checks.length}`,
+          deps: [REPORT],
+        }),
+      ],
+      exports: [DIAGNOSTICS],
+    });
+    expect(
+      compileErrors(defineModule({ name: 'Root', imports: [Sensors] })),
+    ).toMatchObject([
+      {
+        code: 'NEXUS_CIRCULAR_DEPENDENCY',
+        path: ['Diagnostics', 'Report', 'Diagnostics'],
+      },
+    ]);
   });
 
   it('shows the exports of a global module everywhere without an import', () => {
@@ -207,7 +362,7 @@ describe('compile', () => {
     ]);
   });
 
-  it('keeps exportedTokens consistent when a global module re-exports two importers of the same module', () => {
+  it('lists a MultiToken in exportedTokens only for the module that publishes a record of it', () => {
     const A = defineModule({
       name: 'A',
       providers: [provide(DIAGNOSTICS, { useValue: 'a' })],
@@ -226,28 +381,39 @@ describe('compile', () => {
     });
     const idOfModule = (name: string): string | undefined =>
       [...bp.modules.values()].find((m) => m.name === name)?.id;
-    for (const name of ['A', 'K1', 'K2', 'Global']) {
+    for (const [name, publishes] of [
+      ['A', true],
+      ['K1', false],
+      ['K2', false],
+      ['Global', false],
+    ] as const) {
       const id = idOfModule(name);
       expect(id).toBeDefined();
-      expect(bp.exportedTokens.get(id ?? '')?.has(DIAGNOSTICS)).toBe(true);
+      expect(bp.exportedTokens.get(id ?? '')?.has(DIAGNOSTICS), name).toBe(
+        publishes,
+      );
     }
   });
 
-  it('shows a MultiToken to every module of a re-export cycle a global module closes', () => {
+  it('shows the published set of a MultiToken to every module of a re-export cycle a global module closes', () => {
     const A = defineModule({
       name: 'A',
       providers: [provide(DIAGNOSTICS, { useValue: 'a' })],
       exports: [DIAGNOSTICS],
     });
+    // K1 publishes its record. K2 keeps its record private: its re-export
+    // of A publishes nothing of DIAGNOSTICS.
     const K1 = defineModule({
       name: 'K1',
       imports: [A],
+      providers: [provide(DIAGNOSTICS, { useValue: 'k1' })],
       exports: [DIAGNOSTICS],
     });
     const K2 = defineModule({
       name: 'K2',
       imports: [A],
-      exports: [DIAGNOSTICS],
+      providers: [provide(DIAGNOSTICS, { useValue: 'k2' })],
+      exports: [A],
     });
     const Global = defineModule({
       name: 'Global',
@@ -258,9 +424,13 @@ describe('compile', () => {
     const bp = compile({
       root: defineModule({ name: 'Root', imports: [Global] }),
     });
-    const provider = idOf(bp, DIAGNOSTICS, 'A');
-    for (const name of ['A', 'K1', 'K2', 'Global', 'Root'])
-      expect(visible(bp, name, DIAGNOSTICS)).toEqual([provider]);
+    const published = [idOf(bp, DIAGNOSTICS, 'K1'), idOf(bp, DIAGNOSTICS, 'A')];
+    for (const name of ['A', 'K1', 'Global', 'Root'])
+      expect(visible(bp, name, DIAGNOSTICS), name).toEqual(published);
+    expect(visible(bp, 'K2', DIAGNOSTICS)).toEqual([
+      ...published,
+      idOf(bp, DIAGNOSTICS, 'K2'),
+    ]);
   });
 
   it('resolves a plain token that enters a re-export cycle from one provider', () => {

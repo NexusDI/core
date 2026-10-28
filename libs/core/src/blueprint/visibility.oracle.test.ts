@@ -46,6 +46,8 @@ interface Shapes {
   ambiguous: number;
   invalidExport: number;
   shadowed: number;
+  collectsFar: number;
+  exportsMultiWithoutRecord: number;
 }
 
 interface Generated {
@@ -211,6 +213,15 @@ function generate(random: () => number, graph: number): Generated {
       if (m.exportModules.length > 0) flags.globalReexport = true;
     }
     if (m.exportTokens.includes(ghost)) flags.unimported = true;
+    if (
+      m.exportTokens.some(
+        (t) =>
+          t instanceof MultiToken &&
+          !pinned.has(t) &&
+          !records.some((r) => r.module === m.id && r.token === t),
+      )
+    )
+      flags.exportsMultiWithoutRecord = true;
   }
 
   const providers = new Map(records.map((r) => [r.id, r]));
@@ -239,6 +250,27 @@ function shadows(input: VisibilityInput, result: VisibilityResult): boolean {
 }
 
 /**
+ * Whether a module sees a MultiToken contribution of a module that is
+ * neither itself nor one of its imports or the global modules.
+ */
+function collectsFar(
+  input: VisibilityInput,
+  result: VisibilityResult,
+): boolean {
+  const globals = input.modules.filter((m) => m.global).map((m) => m.id);
+  return input.modules.some((m) => {
+    const near = new Set([m.id, ...m.imports, ...globals]);
+    for (const [token, ids] of result.visibility.get(m.id) ?? [])
+      if (token instanceof MultiToken && !input.pinned.has(token))
+        for (const id of ids) {
+          const from = input.providers.get(id)?.module;
+          if (from !== undefined && !near.has(from)) return true;
+        }
+    return false;
+  });
+}
+
+/**
  * Token display name → names of the modules whose lookup of it sits in a
  * cycle. Builds each token's graph by the successor rule of the pass: node
  * 2i is module i's lookup, node 2i + 1 its export.
@@ -257,7 +289,8 @@ function cyclicLookups(input: VisibilityInput): Map<string, Set<string>> {
   );
   const found = new Map<string, Set<string>>();
   for (const token of new Set(records.map((r) => r.token))) {
-    if (pinned.has(token)) continue;
+    // A MultiToken is collected container-wide, so it has no graph.
+    if (pinned.has(token) || token instanceof MultiToken) continue;
     const owns = new Set(
       records.filter((r) => r.token === token).map((r) => r.module),
     );
@@ -268,7 +301,7 @@ function cyclicLookups(input: VisibilityInput): Map<string, Set<string>> {
         const next = toIndex(m.exportModules).map((c) => 2 * c + 1);
         return m.exportTokens.includes(token) ? [node - 1, ...next] : next;
       }
-      if (!(token instanceof MultiToken) && owns.has(m.id)) return [];
+      if (owns.has(m.id)) return [];
       return (sources[node >> 1] ?? []).map((s) => 2 * s + 1);
     };
     const names = new Set<string>();
@@ -338,6 +371,8 @@ describe('computeVisibility against the dense oracle', () => {
       ambiguous: 0,
       invalidExport: 0,
       shadowed: 0,
+      collectsFar: 0,
+      exportsMultiWithoutRecord: 0,
     };
     for (let graph = 0; graph < GRAPHS; graph++) {
       const { input, flags } = generate(random, graph);
@@ -358,7 +393,9 @@ describe('computeVisibility against the dense oracle', () => {
         shapes.ambiguous++;
       if (expectedErrors.some((e) => e.code === 'NEXUS_INVALID_EXPORT'))
         shapes.invalidExport++;
-      if (shadows(input, computeVisibilityOracle(input, []))) shapes.shadowed++;
+      const oracle = computeVisibilityOracle(input, []);
+      if (shadows(input, oracle)) shapes.shadowed++;
+      if (collectsFar(input, oracle)) shapes.collectsFar++;
       const cyclic = cyclicLookups(input);
       if (cyclic.size > 0) shapes.cycle++;
       if (
