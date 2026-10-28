@@ -4,6 +4,7 @@ import {
   drawnProviders,
   exportedIds,
   membersOf,
+  moduleEdges,
   moduleTitle,
   providerCount,
   providerLines,
@@ -65,8 +66,10 @@ export function toDot(graph: NexusGraph, options: RenderOptions = {}): string {
         ])}, shape=box${m.global ? ', style=bold' : ''}];`,
       );
     for (const m of graph.modules)
-      for (const to of m.imports)
-        lines.push(`  ${quote(m.id)} -> ${quote(to)};`);
+      for (const { to, granted } of moduleEdges(m))
+        lines.push(
+          `  ${quote(m.id)} -> ${quote(to)}${granted ? ' [style=dashed]' : ''};`,
+        );
   } else {
     const exported = exportedIds(graph);
     for (const m of graph.modules) {

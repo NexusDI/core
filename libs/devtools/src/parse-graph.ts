@@ -107,6 +107,8 @@ export function parseGraph(value: unknown): NexusGraph {
         name: string(m, 'name', path),
         global: boolean(m, 'global', path),
         imports: strings(m, 'imports', path),
+        // Graph files written before grants existed omit the field.
+        grants: m['grants'] === undefined ? [] : strings(m, 'grants', path),
         exports: strings(m, 'exports', path),
       };
     },
@@ -163,6 +165,8 @@ export function parseGraph(value: unknown): NexusGraph {
   for (const [i, m] of modules.entries()) {
     for (const [j, id] of m.imports.entries())
       refer(moduleIds, id, `modules[${i}].imports[${j}]`, 'module');
+    for (const [j, id] of m.grants.entries())
+      refer(moduleIds, id, `modules[${i}].grants[${j}]`, 'module');
     for (const [j, id] of m.exports.entries())
       refer(owners, id, `modules[${i}].exports[${j}]`, 'module or provider');
   }

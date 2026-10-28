@@ -72,6 +72,7 @@ describe('graph', () => {
           name: 'Meridian',
           global: false,
           imports: ['m1'],
+          grants: [],
           exports: [],
         },
         {
@@ -79,6 +80,7 @@ describe('graph', () => {
           name: 'Comms',
           global: false,
           imports: [],
+          grants: [],
           exports: ['p4'],
         },
       ],
@@ -196,6 +198,52 @@ describe('graph', () => {
       }),
     );
     expect(graph(ship).modules.map((m) => m.name)).toEqual(['Root', 'Science']);
+  });
+
+  it('lists the ids a load grant gave a module in grants, and in imports', async () => {
+    const Host = defineModule({
+      name: 'Host',
+      providers: [ReactorCore],
+      exports: [ReactorCore],
+    });
+    const ship = await Nexus.create(
+      defineModule({ name: 'Root', imports: [Host] }),
+      { plugins: [devtools()] },
+    );
+    await ship.load(
+      defineModule({ name: 'Science', providers: [SubspaceLink] }),
+      { imports: [Host] },
+    );
+    const modules = graph(ship).modules.filter((m) => m.name !== 'Root');
+    expect(modules.map((m) => [m.name, m.imports, m.grants])).toEqual([
+      ['Host', [], []],
+      ['Science', ['m1'], ['m1']],
+    ]);
+  });
+
+  it('keeps a granted module the loaded module already imports in imports, and out of grants', async () => {
+    const Host = defineModule({
+      name: 'Host',
+      providers: [ReactorCore],
+      exports: [ReactorCore],
+    });
+    const ship = await Nexus.create(
+      defineModule({ name: 'Root', imports: [Host] }),
+      { plugins: [devtools()] },
+    );
+    await ship.load(
+      defineModule({
+        name: 'Science',
+        imports: [Host],
+        providers: [SubspaceLink],
+      }),
+      { imports: [Host] },
+    );
+    const modules = graph(ship).modules.filter((m) => m.name !== 'Root');
+    expect(modules.map((m) => [m.name, m.imports, m.grants])).toEqual([
+      ['Host', [], []],
+      ['Science', ['m1'], []],
+    ]);
   });
 
   it('still works after disposal', async () => {

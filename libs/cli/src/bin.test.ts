@@ -175,6 +175,15 @@ describe('nexusdi graph, JavaScript entries', () => {
     expect(run.stdout).toContain('NavCharts');
   });
 
+  it('draws the grant of a .json graph as a dashed edge', () => {
+    const run = runCli(['graph', 'graph.json', '--view', 'modules'], {
+      cwd: JSON_DIR,
+    });
+    expect(run.status).toBe(0);
+    expect(run.stdout).toContain('  m2 -.-> m0\n');
+    expect(run.stdout).toContain('  m0 --> m1\n');
+  });
+
   it('exits 2 for a .json file that is not a NexusGraph', () => {
     const run = runCli(['graph', 'bad-graph.json'], { cwd: JSON_DIR });
     expect(run.status).toBe(2);

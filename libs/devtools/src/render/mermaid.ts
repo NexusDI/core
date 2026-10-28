@@ -4,6 +4,7 @@ import {
   drawnProviders,
   exportedIds,
   membersOf,
+  moduleEdges,
   moduleTitle,
   providerCount,
   providerLines,
@@ -88,7 +89,8 @@ export function toMermaid(
       if (m.global) bold.push(name(m.id));
     }
     for (const m of graph.modules)
-      for (const to of m.imports) lines.push(`  ${name(m.id)} --> ${name(to)}`);
+      for (const { to, granted } of moduleEdges(m))
+        lines.push(`  ${name(m.id)} ${granted ? '-.->' : '-->'} ${name(to)}`);
   } else {
     for (const m of graph.modules) {
       const members = membersOf(drawn, m.id);
