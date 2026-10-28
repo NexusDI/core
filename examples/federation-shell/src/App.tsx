@@ -1,31 +1,17 @@
 import { Diagnostics } from './diagnostics';
-import { Link, usePath } from './router';
-import { Charts } from './routes/charts';
-import { CommandRoute } from './routes/command';
-import { EngineeringRoute } from './routes/engineering';
+import { Nav } from './nav';
 import { Home } from './routes/home';
-import { LifeSupportRoute } from './routes/life-support';
+import { usePath } from './router';
 import { withDevtools } from './ship/ship';
+import { StationRoute } from './station-route';
+import { stationAt } from './stations';
 
 function Route({ path }: { path: string }) {
-  switch (path) {
-    case '/charts':
-      return <Charts />;
-    case '/command':
-      return <CommandRoute />;
-    case '/engineering':
-      return <EngineeringRoute />;
-    case '/life-support':
-      return <LifeSupportRoute />;
-    case '/diagnostics':
-      return withDevtools ? (
-        <Diagnostics />
-      ) : (
-        <p>This build has no devtools.</p>
-      );
-    default:
-      return <Home />;
-  }
+  const station = stationAt(path);
+  if (station !== undefined) return <StationRoute station={station} />;
+  if (path === '/diagnostics')
+    return withDevtools ? <Diagnostics /> : <p>This build has no devtools.</p>;
+  return <Home />;
 }
 
 /** The shell's layout: the station links above the current route. */
@@ -34,18 +20,7 @@ export function App() {
   return (
     <main>
       <h1>Meridian</h1>
-      <nav>
-        <Link to="/">Bridge</Link> <Link to="/charts">Cartography</Link>{' '}
-        <Link to="/command">Command</Link>{' '}
-        <Link to="/engineering">Engineering</Link>{' '}
-        <Link to="/life-support">Life support</Link>
-        {withDevtools ? (
-          <>
-            {' '}
-            <Link to="/diagnostics">Diagnostics</Link>
-          </>
-        ) : null}
-      </nav>
+      <Nav diagnostics={withDevtools} />
       <Route path={path} />
     </main>
   );

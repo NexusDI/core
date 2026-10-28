@@ -7,14 +7,19 @@ vi.mock('@module-federation/runtime', () => ({
 }));
 
 const { startRemotes } = await import('./mf');
+const { remoteEntry, STATIONS } = await import('./stations');
 
-const remotes = [
-  {
-    name: 'federation_cartography',
-    entry: 'http://127.0.0.1:4301/remoteEntry.js',
-  },
-  { name: 'federation_command', entry: 'http://127.0.0.1:4302/remoteEntry.js' },
-];
+const [first, second] = STATIONS;
+const remotes = [first, second].map((row) => remoteEntry(row, '127.0.0.1'));
+
+/** The status of every row, `registered` for the remotes in `names`. */
+const status = (names: readonly string[]) =>
+  Object.fromEntries(
+    STATIONS.map(({ remote }) => [
+      remote,
+      names.includes(remote) ? 'registered' : 'failed',
+    ]),
+  );
 
 describe('startRemotes', () => {
   beforeEach(() => registerRemotes.mockReset());
@@ -32,12 +37,7 @@ describe('startRemotes', () => {
     expect(fetch).toHaveBeenCalledWith('/remotes.json');
     expect(registerRemotes).toHaveBeenCalledWith(remotes);
     expect(order).toEqual(['registered', 'resolved']);
-    expect(stations).toEqual({
-      federation_cartography: 'registered',
-      federation_command: 'registered',
-      federation_engineering: 'failed',
-      federation_life_support: 'failed',
-    });
+    expect(stations).toEqual(status([first.remote, second.remote]));
   });
 
   it('marks a station the list leaves out failed', async () => {
@@ -46,12 +46,7 @@ describe('startRemotes', () => {
       vi.fn(async () => Response.json([remotes[0]])),
     );
 
-    expect(await startRemotes()).toEqual({
-      federation_cartography: 'registered',
-      federation_command: 'failed',
-      federation_engineering: 'failed',
-      federation_life_support: 'failed',
-    });
+    expect(await startRemotes()).toEqual(status([first.remote]));
   });
 
   it('marks every station failed when the fetch fails', async () => {
@@ -62,12 +57,7 @@ describe('startRemotes', () => {
       }),
     );
 
-    expect(await startRemotes()).toEqual({
-      federation_cartography: 'failed',
-      federation_command: 'failed',
-      federation_engineering: 'failed',
-      federation_life_support: 'failed',
-    });
+    expect(await startRemotes()).toEqual(status([]));
     expect(registerRemotes).not.toHaveBeenCalled();
   });
 
@@ -77,11 +67,6 @@ describe('startRemotes', () => {
       vi.fn(async () => new Response('not found', { status: 404 })),
     );
 
-    expect(await startRemotes()).toEqual({
-      federation_cartography: 'failed',
-      federation_command: 'failed',
-      federation_engineering: 'failed',
-      federation_life_support: 'failed',
-    });
+    expect(await startRemotes()).toEqual(status([]));
   });
 });

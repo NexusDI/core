@@ -30,7 +30,7 @@ export default defineConfig({
     ),
     ...(['main', 'drift', 'unshared'] as const).map((list) =>
       serve(SHELL_DIST, SHELLS[list], '/', {
-        REMOTES: `federation-shell/e2e/remotes/${list}.json`,
+        REMOTES: list,
       }),
     ),
   ],

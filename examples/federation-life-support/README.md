@@ -6,7 +6,8 @@ the contract's `TELEMETRY_FEED` for the compartment air and sends the habitat's 
 `scrubber` and `oxygen` commands over `COMMAND_LINK`.
 
 It serves on port 4306, and the shell (`examples/federation-shell`) loads it on
-`/life-support`. The remote has no standalone page: `index.html` points at the shell.
+`/life-support`. The remote has no page of its own, only `remoteEntry.js` and the chunks of
+`./section`.
 
 ## Commands
 

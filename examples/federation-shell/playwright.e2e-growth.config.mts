@@ -29,7 +29,7 @@ export default defineConfig({
       serve(dist, port, '/remoteEntry.js'),
     ),
     serve(SHELL_DIST, GROWTH.shell, '/', {
-      REMOTES: 'federation-shell/e2e/remotes/growth.json',
+      REMOTES: 'growth',
       BRIDGE_API_URL: `http://127.0.0.1:${GROWTH.api}/`,
     }),
   ],

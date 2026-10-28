@@ -4,8 +4,8 @@ const cwd = `${workspaceRoot}/examples`;
 
 /**
  * One static server from e2e/serve.ts, ready once `ready` answers. `env`
- * reaches serve.ts, where REMOTES and BRIDGE_API_URL pick what the shell's
- * /remotes.json and /bridge.json answer.
+ * reaches serve.ts, where REMOTES (a list name of e2e/remotes.ts) and
+ * BRIDGE_API_URL pick what the shell's /remotes.json and /bridge.json answer.
  */
 export function serve(
   folder: string,

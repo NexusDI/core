@@ -25,12 +25,28 @@
       "types": "./dist/shared.d.ts",
       "import": "./dist/shared.js",
       "default": "./dist/shared.js"
+    },
+    "./swc": {
+      "@nexusdi/source": "./src/swc.ts",
+      "types": "./dist/swc.d.ts",
+      "import": "./dist/swc.js",
+      "default": "./dist/swc.js"
+    },
+    "./rspack": {
+      "@nexusdi/source": "./src/rspack.ts",
+      "types": "./dist/rspack.d.ts",
+      "import": "./dist/rspack.js",
+      "default": "./dist/rspack.js"
     }
   },
   "dependencies": {
+    "@module-federation/enhanced": "2.9.2",
     "@nexusdi/core": "*",
     "@nexusdi/federation": "*",
-    "react": "19.3.1"
+    "@rspack/core": "2.2.9",
+    "@rspack/plugin-react-refresh": "2.0.2",
+    "react": "19.3.1",
+    "react-refresh": "0.19.0"
   },
   "nx": {
     "tags": [

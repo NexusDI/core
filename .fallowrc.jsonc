@@ -70,6 +70,10 @@
     "examples/federation-shell/e2e/**/*.ts",
     "examples/federation-shell/playwright.config.mts",
     "examples/federation-shell/playwright.e2e-growth.config.mts",
+    // meridianRemote() exposes each remote's src/section.ts as ./section.
+    // The factory sits in another package, so fallow does not see the
+    // ModuleFederationPlugin call that names the file.
+    "examples/federation-*/src/section.ts",
     // The docs app's behaviour-data target runs this script by path.
     "apps/docs/tools/behaviour-data.mjs",
     "libs/decorators/vite.decorators.ts",
