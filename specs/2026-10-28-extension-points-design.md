@@ -278,6 +278,8 @@ After pass 3 (`bind`), the compile raises `UnreadContributionError`, code
 - no provider of M binds T through `all` or `lazy(all)`, in its deps or its properties,
 - T is not pinned.
 
+A provider of M reads T when its record binds T through all() or lazy(all()), either as written or as the compile.provider hooks return it. The check runs over the records the hooks return, so a contribution a hook removes is not checked and a pinned token is skipped.
+
 The errors go into the `BlueprintError` list after pass 3's errors, in record order.
 `Nexus.create`, `load()` and `Nexus.check` raise them, since all three compile. A loaded
 module is an import of the root and not the root, so the rule applies to it.
