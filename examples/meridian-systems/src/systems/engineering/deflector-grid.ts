@@ -1,3 +1,5 @@
+import { lazy } from '@nexusdi/core';
+
 import type { QueuedCommand } from '../../simulation/commands';
 import {
   type IShipState,
@@ -13,13 +15,19 @@ import {
 } from './contracts';
 import { DEFLECTOR_GRID } from './engineering-model';
 
-/** The Meridian's deflector shields, a load of priority 2 on the power router. */
+/**
+ * The Meridian's deflector shields, a load of priority 2 on the power router.
+ * The grid reads the router through a thunk, since the router reads the
+ * grid's load through `POWER_CONSUMERS`.
+ */
 export class DeflectorGrid implements IShieldGrid {
-  static deps = [SHIP_STATE, POWER_ROUTER] as const;
+  static deps = [SHIP_STATE, lazy(POWER_ROUTER)] as const;
 
+  // The container builds the router after the grid, so the constructor
+  // never calls the thunk.
   constructor(
     private readonly state: IShipState,
-    private readonly router: IPowerRouter,
+    private readonly router: () => IPowerRouter,
   ) {}
 
   draw(ship: ShipSnapshot): PowerLoad {
@@ -28,7 +36,7 @@ export class DeflectorGrid implements IShieldGrid {
 
   /** Throws `PowerBudgetError` and queues nothing when the router cannot fit the raised grid. */
   raise(): QueuedCommand {
-    this.router.divert(load(true));
+    this.router().divert(load(true));
     return this.state.queue({ shields: { raised: true } });
   }
 

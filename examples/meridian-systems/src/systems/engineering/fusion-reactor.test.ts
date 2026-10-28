@@ -27,8 +27,8 @@ function running(level: number): ShipStateStore {
 }
 
 describe('FusionReactor', () => {
-  it('reads its electric output in GW', () => {
-    expect(new FusionReactor(running(1)).output).toBeCloseTo(1.21, 12);
+  it('reads its electric output in W', () => {
+    expect(new FusionReactor(running(1)).output).toBeCloseTo(1.21e9, 3);
   });
 
   it('carries the reactor rating', () => {

@@ -13,7 +13,7 @@ export class FusionReactor implements IReactorCore, Disposable {
   constructor(private readonly state: IShipState) {}
 
   get output(): number {
-    return this.state.snapshot().reactor.electric / 1e9;
+    return this.state.snapshot().reactor.electric;
   }
 
   throttle(level: number): QueuedCommand {

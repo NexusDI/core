@@ -58,27 +58,28 @@ A crew member raises the shields, and the ship must answer at once whether the r
 
 ### The Module and Its Tokens
 
-`Engineering` binds four services and makes two contributions:
+`Engineering` binds four services and makes three contributions:
 
 ```text
 REACTOR          FusionReactor        deps [SHIP_STATE]
 COOLANT_LOOP     RadiatorLoop         no deps, not exported
-POWER_ROUTER     PlasmaRouter         deps [SHIP_STATE, lazy(SHIELD_GRID), all(POWER_CONSUMERS)]
-SHIELD_GRID      DeflectorGrid        deps [SHIP_STATE, POWER_ROUTER]
+POWER_ROUTER     PlasmaRouter         deps [SHIP_STATE, all(POWER_CONSUMERS)]
+SHIELD_GRID      DeflectorGrid        deps [SHIP_STATE, lazy(POWER_ROUTER)]
+POWER_CONSUMERS  ShieldPower          deps [SHIELD_GRID]
 SHIP_SYSTEMS     EngineeringPhysics   deps [REACTOR, COOLANT_LOOP, POWER_ROUTER]
 COMMAND_HANDLERS EngineeringCommands  deps [REACTOR, SHIELD_GRID]
 ```
 
 It exports `REACTOR`, `POWER_ROUTER`, `SHIELD_GRID`, `SHIP_SYSTEMS` and `COMMAND_HANDLERS`. `COOLANT_LOOP` stays inside the module: `EngineeringPhysics` reads the loop's rating, and every other system reads the reactor and the router. A root that asks for it gets `NEXUS_NOT_VISIBLE`, and `test/engineering.test.ts` checks that.
 
-- `FusionReactor` reads `output`, the electric output now in GW, from `SHIP_STATE`, and `throttle(level)` queues the reactor setpoint there. Its `rating` holds the fixed figures in W.
+- `FusionReactor` reads `output`, the electric output now in W, from `SHIP_STATE`, and `throttle(level)` queues the reactor setpoint there. Its `rating` holds the fixed figures in W.
 - `RadiatorLoop` holds the lithium loop's `rating` and nothing else.
-- `PlasmaRouter.loads(ship)` lists the loads of a tick: the grid's draw, then the draw of each `POWER_CONSUMERS` entry. `divert(load)` checks a new load against the reactor's output.
+- `PlasmaRouter.loads(ship)` lists the loads of a tick: the draw of each `POWER_CONSUMERS` entry, the grid's `ShieldPower` among them. `divert(load)` checks a new load against the reactor's output.
 - `DeflectorGrid.draw(ship)` gives the grid's load from its setpoint: 200 MW at priority 2 while raised, 0 while lowered. `raise()` asks the router to divert that load and then queues the raised setpoint. `lower()` queues the lowered one.
 
 ### The Cycle Between the Router and the Grid
 
-The router and the grid read each other. The router lists the grid's draw on every tick, and the grid asks the router whether its raised load fits. `PlasmaRouter` takes `lazy(SHIELD_GRID)`, so the container builds the router with a thunk for the grid, then builds the grid on top of it. The router calls the thunk only in `loads()`, after both exist, so the cycle needs no setter and no second phase.
+The router and the grid read each other. The router lists the grid's draw on every tick through `ShieldPower`, and the grid asks the router whether its raised load fits. `DeflectorGrid` takes `lazy(POWER_ROUTER)`, so the container builds the grid with a thunk for the router, then builds the router on top of it. The grid calls the thunk only in `raise()`, after both exist, so the cycle needs no setter and no second phase. A direct `POWER_ROUTER` dep in the grid fails the build with `NEXUS_CIRCULAR_DEPENDENCY`. `RailgunMount` breaks its cycle the same way.
 
 ### The Command Desk
 
@@ -168,7 +169,7 @@ The analyzer takes `COMPARTMENT`, the compartment the current request names, so 
 
 ### Life Support's Load on the Router
 
-The router shares the reactor's output among loads, and each system adds its own load with no edit to the router. `POWER_CONSUMERS` is a multi token of `IPowerConsumer`, whose `draw(ship)` returns a `PowerLoad`. `PlasmaRouter` takes `all(POWER_CONSUMERS)` beside `lazy(SHIELD_GRID)` and lists the grid's draw, then each consumer's. It reads LifeSupport's contribution because `LifeSupport` exports `POWER_CONSUMERS`.
+The router shares the reactor's output among loads, and each system adds its own load with no edit to the router. `POWER_CONSUMERS` is a multi token of `IPowerConsumer`, whose `draw(ship)` returns a `PowerLoad`. `PlasmaRouter` takes `all(POWER_CONSUMERS)` and lists each consumer's draw. `ShieldPower` is the grid's entry, and the router reads it as a contribution of its own module. It reads LifeSupport's contribution because `LifeSupport` exports `POWER_CONSUMERS`.
 
 `LifeSupportPower` draws `{ id: 'life-support', priority: 1, demand, heatShare: 0 }`. The pure `lifeSupportDemand` gives `demand` from the air at the start of the tick, and 0 W while life support is offline. `LifeSupportPhysics` runs its devices from the same function, so the router and phase 4 read one figure. The tick-0 power record lists the 0 W `life-support` load first, since its priority is 1. No life-support command calls `divert()`.
 
@@ -469,7 +470,7 @@ COMMAND_HANDLERS  WeaponsCommands  deps [WEAPON_MOUNT]
 
 The module exports all four tokens and imports no module. `SIM_OPTIONS` reaches the mount and the consumer through the global `Simulation`, and both read `dt` from it. `src/systems/weapons/contracts.ts` holds `IWeaponMount`, whose `rating` carries the railgun's fixed figures and whose `fire(range)` queues a shot, and `WEAPON_MOUNT`, the `Token<IWeaponMount>`. The index exports the token, the interface and the types `RailgunRating`, `RailgunShot`, `WeaponsRecord`, `WeaponsSetpoints` and `WeaponsStatus`.
 
-`RailgunMount` reads `POWER_ROUTER` through `lazy()`. The router reads the mount's load through `POWER_CONSUMERS`, so the router depends on the mount's consumer and the mount depends on the router. The thunk breaks the cycle, and the constructor never calls it. `PlasmaRouter` takes `lazy(SHIELD_GRID)` for the same reason (the Cycle Between the Router and the Grid section above).
+`RailgunMount` reads `POWER_ROUTER` through `lazy()`. The router reads the mount's load through `POWER_CONSUMERS`, so the router depends on the mount's consumer and the mount depends on the router. The thunk breaks the cycle, and the constructor never calls it. `DeflectorGrid` takes `lazy(POWER_ROUTER)` for the same reason (the Cycle Between the Router and the Grid section above).
 
 ### The Record and the Setpoints
 

@@ -76,11 +76,10 @@ export function meridianSystems({
       Weapons,
     ],
     providers: [
-      // all(SHIP_SYSTEMS) reads this module's own providers plus the exports of
-      // its imports and of the global modules.
+      // all(SHIP_SYSTEMS) in the loop and all(COMMAND_HANDLERS) in the desk
+      // read this module's own providers plus the exports of its imports and
+      // of the global modules.
       provide(TICK_LOOP, { useClass: FixedStepLoop }),
-      // all(COMMAND_HANDLERS) reads this module's own providers plus the
-      // exports of its imports and of the global modules.
       provide(COMMAND_DESK, { useClass: CommandDesk }),
     ],
     // Re-exporting Engineering hands the root REACTOR, POWER_ROUTER and
