@@ -41,6 +41,20 @@ export function moduleTitle(module: GraphModule): string {
 }
 
 /**
+ * The module edges of the modules view: a solid edge to each import that is
+ * not a grant, then a dashed edge to each grant id. Each target appears once.
+ */
+export function moduleEdges(
+  module: GraphModule,
+): { to: string; granted: boolean }[] {
+  const grants = new Set(module.grants);
+  return [
+    ...new Set(module.imports.filter((id) => !grants.has(id))),
+    ...grants,
+  ].map((to) => ({ to, granted: grants.has(to) }));
+}
+
+/**
  * The providers the renderers draw, in graph order: every provider that is
  * not internal, and an internal one when a drawn provider depends on it.
  */

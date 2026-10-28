@@ -8,6 +8,7 @@ export const FIXTURE: NexusGraph = {
       name: 'Meridian',
       global: false,
       imports: ['m1', 'm2'],
+      grants: [],
       exports: [],
     },
     {
@@ -15,6 +16,7 @@ export const FIXTURE: NexusGraph = {
       name: 'Navigation',
       global: false,
       imports: [],
+      grants: [],
       exports: ['p2'],
     },
     {
@@ -22,6 +24,7 @@ export const FIXTURE: NexusGraph = {
       name: 'Telemetry',
       global: true,
       imports: [],
+      grants: [],
       exports: ['p4'],
     },
   ],
@@ -96,11 +99,60 @@ export const FIXTURE: NexusGraph = {
   ],
 };
 
+/**
+ * A loaded module that imports one module and holds a grant on another. The
+ * grant ids also sit in `imports`, as core records them.
+ */
+export const GRANTED: NexusGraph = {
+  modules: [
+    {
+      id: 'm0',
+      name: 'Meridian',
+      global: false,
+      imports: [],
+      grants: [],
+      exports: [],
+    },
+    {
+      id: 'm1',
+      name: 'Navigation',
+      global: false,
+      imports: [],
+      grants: [],
+      exports: [],
+    },
+    {
+      id: 'm2',
+      name: 'Science',
+      global: false,
+      imports: ['m1', 'm0'],
+      grants: ['m0'],
+      exports: [],
+    },
+  ],
+  providers: [],
+  edges: [],
+};
+
 /** A module and a token whose names carry every character a renderer escapes. */
 export const ESCAPE_FIXTURE: NexusGraph = {
   modules: [
-    { id: 'm0', name: 'Bay "7"', global: false, imports: [], exports: [] },
-    { id: 'm1', name: '`md`', global: false, imports: [], exports: [] },
+    {
+      id: 'm0',
+      name: 'Bay "7"',
+      global: false,
+      imports: [],
+      grants: [],
+      exports: [],
+    },
+    {
+      id: 'm1',
+      name: '`md`',
+      global: false,
+      imports: [],
+      grants: [],
+      exports: [],
+    },
   ],
   providers: [
     {
@@ -134,7 +186,14 @@ export const ESCAPE_FIXTURE: NexusGraph = {
 /** A graph with core's built-in REQUEST provider and nothing that depends on it. */
 export const WITH_REQUEST: NexusGraph = {
   modules: [
-    { id: 'm0', name: 'Meridian', global: false, imports: [], exports: [] },
+    {
+      id: 'm0',
+      name: 'Meridian',
+      global: false,
+      imports: [],
+      grants: [],
+      exports: [],
+    },
   ],
   providers: [
     {
@@ -171,7 +230,14 @@ export const WITH_REQUEST: NexusGraph = {
  */
 export const WITH_INTERNAL: NexusGraph = {
   modules: [
-    { id: 'm0', name: 'Meridian', global: false, imports: [], exports: [] },
+    {
+      id: 'm0',
+      name: 'Meridian',
+      global: false,
+      imports: [],
+      grants: [],
+      exports: [],
+    },
   ],
   providers: [
     {
@@ -213,6 +279,7 @@ export const HOSTILE_IDS: NexusGraph = {
       name: 'Meridian',
       global: true,
       imports: ['p0'],
+      grants: [],
       exports: ['a-->b', 'p0'],
     },
     {
@@ -220,6 +287,7 @@ export const HOSTILE_IDS: NexusGraph = {
       name: 'Navigation',
       global: false,
       imports: [],
+      grants: [],
       exports: ['x;y'],
     },
   ],

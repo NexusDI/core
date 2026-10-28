@@ -6,7 +6,14 @@ import { DevtoolsError, parseGraph, type NexusGraph } from './index.js';
 
 const GOOD: NexusGraph = {
   modules: [
-    { id: 'm0', name: 'Meridian', global: false, imports: [], exports: ['p0'] },
+    {
+      id: 'm0',
+      name: 'Meridian',
+      global: false,
+      imports: [],
+      grants: [],
+      exports: ['p0'],
+    },
   ],
   providers: [
     {
@@ -66,6 +73,33 @@ describe('parseGraph', () => {
     expect(parseGraph(JSON.parse(JSON.stringify(GOOD)))).toEqual(GOOD);
   });
 
+  it('keeps the grants of a module', () => {
+    const granted = {
+      ...GOOD,
+      modules: [
+        ...GOOD.modules,
+        {
+          id: 'm1',
+          name: 'Science',
+          global: false,
+          imports: ['m0'],
+          grants: ['m0'],
+          exports: [],
+        },
+      ],
+    };
+    expect(parseGraph(JSON.parse(JSON.stringify(granted)))).toEqual(granted);
+  });
+
+  it('reads a module with no grants field, as rc.2 graph files have, as grants: []', () => {
+    // JSON.stringify drops an undefined field, as the rc.2 file lacks it.
+    const old = { ...GOOD.modules[0], grants: undefined };
+    const graph = parseGraph(
+      JSON.parse(JSON.stringify({ ...GOOD, modules: [old] })),
+    );
+    expect(graph.modules[0]?.grants).toEqual([]);
+  });
+
   it('returns a copy that shares no array with its input', () => {
     const input = JSON.parse(JSON.stringify(GOOD)) as NexusGraph;
     const graph = parseGraph(input);
@@ -100,6 +134,14 @@ describe('parseGraph', () => {
       'modules[0].exports[0]',
     ],
     [{ ...GOOD, edges: [{ from: 'p0', to: 'request' }] }, 'edges[0].kind'],
+    [
+      { ...GOOD, modules: [{ ...GOOD.modules[0], grants: 'm0' }] },
+      'modules[0].grants',
+    ],
+    [
+      { ...GOOD, modules: [{ ...GOOD.modules[0], grants: [1] }] },
+      'modules[0].grants[0]',
+    ],
   ])('names the bad path of %j: %s', (value, path) => {
     const error = failureOf(value);
     expect(error.path).toBe(path);
@@ -127,6 +169,11 @@ describe('parseGraph', () => {
     [
       { ...GOOD, modules: [{ ...GOOD.modules[0], imports: ['m3'] }] },
       'modules[0].imports[0]',
+      '"m3", which no module has',
+    ],
+    [
+      { ...GOOD, modules: [{ ...GOOD.modules[0], grants: ['m3'] }] },
+      'modules[0].grants[0]',
       '"m3", which no module has',
     ],
     [
