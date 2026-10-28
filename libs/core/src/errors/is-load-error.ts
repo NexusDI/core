@@ -1,5 +1,6 @@
 import { LoadContributionError } from './load-contribution-error.js';
 import { LoadError } from './load-error.js';
+import { LoadGrantError } from './load-grant-error.js';
 
 /**
  * Whether compile() threw the error alone, on a load, before its later
@@ -7,6 +8,10 @@ import { LoadError } from './load-error.js';
  */
 export function isLoadError(
   error: unknown,
-): error is LoadError | LoadContributionError {
-  return error instanceof LoadError || error instanceof LoadContributionError;
+): error is LoadError | LoadContributionError | LoadGrantError {
+  return (
+    error instanceof LoadError ||
+    error instanceof LoadContributionError ||
+    error instanceof LoadGrantError
+  );
 }

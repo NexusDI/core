@@ -27,6 +27,7 @@ import {
   type TokenKey,
 } from './blueprint.js';
 import { keyShape } from './hooks.js';
+import { splitEntry, type LoadEntry } from './load-entry.js';
 import {
   normalizeProvider,
   optionsShape,
@@ -37,8 +38,13 @@ import { sameToken, type Canonicalizer } from './views.js';
 
 export interface WalkInput {
   readonly root: unknown;
-  /** Imports load() added to the root, walked after the root's own. */
-  readonly extraImports: readonly unknown[];
+  /**
+   * Imports load() added to the root, walked after the root's own. An entry
+   * with a grant gives every module the walk first meets under it the
+   * exports of the granted modules, which an earlier walk of the same graph
+   * already visited.
+   */
+  readonly extraImports: readonly LoadEntry[];
   /** The module to walk in place of the one met. The compile.module hooks use it. */
   readonly replace?: (definition: ModuleDefinition) => ModuleDefinition;
   /**
@@ -73,9 +79,10 @@ export interface WalkResult {
 /** A ModuleNode under construction: its lists fill in as the walk proceeds. */
 type NodeDraft = Omit<
   ModuleNode,
-  'imports' | 'providers' | 'exportTokens' | 'exportModules'
+  'imports' | 'grants' | 'providers' | 'exportTokens' | 'exportModules'
 > & {
   readonly imports: string[];
+  readonly grants: string[];
   readonly providers: string[];
   readonly exportTokens: TokenKey[];
   readonly exportModules: string[];
@@ -149,9 +156,32 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
     else accept(shape);
   };
 
+  // The ids of the granted modules, in grant order, without repeats. A grant
+  // names a module an earlier walk of the graph visited; a ref the walk has
+  // not visited is skipped, since compile() rejects it before the walk.
+  const grantIds = (refs: readonly unknown[]): readonly string[] => {
+    const ids = new Set<string>();
+    for (const ref of refs) {
+      const found = resolveModuleRef(ref);
+      if (found === undefined) continue;
+      // A walked definition is looked up as it is, so the compile.module hook
+      // never runs on it. An original the hook replaced goes through the
+      // hook's memo.
+      const id =
+        byDefinition.get(found) ??
+        byDefinition.get(input.replace?.(found) ?? found);
+      if (id !== undefined) ids.add(id);
+    }
+    return [...ids];
+  };
+
+  // The granted module ids of the entry being walked: each module created
+  // while it is set records them and imports them.
+  let granted: readonly string[] = [];
+
   const visit = (
     ref: unknown,
-    extra: readonly unknown[],
+    extra: readonly LoadEntry[],
   ): string | undefined => {
     const found = resolveModuleRef(ref);
     if (found === undefined) {
@@ -199,6 +229,8 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
       definition,
       global: definition.global,
       imports: [],
+      grants: [],
+      grantSet: granted,
       providers: [],
       exportTokens: [],
       exportModules: [],
@@ -209,13 +241,26 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
 
     stack.push(definition);
     const imported = new Set<string>();
-    for (const child of [...definition.imports, ...extra]) {
-      const id = visit(child, []);
+    const add = (id: string | undefined): void => {
       if (id !== undefined && !imported.has(id)) {
         imported.add(id);
         node.imports.push(id);
       }
+    };
+    for (const child of definition.imports) add(visit(child, []));
+    for (const entry of extra) {
+      const { module, imports } = splitEntry(entry);
+      granted = grantIds(imports);
+      add(visit(module, []));
+      granted = [];
     }
+    // The granted modules were visited before this module, so their ids exist.
+    // `grants` keeps the ones the module did not already import.
+    for (const id of node.grantSet)
+      if (!imported.has(id)) {
+        node.grants.push(id);
+        add(id);
+      }
     stack.pop();
     return node.id;
   };

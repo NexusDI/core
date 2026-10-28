@@ -1,5 +1,6 @@
 import type { ModuleDefinition } from '../definitions/define-module.js';
 import type { AnyToken } from '../definitions/guards.js';
+import type { LoadEntry } from './load-entry.js';
 import type { StandardSchemaV1 } from '../definitions/standard-schema.js';
 import type { Ctor, Lifetime } from '../definitions/types.js';
 
@@ -77,7 +78,12 @@ export interface ModuleNode {
   readonly name: string;
   readonly definition: ModuleDefinition;
   readonly global: boolean;
+  /** The ids of the imported modules, then the ids a load grant added. */
   readonly imports: readonly string[];
+  /** The ids a load grant added to `imports` beyond the module's own imports, in grant order. */
+  readonly grants: readonly string[];
+  /** The full set the load granted this module, in grant order. The repeat rule of load() reads it; the views do not carry it. */
+  readonly grantSet: readonly string[];
   readonly providers: readonly string[];
   /** The tokens the module's exports list names, in list order. */
   readonly exportTokens: readonly TokenKey[];
@@ -124,8 +130,8 @@ export interface Blueprint {
    */
   readonly moduleByReplaced: ReadonlyMap<ModuleDefinition, string>;
   readonly providers: ReadonlyMap<string, ProviderRecord>;
-  /** Modules load() added as root imports, in load order. */
-  readonly extraImports: readonly unknown[];
+  /** Modules load() added as root imports, in load order, each with the grant it was loaded with. */
+  readonly extraImports: readonly LoadEntry[];
   /** module id → token → provider ids that module sees. */
   readonly visibility: ReadonlyMap<
     string,

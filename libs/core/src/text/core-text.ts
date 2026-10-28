@@ -22,6 +22,7 @@ import type {
   LoadedAfterScopeError,
   LoadContributionError,
   LoadError,
+  LoadGrantError,
   MissingDepsError,
   MissingProviderError,
   ModuleImportCycleError,
@@ -248,6 +249,23 @@ const loadContribution: Builder<LoadContributionError> = (error) =>
       `  Fix: drop the contribution from ${error.module} and register the provider from its onInit through the collector's registry, and unregister it on dispose.`,
   );
 
+const LOAD_GRANT_TEXT: Readonly<
+  Record<LoadGrantError['reason'], (error: LoadGrantError) => string>
+> = {
+  'not-in-graph': (error) =>
+    `${error.module} is loaded with a grant for ${error.grant}, and the graph holds no module with that definition.\n` +
+    `  Fix: grant the object the host imported (a forRoot() call makes a new one), or import ${error.grant} from a host module first.`,
+  root: (error) =>
+    `${error.module} is loaded with a grant for ${error.grant}, the root module, and a grant never names the root.\n` +
+    `  Fix: grant the host module that provides what ${error.module} needs, and export it from there.`,
+  'already-loaded': (error) =>
+    `${error.module} is already in the graph with its grant fixed, and a grant applies only when a module joins the graph. This load asks for another set of grants, which includes ${error.grant}.\n` +
+    `  Fix: repeat the load with the grant ${error.module} has, or leave the grant out.`,
+};
+
+const loadGrant: Builder<LoadGrantError> = (error) =>
+  text(LOAD_GRANT_TEXT[error.reason](error));
+
 const provider: Builder<ProviderError> = (error) => {
   const lines = [
     `${error.token} (module ${error.module}) failed: ${causeText(error.cause)}`,
@@ -388,6 +406,7 @@ export const coreText = {
   NEXUS_MODULE_OPTIONS_MISSING: moduleOptions,
   NEXUS_LOAD_GLOBAL_MODULE: load,
   NEXUS_LOAD_CONTRIBUTION: loadContribution,
+  NEXUS_LOAD_GRANT: loadGrant,
   NEXUS_INVALID_MODULE_OPTIONS: moduleOptions,
   NEXUS_PROVIDER_FAILED: provider,
   NEXUS_NOT_READY: notReady,

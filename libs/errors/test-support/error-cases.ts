@@ -14,6 +14,7 @@ import {
   LifetimeError,
   LoadedAfterScopeError,
   LoadContributionError,
+  LoadGrantError,
   LoadError,
   MissingDepsError,
   MissingProviderError,
@@ -412,6 +413,36 @@ export const errorCases: readonly ErrorCase[] = [
     error: new LoadContributionError({ module: 'Science', token: 'Log' }),
     code: 'NEXUS_LOAD_CONTRIBUTION',
     fields: { module: 'Science', token: 'Log' },
+  },
+  {
+    name: 'LoadGrantError (not in the graph)',
+    error: new LoadGrantError({
+      module: 'Science',
+      grant: 'Reactors',
+      reason: 'not-in-graph',
+    }),
+    code: 'NEXUS_LOAD_GRANT',
+    fields: { module: 'Science', grant: 'Reactors', reason: 'not-in-graph' },
+  },
+  {
+    name: 'LoadGrantError (root)',
+    error: new LoadGrantError({
+      module: 'Science',
+      grant: 'Meridian',
+      reason: 'root',
+    }),
+    code: 'NEXUS_LOAD_GRANT',
+    fields: { module: 'Science', grant: 'Meridian', reason: 'root' },
+  },
+  {
+    name: 'LoadGrantError (already loaded)',
+    error: new LoadGrantError({
+      module: 'Science',
+      grant: 'Reactors',
+      reason: 'already-loaded',
+    }),
+    code: 'NEXUS_LOAD_GRANT',
+    fields: { module: 'Science', grant: 'Reactors', reason: 'already-loaded' },
   },
   {
     name: 'ProviderError (path, also failed, disposal errors)',

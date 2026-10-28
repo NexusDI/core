@@ -1,5 +1,9 @@
 import { ordersBuild } from './build-order.js';
-import type { ModuleDefinition } from '../definitions/define-module.js';
+import {
+  resolveModuleRef,
+  type ModuleDefinition,
+  type ModuleRef,
+} from '../definitions/define-module.js';
 import { HOOK_SITES } from '../definitions/hook-sites.js';
 import { REQUEST } from '../definitions/request.js';
 import {
@@ -7,9 +11,10 @@ import {
   CircularDependencyError,
   LoadContributionError,
   LoadError,
+  LoadGrantError,
   type NexusError,
 } from '../errors/index.js';
-import { MultiToken } from '../definitions/token.js';
+import { describeValue, MultiToken } from '../definitions/token.js';
 import { bind } from './bind.js';
 import {
   NO_ENTRIES,
@@ -28,6 +33,7 @@ import {
   type CompileHooks,
 } from './hooks.js';
 import { computeLevels } from './levels.js';
+import { splitEntry, type LoadEntry } from './load-entry.js';
 import { checkLifetimes } from './lifetimes.js';
 import { providerRecord } from './records.js';
 import { cyclePath, findCycles, successorsOf } from './tarjan.js';
@@ -49,8 +55,11 @@ export interface CompileInput {
    * blueprint does not store them: every compile receives them again.
    */
   readonly pluginImports?: readonly unknown[];
-  /** Modules load() added as root imports. */
-  readonly extraImports?: readonly unknown[];
+  /**
+   * Modules load() added as root imports, each with the grant it was loaded
+   * with. With `previous`, the compile checks every grant against it.
+   */
+  readonly extraImports?: readonly LoadEntry[];
   /** Plugin compile hooks. */
   readonly hooks?: CompileHooks;
   /**
@@ -92,6 +101,80 @@ function checkNewGlobals(walked: WalkResult, previous: Blueprint): void {
     (m) => m.global && !previous.moduleByDefinition.has(m.definition),
   );
   if (added !== undefined) throw new LoadError({ module: added.name });
+}
+
+/** The id `previous` holds for a module ref, or undefined when it holds none. */
+export function heldId(previous: Blueprint, ref: unknown): string | undefined {
+  const definition = resolveModuleRef(ref);
+  if (definition === undefined) return undefined;
+  return (
+    previous.moduleByDefinition.get(definition) ??
+    previous.moduleByReplaced.get(definition)
+  );
+}
+
+/**
+ * Whether the grant `refs` names is the set the module `held` of `previous`
+ * recorded. An empty request grants nothing, so it matches. A ref the graph
+ * lacks never matches. The order of the refs does not matter.
+ */
+export function sameGrant(
+  previous: Blueprint,
+  held: string,
+  refs: readonly unknown[],
+): boolean {
+  if (refs.length === 0) return true;
+  const recorded = previous.modules.get(held)?.grantSet ?? [];
+  const ids = new Set<string>();
+  for (const ref of refs) {
+    const id = heldId(previous, ref);
+    if (id === undefined) return false;
+    ids.add(id);
+  }
+  return ids.size === recorded.length && recorded.every((id) => ids.has(id));
+}
+
+/**
+ * load()'s grant rules, checked against the live blueprint before the walk,
+ * so a grant of the root never reaches the walk's stack. Each granted module
+ * must be in the graph and must not be the root. A module the graph holds
+ * keeps the grant it has: a request for another set is already-loaded. The
+ * first entry and grant that break a rule name the error.
+ */
+function checkGrants(entries: readonly LoadEntry[], previous: Blueprint): void {
+  for (const entry of entries) {
+    const { module, imports } = splitEntry(entry);
+    if (imports.length === 0) continue;
+    const loaded = resolveModuleRef(module)?.name ?? describeValue(module);
+    for (const ref of imports) {
+      const id = heldId(previous, ref);
+      const grant = resolveModuleRef(ref)?.name ?? describeValue(ref);
+      if (id === undefined)
+        throw new LoadGrantError({
+          module: loaded,
+          grant,
+          reason: 'not-in-graph',
+        });
+      if (id === previous.root)
+        throw new LoadGrantError({ module: loaded, grant, reason: 'root' });
+    }
+    const held = heldId(previous, module);
+    if (held === undefined || sameGrant(previous, held, imports)) continue;
+    const recorded = previous.modules.get(held)?.grantSet ?? [];
+    // The error names the first requested module the record lacks. A request
+    // that only drops modules from the record has none, so it names the first
+    // requested module.
+    const differing =
+      imports.find((ref) => {
+        const id = heldId(previous, ref);
+        return id !== undefined && !recorded.includes(id);
+      }) ?? imports[0];
+    throw new LoadGrantError({
+      module: loaded,
+      grant: resolveModuleRef(differing)?.name ?? describeValue(differing),
+      reason: 'already-loaded',
+    });
+  }
 }
 
 /**
@@ -175,6 +258,9 @@ export function compile(input: CompileInput): Blueprint {
   const canon =
     keying === undefined ? undefined : reportingCanon(keying, errors);
   const pluginImports = HOOK_SITES ? input.pluginImports : undefined;
+  // Like checkNewGlobals, the guard throws alone. It runs ahead of the walk,
+  // so a grant of the root never reaches the walk's stack.
+  if (input.previous !== undefined) checkGrants(extraImports, input.previous);
   const walked = walk(
     {
       canon,
@@ -182,7 +268,14 @@ export function compile(input: CompileInput): Blueprint {
       extraImports:
         pluginImports === undefined || pluginImports.length === 0
           ? extraImports
-          : [...pluginImports, ...extraImports],
+          : [
+              // A plugin's module is never a grant entry, whatever its shape.
+              ...pluginImports.map((module) => ({
+                module: module as ModuleRef,
+                imports: [],
+              })),
+              ...extraImports,
+            ],
       replace,
     },
     errors,

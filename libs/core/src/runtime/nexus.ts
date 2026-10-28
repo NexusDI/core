@@ -13,7 +13,12 @@ import { resolveDeps, validateDeps } from './deps.js';
 import { formatFor, formatThrown, guardAsync } from './format.js';
 import { loadModule } from './load.js';
 import { getFrom, hasIn } from './lookup.js';
-import type { CheckOptions, CreateOptions, LookupOptions } from './options.js';
+import type {
+  CheckOptions,
+  CreateOptions,
+  LoadOptions,
+  LookupOptions,
+} from './options.js';
 import {
   pluginContext,
   registerPlugins,
@@ -89,12 +94,12 @@ export class Nexus {
         wantsView: HOOK_SITES && plugins.formatError.length > 0,
       };
       last = compileTraced(tracer, input, 'check', null);
-      for (const module of options?.load ?? []) {
+      for (const entry of options?.load ?? []) {
         last = compileTraced(
           tracer,
           {
             ...input,
-            extraImports: [...last.extraImports, module],
+            extraImports: [...last.extraImports, entry],
             previous: last,
           },
           'check',
@@ -175,9 +180,14 @@ export class Nexus {
   /**
    * Adds a module after startup. Its exports become visible at the root once
    * its singletons are built. Concurrent calls run one at a time, in call order.
+   *
+   * `options.imports` names modules the graph already holds. Each module the
+   * load adds sees their exports, as if it imported them. A repeat load of a
+   * module does nothing when it grants nothing or the same set, and rejects
+   * with NEXUS_LOAD_GRANT for another set.
    */
-  load(module: ModuleRef): Promise<void> {
-    return guardAsync(this.#state, loadModule(this.#state, module));
+  load(module: ModuleRef, options?: LoadOptions): Promise<void> {
+    return guardAsync(this.#state, loadModule(this.#state, module, options));
   }
 
   /**

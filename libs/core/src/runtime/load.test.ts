@@ -4,7 +4,7 @@ import { rejected } from '../../test-support/catch.js';
 import { deferred, flush } from '../../test-support/deferred.js';
 import { defineModule } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
-import { all } from '../definitions/modifiers.js';
+import { all, optional } from '../definitions/modifiers.js';
 import { MultiToken, Token } from '../definitions/token.js';
 import { Nexus } from './nexus.js';
 
@@ -339,6 +339,269 @@ describe('Nexus', () => {
       await ship.load(Lab);
       expect(reactorBuilds).toBe(1);
       expect(ship.get(CountedReactor)).toBe(first);
+    });
+  });
+
+  describe('load with a grant', () => {
+    const REACTOR = new Token<{ output: number }>('Reactor');
+    const COOLANT = new Token<string>('Coolant');
+    const CHARTS = new Token<string>('Charts');
+    const Reactors = defineModule({
+      name: 'Reactors',
+      providers: [
+        provide(REACTOR, { useValue: { output: 7 } }),
+        provide(COOLANT, { useValue: 'liquid helium' }),
+      ],
+      exports: [REACTOR],
+    });
+    const Navigation = defineModule({
+      name: 'Navigation',
+      providers: [provide(CHARTS, { useValue: 'sector 7' })],
+      exports: [CHARTS],
+    });
+    // The root imports Wrapper only, so Reactors and Navigation are in the
+    // graph and a loaded module cannot name them through the root.
+    const Wrapper = defineModule({
+      name: 'Wrapper',
+      imports: [Reactors, Navigation],
+    });
+    const Host = defineModule({ name: 'Host', imports: [Wrapper] });
+
+    class Probe {
+      static deps = [REACTOR] as const;
+      constructor(readonly reactor: { output: number }) {}
+    }
+    class Scanner {
+      static deps = [REACTOR] as const;
+      constructor(readonly reactor: { output: number }) {}
+    }
+    class Pump {
+      static deps = [COOLANT] as const;
+      constructor(readonly coolant: string) {}
+    }
+
+    it('resolves a granted export in the loaded module and in a new module of its subtree', async () => {
+      const Sensors = defineModule({
+        name: 'Sensors',
+        providers: [Scanner],
+        exports: [Scanner],
+      });
+      const Science = defineModule({
+        name: 'Science',
+        imports: [Sensors],
+        providers: [Probe],
+        exports: [Probe, Sensors],
+      });
+      const ship = await Nexus.create(Host);
+      await ship.load(Science, { imports: [Reactors] });
+      expect(ship.get(Probe).reactor.output).toBe(7);
+      expect(ship.get(Scanner).reactor).toBe(ship.get(Probe).reactor);
+    });
+
+    it('does not give the loaded module a private provider of the granted module', async () => {
+      const Science = defineModule({
+        name: 'Science',
+        providers: [Pump],
+        exports: [Pump],
+      });
+      const ship = await Nexus.create(Host);
+      expect(
+        await rejected(ship.load(Science, { imports: [Reactors] })),
+      ).toMatchObject({
+        code: 'NEXUS_BLUEPRINT_INVALID',
+        errors: [{ code: 'NEXUS_MISSING_PROVIDER', requester: 'Pump' }],
+      });
+    });
+
+    it('gives a module the graph already held nothing from the grant', async () => {
+      const GAUGE = new Token<{ reactor: unknown }>('Gauge');
+      const Hold = defineModule({
+        name: 'Hold',
+        providers: [
+          provide(GAUGE, {
+            useFactory: (reactor: unknown) => ({ reactor }),
+            deps: [optional(REACTOR)],
+          }),
+        ],
+        exports: [GAUGE],
+      });
+      const ship = await Nexus.create(
+        defineModule({ name: 'Root', imports: [Wrapper, Hold] }),
+      );
+      const Science = defineModule({
+        name: 'Science',
+        imports: [Hold],
+        providers: [Probe],
+        exports: [Probe],
+      });
+      await ship.load(Science, { imports: [Reactors] });
+      expect(ship.get(Probe).reactor.output).toBe(7);
+      expect(ship.get(GAUGE).reactor).toBeUndefined();
+    });
+
+    it('rejects NEXUS_LOAD_GRANT not-in-graph for a granted module the graph lacks', async () => {
+      const Hangar = defineModule({ name: 'Hangar' });
+      const ship = await Nexus.create(Host);
+      expect(
+        await rejected(
+          ship.load(defineModule({ name: 'Science' }), { imports: [Hangar] }),
+        ),
+      ).toMatchObject({
+        code: 'NEXUS_LOAD_GRANT',
+        module: 'Science',
+        grant: 'Hangar',
+        reason: 'not-in-graph',
+      });
+    });
+
+    it('rejects not-in-graph for a fresh forRoot() call, since it makes a new definition', async () => {
+      const LEVEL = new Token<{ level: number }>('Level');
+      const Configured = defineModule({ name: 'Configured', options: LEVEL });
+      const held = Configured.forRoot({ level: 1 });
+      const ship = await Nexus.create(
+        defineModule({ name: 'Root', imports: [held] }),
+      );
+      const Science = defineModule({ name: 'Science' });
+      await ship.load(Science, { imports: [held] });
+      expect(
+        await rejected(
+          ship.load(defineModule({ name: 'Lab' }), {
+            imports: [Configured.forRoot({ level: 1 })],
+          }),
+        ),
+      ).toMatchObject({
+        code: 'NEXUS_LOAD_GRANT',
+        grant: 'Configured',
+        reason: 'not-in-graph',
+      });
+    });
+
+    it('rejects NEXUS_LOAD_GRANT root for a grant of the root module', async () => {
+      const ship = await Nexus.create(Host);
+      expect(
+        await rejected(
+          ship.load(defineModule({ name: 'Science' }), { imports: [Host] }),
+        ),
+      ).toMatchObject({
+        code: 'NEXUS_LOAD_GRANT',
+        module: 'Science',
+        grant: 'Host',
+        reason: 'root',
+      });
+    });
+
+    it('accepts a global module as a grant and adds nothing', async () => {
+      const Telemetry = defineModule({
+        name: 'Telemetry',
+        global: true,
+        providers: [provide(CHARTS, { useValue: 'global' })],
+        exports: [CHARTS],
+      });
+      class Reader {
+        static deps = [CHARTS] as const;
+        constructor(readonly charts: string) {}
+      }
+      const ship = await Nexus.create(
+        defineModule({ name: 'Root', imports: [Telemetry] }),
+      );
+      const Science = defineModule({
+        name: 'Science',
+        providers: [Reader],
+        exports: [Reader],
+      });
+      await ship.load(Science, { imports: [Telemetry] });
+      expect(ship.get(Reader).charts).toBe('global');
+    });
+
+    describe('a repeat load of the same module', () => {
+      class Gadget {
+        static built = 0;
+        static deps = [REACTOR, CHARTS] as const;
+        constructor(
+          readonly reactor: { output: number },
+          readonly charts: string,
+        ) {
+          Gadget.built++;
+        }
+      }
+      const Lab = defineModule({
+        name: 'Lab',
+        providers: [Gadget],
+        exports: [Gadget],
+      });
+
+      it('does nothing for the same set in another order and builds once', async () => {
+        Gadget.built = 0;
+        const ship = await Nexus.create(Host);
+        await ship.load(Lab, { imports: [Reactors, Navigation] });
+        await ship.load(Lab, { imports: [Navigation, Reactors] });
+        expect(Gadget.built).toBe(1);
+      });
+
+      it('does nothing without options', async () => {
+        Gadget.built = 0;
+        const ship = await Nexus.create(Host);
+        await ship.load(Lab, { imports: [Reactors, Navigation] });
+        await ship.load(Lab);
+        expect(Gadget.built).toBe(1);
+      });
+
+      it('rejects already-loaded for another set', async () => {
+        const ship = await Nexus.create(Host);
+        await ship.load(Lab, { imports: [Reactors, Navigation] });
+        expect(
+          await rejected(ship.load(Lab, { imports: [Reactors] })),
+        ).toMatchObject({
+          code: 'NEXUS_LOAD_GRANT',
+          module: 'Lab',
+          reason: 'already-loaded',
+        });
+      });
+    });
+
+    it('rejects already-loaded for a grant on a module the root imports statically', async () => {
+      const ship = await Nexus.create(Host);
+      expect(
+        await rejected(ship.load(Wrapper, { imports: [Reactors] })),
+      ).toMatchObject({
+        code: 'NEXUS_LOAD_GRANT',
+        module: 'Wrapper',
+        grant: 'Reactors',
+        reason: 'already-loaded',
+      });
+    });
+
+    it('leaves an earlier grant as it is when a later load imports the module', async () => {
+      const Science = defineModule({
+        name: 'Science',
+        providers: [Probe],
+        exports: [Probe],
+      });
+      const ship = await Nexus.create(Host);
+      await ship.load(Science, { imports: [Reactors] });
+      const Lab = defineModule({ name: 'Lab', imports: [Science] });
+      await ship.load(Lab, { imports: [Navigation] });
+      expect(ship.get(Probe).reactor.output).toBe(7);
+      expect(
+        await rejected(ship.load(Science, { imports: [Navigation] })),
+      ).toMatchObject({ code: 'NEXUS_LOAD_GRANT', reason: 'already-loaded' });
+    });
+
+    it('still rejects a global loaded module and a published contribution', async () => {
+      const LOG = new MultiToken<string>('Log');
+      const Telemetry = defineModule({ name: 'Telemetry', global: true });
+      const Listener = defineModule({
+        name: 'Listener',
+        providers: [provide(LOG, { useValue: 'x' })],
+        exports: [LOG],
+      });
+      const ship = await Nexus.create(Host);
+      expect(
+        await rejected(ship.load(Telemetry, { imports: [Reactors] })),
+      ).toMatchObject({ code: 'NEXUS_LOAD_GLOBAL_MODULE' });
+      expect(
+        await rejected(ship.load(Listener, { imports: [Reactors] })),
+      ).toMatchObject({ code: 'NEXUS_LOAD_CONTRIBUTION' });
     });
   });
 });
