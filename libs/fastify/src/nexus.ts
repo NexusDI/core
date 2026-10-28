@@ -90,6 +90,14 @@ export interface NexusFastify {
   inject: Inject;
   scope(req: FastifyRequest): Promise<Scope>;
   load(module: ModuleRef, options?: LoadOptions): SectionHook;
+  /**
+   * Closes the adapter: a request's first use of its scope after this
+   * answers 503. Disposes the container when `nexus()` got a function and
+   * built one, after a build in flight settles; a given container stays
+   * open. A second call returns the first call's promise, and a disposer
+   * error of the built container rejects it.
+   */
+  [Symbol.asyncDispose](): Promise<void>;
 }
 
 /**
@@ -216,5 +224,6 @@ export function nexus(
         handlerOf(deps, handler, core.sectionCheck(deps), module, options);
       return Object.assign(hook, { inject: sectionInject });
     },
+    [Symbol.asyncDispose]: () => core.dispose(),
   };
 }

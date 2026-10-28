@@ -55,6 +55,14 @@ export interface NexusHono {
   readonly inject: Inject;
   scope(c: Context): Promise<Scope>;
   load(module: ModuleRef, options?: LoadOptions): SectionMiddleware;
+  /**
+   * Closes the adapter: a request's first use of its scope after this
+   * answers 503. Disposes the container when `nexus()` got a function and
+   * built one, after a build in flight settles; a given container stays
+   * open. A second call returns the first call's promise, and a disposer
+   * error of the built container rejects it.
+   */
+  [Symbol.asyncDispose](): Promise<void>;
 }
 
 /** The platform's waitUntil, as Hono's executionCtx exposes it. */
@@ -186,5 +194,6 @@ export function nexus(
         handlerOf(deps, handler, core.sectionCheck(deps), module, options);
       return Object.assign(section, { inject: sectionInject });
     },
+    [Symbol.asyncDispose]: () => core.dispose(),
   };
 }

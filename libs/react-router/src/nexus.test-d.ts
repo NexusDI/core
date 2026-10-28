@@ -56,4 +56,8 @@ describe('@nexusdi/react-router types', () => {
     expectTypeOf(res).toEqualTypeOf<Response>();
     expectTypeOf(di.middleware).toExtend<MiddlewareFunction<Response>>();
   });
+
+  it('types the handle as AsyncDisposable', () => {
+    expectTypeOf(di).toExtend<AsyncDisposable>();
+  });
 });

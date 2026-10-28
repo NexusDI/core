@@ -13,6 +13,7 @@ import {
 } from '@nexusdi/core';
 
 import {
+  AdapterDisposedError,
   adapterCore,
   ContainerBuildError,
   containerOf,
@@ -98,6 +99,79 @@ describe('containerOf', () => {
   });
 });
 
+describe('containerOf close', () => {
+  it('refuses the given container after close and leaves it open', async () => {
+    await using ship = await Nexus.create(providers);
+    const container = containerOf(ship);
+    await container.close();
+    await expect(container()).rejects.toBeInstanceOf(AdapterDisposedError);
+    expect(ship.has(MISSION)).toBe(true);
+  });
+
+  it('disposes the container it built and refuses a later call without building', async () => {
+    const ship = await Nexus.create(providers);
+    const build = vi.fn(() => Promise.resolve(ship));
+    const container = containerOf(build);
+    await container();
+    await container.close();
+    expect(() => ship.has(MISSION)).toThrow(DisposedError);
+    await expect(container()).rejects.toBeInstanceOf(AdapterDisposedError);
+    expect(build).toHaveBeenCalledTimes(1);
+  });
+
+  it('waits for a build in flight and disposes what it returns', async () => {
+    const ship = await Nexus.create(providers);
+    let finish!: (built: Nexus) => void;
+    const gate = new Promise<Nexus>((resolve) => (finish = resolve));
+    const container = containerOf(() => gate);
+    const waiter = container();
+    const closed = container.close();
+    finish(ship);
+    expect(await waiter).toBe(ship);
+    await closed;
+    expect(() => ship.has(MISSION)).toThrow(DisposedError);
+  });
+
+  it('starts no rebuild when a build rejects after close', async () => {
+    let fail!: (error: Error) => void;
+    const gate = new Promise<Nexus>((_, reject) => (fail = reject));
+    const build = vi.fn(() => gate);
+    const container = containerOf(build);
+    const waiter = container();
+    const closed = container.close();
+    fail(new Error('charts offline'));
+    await expect(waiter).rejects.toBeInstanceOf(ContainerBuildError);
+    await closed;
+    await expect(container()).rejects.toBeInstanceOf(AdapterDisposedError);
+    expect(build).toHaveBeenCalledTimes(1);
+  });
+
+  it('never calls a function that no request called', async () => {
+    const build = vi.fn(() => Nexus.create(providers));
+    const container = containerOf(build);
+    await container.close();
+    await expect(container()).rejects.toBeInstanceOf(AdapterDisposedError);
+    expect(build).not.toHaveBeenCalled();
+  });
+
+  it('returns the first promise on a second close, rejected with the disposer error', async () => {
+    const cause = new Error('coolant pump stuck');
+    const PUMP = new Token<object>('CoolantPump');
+    const ship = await Nexus.create([
+      provide(PUMP, {
+        useFactory: () => ({
+          [Symbol.asyncDispose]: () => Promise.reject(cause),
+        }),
+      }),
+    ]);
+    const container = containerOf(() => Promise.resolve(ship));
+    await container();
+    const first = container.close();
+    expect(container.close()).toBe(first);
+    await expect(first).rejects.toBe(cause);
+  });
+});
+
 describe('requestScope', () => {
   it('creates no scope and calls no mapping until scope() is called', async () => {
     await using ship = await Nexus.create(providers);
@@ -164,6 +238,18 @@ describe('statusOf and toHttpError', () => {
     expect(statusOf(new ThirdParty({ dock: '7' }))).toBe(500);
     expect(statusOf(new Error('plain'))).toBeUndefined();
     expect(statusOf(new RequestFinishedError())).toBeUndefined();
+  });
+
+  it('maps a disposed adapter to 503, logged at warn', () => {
+    const error = new AdapterDisposedError();
+    expect(statusOf(error)).toBe(503);
+    expect(
+      logLevel(error, {
+        adapter: '@nexusdi/test',
+        phase: 'scope',
+        status: 503,
+      }),
+    ).toBe('warn');
   });
 
   it('logs once and returns an error with the status text and no code', () => {

@@ -46,4 +46,8 @@ describe('@nexusdi/hono types', () => {
     // @ts-expect-error: the test-support augmentation makes `mission` required
     nexus(ship, {});
   });
+
+  it('types the handle as AsyncDisposable', () => {
+    expectTypeOf(di).toExtend<AsyncDisposable>();
+  });
 });

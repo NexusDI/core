@@ -37,3 +37,7 @@ test("reply.send is checked against the route's Reply type", () => {
     }),
   );
 });
+
+test('the handle is AsyncDisposable', () => {
+  expectTypeOf(nexus(ship)).toExtend<AsyncDisposable>();
+});
