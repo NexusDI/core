@@ -37,6 +37,7 @@ function build() {
       charted.push(`plot ${to}`);
       return { to, heading: to === 'Kepler-442b' ? 42 : 0 };
     },
+    stars: () => ['Kepler-442b'],
   };
   const helm = new HelmControl(thrusters, drive, charts);
   return { helm, steered, throttled, charted };

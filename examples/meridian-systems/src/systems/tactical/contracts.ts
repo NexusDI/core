@@ -12,6 +12,8 @@ export interface INavCharts {
   has(to: string): boolean;
   /** The course to `to`, or heading 0 for a star the charts do not hold. */
   plot(to: string): Course;
+  /** The names of the stars the charts hold, in chart order. */
+  stars(): readonly string[];
 }
 
 export const NAV_CHARTS = new Token<INavCharts>('NavCharts');

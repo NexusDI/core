@@ -4,6 +4,10 @@ import type { ISubspaceLink } from '../comms/contracts';
 
 import type { Course, INavCharts } from './contracts';
 
+// The `./charts` entry carries the token and its types beside the class, so
+// a browser bundle imports this one file and none of the simulation.
+export { NAV_CHARTS, type Course, type INavCharts } from './contracts';
+
 /** The chart table the ship carries: a heading for each star it charts. */
 export const BUNDLED_CHARTS: Readonly<Record<string, number>> = charts;
 
@@ -51,5 +55,9 @@ export class StarCharts implements INavCharts {
 
   plot(to: string): Course {
     return { to, heading: this.has(to) ? this.headings[to] : 0 };
+  }
+
+  stars(): readonly string[] {
+    return Object.keys(this.headings).filter((name) => this.has(name));
   }
 }
