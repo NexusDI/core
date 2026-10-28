@@ -3935,9 +3935,10 @@ through the ship with room to spare:
 The ship has three decks, 9.6 m together, over a 1.6 m keel and under a 1.8 m dorsal
 ridge, which gives the 13 m height. The main deck runs from the bridge to the main drive,
 and its 2.0 m spine carries the crew's route from the bridge to engineering. The upper
-deck holds the comms relay and the quarters on either side of the barrel, and the
-capacitor room at the barrel's breech. The lower deck holds the computer core, the two
-bays and the FTL core. A position below is the distance aft of the bow in metres.
+deck holds the comms relay and the quarters starboard of the barrel, water tanks port of
+it over the habitat, and the capacitor room at the barrel's breech. The lower deck holds
+the computer core, the two bays and the FTL core. A position below is the distance aft of
+the bow in metres.
 
 Every door of the deck is a pressure hatch of 1.5 m by 2.0 m, 3.0 m², since each sits
 under `BLAST_DOORS` and the interlock. The two bay doors are larger. A room's `volume` is
@@ -3947,9 +3948,11 @@ reactor bay, where the reactor fills most of a two-deck volume. With the corrido
 hatches at these widths, every room of section 16.2 fits the 72 m by 16 m hull, so the
 hull keeps its length and beam and grows 2 m in height for the 3.2 m decks.
 
-Tanks may appear in the art as exterior or cutaway detail where they look good, such as
-the band between engineering and the reactor bay. A tank is no room, so it is no
-compartment, and the rule that the art shows no room the simulation lacks holds.
+Tanks may appear in the art as exterior or cutaway detail where they look good: on the
+upper deck at 38.5 to 42.5 m between the capacitor room and the reactor bay, in the keel
+under the reactor bay, and as the storm shelter's water tank on the upper deck at 12 to
+27 m, port of the barrel. A tank is no room, so it is no compartment, and the rule that
+the art shows no room the simulation lacks holds.
 
 ### 16.2 Compartments
 
@@ -3959,17 +3962,17 @@ new ones fore to aft. C is the structure heat capacity and G the hull conductanc
 | Id               | Hull section             | Deck and position                        | Volume | Occupants | Equipment                        | C         | G       | Flood charge | Air                     |
 | ---------------- | ------------------------ | ---------------------------------------- | ------ | --------- | -------------------------------- | --------- | ------- | ------------ | ----------------------- |
 | `bridge`         | bridge                   | main, 2 to 10, centreline                | 60 m³  | 2         | heater, scrubber, oxygen         | 2.0 MJ/K  | 90 W/K  | 1,000 mol    | pressurised, occupied   |
-| `habitat`        | habitat, galley and mess | main, 14 to 28, centreline               | 120 m³ | 2         | heater, scrubber, oxygen         | 4.0 MJ/K  | 150 W/K | 2,000 mol    | pressurised, occupied   |
+| `habitat`        | habitat, galley and mess | main, 10 to 28, centreline and port      | 120 m³ | 2         | heater, scrubber, oxygen         | 4.0 MJ/K  | 150 W/K | 2,000 mol    | pressurised, occupied   |
 | `reactor-bay`    | reactor bay              | main and upper, 43 to 55, windowless     | 80 m³  | 0         | none; `coolantConductance` 2 W/K | 6.0 MJ/K  | 110 W/K | 1,330 mol    | pressurised, unoccupied |
 | `airlock`        | airlock                  | main, 24 to 27, port                     | 12 m³  | 0         | vent, pump into `habitat`        | 0.5 MJ/K  | 30 W/K  | none         | pressurised, cycles     |
 | `chart-room`     | chart room               | main, 10 to 14, starboard                | 24 m³  | 0         | heater                           | 0.8 MJ/K  | 45 W/K  | 400 mol      | pressurised, unoccupied |
 | `computer-core`  | computer core            | lower, 3 to 9, under the bridge          | 20 m³  | 0         | heater                           | 1.5 MJ/K  | 25 W/K  | 330 mol      | pressurised, unoccupied |
 | `quarters`       | habitat, quarters        | upper, 17 to 27, starboard of the barrel | 48 m³  | 2         | heater, scrubber, oxygen         | 1.6 MJ/K  | 80 W/K  | 800 mol      | pressurised, occupied   |
-| `comms-relay`    | comms                    | upper, 12 to 16, port of the barrel      | 16 m³  | 0         | heater                           | 0.6 MJ/K  | 40 W/K  | 270 mol      | pressurised, unoccupied |
+| `comms-relay`    | comms                    | upper, 12 to 16, starboard of the barrel | 16 m³  | 0         | heater                           | 0.6 MJ/K  | 40 W/K  | 270 mol      | pressurised, unoccupied |
 | `shuttle-bay`    | shuttle bay              | lower, 15 to 31, ventral                 | 480 m³ | 0         | none                             | 12.0 MJ/K | 370 W/K | none         | vacuum                  |
-| `drone-bay`      | drone bay                | lower, 32 to 38, ventral                 | 50 m³  | 0         | none                             | 1.5 MJ/K  | 80 W/K  | none         | vacuum                  |
+| `drone-bay`      | drone bay                | lower, 31 to 38, ventral                 | 50 m³  | 0         | none                             | 1.5 MJ/K  | 80 W/K  | none         | vacuum                  |
 | `capacitor-room` | weapons                  | upper, 30 to 38, at the breech           | 36 m³  | 0         | heater                           | 3.0 MJ/K  | 60 W/K  | 600 mol      | pressurised, unoccupied |
-| `engineering`    | engineering              | main, 28 to 41                           | 90 m³  | 0         | heater                           | 4.5 MJ/K  | 120 W/K | 1,500 mol    | pressurised, unoccupied |
+| `engineering`    | engineering              | main, 28 to 43                           | 90 m³  | 0         | heater                           | 4.5 MJ/K  | 120 W/K | 1,500 mol    | pressurised, unoccupied |
 | `ftl-core`       | FTL core                 | lower, 38 to 46                          | 50 m³  | 0         | heater                           | 5.0 MJ/K  | 80 W/K  | 830 mol      | pressurised, unoccupied |
 | `main-drive`     | main drive               | main, 55 to 65                           | 40 m³  | 0         | heater                           | 4.0 MJ/K  | 70 W/K  | 670 mol      | pressurised, unoccupied |
 
@@ -3978,7 +3981,7 @@ The crew totals 6. The pressurised volume is 596 m³, and the two vacuum bays ho
 The four existing compartments keep their volume, conductance, structure heat capacity,
 flood charge and equipment. The habitat's split forces one change: `habitat` drops from
 4 occupants to 2, since `quarters` takes 2 of the 6 crew. `habitat` keeps its 120 m³ as
-the galley, the mess and the midship companionway, so the pump, vent and flood figures of
+the galley, the mess and the forward companionway, so the pump, vent and flood figures of
 sections 5.4 and 5.10 hold for it. The door figures of section 5.5 change with the
 hatches' 3.0 m².
 
@@ -4000,7 +4003,8 @@ The new rooms take their figures from the four existing ones:
   48 h. A scrubber and a generator sit only where crew breathe.
 - The two bays hold vacuum. A bay door opens to space, and a pump-down of the 480 m³
   shuttle bay into the 120 m³ habitat would stall far above vacuum. The shuttle bay's
-  16 m by 7 m by 5 m holds the shuttle beside 480 m³ of free volume. A suited crew reaches
+  16 m by 8 m by 4.4 m, from the ventral skin to the main deck's floor, holds the shuttle
+  beside 480 m³ of free volume. A suited crew reaches
   the shuttle through the airlock, cycled to vacuum, and the hatch `airlock-shuttle-bay`.
 
 The doors, in deck order:
@@ -4200,8 +4204,10 @@ curve, the brow over the bridge's window band, which gives the ship a face. The 
 shroud runs along the dorsal ridge as one line from the breech hump over the capacitor
 room to the muzzle in the bow face, above the window band. The reactor bay reads as a
 heavier, windowless block at 43 to 55 m, the wings hinge from it, and the drive section
-narrows to the bells on the long axis at the stern. In the cutaway, tanks fill the band
-between engineering and the reactor bay at 41 to 43 m.
+narrows to the bells on the long axis at the stern. In the cutaway, tanks fill the upper
+deck between the capacitor room and the reactor bay at 38.5 to 42.5 m, and the keel under
+the reactor bay. Engineering reaches the reactor bay's forward wall at 43 m on the main
+deck, so the hatch `engineering-reactor-bay` sits in a shared wall.
 
 The radiator wings are thin panels that sweep aft and outboard from the reactor bay and
 stand edge-on to the bow: wide from above, nearly gone from ahead. The owner calls them
@@ -4249,6 +4255,27 @@ line through a room's boundary meets the same boundary in the side view, the top
 the cutaway and the deck plan, and the MeridianOS deck view and the front page's schematic
 take their geometry from the same plan.
 
+`examples/meridian-systems/deck/meridian.geometry.json` holds that plan in metres: the hull
+stations, the three decks, each compartment's boxes with its `pressurised` flag, the
+sixteen doors as rectangles on shared walls, floors and ceilings, the conduit routes of
+section 16.4, the tanks and the exterior parts. `@nexusdi/meridian-systems/geometry`
+exports it as `SHIP_GEOMETRY`, and a unit test checks that every room sits inside the
+hull, that no two boxes overlap, that every door lies on a face both its sides share and
+that every conduit leg stays inside one compartment. `tools/meridian-ship` builds the
+concept mesh and its renders from the same file. Fitting the rooms of section 16.2 into
+boxes changed five placements:
+
+- The airlock runs 5.5 m inboard from the port flank at 24 to 27 m, so its floor hatch
+  `airlock-shuttle-bay` opens over the shuttle bay.
+- The habitat is three boxes: a companionway at 10 to 14 m port of the chart room, which
+  meets the bridge, the mess at 14 to 28 m, and a galley at 14 to 24 m along the port
+  flank forward of the airlock.
+- The comms relay sits starboard of the barrel, under the comms mast that the exterior
+  brief already places starboard of the shroud.
+- Engineering runs to 43 m and the drone bay from 31 m, so the hatches
+  `engineering-reactor-bay` and `shuttle-bay-drone-bay` sit in shared walls.
+- The shuttle bay is 8 m wide and runs from the ventral skin to the main deck's floor.
+
 ### 16.7 What an implementation changes
 
 The deck and the library:
@@ -4257,6 +4284,9 @@ The deck and the library:
   16.2. A compartment plan gains `pressurised`, true when absent. A room with `false`
   starts with no gas, and `ShipStateStore` throws a plain `Error` for such a room that
   lists equipment or a flood charge.
+- `deck/meridian.geometry.json` already lists the fourteen compartments and sixteen doors.
+  Its test checks that each deck compartment has a shape. The commit that grows the deck
+  makes the test compare the two id lists and the `pressurised` flags for equality.
 - `COMPARTMENT_IDS` appends the ten new ids. `DOOR_IDS` drops `habitat-reactor-bay` and
   gains thirteen doors. `CompartmentId` and `DoorId` widen with them, so every
   `Partial<Record<CompartmentId, …>>` setpoint takes the new keys.
