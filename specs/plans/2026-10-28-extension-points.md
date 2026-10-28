@@ -85,7 +85,7 @@ K1.2. The load guard (S, after K1.1)
 - Scope: section 4.5. `LoadContributionError` (`NEXUS_LOAD_CONTRIBUTION`, fields `module`,
   `token`), the guard in `compile()` after `rewriteProviders` and before pass 2, skipping
   pinned tokens, and `isLoadError` used by `Nexus.check` in place of the `instanceof
-LoadError` test at `nexus.ts:106`. The text and the fix of section 4.5 in `core-text.ts`.
+LoadError` test at `nexus.ts:108`. The text and the fix of section 4.5 in `core-text.ts`.
 - Files: `libs/core/src/errors/load-contribution-error.ts` (new),
   `libs/core/src/errors/{index.ts,is-nexus-error.ts}`, `libs/core/src/blueprint/compile.ts`,
   `libs/core/src/runtime/nexus.ts`, `libs/core/src/text/core-text.ts`, `libs/core/src/index.ts`,
@@ -241,7 +241,7 @@ K4.2. One load helper for the adapters (M, after K4.1)
 
 - Scope: section 7.5, last point. `loadOnce(container)` in `@nexusdi/core`, keyed on the
   module and its granted set, sharing the pending promise and forgetting a failed load. The
-  four `loader()` copies (`request-scope.ts:290-303`) go, and each adapter's
+  four `loader()` copies (`request-scope.ts:290-309`) go, and each adapter's
   `di.load(module, options?)` passes the grant. `lazySection(name, loader, options?)` in
   `@nexusdi/react`. The devtools startup profile takes `LoadEntry`.
 - Files: `libs/core/src/runtime/load-once.ts` (new) and its test, `libs/core/src/index.ts`,
