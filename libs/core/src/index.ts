@@ -16,6 +16,7 @@ export {
   isNexusError,
   LazyAsyncError,
   LifetimeError,
+  LoadContributionError,
   LoadedAfterScopeError,
   LoadError,
   MissingDepsError,

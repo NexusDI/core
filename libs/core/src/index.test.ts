@@ -32,6 +32,7 @@ const RUNTIME_EXPORTS: string[] = [
   'lazy',
   'LazyAsyncError',
   'LifetimeError',
+  'LoadContributionError',
   'LoadedAfterScopeError',
   'LoadError',
   'MissingDepsError',

@@ -1,6 +1,6 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
 import { compile, type CompileInput } from '../blueprint/compile.js';
-import { BlueprintError, LoadError, ProviderError } from '../errors/index.js';
+import { BlueprintError, isLoadError, ProviderError } from '../errors/index.js';
 import { emitCollecting, type Tracer } from './trace.js';
 
 /**
@@ -21,8 +21,8 @@ export function observerFailed(
 /** How many errors a compile throw reports, or undefined for a throw that is not a compile failure. */
 function errorCount(error: unknown): number | undefined {
   if (error instanceof BlueprintError) return error.errors.length;
-  // compile() throws a LoadError alone, before its later passes run.
-  return error instanceof LoadError ? 1 : undefined;
+  // compile() throws a load error alone, before its later passes run.
+  return isLoadError(error) ? 1 : undefined;
 }
 
 /**

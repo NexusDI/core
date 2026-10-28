@@ -99,6 +99,11 @@ exports[`NexusError > keeps the message of LifetimeError 1`] = `
   Fix: make ShipComputer scoped, or move the scoped dependency out of its dependency chain."
 `;
 
+exports[`NexusError > keeps the message of LoadContributionError 1`] = `
+"[NEXUS_LOAD_CONTRIBUTION] Science publishes a contribution to Log, and load() cannot add to a multi token: collectors built at startup hold their lists.
+  Fix: drop the contribution from Science and register the provider from its onInit through the collector's registry, and unregister it on dispose."
+`;
+
 exports[`NexusError > keeps the message of LoadError 1`] = `
 "[NEXUS_LOAD_GLOBAL_MODULE] Telemetry is global and cannot be loaded after startup, because every module's bindings are already computed.
   Fix: import Telemetry from the root module, or make it non-global."
