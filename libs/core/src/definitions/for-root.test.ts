@@ -4,6 +4,7 @@ import { rejected } from '../../test-support/catch.js';
 import { Nexus } from '../runtime/nexus.js';
 import { defineModule } from './define-module.js';
 import { provide } from './provide.js';
+import type { StandardSchemaV1 } from './standard-schema.js';
 import { Token } from './token.js';
 
 interface CommsOptions {
@@ -92,5 +93,50 @@ describe('defineModule', () => {
     expect(error).toMatchObject({
       errors: [{ code: 'NEXUS_MODULE_OPTIONS_MISSING', module: 'Comms' }],
     });
+  });
+});
+
+interface TunedInput {
+  frequency: number;
+  band?: string;
+}
+interface TunedOptions {
+  frequency: number;
+  band: string;
+}
+const TUNED = new Token<TunedOptions>('TunedOptions');
+/** Reads `{ frequency, band? }` and defaults `band` to 'S'. */
+const tunedSchema: StandardSchemaV1<TunedInput, TunedOptions> = {
+  '~standard': {
+    version: 1,
+    vendor: 'nexusdi-test',
+    validate: (value) => {
+      const input = value as TunedInput;
+      return { value: { frequency: input.frequency, band: input.band ?? 'S' } };
+    },
+  },
+};
+const Tuned = defineModule({
+  name: 'Tuned',
+  options: TUNED,
+  schema: tunedSchema,
+  exports: [TUNED],
+});
+
+describe('a schema with defaults', () => {
+  it('fills a field forRoot() left out before the options token resolves', async () => {
+    const ship = await Nexus.create({
+      imports: [Tuned.forRoot({ frequency: 1420 })],
+    });
+    expect(ship.get(TUNED)).toEqual({ frequency: 1420, band: 'S' });
+  });
+
+  it('fills a field the forRootAsync() factory left out', async () => {
+    const ship = await Nexus.create({
+      imports: [
+        Tuned.forRootAsync({ useFactory: async () => ({ frequency: 7 }) }),
+      ],
+    });
+    expect(ship.get(TUNED)).toEqual({ frequency: 7, band: 'S' });
   });
 });

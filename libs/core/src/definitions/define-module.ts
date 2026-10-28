@@ -31,11 +31,15 @@ export interface ModuleConfig {
 /**
  * The config of a module with `forRoot()` and `forRootAsync()`: a
  * `ModuleConfig`, the token its options value resolves under, and an optional
- * schema that checks the value.
+ * schema that checks the value. The schema reads `Input` and produces `Opts`.
+ * `defineModule()` infers its own types and does not read this one.
  */
-export interface ConfigurableModuleConfig<Opts> extends ModuleConfig {
+export interface ConfigurableModuleConfig<
+  Opts,
+  Input = unknown,
+> extends ModuleConfig {
   readonly options: Token<Opts>;
-  readonly schema?: StandardSchemaV1<unknown, Opts>;
+  readonly schema?: StandardSchemaV1<Input, Opts>;
 }
 
 /** A frozen module. The compiler walks these. */
@@ -47,22 +51,35 @@ export interface ModuleDefinition {
   readonly global: boolean;
 }
 
-/** What forRootAsync() takes: a factory for the options, and its deps. */
-export interface ForRootAsyncConfig<Opts, D extends readonly Dep[]> {
+/**
+ * What forRootAsync() takes: a factory for the options, and its deps. The
+ * factory returns `Input`, the value the module's schema reads.
+ */
+export interface ForRootAsyncConfig<Input, D extends readonly Dep[]> {
   readonly useFactory: (
     ...args: ResolveAll<D>
-  ) => NoInfer<Opts> | PromiseLike<NoInfer<Opts>>;
+  ) => NoInfer<Input> | PromiseLike<NoInfer<Input>>;
   readonly deps?: D;
 }
 
-/** A module that takes options, named as in NestJS. */
-export interface ConfigurableModule<Opts> extends ModuleDefinition {
+/**
+ * A module that takes options, named as in NestJS. `forRoot()` and the
+ * `forRootAsync()` factory take `Input`, the value the schema reads, and the
+ * options token resolves to `Opts`, the schema's output. Without a schema the
+ * two are the same type.
+ */
+export interface ConfigurableModule<
+  Opts,
+  Input = Opts,
+> extends ModuleDefinition {
   readonly options: Token<Opts>;
   readonly schema: StandardSchemaV1<unknown, Opts> | undefined;
-  forRoot(options: NoInfer<Opts>): ModuleDefinition;
-  forRootAsync<const D extends readonly Dep[] = []>(
-    config: ForRootAsyncConfig<Opts, D>,
-  ): ModuleDefinition;
+  // Properties, so a module whose forRoot() takes a different input does not
+  // assign to one typed with the token's type (methods are bivariant).
+  readonly forRoot: (options: NoInfer<Input>) => ModuleDefinition;
+  readonly forRootAsync: <const D extends readonly Dep[] = []>(
+    config: ForRootAsyncConfig<Input, D>,
+  ) => ModuleDefinition;
 }
 
 /**
@@ -129,18 +146,25 @@ function register<D extends ModuleDefinition>(
  * One signature: with overloads, TypeScript reports "No overload matches
  * this call" and lists every overload's error, which buries the element that
  * broke a rule. `Opts` comes from the options token; without one it stays
- * `never` and the result is a plain `ModuleDefinition`.
+ * `never` and the result is a plain `ModuleDefinition`. `Input` comes from
+ * the schema's declared input type. Without a schema, or with a schema that
+ * declares its input as `unknown` or `any`, `forRoot()` takes `Opts`: such a
+ * schema tells the compiler nothing about the value, so the options token
+ * stays the contract.
  */
 export function defineModule<
   Opts = never,
+  Input = unknown,
   const P extends readonly unknown[] = [],
 >(
   config: Omit<ModuleConfig, 'providers'> & {
     readonly providers?: ProviderEntries<P>;
     readonly options?: Token<Opts>;
-    readonly schema?: StandardSchemaV1<unknown, NoInfer<Opts>>;
+    readonly schema?: StandardSchemaV1<Input, NoInfer<Opts>>;
   },
-): [Opts] extends [never] ? ModuleDefinition : ConfigurableModule<Opts>;
+): [Opts] extends [never]
+  ? ModuleDefinition
+  : ConfigurableModule<Opts, unknown extends Input ? Opts : Input>;
 export function defineModule(
   config: ModuleConfig & {
     readonly options?: Token<unknown>;
