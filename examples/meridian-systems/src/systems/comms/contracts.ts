@@ -2,6 +2,9 @@ import { Token } from '@nexusdi/core';
 
 import type { QueuedCommand } from '../../simulation/commands';
 
+/** The name comms answers to on the command desk. */
+export const COMMS_SYSTEM = 'comms';
+
 /** The actions comms takes, in words. shipText reads it after "It takes". */
 export const COMMS_ACTIONS = 'hail with no arguments';
 

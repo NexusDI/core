@@ -4,6 +4,7 @@ import deck from '../../../deck/meridian.deck.json';
 import { BadCommandError } from '../../errors';
 import type { DeckPlan } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import { LIFE_SUPPORT_ACTIONS } from './contracts';
 import { EnvironmentalController } from './environmental-controller';
 
@@ -17,6 +18,15 @@ describe('EnvironmentalController', () => {
     const { state, control } = build();
     expect(control.online()).toEqual({ tick: 1 });
     expect(state.applyQueued(1).setpoints.lifeSupport.online).toBe(true);
+  });
+
+  it('queues life support offline for the next tick', () => {
+    const { state, control } = build();
+    control.online();
+    state.applyQueued(1);
+    expect(state.snapshot().setpoints.lifeSupport.online).toBe(true);
+    expect(control.offline()).toEqual({ tick: 1 });
+    expect(state.applyQueued(1).setpoints.lifeSupport.online).toBe(false);
   });
 
   it('queues a heater target and keeps the heater on', () => {
@@ -97,6 +107,7 @@ describe('EnvironmentalController', () => {
       reason: 'argument',
       system: 'life-support',
       action,
+      argument: 'compartment',
       expected: LIFE_SUPPORT_ACTIONS,
     });
     state.applyQueued(1);

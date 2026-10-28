@@ -7,6 +7,7 @@ import { RAILGUN } from '../../physics/weapons';
 import type { DeckPlan } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 import type { IPowerRouter } from '../engineering/contracts';
+
 import { RailgunMount } from './railgun-mount';
 
 /** A mount at `dt` over a fake router that records each divert and refuses when told. */

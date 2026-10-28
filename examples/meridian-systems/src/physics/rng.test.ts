@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import expected from './__fixtures__/rng.seed-7.json';
 import { fnv1a32, splitmix32 } from './rng';
 

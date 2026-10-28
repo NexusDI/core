@@ -9,6 +9,7 @@ import {
 } from '../../physics/motion';
 import type { DeckPlan, ShipSnapshot } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import type { IThrusters } from './contracts';
 import { HelmPower } from './helm-power';
 

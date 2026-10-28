@@ -1,14 +1,10 @@
-import { BadCommandError } from '../../errors';
 import { toRadians } from '../../physics/motion';
 import type { QueuedCommand } from '../../simulation/commands';
 import { type IMainDrive, MAIN_DRIVE } from '../propulsion/contracts';
 import { type INavCharts, NAV_CHARTS } from '../tactical/contracts';
-import {
-  HELM_ACTIONS,
-  type IHelm,
-  type IThrusters,
-  THRUSTERS,
-} from './contracts';
+
+import { type IHelm, type IThrusters, THRUSTERS } from './contracts';
+import { refuseHelm } from './helm-commands';
 
 /**
  * The Meridian's helm. It plots a course once, at the command, so a tick
@@ -27,12 +23,7 @@ export class HelmControl implements IHelm {
 
   course(to: string): QueuedCommand {
     if (!this.charts.has(to)) {
-      throw new BadCommandError({
-        reason: 'argument',
-        system: 'helm',
-        action: 'course',
-        expected: HELM_ACTIONS,
-      });
+      throw refuseHelm('course', { argument: 'to' });
     }
     return this.thrusters.steer(toRadians(this.charts.plot(to).heading));
   }

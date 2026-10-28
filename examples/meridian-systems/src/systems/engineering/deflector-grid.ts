@@ -5,6 +5,7 @@ import {
   SHIP_STATE,
   type ShipSnapshot,
 } from '../../simulation/contracts';
+
 import { type IPowerRouter, type IShieldGrid, POWER_ROUTER } from './contracts';
 
 /** The Meridian's deflector shields, a load of priority 2 on the power router. */

@@ -16,6 +16,7 @@ import { SeededRandom } from '../../simulation/seeded-random';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 import { CalibratedProbe } from '../life-support/calibrated-probe';
 import type { IAtmosphereProbe } from '../life-support/contracts';
+
 import { SafetyPhysics } from './safety-physics';
 
 const plan = deck satisfies DeckPlan;

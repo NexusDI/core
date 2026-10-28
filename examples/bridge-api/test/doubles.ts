@@ -1,7 +1,6 @@
 import { defineModule, provide } from '@nexusdi/core';
 import {
   type Alarm,
-  BUNDLED_CHARTS,
   FTL_DRIVE,
   type FtlRating,
   type FtlRecord,
@@ -21,6 +20,7 @@ import {
   TICK_LOOP,
   type TickContext,
 } from '@nexusdi/meridian-systems';
+import { BUNDLED_CHARTS } from '@nexusdi/meridian-systems/charts';
 
 import type { IFlightLog, INavCharts } from '../src/ship/contracts';
 

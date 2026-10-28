@@ -1,6 +1,7 @@
 import type { NexusRequest } from '@nexusdi/core';
 
 import { UnknownCompartmentError } from '../errors';
+
 import { COMPARTMENT_IDS, type CompartmentId } from './contracts';
 import { listInWords } from './list-in-words';
 

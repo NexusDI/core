@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { UnknownCompartmentError } from '../errors';
+
 import { compartmentOfRequest } from './compartment-of-request';
 
 const ROOMS = 'bridge, habitat, reactor-bay and airlock';

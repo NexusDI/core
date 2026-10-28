@@ -25,8 +25,10 @@ export class PowerBudgetError extends errorBase<
  */
 export type BadCommandReason = 'envelope' | 'system' | 'action' | 'argument';
 
+/** Whether a refused argument is absent from the command or present and unusable. */
+export type BadArgumentProblem = 'missing' | 'invalid';
+
 interface BadCommandFields {
-  readonly reason: BadCommandReason;
   /** The system the command names. */
   readonly system: string;
   /** The action the command names. */
@@ -35,10 +37,27 @@ interface BadCommandFields {
   readonly expected: string;
 }
 
+/**
+ * A refusal that names an argument has `reason: 'argument'` and both
+ * `argument` and `problem`. Every other reason has neither.
+ */
+type BadCommandShape =
+  | (BadCommandFields & {
+      readonly reason: Exclude<BadCommandReason, 'argument'>;
+      readonly argument?: undefined;
+      readonly problem?: undefined;
+    })
+  | (BadCommandFields & {
+      readonly reason: 'argument';
+      /** The argument the system refuses; names two joined by "or" when the action needs one of them. */
+      readonly argument: string;
+      readonly problem: BadArgumentProblem;
+    });
+
 /** A command the desk or its system cannot read: a bad envelope, an unknown system, action or argument. */
 export class BadCommandError extends errorBase<
   'MERIDIAN_BAD_COMMAND',
-  BadCommandFields
+  BadCommandShape
 >('MERIDIAN_BAD_COMMAND', 'BadCommandError', DOCS) {}
 
 interface UnknownCompartmentFields {

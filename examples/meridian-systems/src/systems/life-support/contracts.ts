@@ -12,12 +12,15 @@ import type {
   CompartmentState,
 } from '../../simulation/contracts';
 
+/** The name life support answers to on the command desk. */
+export const LIFE_SUPPORT_SYSTEM = 'life-support';
+
 /**
  * The actions life support takes and their ranges, in words. shipText reads
  * it after "It takes".
  */
 export const LIFE_SUPPORT_ACTIONS =
-  'online with no arguments, heater with a compartment and on true or false or a target from 283 to 303 K, scrubber and oxygen with a compartment and on true or false, vent with a compartment and open true or false, and pump with a compartment and mode off, evacuate or fill';
+  'online and offline with no arguments, heater with a compartment and on true or false or a target from 283 to 303 K, scrubber and oxygen with a compartment and on true or false, vent with a compartment and open true or false, and pump with a compartment and mode off, evacuate or fill';
 
 /**
  * The calibrated sensors of every compartment. A route's analyzer and
@@ -49,8 +52,13 @@ export interface IAtmosphereSensor {
  * when `compartment` has no such device on the deck.
  */
 export interface IAtmosphereControl {
-  /** Brings life support online. The interface has no command that takes it offline. */
+  /** Brings life support online. */
   online(): QueuedCommand;
+  /**
+   * Takes life support offline. The step then leaves the air as it is, and
+   * the queued device setpoints stay for the next `online`.
+   */
+  offline(): QueuedCommand;
   /** Switches the heater, sets its thermostat target in K, or both. */
   heater(
     compartment: string,

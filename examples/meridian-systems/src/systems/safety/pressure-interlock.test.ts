@@ -6,6 +6,7 @@ import { InterlockError } from '../../errors';
 import { AIR, molesAt } from '../../physics/gas';
 import type { CompartmentId, DeckPlan } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import { PressureInterlock } from './pressure-interlock';
 
 const plan = deck satisfies DeckPlan;

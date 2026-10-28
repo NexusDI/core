@@ -7,6 +7,7 @@ import {
   type ShipSnapshot,
   TICK_LOOP,
 } from '../../simulation/contracts';
+
 import { ALARM_SINKS, type IAlarmSink, type IMasterAlarm } from './contracts';
 
 function key(alarm: Alarm): string {

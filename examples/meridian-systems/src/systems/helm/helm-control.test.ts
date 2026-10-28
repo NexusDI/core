@@ -4,6 +4,7 @@ import { BadCommandError } from '../../errors';
 import { PLASMA_DRIVE, RCS_THRUSTERS } from '../../physics/motion';
 import type { IMainDrive } from '../propulsion/contracts';
 import type { INavCharts } from '../tactical/contracts';
+
 import { HELM_ACTIONS, type IThrusters } from './contracts';
 import { HelmControl } from './helm-control';
 
@@ -60,6 +61,7 @@ describe('HelmControl', () => {
           reason: 'argument',
           system: 'helm',
           action: 'course',
+          argument: 'to',
           expected: HELM_ACTIONS,
         }),
       );

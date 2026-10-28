@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import deck from '../../../deck/meridian.deck.json';
 import type { DeckPlan } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import type { ISubspaceLink } from './contracts';
 import { PhasedArray } from './phased-array';
 

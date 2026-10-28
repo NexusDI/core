@@ -5,6 +5,16 @@ import type { CoolantRating, ReactorRating } from '../../physics/thermal';
 import type { QueuedCommand } from '../../simulation/commands';
 import type { ShipSnapshot } from '../../simulation/contracts';
 
+/** The name engineering answers to on the command desk. */
+export const ENGINEERING_SYSTEM = 'engineering';
+
+/**
+ * The actions engineering takes and their ranges, in words. shipText reads
+ * it after "It takes".
+ */
+export const ENGINEERING_ACTIONS =
+  'throttle with a level from 0 to 1 and shields with raised true or false';
+
 export interface IReactorCore {
   /** Electric output now, in GW. */
   readonly output: number;

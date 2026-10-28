@@ -4,6 +4,7 @@ import calibration from '../../../deck/sensors.calibration.json';
 import deck from '../../../deck/meridian.deck.json';
 import { LIFE_SUPPORT_RATINGS } from '../../physics/atmosphere';
 import type { DeckPlan } from '../../simulation/contracts';
+
 import { readCalibration } from './read-calibration';
 
 const plan = deck satisfies DeckPlan;

@@ -397,7 +397,7 @@ export const spoolAndJump: GrowthCase = {
     await post(fetch, 'jump', '/ftl/jump', { to: 'Vega' }, 400, {
       code: 'MERIDIAN_BAD_COMMAND',
       message:
-        'ftl jump got an argument it cannot use. It takes spool with no arguments and jump with a charted star to jump to.',
+        'ftl jump cannot use the to argument. It takes spool with no arguments and jump with a charted star to jump to.',
       fix: 'send the arguments in the ranges above.',
     });
     await post(fetch, 'jump', '/ftl/jump', { to: 'Kepler-442b' }, 202, {
@@ -448,7 +448,7 @@ export const fireRailgun: GrowthCase = {
     const usage = {
       code: 'MERIDIAN_BAD_COMMAND',
       message:
-        'weapons fire got an argument it cannot use. It takes fire with a range from 0 to 100,000 m.',
+        'weapons fire cannot use the range argument. It takes fire with a range from 0 to 100,000 m.',
       fix: 'send the arguments in the ranges above.',
     };
     await send(fetch, fire(10_000), 409, {

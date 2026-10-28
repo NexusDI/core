@@ -1,6 +1,7 @@
 import { all } from '@nexusdi/core';
 
 import { BadCommandError } from '../errors';
+
 import { byCodeUnit } from './by-code-unit';
 import {
   COMMAND_HANDLERS,

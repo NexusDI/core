@@ -1,8 +1,10 @@
 import { MultiToken, Token } from '@nexusdi/core';
 
 import type { Alarm } from '../../physics/safety';
-import { commandRefusal } from '../../simulation/command-arguments';
 import type { QueuedCommand } from '../../simulation/commands';
+
+/** The name safety answers to on the command desk. */
+export const SAFETY_SYSTEM = 'safety';
 
 /**
  * The actions safety takes and their arguments, in words. shipText reads it
@@ -10,9 +12,6 @@ import type { QueuedCommand } from '../../simulation/commands';
  */
 export const SAFETY_ACTIONS =
   'open and close with a door of bridge-habitat, habitat-reactor-bay, habitat-airlock or airlock-outer, and flood and drill with a compartment of bridge, habitat or reactor-bay';
-
-/** The `BadCommandError` safety throws for an action or an argument it cannot read. */
-export const refuseSafety = commandRefusal('safety', SAFETY_ACTIONS);
 
 /**
  * The blast-door panel. Each method queues the door's setpoint for the next

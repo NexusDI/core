@@ -4,6 +4,7 @@ import { describe, expect } from 'vitest';
 import { meridianSystems } from '../src/meridian-systems.module';
 import { TICK_LOOP } from '../src/simulation/contracts';
 import { TELEMETRY, type TelemetrySink } from '../src/telemetry/contracts';
+
 import { test } from './fixtures';
 
 function recordingSink() {

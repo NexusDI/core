@@ -562,7 +562,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         body: {
           code: 'MERIDIAN_BAD_COMMAND',
           message:
-            'life-support vent got an argument it cannot use. It takes online with no arguments, heater with a compartment and on true or false or a target from 283 to 303 K, scrubber and oxygen with a compartment and on true or false, vent with a compartment and open true or false, and pump with a compartment and mode off, evacuate or fill.',
+            'life-support vent cannot use the compartment argument. It takes online and offline with no arguments, heater with a compartment and on true or false or a target from 283 to 303 K, scrubber and oxygen with a compartment and on true or false, vent with a compartment and open true or false, and pump with a compartment and mode off, evacuate or fill.',
           fix: 'send the arguments in the ranges above.',
         },
       });
@@ -578,11 +578,11 @@ describe.each(['hono', 'express', 'fastify'] as const)(
     const call = calls[framework];
     const SAFETY =
       'open and close with a door of bridge-habitat, habitat-reactor-bay, habitat-airlock or airlock-outer, and flood and drill with a compartment of bridge, habitat or reactor-bay';
-    const refused = (action: string) => ({
+    const refused = (action: string, argument: 'door' | 'compartment') => ({
       status: 400,
       body: {
         code: 'MERIDIAN_BAD_COMMAND',
-        message: `safety ${action} got an argument it cannot use. It takes ${SAFETY}.`,
+        message: `safety ${action} cannot use the ${argument} argument. It takes ${SAFETY}.`,
         fix: 'send the arguments in the ranges above.',
       },
     });
@@ -592,7 +592,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
     }) => {
       const galley = json({ system: 'safety', action: 'open', door: 'galley' });
       expect(await call(nexus, 'POST', '/commands', galley)).toEqual(
-        refused('open'),
+        refused('open', 'door'),
       );
       expect(nexus.get(SHIP_STATE).log()).toEqual([]);
     });
@@ -606,7 +606,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
           compartment: 'airlock',
         });
         expect(await call(nexus, 'POST', '/commands', airlock)).toEqual(
-          refused(action),
+          refused(action, 'compartment'),
         );
         expect(nexus.get(SHIP_STATE).log()).toEqual([]);
       },
@@ -894,12 +894,12 @@ describe.each(['hono', 'express', 'fastify'] as const)(
     const refusals = [
       {
         sent: { system: 'helm', action: 'burn', level: 1.5 },
-        message: `helm burn got an argument it cannot use. ${helmUsage}`,
+        message: `helm burn cannot use the level argument. ${helmUsage}`,
         fix: 'send the arguments in the ranges above.',
       },
       {
         sent: { system: 'helm', action: 'course' },
-        message: `helm course got an argument it cannot use. ${helmUsage}`,
+        message: `helm course needs the to argument. ${helmUsage}`,
         fix: 'send the arguments in the ranges above.',
       },
       {
@@ -1042,7 +1042,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
           status: 400,
           body: {
             code: 'MERIDIAN_BAD_COMMAND',
-            message: `helm course got an argument it cannot use. ${helmUsage}`,
+            message: `helm course cannot use the to argument. ${helmUsage}`,
             fix: 'send the arguments in the ranges above.',
           },
         });
@@ -1098,7 +1098,7 @@ describe.each(['hono', 'express', 'fastify'] as const)(
       body: {
         code: 'MERIDIAN_BAD_COMMAND',
         message:
-          'ftl jump got an argument it cannot use. It takes spool with no arguments and jump with a charted star to jump to.',
+          'ftl jump cannot use the to argument. It takes spool with no arguments and jump with a charted star to jump to.',
         fix: 'send the arguments in the ranges above.',
       },
     };
@@ -1240,14 +1240,14 @@ describe.each(['hono', 'express', 'fastify'] as const)(
     const fire = (range?: unknown) =>
       json({ system: 'weapons', action: 'fire', range });
     const weaponsUsage = 'It takes fire with a range from 0 to 100,000 m.';
-    const badRange = {
+    const badRange = (range: unknown) => ({
       status: 400,
       body: {
         code: 'MERIDIAN_BAD_COMMAND',
-        message: `weapons fire got an argument it cannot use. ${weaponsUsage}`,
+        message: `weapons fire ${range === undefined ? 'needs' : 'cannot use'} the range argument. ${weaponsUsage}`,
         fix: 'send the arguments in the ranges above.',
       },
-    };
+    });
 
     test('two fires on the offline ship charge the capacitor, hit at 10 km on tick 32 and miss at 50 km on tick 36', async () => {
       await using ship = await Nexus.create(OfflineMeridian, {
@@ -1289,7 +1289,9 @@ describe.each(['hono', 'express', 'fastify'] as const)(
       await advance(30);
 
       for (const range of ['10000', 100_001, -1, undefined]) {
-        expect(await send('POST', '/commands', fire(range))).toEqual(badRange);
+        expect(await send('POST', '/commands', fire(range))).toEqual(
+          badRange(range),
+        );
       }
       expect(
         await send(

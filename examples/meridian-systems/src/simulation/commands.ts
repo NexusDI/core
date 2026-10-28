@@ -1,10 +1,12 @@
 import { MultiToken, Token } from '@nexusdi/core';
+
 import type { LifeSupportSetpoints } from '../physics/atmosphere';
 import type { CommsSetpoints } from '../physics/comms';
 import type { FtlSetpoints } from '../physics/ftl';
 import type { DriveSetpoints, HelmSetpoints } from '../physics/motion';
 import type { SafetySetpoints } from '../physics/safety';
 import type { WeaponsSetpoints } from '../physics/weapons';
+
 import type { CompartmentId, DoorId } from './contracts';
 
 /** What the crew asks of each system. A system steps toward its setpoint each tick. */

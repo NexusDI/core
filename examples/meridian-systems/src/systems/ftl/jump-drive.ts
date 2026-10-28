@@ -1,6 +1,5 @@
 import { FtlNotSpooledError } from '../../errors';
 import { FTL_SPOOL, FTL_SPOOL_LOAD, type FtlRating } from '../../physics/ftl';
-import { commandRefusal } from '../../simulation/command-arguments';
 import type { QueuedCommand } from '../../simulation/commands';
 import {
   type IShipState,
@@ -10,12 +9,11 @@ import {
 } from '../../simulation/contracts';
 import { type IPowerRouter, POWER_ROUTER } from '../engineering/contracts';
 import { type INavCharts, NAV_CHARTS } from '../tactical/contracts';
-import { FTL_ACTIONS, type IFtlDrive } from './contracts';
+
+import type { IFtlDrive } from './contracts';
+import { refuseFtl } from './ftl-commands';
 import { FtlPhysics } from './ftl-physics';
 import { FtlPower } from './ftl-power';
-
-/** The `BadCommandError` the drive throws for a jump to a star the charts do not hold. */
-const refuseFtl = commandRefusal('ftl', FTL_ACTIONS);
 
 /**
  * The Meridian's jump drive. It joins the loop and the router in `onInit`,
@@ -56,7 +54,7 @@ export class JumpDrive implements IFtlDrive, Disposable {
   }
 
   jump(to: string): QueuedCommand {
-    if (!this.charts.has(to)) throw refuseFtl('jump');
+    if (!this.charts.has(to)) throw refuseFtl('jump', { argument: 'to' });
     const { charge } = this.state.snapshot().ftl;
     if (charge < this.rating.energy) {
       throw new FtlNotSpooledError({ charge, energy: this.rating.energy });

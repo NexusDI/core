@@ -5,6 +5,7 @@ import type {
   ShipSnapshot,
   TickContext,
 } from '../../simulation/contracts';
+
 import { type IMainDrive, MAIN_DRIVE } from './contracts';
 
 /** Steps the main drive in phase 2 of each tick. */

@@ -1,5 +1,6 @@
 import { RelayError } from '../../errors';
 import { formatNumber } from '../../text';
+
 import {
   COMMS_OPTIONS,
   type CommsOptions,
@@ -13,7 +14,9 @@ import {
  */
 export class SubspaceRelay implements ISubspaceLink {
   static deps = [COMMS_OPTIONS] as const;
+
   constructor(private readonly options: CommsOptions) {}
+
   async receive<T>(channel: string): Promise<T> {
     const url = new URL(
       channel,
@@ -27,16 +30,18 @@ export class SubspaceRelay implements ISubspaceLink {
     const signal = AbortSignal.timeout(timeout);
     try {
       const res = await fetch(url, { signal });
-      if (!res.ok)
-        throw new Error(`relay answered ${res.status} for ${channel}`);
+      if (!res.ok) {
+        throw new Error(`The relay answered ${res.status} for ${channel}.`);
+      }
       return (await res.json()) as T;
     } catch (error) {
-      if (signal.aborted)
+      if (signal.aborted) {
         throw new RelayError({
           channel,
           reason: 'timeout',
           expected: `within ${formatNumber(timeout, 0)} ms`,
         });
+      }
       throw error;
     }
   }

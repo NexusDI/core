@@ -10,7 +10,7 @@ import {
   RelayError,
   UnknownCompartmentError,
 } from './errors';
-import { ENGINEERING_ACTIONS } from './systems/engineering/engineering-commands';
+import { ENGINEERING_ACTIONS } from './systems/engineering/contracts';
 import { formatNumber, shipText } from './text';
 
 /** The text shipText gives `error`, laid out as core prints it. */
@@ -57,7 +57,12 @@ describe('shipText', () => {
   it.each([
     [
       'envelope',
-      { system: '', action: '', expected: 'engineering' },
+      {
+        reason: 'envelope',
+        system: '',
+        action: '',
+        expected: 'engineering',
+      },
       [
         '[MERIDIAN_BAD_COMMAND] A ship command is an object with a string system and a string action. The desk serves engineering.',
         '  Fix: send { system, action, ...args } as JSON.',
@@ -65,7 +70,12 @@ describe('shipText', () => {
     ],
     [
       'system',
-      { system: 'warp-core', action: 'engage', expected: 'engineering' },
+      {
+        reason: 'system',
+        system: 'warp-core',
+        action: 'engage',
+        expected: 'engineering',
+      },
       [
         "[MERIDIAN_BAD_COMMAND] No ship system is named 'warp-core'. The desk serves engineering.",
         '  Fix: send the command to one of the systems above.',
@@ -73,28 +83,51 @@ describe('shipText', () => {
     ],
     [
       'action',
-      { system: 'engineering', action: 'warp', expected: ENGINEERING_ACTIONS },
+      {
+        reason: 'action',
+        system: 'engineering',
+        action: 'warp',
+        expected: ENGINEERING_ACTIONS,
+      },
       [
         "[MERIDIAN_BAD_COMMAND] engineering has no action 'warp'. It takes throttle with a level from 0 to 1 and shields with raised true or false.",
         '  Fix: send one of the actions above with its arguments.',
       ],
     ],
     [
-      'argument',
+      'unusable argument',
       {
+        reason: 'argument',
         system: 'engineering',
         action: 'throttle',
+        argument: 'level',
+        problem: 'invalid',
         expected: ENGINEERING_ACTIONS,
       },
       [
-        '[MERIDIAN_BAD_COMMAND] engineering throttle got an argument it cannot use. It takes throttle with a level from 0 to 1 and shields with raised true or false.',
+        '[MERIDIAN_BAD_COMMAND] engineering throttle cannot use the level argument. It takes throttle with a level from 0 to 1 and shields with raised true or false.',
+        '  Fix: send the arguments in the ranges above.',
+      ],
+    ],
+    [
+      'missing argument',
+      {
+        reason: 'argument',
+        system: 'engineering',
+        action: 'throttle',
+        argument: 'level',
+        problem: 'missing',
+        expected: ENGINEERING_ACTIONS,
+      },
+      [
+        '[MERIDIAN_BAD_COMMAND] engineering throttle needs the level argument. It takes throttle with a level from 0 to 1 and shields with raised true or false.',
         '  Fix: send the arguments in the ranges above.',
       ],
     ],
   ] as const)(
     'words MERIDIAN_BAD_COMMAND for a bad %s',
-    (reason, fields, lines) => {
-      const error = new BadCommandError({ reason, ...fields });
+    (_name, fields, lines) => {
+      const error = new BadCommandError(fields);
       expect(render(error)).toBe(lines.join('\n'));
     },
   );

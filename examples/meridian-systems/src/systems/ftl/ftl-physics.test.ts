@@ -9,6 +9,7 @@ import type {
 } from '../../simulation/contracts';
 import { SeededRandom } from '../../simulation/seeded-random';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import { FtlPhysics } from './ftl-physics';
 
 const start = new ShipStateStore(deck satisfies DeckPlan).snapshot();

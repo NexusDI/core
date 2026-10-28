@@ -8,6 +8,7 @@ import {
   type ShipSnapshot,
 } from '../../simulation/contracts';
 import { Subscribers } from '../../simulation/subscribers';
+
 import {
   type IPowerConsumer,
   type IPowerRouter,
@@ -28,6 +29,12 @@ export class PlasmaRouter implements IPowerRouter {
   // global MeridianSystems, which re-exports LifeSupport.
   static deps = [SHIP_STATE, lazy(SHIELD_GRID), all(POWER_CONSUMERS)] as const;
 
+  /**
+   * The consumers `attach` added, in the order it added them. Each attach
+   * holds its own entry, so a detach removes that attach alone.
+   */
+  private readonly attached = new Subscribers<IPowerConsumer>();
+
   // The container builds the grid after the router, so the constructor never
   // calls the thunk.
   constructor(
@@ -35,12 +42,6 @@ export class PlasmaRouter implements IPowerRouter {
     private readonly shields: () => IShieldGrid,
     private readonly consumers: readonly IPowerConsumer[],
   ) {}
-
-  /**
-   * The consumers `attach` added, in the order it added them. Each attach
-   * holds its own entry, so a detach removes that attach alone.
-   */
-  private readonly attached = new Subscribers<IPowerConsumer>();
 
   attach(consumer: IPowerConsumer): () => void {
     return this.attached.add(consumer);

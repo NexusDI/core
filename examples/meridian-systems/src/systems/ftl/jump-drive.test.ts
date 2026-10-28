@@ -16,6 +16,7 @@ import type {
 import { ShipStateStore } from '../../simulation/ship-state-store';
 import type { IPowerConsumer, IPowerRouter } from '../engineering/contracts';
 import { BUNDLED_CHARTS, StarCharts } from '../tactical/star-charts';
+
 import { FTL_ACTIONS } from './contracts';
 import { FtlPhysics } from './ftl-physics';
 import { FtlPower } from './ftl-power';
@@ -129,6 +130,7 @@ describe('JumpDrive', () => {
           reason: 'argument',
           system: 'ftl',
           action: 'jump',
+          argument: 'to',
           expected: FTL_ACTIONS,
         }),
       );

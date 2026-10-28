@@ -7,22 +7,37 @@ import type {
   QueuedCommand,
   ShipCommand,
 } from '../../simulation/commands';
-import { type IWeaponMount, WEAPON_MOUNT, WEAPONS_ACTIONS } from './contracts';
+
+import {
+  type IWeaponMount,
+  WEAPON_MOUNT,
+  WEAPONS_ACTIONS,
+  WEAPONS_SYSTEM,
+} from './contracts';
+
+/** The `BadCommandError` weapons throws for an action or an argument it cannot read. */
+export const refuseWeapons = commandRefusal(WEAPONS_SYSTEM, WEAPONS_ACTIONS);
 
 /** Reads the crew's weapons commands and hands each fire to the mount. */
 export class WeaponsCommands implements ICommandHandler {
   static deps = [WEAPON_MOUNT] as const;
 
-  readonly system = 'weapons';
-
-  private readonly refuse = commandRefusal(this.system, WEAPONS_ACTIONS);
+  readonly system = WEAPONS_SYSTEM;
 
   constructor(private readonly mount: IWeaponMount) {}
 
   handle(command: ShipCommand): QueuedCommand {
-    if (command.action !== 'fire') throw this.refuse(command.action, 'action');
+    if (command.action !== 'fire') {
+      throw refuseWeapons(command.action, 'action');
+    }
     return this.mount.fire(
-      numberArgument(command, 'range', 0, this.mount.rating.range, this.refuse),
+      numberArgument(
+        command,
+        'range',
+        0,
+        this.mount.rating.range,
+        refuseWeapons,
+      ),
     );
   }
 }

@@ -178,6 +178,7 @@ The router shares the reactor's output among loads, and each system adds its own
 
 ```json
 { "system": "life-support", "action": "online" }
+{ "system": "life-support", "action": "offline" }
 { "system": "life-support", "action": "heater", "compartment": "habitat", "target": 295 }
 { "system": "life-support", "action": "scrubber", "compartment": "bridge", "on": false }
 { "system": "life-support", "action": "oxygen", "compartment": "habitat", "on": true }
@@ -185,7 +186,7 @@ The router shares the reactor's output among loads, and each system adds its own
 { "system": "life-support", "action": "pump", "compartment": "airlock", "mode": "evacuate" }
 ```
 
-- `online` takes no argument. No command takes life support offline again.
+- `online` and `offline` take no argument. `offline` stops the step again; the queued device setpoints stay for the next `online`.
 - `heater` takes a string `compartment` and at least one of a boolean `on` and a `target` from 283 K to 303 K.
 - `scrubber` and `oxygen` take a `compartment` and a boolean `on`, and `vent` a `compartment` and a boolean `open`.
 - `pump` takes a `compartment` and a `mode`: `off`, `evacuate`, which moves the room's gas into its reservoir, or `fill`, which moves reservoir gas into the room.
@@ -335,7 +336,7 @@ It exports all five tokens. `OfflineComms`, in the same file, binds the array an
 
 ### Tactical and the Charts
 
-The helm plots courses from `NAV_CHARTS`, an `INavCharts` whose `has(to)` answers whether the charts hold a heading for `to`, and whose `plot(to)` answers `{ to, heading }`, with heading 0 for a star the charts lack. A key of `Object.prototype`, such as `constructor` or `__proto__`, is no star, and an entry of a table that is not a finite number reads as uncharted. A downloaded table never reaches that check with such a key or entry, since `StarCharts.download` refuses it with `RelayError` at startup. `Tactical`, in `src/systems/tactical/tactical.module.ts`, binds `NAV_CHARTS` with an async factory that takes `SUBSPACE_LINK` and runs `StarCharts.download(link)`, which receives the relay's `charts` channel. The container awaits the download one level after it builds the link. `Tactical` imports no link of its own. It reads the one `Comms` exports, so it builds only beside `Comms`. `OfflineTactical` binds `NAV_CHARTS` to a `StarCharts` over `BUNDLED_CHARTS`, the table in `deck/charts.json` that the library exports, and does no I/O. `@nexusdi/meridian-systems/charts` exports `StarCharts` and `BUNDLED_CHARTS` and holds no simulation code, so the bridge console plots over the bundled table with no simulation in its bundle. On the offline ship, and on a relay that serves the bundled table, `NAV_CHARTS.plot('Kepler-442b')` answers heading 42.
+The helm plots courses from `NAV_CHARTS`, an `INavCharts` whose `has(to)` answers whether the charts hold a heading for `to`, and whose `plot(to)` answers `{ to, heading }`, with heading 0 for a star the charts lack. A key of `Object.prototype`, such as `constructor` or `__proto__`, is no star, and an entry of a table that is not a finite number reads as uncharted. A downloaded table never reaches that check with such a key or entry, since `StarCharts.download` refuses it with `RelayError` at startup. `Tactical`, in `src/systems/tactical/tactical.module.ts`, binds `NAV_CHARTS` with an async factory that takes `SUBSPACE_LINK` and runs `StarCharts.download(link)`, which receives the relay's `charts` channel. The container awaits the download one level after it builds the link. `Tactical` imports no link of its own. It reads the one `Comms` exports, so it builds only beside `Comms`. `OfflineTactical` binds `NAV_CHARTS` to a `StarCharts` over `BUNDLED_CHARTS`, the table in `deck/charts.json` that `@nexusdi/meridian-systems/charts` exports, and does no I/O. `@nexusdi/meridian-systems/charts` exports `StarCharts` and `BUNDLED_CHARTS` and holds no simulation code, so the bridge console plots over the bundled table with no simulation in its bundle. On the offline ship, and on a relay that serves the bundled table, `NAV_CHARTS.plot('Kepler-442b')` answers heading 42.
 
 ### The Ship With and Without a Relay
 
@@ -410,7 +411,7 @@ Each module exports all its tokens. `Propulsion` binds no command handler, since
 
 `course` takes a string `to`. When the command arrives, `HelmControl` asks `NAV_CHARTS.has(to)` whether the charts hold the star, and refuses the course when they do not. For a charted star it asks `NAV_CHARTS.plot(to)` for the heading once and converts the charts' degrees to radians. The thrusters then queue the heading as `setpoints.helm.heading`. No tick calls the charts. `burn` takes a `level` from 0 to 1 and calls `MAIN_DRIVE.throttle(level)`, which queues `setpoints.drive.throttle`. The range check is the one the engineering throttle uses.
 
-A command that names an unknown action, such as `warp`, throws `BadCommandError` with `reason: 'action'` and the message "helm has no action 'warp'. It takes course with a charted star to steer for and burn with a level from 0 to 1." A `burn` level out of range and a `course` with no string `to` throw it with `reason: 'argument'`. So does a `course` to a star the charts do not hold, such as `Vega` or `constructor`, with the message "helm course got an argument it cannot use. It takes course with a charted star to steer for and burn with a level from 0 to 1." The thrusters throw `RangeError` for a heading that is not finite.
+A command that names an unknown action, such as `warp`, throws `BadCommandError` with `reason: 'action'` and the message "helm has no action 'warp'. It takes course with a charted star to steer for and burn with a level from 0 to 1." A `burn` level out of range and a `course` with no string `to` throw it with `reason: 'argument'`. So does a `course` to a star the charts do not hold, such as `Vega` or `constructor`, with the message "helm course cannot use the to argument. It takes course with a charted star to steer for and burn with a level from 0 to 1." The thrusters throw `RangeError` for a heading that is not finite.
 
 Neither command diverts the router. A burn on a cold reactor queues, and the router sheds the `main-drive` load. Safety raises `LOAD_SHED` for subject `main-drive` until the reactor gives 600 MW.
 
@@ -563,7 +564,7 @@ The store starts the record at `{ status: 'offline', charge: 0, sector: 'Sol', j
 
 - `spool()` asks `POWER_ROUTER.divert` for the `ftl-spool` load, 900 MW at priority 7, and queues `setpoints.ftl.armed`. It throws `PowerBudgetError` when the router cannot fit the load. At tick 0 the router has 0 MW free. At tick 74 of a throttle-1 ramp it has 895.4 MW free, and a spool at tick 75 queues for tick 76. On a throttle of 0.01 with life support online it has 12.1 MW free.
 - A second `spool()` on an armed drive asks no `divert` and queues nothing. It returns `{ tick: t + 1 }`, the tick from which the drive is still armed. A second check would refuse the spool on a tick the router sheds it, and a no-op must not do that. After a jump disarms the drive, a spool arms it again.
-- `jump(to)` asks `NAV_CHARTS.has(to)` first. A star the charts do not hold, such as `Vega`, `constructor` or `__proto__`, throws `BadCommandError` with `reason: 'argument'` and the message "ftl jump got an argument it cannot use. It takes spool with no arguments and jump with a charted star to jump to." Below a full charge it throws `FtlNotSpooledError`. Otherwise it queues `setpoints.ftl.jump`.
+- `jump(to)` asks `NAV_CHARTS.has(to)` first. A star the charts do not hold, such as `Vega`, `constructor` or `__proto__`, throws `BadCommandError` with `reason: 'argument'` and the message "ftl jump cannot use the to argument. It takes spool with no arguments and jump with a charted star to jump to." Below a full charge it throws `FtlNotSpooledError`. Otherwise it queues `setpoints.ftl.jump`.
 
 ### The Physics Behind the Spool
 
@@ -675,7 +676,7 @@ To clear it, raise the throttle and advance the ship until `REACTOR.output` cove
 - `envelope`: the body is not an object with a string `system` and a string `action`. `expected` lists the systems the desk serves.
 - `system`: no handler serves `system`. `expected` lists the systems.
 - `action`: the system has no such action. `expected` lists its actions and their arguments.
-- `argument`: an argument is missing, of the wrong type or out of range.
+- `argument`: an argument is missing, of the wrong type or out of range. The error then also holds `argument`, the name of the argument (two names joined by "or" when the action needs one of them), and `problem`, which is `missing` when the command has no such field and `invalid` otherwise. The text reads `life-support heater needs the on or target argument` for a missing one and `helm burn cannot use the level argument` for an unusable one.
 
 The text of `shipText` for an unknown engineering action:
 
@@ -752,7 +753,7 @@ The subspace relay did not answer the charts channel within 5,000 ms.
 Fix: check that the relay is up and reachable at relayUrl, or raise relayTimeout.
 ```
 
-For a table the ship cannot read, the text reads "The subspace relay answered the charts channel with a table the ship cannot read. The table must be a JSON object that maps each star name to a finite heading." Its fix is "check what the relay serves on that channel." To clear the `timeout`, bring the relay up or raise `relayTimeout`. To clear the `malformed`, make the relay serve the table in the shape above. A status outside 200 to 299 still throws a plain `Error`, `relay answered <status> for <channel>`.
+For a table the ship cannot read, the text reads "The subspace relay answered the charts channel with a table the ship cannot read. The table must be a JSON object that maps each star name to a finite heading." Its fix is "check what the relay serves on that channel." To clear the `timeout`, bring the relay up or raise `relayTimeout`. To clear the `malformed`, make the relay serve the table in the shape above. A status outside 200 to 299 still throws a plain `Error`, `The relay answered <status> for <channel>.`
 
 ## Testing the Ship
 

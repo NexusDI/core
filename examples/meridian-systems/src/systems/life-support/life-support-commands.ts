@@ -1,7 +1,10 @@
 import type { PumpMode } from '../../physics/atmosphere';
 import {
+  choiceArgument,
   commandRefusal,
   flagArgument,
+  optionalFlagArgument,
+  optionalNumberArgument,
   textArgument,
 } from '../../simulation/command-arguments';
 import type {
@@ -9,28 +12,34 @@ import type {
   QueuedCommand,
   ShipCommand,
 } from '../../simulation/commands';
+
 import {
   ATMOSPHERE_CONTROL,
   type IAtmosphereControl,
   LIFE_SUPPORT_ACTIONS,
+  LIFE_SUPPORT_SYSTEM,
 } from './contracts';
 
 /** The thermostat targets a heater command accepts, in K. */
 const TARGET = { min: 283, max: 303 } as const;
 
-const PUMP_MODES: readonly unknown[] = [
+const PUMP_MODES = [
   'off',
   'evacuate',
   'fill',
-] satisfies readonly PumpMode[];
+] as const satisfies readonly PumpMode[];
+
+/** The `BadCommandError` life support throws for an action or an argument it cannot read. */
+export const refuseLifeSupport = commandRefusal(
+  LIFE_SUPPORT_SYSTEM,
+  LIFE_SUPPORT_ACTIONS,
+);
 
 /** Reads the crew's life-support commands and hands each to the panel. */
 export class LifeSupportCommands implements ICommandHandler {
   static deps = [ATMOSPHERE_CONTROL] as const;
 
-  readonly system = 'life-support';
-
-  private readonly refuse = commandRefusal(this.system, LIFE_SUPPORT_ACTIONS);
+  readonly system = LIFE_SUPPORT_SYSTEM;
 
   constructor(private readonly control: IAtmosphereControl) {}
 
@@ -38,51 +47,52 @@ export class LifeSupportCommands implements ICommandHandler {
     switch (command.action) {
       case 'online':
         return this.control.online();
+      case 'offline':
+        return this.control.offline();
       case 'heater': {
-        const compartment = textArgument(command, 'compartment', this.refuse);
-        const { on, target } = command;
-        const goodOn = on === undefined || typeof on === 'boolean';
-        const goodTarget =
-          target === undefined ||
-          (typeof target === 'number' &&
-            target >= TARGET.min &&
-            target <= TARGET.max);
-        if (
-          !goodOn ||
-          !goodTarget ||
-          (on === undefined && target === undefined)
-        ) {
-          throw this.refuse(command.action);
+        const compartment = textArgument(
+          command,
+          'compartment',
+          refuseLifeSupport,
+        );
+        const on = optionalFlagArgument(command, 'on', refuseLifeSupport);
+        const target = optionalNumberArgument(
+          command,
+          'target',
+          TARGET.min,
+          TARGET.max,
+          refuseLifeSupport,
+        );
+        if (on === undefined && target === undefined) {
+          throw refuseLifeSupport(command.action, {
+            argument: 'on or target',
+            missing: true,
+          });
         }
-        return this.control.heater(compartment, {
-          on: on as boolean | undefined,
-          target: target as number | undefined,
-        });
+        return this.control.heater(compartment, { on, target });
       }
       case 'scrubber':
         return this.control.scrubber(
-          textArgument(command, 'compartment', this.refuse),
-          flagArgument(command, 'on', this.refuse),
+          textArgument(command, 'compartment', refuseLifeSupport),
+          flagArgument(command, 'on', refuseLifeSupport),
         );
       case 'oxygen':
         return this.control.oxygen(
-          textArgument(command, 'compartment', this.refuse),
-          flagArgument(command, 'on', this.refuse),
+          textArgument(command, 'compartment', refuseLifeSupport),
+          flagArgument(command, 'on', refuseLifeSupport),
         );
       case 'vent':
         return this.control.vent(
-          textArgument(command, 'compartment', this.refuse),
-          flagArgument(command, 'open', this.refuse),
+          textArgument(command, 'compartment', refuseLifeSupport),
+          flagArgument(command, 'open', refuseLifeSupport),
         );
-      case 'pump': {
-        const compartment = textArgument(command, 'compartment', this.refuse);
-        if (!PUMP_MODES.includes(command.mode)) {
-          throw this.refuse(command.action);
-        }
-        return this.control.pump(compartment, command.mode as PumpMode);
-      }
+      case 'pump':
+        return this.control.pump(
+          textArgument(command, 'compartment', refuseLifeSupport),
+          choiceArgument(command, 'mode', PUMP_MODES, refuseLifeSupport),
+        );
       default:
-        throw this.refuse(command.action, 'action');
+        throw refuseLifeSupport(command.action, 'action');
     }
   }
 }

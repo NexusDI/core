@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { BadCommandError } from '../errors';
+
 import {
   choiceArgument,
   commandRefusal,
@@ -15,20 +16,39 @@ import {
 
 const refuse = commandRefusal('probe', 'ping with a target');
 
-const badArgument = expect.objectContaining({
-  reason: 'argument',
-  system: 'probe',
-  action: 'ping',
-});
+/** The refusal of the argument `name` of probe ping, which `value` is missing or unusable for. */
+const badArgument = (name: string, value: unknown) =>
+  expect.objectContaining({
+    reason: 'argument',
+    system: 'probe',
+    action: 'ping',
+    argument: name,
+    problem: value === undefined ? 'missing' : 'invalid',
+  });
 
 describe('commandRefusal', () => {
-  it('refuses an argument of the action by default', () => {
-    const error = refuse('ping');
+  it('refuses an argument that is present and unusable', () => {
+    const error = refuse('ping', { argument: 'target' });
     expect(error).toBeInstanceOf(BadCommandError);
     expect({ ...error }).toEqual({
       reason: 'argument',
       system: 'probe',
       action: 'ping',
+      argument: 'target',
+      problem: 'invalid',
+      expected: 'ping with a target',
+    });
+  });
+
+  it('refuses an argument that is missing', () => {
+    expect({
+      ...refuse('ping', { argument: 'target', missing: true }),
+    }).toEqual({
+      reason: 'argument',
+      system: 'probe',
+      action: 'ping',
+      argument: 'target',
+      problem: 'missing',
       expected: 'ping with a target',
     });
   });
@@ -51,7 +71,9 @@ describe('textArgument', () => {
 
   it.each([undefined, 3, true])('refuses %o', (target) => {
     const command = { system: 'probe', action: 'ping', target };
-    expect(() => textArgument(command, 'target', refuse)).toThrow(badArgument);
+    expect(() => textArgument(command, 'target', refuse)).toThrow(
+      badArgument('target', target),
+    );
   });
 });
 
@@ -63,7 +85,9 @@ describe('flagArgument', () => {
 
   it.each([undefined, 'true', 1])('refuses %o', (on) => {
     const command = { system: 'probe', action: 'ping', on };
-    expect(() => flagArgument(command, 'on', refuse)).toThrow(badArgument);
+    expect(() => flagArgument(command, 'on', refuse)).toThrow(
+      badArgument('on', on),
+    );
   });
 });
 
@@ -78,7 +102,7 @@ describe('numberArgument', () => {
     (range) => {
       const command = { system: 'probe', action: 'ping', range };
       expect(() => numberArgument(command, 'range', -5, 10, refuse)).toThrow(
-        badArgument,
+        badArgument('range', range),
       );
     },
   );
@@ -92,7 +116,9 @@ describe('levelArgument', () => {
 
   it.each([-0.1, 1.5, NaN, '0.5', undefined])('refuses %o', (level) => {
     const command = { system: 'probe', action: 'ping', level };
-    expect(() => levelArgument(command, 'level', refuse)).toThrow(badArgument);
+    expect(() => levelArgument(command, 'level', refuse)).toThrow(
+      badArgument('level', level),
+    );
   });
 });
 
@@ -113,7 +139,7 @@ describe('optionalNumberArgument', () => {
     const command = { system: 'probe', action: 'ping', range };
     expect(() =>
       optionalNumberArgument(command, 'range', 0, 10, refuse),
-    ).toThrow(badArgument);
+    ).toThrow(badArgument('range', range));
   });
 });
 
@@ -131,7 +157,7 @@ describe('optionalFlagArgument', () => {
   it.each(['true', 1, null])('refuses %o', (on) => {
     const command = { system: 'probe', action: 'ping', on };
     expect(() => optionalFlagArgument(command, 'on', refuse)).toThrow(
-      badArgument,
+      badArgument('on', on),
     );
   });
 });
@@ -147,7 +173,7 @@ describe('choiceArgument', () => {
   it.each(['drain', 'toString', 1, undefined, null])('refuses %o', (mode) => {
     const command = { system: 'probe', action: 'ping', mode };
     expect(() => choiceArgument(command, 'mode', modes, refuse)).toThrow(
-      badArgument,
+      badArgument('mode', mode),
     );
   });
 });

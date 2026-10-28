@@ -5,8 +5,9 @@ import { describe, expect, it } from 'vitest';
 import { BadCommandError } from '../../errors';
 import type { ShipCommand } from '../../simulation/commands';
 import { shipText } from '../../text';
+
 import { HELM_ACTIONS, type IHelm } from './contracts';
-import { HelmCommands } from './helm-commands';
+import { HelmCommands, refuseHelm } from './helm-commands';
 
 /** A helm that records each course and burn and answers tick 2. */
 function build() {
@@ -86,6 +87,7 @@ describe('HelmCommands', () => {
         reason: 'argument',
         system: 'helm',
         action: 'burn',
+        argument: 'level',
         expected: HELM_ACTIONS,
       });
       expect(calls).toEqual([]);
@@ -100,6 +102,7 @@ describe('HelmCommands', () => {
       reason: 'argument',
       system: 'helm',
       action: 'course',
+      argument: 'to',
       expected: HELM_ACTIONS,
     });
     expect(calls).toEqual([]);
@@ -116,13 +119,26 @@ describe('HelmCommands', () => {
     });
     expect(explained({ system: 'helm', action: 'burn', level: 2 })).toEqual({
       message:
-        'helm burn got an argument it cannot use. It takes course with a charted star to steer for and burn with a level from 0 to 1.',
+        'helm burn cannot use the level argument. It takes course with a charted star to steer for and burn with a level from 0 to 1.',
       fix: 'send the arguments in the ranges above.',
     });
     expect(explained({ system: 'helm', action: 'course', to: 42 })).toEqual({
       message:
-        'helm course got an argument it cannot use. It takes course with a charted star to steer for and burn with a level from 0 to 1.',
+        'helm course cannot use the to argument. It takes course with a charted star to steer for and burn with a level from 0 to 1.',
       fix: 'send the arguments in the ranges above.',
     });
+  });
+});
+
+describe('refuseHelm', () => {
+  it('words an unknown action and a bad argument', () => {
+    const words = (error: NexusError) =>
+      explain(error, { text: [shipText] })?.message;
+    expect(words(refuseHelm('warp', 'action'))).toBe(
+      `helm has no action 'warp'. It takes ${HELM_ACTIONS}.`,
+    );
+    expect(words(refuseHelm('course', { argument: 'to' }))).toBe(
+      `helm course cannot use the to argument. It takes ${HELM_ACTIONS}.`,
+    );
   });
 });

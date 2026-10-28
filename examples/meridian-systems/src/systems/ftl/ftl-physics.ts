@@ -12,6 +12,7 @@ import type {
  * it with its rating and attaches it to the loop.
  */
 export class FtlPhysics implements IShipSystem {
+  /** The graph reads the phase without building the class. */
   static readonly phase: Phase = 3;
 
   readonly name = 'FtlDrive';

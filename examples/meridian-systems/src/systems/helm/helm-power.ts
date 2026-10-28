@@ -2,6 +2,7 @@ import { HULL, THRUSTERS_LOAD, thrustersDemand } from '../../physics/motion';
 import type { PowerLoad } from '../../physics/power';
 import type { ShipSnapshot } from '../../simulation/contracts';
 import type { IPowerConsumer } from '../engineering/contracts';
+
 import { type IThrusters, THRUSTERS } from './contracts';
 
 /**

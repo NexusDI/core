@@ -3,6 +3,9 @@ import { Token } from '@nexusdi/core';
 import type { FtlRating } from '../../physics/ftl';
 import type { QueuedCommand } from '../../simulation/commands';
 
+/** The name the FTL drive answers to on the command desk. */
+export const FTL_SYSTEM = 'ftl';
+
 /** What the FTL drive takes, in the words a refused jump names it with. */
 export const FTL_ACTIONS =
   'spool with no arguments and jump with a charted star to jump to';

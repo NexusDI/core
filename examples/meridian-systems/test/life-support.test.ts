@@ -168,6 +168,21 @@ describe('LifeSupport', () => {
     expect(ship.get(SHIP_STATE).log()).toEqual([]);
   });
 
+  it('stops stepping the air after an offline command', async () => {
+    await using ship = await Nexus.create(meridianSystems(options));
+    const desk = ship.get(COMMAND_DESK);
+    throttle(desk, 0.01);
+    online(desk);
+    const loop = ship.get(TICK_LOOP);
+    const running = loop.advance(120);
+    expect(running.setpoints.lifeSupport.online).toBe(true);
+
+    desk.submit({ system: 'life-support', action: 'offline' });
+    const stopped = loop.advance(1);
+    expect(stopped.setpoints.lifeSupport.online).toBe(false);
+    expect(loop.advance(120).compartments).toEqual(stopped.compartments);
+  });
+
   it('holds the habitat at 292.6 K after an hour online at throttle 0.01', async () => {
     await using ship = await Nexus.create(meridianSystems(options));
     const desk = ship.get(COMMAND_DESK);

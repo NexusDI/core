@@ -9,7 +9,7 @@ import {
   RelayError,
   UnknownCompartmentError,
 } from './errors';
-import { ENGINEERING_ACTIONS } from './systems/engineering/engineering-commands';
+import { ENGINEERING_ACTIONS } from './systems/engineering/contracts';
 
 const DOCS =
   'https://github.com/NexusDI/core/tree/main/examples/meridian-systems#';

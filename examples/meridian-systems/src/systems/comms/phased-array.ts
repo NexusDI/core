@@ -2,6 +2,7 @@ import { optional } from '@nexusdi/core';
 
 import type { QueuedCommand } from '../../simulation/commands';
 import { type IShipState, SHIP_STATE } from '../../simulation/contracts';
+
 import {
   type ICommsArray,
   type ISubspaceLink,

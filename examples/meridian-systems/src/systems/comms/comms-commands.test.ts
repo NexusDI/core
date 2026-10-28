@@ -5,8 +5,9 @@ import { describe, expect, it } from 'vitest';
 import { BadCommandError } from '../../errors';
 import type { ShipCommand } from '../../simulation/commands';
 import { shipText } from '../../text';
+
+import { CommsCommands, refuseComms } from './comms-commands';
 import { COMMS_ACTIONS, type ICommsArray } from './contracts';
-import { CommsCommands } from './comms-commands';
 
 /** An array that counts its hails and answers tick 2. */
 function build() {
@@ -78,5 +79,13 @@ describe('CommsCommands', () => {
     expect(explain(error as NexusError, { text: [shipText] })?.message).toBe(
       "comms has no action 'send'. It takes hail with no arguments.",
     );
+  });
+});
+
+describe('refuseComms', () => {
+  it('words an unknown action', () => {
+    expect(
+      explain(refuseComms('send', 'action'), { text: [shipText] })?.message,
+    ).toBe("comms has no action 'send'. It takes hail with no arguments.");
   });
 });

@@ -8,6 +8,7 @@ import {
 } from '../../physics/atmosphere';
 import type { DeckPlan } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import { LifeSupportPower } from './life-support-power';
 
 const plan = deck satisfies DeckPlan;

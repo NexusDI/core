@@ -2,7 +2,7 @@ import { once } from 'node:events';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { BUNDLED_CHARTS } from '@nexusdi/meridian-systems';
+import { BUNDLED_CHARTS } from '@nexusdi/meridian-systems/charts';
 
 /** A local subspace relay: serves GET /charts with the bundled table and counts the downloads. */
 export async function startRelay(): Promise<{

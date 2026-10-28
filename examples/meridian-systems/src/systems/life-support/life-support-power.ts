@@ -6,6 +6,7 @@ import {
   type DeckPlan,
   type ShipSnapshot,
 } from '../../simulation/contracts';
+
 import { LIFE_SUPPORT_OPTIONS, type LifeSupportOptions } from './contracts';
 
 /**

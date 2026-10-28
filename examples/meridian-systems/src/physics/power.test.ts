@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { allocatePower, loadHeat, type PowerLoad } from './power';
 import { splitmix32 } from './rng';
 

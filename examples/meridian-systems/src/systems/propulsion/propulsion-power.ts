@@ -2,6 +2,7 @@ import { driveDemand, MAIN_DRIVE_LOAD } from '../../physics/motion';
 import type { PowerLoad } from '../../physics/power';
 import type { ShipSnapshot } from '../../simulation/contracts';
 import type { IPowerConsumer } from '../engineering/contracts';
+
 import { type IMainDrive, MAIN_DRIVE } from './contracts';
 
 /**

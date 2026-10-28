@@ -2,6 +2,7 @@ import { defineModule, provide } from '@nexusdi/core';
 
 import { SHIP_SYSTEMS } from '../../simulation/contracts';
 import { POWER_CONSUMERS } from '../engineering/contracts';
+
 import { MAIN_DRIVE } from './contracts';
 import { PlasmaDrive } from './plasma-drive';
 import { PropulsionPhysics } from './propulsion-physics';

@@ -2,6 +2,7 @@ import { COMMS_LOAD, commsDemand } from '../../physics/comms';
 import type { PowerLoad } from '../../physics/power';
 import type { ShipSnapshot } from '../../simulation/contracts';
 import type { IPowerConsumer } from '../engineering/contracts';
+
 import { COMMS_ARRAY, type ICommsArray } from './contracts';
 
 /**

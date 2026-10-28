@@ -5,6 +5,7 @@ import { PowerBudgetError } from '../../errors';
 import type { PowerLoad } from '../../physics/power';
 import type { DeckPlan, ShipSnapshot } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import type { IPowerConsumer, IShieldGrid } from './contracts';
 import { PlasmaRouter } from './plasma-router';
 

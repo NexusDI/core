@@ -4,6 +4,7 @@ import {
   type SensorCalibration,
 } from '../../physics/atmosphere';
 import type { DeckPlan } from '../../simulation/contracts';
+
 import type { LifeSupportOptions } from './contracts';
 
 /**

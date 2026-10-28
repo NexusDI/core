@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+
 import expected from '../physics/__fixtures__/rng.seed-7.json';
+
 import type { IRandomSource } from './contracts';
 import { SeededRandom } from './seeded-random';
 

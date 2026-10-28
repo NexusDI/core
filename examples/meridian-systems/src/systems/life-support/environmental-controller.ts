@@ -1,12 +1,14 @@
-import { BadCommandError } from '../../errors';
 import type { PumpMode } from '../../physics/atmosphere';
+import { ownKey } from '../../simulation/command-arguments';
 import type { QueuedCommand, SetpointChange } from '../../simulation/commands';
 import {
   type CompartmentId,
   type IShipState,
   SHIP_STATE,
 } from '../../simulation/contracts';
-import { type IAtmosphereControl, LIFE_SUPPORT_ACTIONS } from './contracts';
+
+import type { IAtmosphereControl } from './contracts';
+import { refuseLifeSupport } from './life-support-commands';
 
 type LifeSupportChange = NonNullable<SetpointChange['lifeSupport']>;
 
@@ -29,6 +31,10 @@ export class EnvironmentalController implements IAtmosphereControl {
 
   online(): QueuedCommand {
     return this.queue({ online: true });
+  }
+
+  offline(): QueuedCommand {
+    return this.queue({ online: false });
   }
 
   heater(
@@ -71,15 +77,9 @@ export class EnvironmentalController implements IAtmosphereControl {
    */
   private device(action: DeviceAction, compartment: string): CompartmentId {
     const record = this.state.snapshot().setpoints.lifeSupport[RECORDS[action]];
-    if (!Object.hasOwn(record, compartment)) {
-      throw new BadCommandError({
-        reason: 'argument',
-        system: 'life-support',
-        action,
-        expected: LIFE_SUPPORT_ACTIONS,
-      });
+    if (!ownKey(record, compartment)) {
+      throw refuseLifeSupport(action, { argument: 'compartment' });
     }
-    // The record's keys are the deck's ids, so an own key is a CompartmentId.
-    return compartment as CompartmentId;
+    return compartment;
   }
 }

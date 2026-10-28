@@ -1,4 +1,5 @@
 import { Token } from '@nexusdi/core';
+
 import type { ShipReading } from '../simulation/contracts';
 
 /** One reader of the feed, such as an open `GET /telemetry` stream. */

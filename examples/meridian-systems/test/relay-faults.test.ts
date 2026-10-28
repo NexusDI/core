@@ -1,6 +1,5 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-
 import { isNexusError, Nexus } from '@nexusdi/core';
 import { afterEach, describe, expect, it } from 'vitest';
 

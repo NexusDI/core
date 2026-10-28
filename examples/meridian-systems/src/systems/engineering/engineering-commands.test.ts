@@ -6,8 +6,9 @@ import { BadCommandError, PowerBudgetError } from '../../errors';
 import { FUSION_REACTOR } from '../../physics/thermal';
 import type { ShipCommand } from '../../simulation/commands';
 import { shipText } from '../../text';
+
 import type { IReactorCore, IShieldGrid } from './contracts';
-import { EngineeringCommands } from './engineering-commands';
+import { EngineeringCommands, refuseEngineering } from './engineering-commands';
 
 const EXPECTED =
   'throttle with a level from 0 to 1 and shields with raised true or false';
@@ -70,14 +71,14 @@ describe('EngineeringCommands', () => {
   });
 
   it.each([
-    ['a level of 1.5', { action: 'throttle', level: 1.5 }],
-    ['a level under 0', { action: 'throttle', level: -0.1 }],
-    ['a NaN level', { action: 'throttle', level: Number.NaN }],
-    ['a string level', { action: 'throttle', level: '0.5' }],
-    ['a missing level', { action: 'throttle' }],
-    ['a missing raised', { action: 'shields' }],
-    ['a string raised', { action: 'shields', raised: 'true' }],
-  ])('refuses %s as a bad argument', (_name, args) => {
+    ['a level of 1.5', 'level', { action: 'throttle', level: 1.5 }],
+    ['a level under 0', 'level', { action: 'throttle', level: -0.1 }],
+    ['a NaN level', 'level', { action: 'throttle', level: Number.NaN }],
+    ['a string level', 'level', { action: 'throttle', level: '0.5' }],
+    ['a missing level', 'level', { action: 'throttle' }],
+    ['a missing raised', 'raised', { action: 'shields' }],
+    ['a string raised', 'raised', { action: 'shields', raised: 'true' }],
+  ])('refuses %s as a bad %s argument', (_name, argument, args) => {
     const { calls, commands } = build();
     const error = refusal(commands, { system: 'engineering', ...args });
     expect(error).toBeInstanceOf(BadCommandError);
@@ -86,6 +87,7 @@ describe('EngineeringCommands', () => {
       reason: 'argument',
       system: 'engineering',
       action: args.action,
+      argument,
       expected: EXPECTED,
     });
     expect(calls).toEqual([]);
@@ -118,6 +120,17 @@ describe('EngineeringCommands', () => {
     );
   });
 
+  it('words a bad argument by its name', () => {
+    const error = refusal(build().commands, {
+      system: 'engineering',
+      action: 'throttle',
+      level: 2,
+    });
+    expect(explain(error as NexusError, { text: [shipText] })?.message).toBe(
+      `engineering throttle cannot use the level argument. It takes ${EXPECTED}.`,
+    );
+  });
+
   it('passes the grid refusal through', () => {
     const refused = new PowerBudgetError({
       consumer: 'shields',
@@ -136,5 +149,14 @@ describe('EngineeringCommands', () => {
         raised: true,
       }),
     ).toBe(refused);
+  });
+});
+
+describe('refuseEngineering', () => {
+  it('words an unknown action', () => {
+    expect(
+      explain(refuseEngineering('warp', 'action'), { text: [shipText] })
+        ?.message,
+    ).toBe(`engineering has no action 'warp'. It takes ${EXPECTED}.`);
   });
 });
