@@ -7,8 +7,8 @@
 import type { ReactNode } from 'react';
 import { Form } from 'react-router';
 
-import type { CommandAnswer } from '../../bridge/bridge-link';
 import { Button, Section } from '../../components';
+import type { CommandAnswer } from '../../di/contracts';
 
 /** A list of named gauges, each a name and its rounded value, with `label` as its accessible name. */
 export function Gauges({
@@ -170,8 +170,9 @@ export function CommandSelect({
 /**
  * A form of one number named `name` that posts `command` with the number when
  * the reader presses `button`. `label` names the field and `defaultValue`
- * fills it. `min`, `max` and `step` bound it. The field's id is `name`, so a
- * page holds one `NumberForm` for each field name.
+ * fills it. `min`, `max` and `step` bound it. `hidden` posts more fields with
+ * the number, such as the compartment a heater belongs to. The field's id is
+ * `name`, so a page holds one `NumberForm` for each field name.
  */
 export function NumberForm({
   command,
@@ -182,6 +183,7 @@ export function NumberForm({
   max,
   step,
   defaultValue,
+  hidden = {},
 }: {
   command: string;
   name: string;
@@ -191,10 +193,14 @@ export function NumberForm({
   max: number;
   step: number;
   defaultValue: number;
+  hidden?: Readonly<Record<string, string>>;
 }) {
   return (
     <Form method="post" className="flex gap-2 items-center">
       <input type="hidden" name="command" value={command} />
+      {Object.entries(hidden).map(([field, value]) => (
+        <input key={field} type="hidden" name={field} value={value} />
+      ))}
       <label htmlFor={name}>{label}</label>
       <input
         id={name}
@@ -207,6 +213,41 @@ export function NumberForm({
         required
       />
       <Button type="submit">{button}</Button>
+    </Form>
+  );
+}
+
+/**
+ * A form of two buttons that post `command` with the field `field` set to
+ * true for the first button, `on`, and to false for the second, `off`.
+ * `hidden` posts more fields with either button, such as the compartment a
+ * vent belongs to.
+ */
+export function ToggleForm({
+  command,
+  field,
+  on,
+  off,
+  hidden = {},
+}: {
+  command: string;
+  field: string;
+  on: string;
+  off: string;
+  hidden?: Readonly<Record<string, string>>;
+}) {
+  return (
+    <Form method="post" className="flex gap-2">
+      <input type="hidden" name="command" value={command} />
+      {Object.entries(hidden).map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
+      <Button type="submit" name={field} value="true">
+        {on}
+      </Button>
+      <Button type="submit" name={field} value="false" variant="outline">
+        {off}
+      </Button>
     </Form>
   );
 }

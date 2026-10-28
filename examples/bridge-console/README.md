@@ -34,7 +34,7 @@ code imports the module.
   `useService(TELEMETRY_CLIENT)` and follows each frame. It shows
   `Telemetry offline` when the stream ends or fails, and unsubscribes on
   unmount.
-- `TELEMETRY_CLIENT` (`app/bridge/telemetry-client.ts`) binds
+- `TELEMETRY_CLIENT` (`app/di/telemetry-client.module.ts`) binds
   `EventSourceTelemetry`, which opens an `EventSource` on `/telemetry` in
   `subscribe` only and closes it on an `offline` event or an error, with no
   reconnect. Both `BridgeConsole` and `BridgeClient` import its module,
@@ -70,7 +70,7 @@ the refusal's message and its `Fix:` line. Its loader reads the ship through
 `BRIDGE_LINK.snapshot()` for four gauges: the reactor level, the electric
 output, the coolant temperature and the power the shields draw. React Router
 reloads them after each command. A backend that fails gives
-`Gauges offline`, and the forms stay.
+`Ship snapshot offline`, and the forms stay.
 
 `command(cmd)` resolves a 202 to `{ accepted: true, tick }`, with the
 `flightLog` entries when the body carries them, and a 400 or a 409 to
@@ -100,7 +100,7 @@ Each compartment shows its analyzer's tick, temperature to 0.1 K, pressure to
 habitat also show their heater power from the snapshot, in whole watts. The
 analyzer adds its own noise, so its temperature differs from the snapshot's
 true air. The system pages write their figures through `fixed()` in
-`app/bridge/fixed.ts`, which rounds to a fixed number of decimals and groups
+`app/fixed.ts`, which rounds to a fixed number of decimals and groups
 the thousands, and their pressures through `kilopascals()` beside it.
 
 The forms post life-support commands through `BRIDGE_LINK.command(cmd)`: one

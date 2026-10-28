@@ -1,8 +1,8 @@
 import { Nexus } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
-import { WATCH_LOG } from '../app/bridge/contracts';
-import { Watch } from '../app/bridge/watch';
+import { WATCH_LOG } from '../app/di/contracts';
+import { Watch } from '../app/di/watch.module';
 
 describe('the watch log', () => {
   it("prefixes each entry with the request's mission", async () => {

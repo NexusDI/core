@@ -1,11 +1,12 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
 import { Form } from 'react-router';
 
-import type { CommandAnswer } from '../../bridge/bridge-link';
-import { fixed, megawatts } from '../../bridge/fixed';
 import { Button } from '../../components';
+import type { CommandAnswer } from '../../di/contracts';
+import { fixed, megawatts } from '../../fixed';
 import { snapshotLoader } from '../snapshot-loader.server';
 import type { Route } from './+types/ftl';
+import { allocated } from './allocated';
 import { ftlAction } from './system-action.server';
 import {
   ControlSection,
@@ -32,7 +33,6 @@ export const loader: (args: Route.LoaderArgs) => Promise<ShipReading | null> =
  */
 function FtlGauges({ ship }: { ship: ShipReading }) {
   const { status, charge, sector, jumped } = ship.ftl;
-  const load = ship.power.loads.find(({ id }) => id === 'ftl-spool');
   return (
     <ControlSection title="FTL drive">
       <Gauges
@@ -41,7 +41,7 @@ function FtlGauges({ ship }: { ship: ShipReading }) {
           ['Status', status],
           ['Armed', ship.setpoints.ftl.armed ? 'Yes' : 'No'],
           ['Spool charge', `${fixed(charge / 1e9, 1)} GJ`],
-          ['Spool power', megawatts(load?.allocated ?? 0)],
+          ['Spool power', megawatts(allocated(ship, 'ftl-spool'))],
           ['Sector', sector],
           ['Last jump', jumped === null ? 'none' : `tick ${jumped}`],
         ]}

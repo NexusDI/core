@@ -20,16 +20,15 @@ export default async function handleRequest(
   routerContext: EntryContext,
   loadContext: RouterContextProvider,
 ) {
-  // The request scope di.middleware set. React Router
-  // renders a request no route matches without the root middleware, so the
-  // slot is null and the page renders with no request scope.
+  // The request scope di.middleware set. React Router renders a request no
+  // route matches without the root middleware, so the slot is null and the
+  // page renders with no request scope.
   const scope = await loadContext.get(NEXUS_SCOPE)?.scope();
   return new Promise((resolve, reject) => {
     let shellRendered = false;
     const userAgent = request.headers.get('user-agent');
 
-    // Ensure requests from bots and SPA Mode renders wait for all content to load before responding
-    // https://react.dev/reference/react-dom/server/renderToPipeableStream#waiting-for-all-content-to-load-for-crawlers-and-static-generation
+    // A bot gets the whole page at once, and so does a SPA mode render.
     const readyOption: keyof RenderToPipeableStreamOptions =
       (userAgent && isbot(userAgent)) || routerContext.isSpaMode
         ? 'onAllReady'
@@ -61,9 +60,8 @@ export default async function handleRequest(
         },
         onError(error: unknown) {
           responseStatusCode = 500;
-          // Log streaming rendering errors from inside the shell.  Don't log
-          // errors encountered during initial shell rendering since they'll
-          // reject and get logged in handleDocumentRequest.
+          // An error before the shell renders rejects the request promise,
+          // and React Router logs it there.
           if (shellRendered) {
             console.error(error);
           }
@@ -71,8 +69,7 @@ export default async function handleRequest(
       },
     );
 
-    // Abort the rendering stream after the `streamTimeout` so it has time to
-    // flush down the rejected boundaries
+    // The extra second lets the abort flush the boundaries that rejected.
     setTimeout(abort, streamTimeout + 1000);
   });
 }

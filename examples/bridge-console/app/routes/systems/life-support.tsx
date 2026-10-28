@@ -5,31 +5,24 @@ import type {
 } from '@nexusdi/meridian-systems';
 import { Form } from 'react-router';
 
-import { BRIDGE_LINK, type CommandAnswer } from '../../bridge/bridge-link';
-import { fixed, kilopascals } from '../../bridge/fixed';
 import { Button, Section } from '../../components';
-import { di } from '../../nexus.server';
+import type { CommandAnswer } from '../../di/contracts';
+import { fixed, kilopascals } from '../../fixed';
 import type { Route } from './+types/life-support';
 import { AirlockControls } from './airlock-controls';
 import { COMPARTMENTS } from './compartments';
+import {
+  lifeSupportLoader,
+  type LifeSupportReading,
+} from './life-support.server';
 import { systemAction } from './system-action.server';
 import {
   ControlSection,
   Gauges,
+  NumberForm,
   SnapshotOffline,
   SystemPage,
 } from './system-page';
-
-/**
- * What the page reads: the ship snapshot and each compartment's analyzer
- * reading, each null when its call fails.
- */
-export interface LifeSupportReading {
-  readonly ship: ShipReading | null;
-  readonly air: Readonly<
-    Record<CompartmentId, AtmosphereReading<CompartmentId> | null>
-  >;
-}
 
 /** Sends the submitted form to bridge-api as a life-support command. */
 export const action: (args: Route.ActionArgs) => Promise<CommandAnswer> =
@@ -40,24 +33,9 @@ export const action: (args: Route.ActionArgs) => Promise<CommandAnswer> =
     open: 'boolean',
   });
 
-/**
- * The snapshot and the four analyzer reads, all in flight at once. A call
- * that fails leaves its part null, and the page shows that part offline.
- */
+/** The ship snapshot and the four analyzer readings, each null when its call fails. */
 export const loader: (args: Route.LoaderArgs) => Promise<LifeSupportReading> =
-  di.inject({ link: BRIDGE_LINK }, async ({ link }) => {
-    const ship = link.snapshot().catch(() => null);
-    const reads = Promise.all(
-      COMPARTMENTS.map(
-        async ([id]) =>
-          [id, await link.atmosphere(id).catch(() => null)] as const,
-      ),
-    );
-    return {
-      ship: await ship,
-      air: Object.fromEntries(await reads) as LifeSupportReading['air'],
-    };
-  });
+  lifeSupportLoader;
 
 /**
  * One compartment: the air its gas analyzer reads, and the heater power the
@@ -132,22 +110,17 @@ export default function LifeSupport({
         </Form>
       </ControlSection>
       <ControlSection title="Habitat thermostat">
-        <Form method="post" className="flex gap-2 items-center">
-          <input type="hidden" name="command" value="heater" />
-          <input type="hidden" name="compartment" value="habitat" />
-          <label htmlFor="target">Habitat heater target (K)</label>
-          <input
-            id="target"
-            name="target"
-            type="number"
-            min={283}
-            max={303}
-            step={0.1}
-            defaultValue={293}
-            required
-          />
-          <Button type="submit">Set habitat target</Button>
-        </Form>
+        <NumberForm
+          command="heater"
+          name="target"
+          label="Habitat heater target (K)"
+          button="Set habitat target"
+          min={283}
+          max={303}
+          step={0.1}
+          defaultValue={293}
+          hidden={{ compartment: 'habitat' }}
+        />
       </ControlSection>
       <ControlSection title="Airlock pump and vent">
         <AirlockControls />

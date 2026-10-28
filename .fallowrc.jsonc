@@ -305,12 +305,11 @@
     // graphPlugins is the array `nexusdi graph --plugins
     // src/ship/plugins.ts#graphPlugins` reads by name, in the bridge API's
     // graph target. No module imports it.
-    // The bridge console's route tests' vi.mock factories call these through
-    // a dynamic import of the module, which fallow does not follow to a
-    // member.
+    // The bridge console's route tests' vi.mock factories return this module
+    // through a dynamic import, which fallow does not follow to a member.
     {
-      "file": "examples/bridge-console/tests/support/testing-di.ts",
-      "exports": ["homeServer", "courseServer", "sectorsServer"],
+      "file": "examples/bridge-console/tests/support/nexus-server.ts",
+      "exports": ["di"],
     },
     {
       "file": "examples/bridge-api/src/ship/plugins.ts",

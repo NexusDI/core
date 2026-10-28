@@ -1,10 +1,8 @@
 import { Nexus } from '@nexusdi/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  TELEMETRY_CLIENT,
-  TelemetryClient,
-} from '../app/bridge/telemetry-client';
+import { TELEMETRY_CLIENT } from '../app/di/contracts';
+import { TelemetryClient } from '../app/di/telemetry-client.module';
 import { shipAtStart } from './doubles';
 import { FakeEventSource } from './fake-event-source';
 

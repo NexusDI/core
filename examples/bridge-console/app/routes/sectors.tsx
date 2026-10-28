@@ -1,5 +1,6 @@
-import type { Course } from '../bridge/contracts';
-import { NAV_ROUTES, Navigation } from '../navigation/navigation.module';
+import type { Course } from '@nexusdi/meridian-systems/charts';
+
+import { NAV_ROUTES, Navigation } from '../di/navigation.module';
 import { di } from '../nexus.server';
 import type { Route } from './+types/sectors';
 

@@ -1,7 +1,9 @@
 import { defineModule, provide } from '@nexusdi/core';
-import { BUNDLED_CHARTS, StarCharts } from '@nexusdi/meridian-systems/charts';
-
-import { NAV_CHARTS } from './contracts';
+import {
+  BUNDLED_CHARTS,
+  NAV_CHARTS,
+  StarCharts,
+} from '@nexusdi/meridian-systems/charts';
 
 /** The library's star charts over the table the ship carries. */
 class ChartTable extends StarCharts {

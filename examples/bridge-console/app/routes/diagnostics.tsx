@@ -1,6 +1,6 @@
 import type { NexusGraph } from '@nexusdi/devtools';
 
-import { BRIDGE_LINK } from '../bridge/bridge-link';
+import { BRIDGE_LINK } from '../di/contracts';
 import { Section } from '../components';
 import { di } from '../nexus.server';
 import type { Route } from './+types/diagnostics';

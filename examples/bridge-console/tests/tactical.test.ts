@@ -1,9 +1,8 @@
 import { Nexus } from '@nexusdi/core';
-import { StarCharts } from '@nexusdi/meridian-systems/charts';
+import { NAV_CHARTS, StarCharts } from '@nexusdi/meridian-systems/charts';
 import { describe, expect, it } from 'vitest';
 
-import { NAV_CHARTS } from '../app/bridge/contracts';
-import { Tactical } from '../app/bridge/tactical';
+import { Tactical } from '../app/di/tactical.module';
 
 describe("the console's Tactical", () => {
   it("binds NAV_CHARTS to the library's StarCharts over the bundled table", async () => {
@@ -15,5 +14,6 @@ describe("the console's Tactical", () => {
       heading: 42,
     });
     expect(charts.has('constructor')).toBe(false);
+    expect(charts.stars()).toEqual(['Kepler-442b', 'Proxima-b', 'TRAPPIST-1e']);
   });
 });

@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { NAV_CHARTS } from '@nexusdi/meridian-systems/charts';
 import { useService } from '@nexusdi/react';
-import { NAV_CHARTS } from '../bridge/contracts';
 
+/** An input for a star name, with the heading the charts plot to it. */
 export function CoursePlotter() {
   const charts = useService(NAV_CHARTS);
   const [to, setTo] = useState('Proxima-b');

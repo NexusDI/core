@@ -1,120 +1,93 @@
-import { afterAll, describe, expect, test as base, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { createRoutesStub, RouterContextProvider } from 'react-router';
-import type { Nexus } from '@nexusdi/core';
-import { NexusProvider } from '@nexusdi/react';
-import { existingScope, NEXUS_SCOPE } from '@nexusdi/react-router';
-import { createTestingContainer } from '@nexusdi/testing';
-import { nexusTest } from '@nexusdi/vitest';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import type { ShipReading } from '@nexusdi/meridian-systems';
+import { describe, expect, vi } from 'vitest';
 
-import { BRIDGE_LINK } from '../../app/bridge/bridge-link';
-import { BridgeClient } from '../../app/bridge/bridge.client';
-import { BridgeConsole } from '../../app/bridge/bridge-console';
-import { NAV_CHARTS, WATCH_LOG } from '../../app/bridge/contracts';
-import { fakeBridgeLink } from '../doubles';
-import { built, fakeCharts } from '../support/testing-di';
+import { WATCH_LOG } from '../../app/di/contracts';
+import {
+  FailingSnapshotLink,
+  FixedCharts,
+  linkAt,
+  shipAtStart,
+} from '../doubles';
+import { loaderArgs, test, withCharts, withLink } from '../support/console';
 
-vi.mock('../../app/nexus.server', async () =>
-  (await import('../support/testing-di')).homeServer(),
-);
+vi.mock('../../app/nexus.server', () => import('../support/nexus-server'));
 
-const { default: Home, loader, action } = await import('../../app/routes/home');
+const home = await import('../../app/routes/home');
 
-afterAll(() => Promise.all(built.map((ship) => ship[Symbol.asyncDispose]())));
-
-/** Shown while the stub runs the loader, so React Router has a fallback to render. */
-function HydrateFallback() {
-  return <p>Docking</p>;
-}
-
-/** A fresh BridgeConsole testing container per test, with the fake charts and link. */
-const test = nexusTest(base, BridgeConsole, {
-  setup: (builder) =>
-    builder
-      .override(NAV_CHARTS, { useValue: fakeCharts })
-      .override(BRIDGE_LINK, fakeBridgeLink),
-  create: { onInit: false },
-});
-
-/**
- * The container the browser entry renders under: the client graph, with
- * the fake charts. ScopeProvider opens its scope there with no request.
- */
-async function browserShip() {
-  const ship = await createTestingContainer(BridgeClient)
-    .override(NAV_CHARTS, { useValue: fakeCharts })
-    .create();
-  built.push(ship);
-  return ship;
-}
-
-const scopeOf = (ship: Nexus, id: string) =>
-  ship.createScope({ request: { mission: { id, target: 'Kepler-442b' } } });
+/** The ship after a jump to Proxima-b. */
+const jumped: ShipReading = {
+  ...shipAtStart,
+  ftl: { ...shipAtStart.ftl, sector: 'Proxima-b', jumped: 12 },
+};
 
 describe('Home route', () => {
   test('renders the mission and a fresh watch log from the request scope', async ({
-    nexus,
+    renderRoute,
   }) => {
-    const scope = await scopeOf(nexus, 'survey-7');
-    const Stub = createRoutesStub(
-      [{ path: '/', Component: Home, HydrateFallback, loader, action }],
-      new RouterContextProvider(new Map([[NEXUS_SCOPE, existingScope(scope)]])),
-    );
     // CoursePlotter reads NAV_CHARTS in render, under the provider the
     // browser entry renders: the client graph and no request scope.
-    render(
-      <NexusProvider container={await browserShip()}>
-        <Stub initialEntries={['/']} />
-      </NexusProvider>,
-    );
+    await renderRoute(home, {
+      path: '/',
+      browser: withCharts(FixedCharts),
+    });
     await waitFor(() => {
       expect(screen.getByText('survey-7')).toBeDefined();
       expect(screen.getByText('survey-7: docked')).toBeDefined();
     });
     // The plotter's own scope opens after hydration under the client graph,
-    // and plots with the fake charts.
+    // and plots with the fixed charts.
     expect(
       await screen.findByText('heading 42', { exact: false, selector: 'span' }),
     ).toBeDefined();
-    await scope[Symbol.asyncDispose]();
   });
 
   test("records the form's entry through the action, in the request's scope", async ({
-    nexus,
+    renderRoute,
   }) => {
-    const scope = await scopeOf(nexus, 'survey-7');
-    const Stub = createRoutesStub(
-      [{ path: '/', Component: Home, HydrateFallback, loader, action }],
-      new RouterContextProvider(new Map([[NEXUS_SCOPE, existingScope(scope)]])),
-    );
-    render(
-      <NexusProvider container={await browserShip()}>
-        <Stub initialEntries={['/']} />
-      </NexusProvider>,
-    );
+    await renderRoute(home, { path: '/', browser: withCharts(FixedCharts) });
     await screen.findByText('survey-7: docked');
     fireEvent.click(screen.getByRole('button', { name: 'Record' }));
     expect(await screen.findByText('survey-7: course plotted')).toBeDefined();
-    await scope[Symbol.asyncDispose]();
   });
 
   test('keeps no watch log entry from one request to the next', async ({
-    nexus,
+    openScope,
   }) => {
-    const first = await scopeOf(nexus, 'survey-1');
-    const second = await scopeOf(nexus, 'survey-2');
-    const read = (scope: typeof first) =>
-      loader({
-        params: {},
-        context: new RouterContextProvider(
-          new Map([[NEXUS_SCOPE, existingScope(scope)]]),
-        ),
-        request: new Request('http://bridge/'),
-      } as never);
+    const first = await openScope({ mission: 'survey-1' });
+    const second = await openScope({ mission: 'survey-2' });
+    const read = (scope: typeof first) => home.loader(loaderArgs(scope, '/'));
     expect((await read(first)).entries).toEqual(['survey-1: docked']);
     expect((await read(second)).entries).toEqual(['survey-2: docked']);
     expect(first.get(WATCH_LOG).entries()).not.toContain('survey-2: docked');
-    await first[Symbol.asyncDispose]();
-    await second[Symbol.asyncDispose]();
+  });
+
+  test("plots the mission's target before the ship jumps", async ({
+    renderRoute,
+  }) => {
+    await renderRoute(home, { path: '/', browser: withCharts(FixedCharts) });
+    expect(await screen.findByText('Kepler-442b: heading 42')).toBeDefined();
+  });
+
+  test('plots the sector the ship jumped to after a jump', async ({
+    renderRoute,
+  }) => {
+    await renderRoute(home, {
+      path: '/',
+      overrides: withLink(linkAt(jumped)),
+      browser: withCharts(FixedCharts),
+    });
+    expect(await screen.findByText('Proxima-b: heading 117')).toBeDefined();
+    expect(screen.queryByText('Kepler-442b: heading 42')).toBeNull();
+  });
+
+  test("keeps the mission's target when the snapshot fails", async ({
+    openScope,
+  }) => {
+    const scope = await openScope({ overrides: withLink(FailingSnapshotLink) });
+    expect((await home.loader(loaderArgs(scope, '/'))).course).toEqual({
+      to: 'Kepler-442b',
+      heading: 42,
+    });
   });
 });

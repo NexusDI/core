@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { useService } from '@nexusdi/react';
 import type { ShipReading } from '@nexusdi/meridian-systems';
 
-import { fixed } from '../bridge/fixed';
-import { TELEMETRY_CLIENT } from '../bridge/telemetry-client';
+import { TELEMETRY_CLIENT } from '../di/contracts';
+import { fixed } from '../fixed';
 
 /**
  * The ship's tick, ship time and habitat air. It starts from the loader's

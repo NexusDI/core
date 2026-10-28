@@ -1,6 +1,7 @@
 import { Form } from 'react-router';
 
 import { Button } from '../../components';
+import { ToggleForm } from './system-page';
 
 /**
  * The airlock's pump mode select and its vent buttons. Each form posts a
@@ -21,16 +22,13 @@ export function AirlockControls() {
         </select>
         <Button type="submit">Set pump</Button>
       </Form>
-      <Form method="post" className="flex gap-2">
-        <input type="hidden" name="command" value="vent" />
-        <input type="hidden" name="compartment" value="airlock" />
-        <Button type="submit" name="open" value="true">
-          Open vent
-        </Button>
-        <Button type="submit" name="open" value="false" variant="outline">
-          Shut vent
-        </Button>
-      </Form>
+      <ToggleForm
+        command="vent"
+        field="open"
+        on="Open vent"
+        off="Shut vent"
+        hidden={{ compartment: 'airlock' }}
+      />
     </>
   );
 }

@@ -7,7 +7,41 @@ import type {
   ShipReading,
 } from '@nexusdi/meridian-systems';
 
-import type { CommandAnswer, IBridgeLink } from '../app/bridge/bridge-link';
+import type { INavCharts } from '@nexusdi/meridian-systems/charts';
+
+import type { CommandAnswer, IBridgeLink } from '../app/di/contracts';
+
+/** Charts that hold every star and plot every course at heading 42. */
+export class FixedCharts implements INavCharts {
+  has() {
+    return true;
+  }
+  plot(to: string) {
+    return { to, heading: 42 };
+  }
+  stars() {
+    return ['Kepler-442b', 'Proxima-b'];
+  }
+}
+
+/** The headings of the two stars `FakeCharts` holds. */
+export const FAKE_STARS = { Vega: 11, Altair: 22 } as const;
+
+/** Charts over a two-star table in memory, with no bundled table behind them. */
+export class FakeCharts implements INavCharts {
+  has(to: string) {
+    return Object.hasOwn(FAKE_STARS, to);
+  }
+  plot(to: string) {
+    return {
+      to,
+      heading: this.has(to) ? FAKE_STARS[to as keyof typeof FAKE_STARS] : 0,
+    };
+  }
+  stars() {
+    return Object.keys(FAKE_STARS);
+  }
+}
 
 /**
  * A compartment at 293 K that carries the pressure the backend reports for
@@ -193,6 +227,21 @@ export class FakeBridgeLink implements IBridgeLink {
     return { accepted: true, tick: 1 };
   }
 }
+
+/** A link whose snapshot call fails, as when bridge-api answers 503. */
+export class FailingSnapshotLink extends FakeBridgeLink {
+  override async snapshot(): Promise<ShipReading> {
+    throw new Error('bridge-api answered 503 for /sim');
+  }
+}
+
+/** A link double class whose snapshot always answers `ship`. */
+export const linkAt = (ship: ShipReading): typeof FakeBridgeLink =>
+  class FixedSnapshotLink extends FakeBridgeLink {
+    override async snapshot() {
+      return ship;
+    }
+  };
 
 /** The override of BRIDGE_LINK the route tests use. */
 export const fakeBridgeLink = {

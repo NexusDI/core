@@ -4,7 +4,7 @@ import { errors } from '@nexusdi/errors';
 import { nodeScopes } from '@nexusdi/node';
 import { nexus } from '@nexusdi/react-router';
 
-import { BridgeConsole } from './bridge/bridge-console';
+import { BridgeConsole } from './di/bridge.server';
 
 export const ship = await Nexus.create(BridgeConsole, {
   plugins: import.meta.env.DEV ? [errors()] : [],

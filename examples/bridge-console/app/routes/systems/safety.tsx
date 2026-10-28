@@ -1,7 +1,7 @@
 import type { CompartmentId, ShipReading } from '@nexusdi/meridian-systems';
 
-import type { CommandAnswer } from '../../bridge/bridge-link';
-import { fixed } from '../../bridge/fixed';
+import type { CommandAnswer } from '../../di/contracts';
+import { fixed } from '../../fixed';
 import { snapshotLoader } from '../snapshot-loader.server';
 import type { Route } from './+types/safety';
 import { COMPARTMENT_NAMES } from './compartments';

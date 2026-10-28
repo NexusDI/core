@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
-import { afterAll, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { commandFrom } from '../../app/routes/systems/system-action.server';
 import {
@@ -8,17 +8,15 @@ import {
   Gauges,
   ItemList,
   LevelForm,
+  NumberForm,
+  SnapshotOffline,
   SystemPage,
+  ToggleForm,
 } from '../../app/routes/systems/system-page';
-import { built } from '../support/testing-di';
 
 // system-action.server imports nexus.server, which builds the console's
 // container at import.
-vi.mock('../../app/nexus.server', async () =>
-  (await import('../support/testing-di')).shipServer(),
-);
-
-afterAll(() => Promise.all(built.map((ship) => ship[Symbol.asyncDispose]())));
+vi.mock('../../app/nexus.server', () => import('../support/nexus-server'));
 
 /** A posted form with `fields`. */
 function formOf(fields: Record<string, string>) {
@@ -215,6 +213,76 @@ describe('the system page pieces', () => {
     expect(screen.getByRole('alert').textContent).toBe(
       'Refused.Fix: Try later.',
     );
+  });
+
+  it('says the ship snapshot is offline', () => {
+    render(<SnapshotOffline />);
+    expect(screen.getByText('Ship snapshot offline')).toBeDefined();
+  });
+
+  it('posts a number with the hidden fields it is given', async () => {
+    const Stub = createRoutesStub([
+      {
+        path: '/',
+        Component: () => (
+          <NumberForm
+            command="heater"
+            name="target"
+            label="Target (K)"
+            button="Set"
+            min={283}
+            max={303}
+            step={0.1}
+            defaultValue={293}
+            hidden={{ compartment: 'habitat' }}
+          />
+        ),
+      },
+    ]);
+    render(<Stub />);
+    const form = (await screen.findByLabelText('Target (K)')).closest('form');
+    const hidden = [
+      ...(form?.querySelectorAll('input[type="hidden"]') ?? []),
+    ].map((input) => [input.getAttribute('name'), input.getAttribute('value')]);
+    expect(hidden).toEqual([
+      ['command', 'heater'],
+      ['compartment', 'habitat'],
+    ]);
+  });
+
+  it('posts a command with a true button and a false button', async () => {
+    const Stub = createRoutesStub([
+      {
+        path: '/',
+        Component: () => (
+          <ToggleForm
+            command="vent"
+            field="open"
+            on="Open vent"
+            off="Shut vent"
+            hidden={{ compartment: 'airlock' }}
+          />
+        ),
+      },
+    ]);
+    render(<Stub />);
+    const on = await screen.findByRole('button', { name: 'Open vent' });
+    const off = screen.getByRole('button', { name: 'Shut vent' });
+    expect([on.getAttribute('name'), on.getAttribute('value')]).toEqual([
+      'open',
+      'true',
+    ]);
+    expect([off.getAttribute('name'), off.getAttribute('value')]).toEqual([
+      'open',
+      'false',
+    ]);
+    const form = on.closest('form');
+    expect(
+      form?.querySelector<HTMLInputElement>('input[name="command"]')?.value,
+    ).toBe('vent');
+    expect(
+      form?.querySelector<HTMLInputElement>('input[name="compartment"]')?.value,
+    ).toBe('airlock');
   });
 
   it('posts a level from 0 to 1 under the command it is given', async () => {

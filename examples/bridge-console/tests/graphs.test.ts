@@ -1,9 +1,9 @@
 import { Nexus } from '@nexusdi/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { BridgeClient } from '../app/bridge/bridge.client';
-import { BridgeConsole } from '../app/bridge/bridge-console';
-import { TELEMETRY_CLIENT } from '../app/bridge/telemetry-client';
+import { BridgeClient } from '../app/di/bridge.client';
+import { BridgeConsole } from '../app/di/bridge.server';
+import { TELEMETRY_CLIENT } from '../app/di/contracts';
 import { FakeEventSource } from './fake-event-source';
 
 afterEach(() => vi.unstubAllGlobals());

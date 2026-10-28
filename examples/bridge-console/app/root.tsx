@@ -35,31 +35,24 @@ export default function App() {
   return <Outlet />;
 }
 
+/** A page for a status error, such as the 404 of a path no route matches, and for any other failure. */
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  let message = 'Oops!';
-  let details = 'An unexpected error occurred.';
-  let stack: string | undefined;
-
+  const unexpected = 'An unexpected error occurred.';
+  let title = 'Error';
+  let details = unexpected;
   if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? '404' : 'Error';
+    title = error.status === 404 ? '404' : 'Error';
     details =
       error.status === 404
         ? 'The requested page could not be found.'
-        : error.statusText || details;
-  } else if (import.meta.env.DEV && error && error instanceof Error) {
+        : error.statusText || unexpected;
+  } else if (import.meta.env.DEV && error instanceof Error) {
     details = error.message;
-    stack = error.stack;
   }
-
   return (
     <main className="pt-16 p-4 container mx-auto">
-      <h1>{message}</h1>
+      <h1>{title}</h1>
       <p>{details}</p>
-      {stack && (
-        <pre className="w-full p-4 overflow-x-auto">
-          <code>{stack}</code>
-        </pre>
-      )}
     </main>
   );
 }

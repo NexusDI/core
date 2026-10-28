@@ -1,11 +1,12 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
 import { Form } from 'react-router';
 
-import type { CommandAnswer } from '../../bridge/bridge-link';
-import { megawatts } from '../../bridge/fixed';
 import { Button } from '../../components';
+import type { CommandAnswer } from '../../di/contracts';
+import { megawatts } from '../../fixed';
 import { snapshotLoader } from '../snapshot-loader.server';
 import type { Route } from './+types/comms';
+import { allocated } from './allocated';
 import { systemAction } from './system-action.server';
 import {
   ControlSection,
@@ -29,7 +30,6 @@ export const loader: (args: Route.LoaderArgs) => Promise<ShipReading | null> =
 /** The array's status, hail flag, last send and power, then the messages it received. */
 function CommsGauges({ ship }: { ship: ShipReading }) {
   const { status, sent, messages } = ship.comms;
-  const load = ship.power.loads.find(({ id }) => id === 'comms');
   return (
     <>
       <ControlSection title="Comms">
@@ -39,7 +39,7 @@ function CommsGauges({ ship }: { ship: ShipReading }) {
             ['Status', status],
             ['Hail queued', ship.setpoints.comms.hail ? 'Yes' : 'No'],
             ['Last hail sent', sent === null ? 'none' : `tick ${sent}`],
-            ['Array power', megawatts(load?.allocated ?? 0)],
+            ['Array power', megawatts(allocated(ship, 'comms'))],
           ]}
         />
       </ControlSection>

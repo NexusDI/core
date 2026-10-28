@@ -1,31 +1,21 @@
-import { defineModule } from '@nexusdi/core';
 import { useService } from '@nexusdi/react';
+import { NAV_CHARTS } from '@nexusdi/meridian-systems/charts';
 
-import { Tactical } from '../bridge/tactical';
-import { NAV_ROUTES, sectorRoutes } from '../navigation/navigation.module';
+import { NAV_ROUTES } from '../di/navigation.module';
 
-/**
- * The section the charts route loads in the browser, in its own chunk. It
- * imports Tactical, which the client graph already holds, so `load()` reads
- * the root's NAV_CHARTS.
- */
-export const Cartography = defineModule({
-  name: 'Cartography',
-  imports: [Tactical],
-  providers: [sectorRoutes],
-  exports: [NAV_ROUTES],
-});
+// The charts route loads the section module through this file, so the module
+// and StarMap build into one chunk.
+export { Cartography } from '../di/cartography.module';
 
-const SECTORS = ['Kepler-442b', 'Proxima-b', 'TRAPPIST-1e'];
-
-/** The heading to each charted sector, read through the loaded section. */
+/** The heading to each charted star, read through the loaded section. */
 export function StarMap() {
   const routes = useService(NAV_ROUTES);
+  const charts = useService(NAV_CHARTS);
   return (
     <ul>
-      {SECTORS.map((sector) => {
-        const route = routes.find(sector);
-        return <li key={sector}>{`${route.to}: heading ${route.heading}`}</li>;
+      {charts.stars().map((star) => {
+        const route = routes.find(star);
+        return <li key={star}>{`${route.to}: heading ${route.heading}`}</li>;
       })}
     </ul>
   );
