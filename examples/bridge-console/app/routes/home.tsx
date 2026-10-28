@@ -1,8 +1,8 @@
 import { REQUEST } from '@nexusdi/core';
+import { NAV_CHARTS } from '@nexusdi/meridian-systems/charts';
 import { ScopeProvider } from '@nexusdi/react';
 import { Form } from 'react-router';
 
-import { NAV_CHARTS, WATCH_LOG } from '../bridge/contracts';
 import {
   Button,
   Card,
@@ -12,16 +12,27 @@ import {
   Section,
 } from '../components';
 import { CoursePlotter } from '../components/CoursePlotter';
+import { BRIDGE_LINK, WATCH_LOG } from '../di/contracts';
 import { di } from '../nexus.server';
 import type { Route } from './+types/home';
 
+/**
+ * The mission's id, the heading to its target star, or to the sector the
+ * ship jumped to once it has jumped, and the request's watch log. A snapshot
+ * that fails leaves the line on the mission's target.
+ */
 export const loader = di.inject(
-  { log: WATCH_LOG, request: REQUEST, charts: NAV_CHARTS },
-  ({ log, request, charts }) => {
+  { log: WATCH_LOG, request: REQUEST, charts: NAV_CHARTS, link: BRIDGE_LINK },
+  async ({ log, request, charts, link }) => {
     log.record('docked');
+    const ship = await link.snapshot().catch(() => null);
+    const star =
+      ship !== null && ship.ftl.jumped !== null
+        ? ship.ftl.sector
+        : request.mission.target;
     return {
       mission: request.mission.id,
-      course: charts.plot(request.mission.target),
+      course: charts.plot(star),
       entries: log.entries(),
     };
   },

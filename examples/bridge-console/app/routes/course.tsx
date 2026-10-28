@@ -1,9 +1,8 @@
 import { Suspense, useEffect } from 'react';
 import { Await } from 'react-router';
 
-import { BRIDGE_LINK, type IBridgeLink } from '../bridge/bridge-link';
-import { WATCH_LOG } from '../bridge/contracts';
 import { Section } from '../components';
+import { BRIDGE_LINK, WATCH_LOG, type IBridgeLink } from '../di/contracts';
 import { di } from '../nexus.server';
 import type { Route } from './+types/course';
 
@@ -52,8 +51,12 @@ export default function Course({ loaderData }: Route.ComponentProps) {
       </Section>
       <Section>
         <h2 className="text-2xl font-semibold mb-4 dark:text-white">
-          Flight log
+          Flight log of this request
         </h2>
+        <p className="mb-2 dark:text-white">
+          bridge-api opens one flight log for each request, so a reload starts a
+          new one.
+        </p>
         <Suspense fallback={<p>Calling the bridge</p>}>
           <Await
             resolve={loaderData.flight}

@@ -8,63 +8,17 @@ import {
 
 import { MISSION_HEADER } from '@nexusdi/bridge-api/mission';
 import type { NexusGraph } from '@nexusdi/devtools';
-// A type import: the console holds no simulation code.
+// Type imports: the console holds no simulation code.
 import type {
   AtmosphereReading,
   CompartmentId,
   ShipCommand,
   ShipReading,
 } from '@nexusdi/meridian-systems';
+import type { Course } from '@nexusdi/meridian-systems/charts';
 
-import type { Course } from './contracts';
+import { BRIDGE_LINK, type CommandAnswer, type IBridgeLink } from './contracts';
 
-/**
- * What bridge-api answers a command: the tick that applies it and, when the
- * request's flight log holds entries, those entries, or its refusal.
- */
-export type CommandAnswer =
-  | {
-      readonly accepted: true;
-      readonly tick: number;
-      readonly flightLog?: readonly string[];
-    }
-  | {
-      readonly accepted: false;
-      readonly status: 400 | 409;
-      readonly code: string;
-      readonly message: string;
-      readonly fix?: string;
-    };
-
-/** The console's link to bridge-api, over HTTP. */
-export interface IBridgeLink {
-  course(to: string): Promise<{ course: Course; entries: readonly string[] }>;
-  /** The ship now, with each compartment's pressure, from `GET /sim`. */
-  snapshot(): Promise<ShipReading>;
-  /**
-   * The gas analyzer's reading of `compartment`, from
-   * `GET /compartments/:id/atmosphere`. A compartment the deck lacks answers
-   * 404, and the call rejects.
-   */
-  atmosphere(compartment: string): Promise<AtmosphereReading<CompartmentId>>;
-  /** The body of `GET /telemetry`, a stream of server-sent events. */
-  telemetry(): Promise<ReadableStream<Uint8Array>>;
-  /**
-   * The ship's annotated graph from `GET /graph`, or null when the backend
-   * serves none.
-   */
-  graph(): Promise<NexusGraph | null>;
-  /** Posts `cmd` to `POST /commands`. Any status but 202, 400 and 409 rejects. */
-  command(cmd: ShipCommand): Promise<CommandAnswer>;
-  /**
-   * Posts the spool to `POST /ftl/spool`. The backend loads the FTL drive on
-   * the first spool or jump.
-   */
-  spool(): Promise<CommandAnswer>;
-  /** Posts a jump to the charted star `to`, to `POST /ftl/jump`. */
-  jump(to: string): Promise<CommandAnswer>;
-}
-export const BRIDGE_LINK = new Token<IBridgeLink>('BridgeLink');
 const BRIDGE_LINK_OPTIONS = new Token<{ readonly url: string }>(
   'BridgeLinkOptions',
 );

@@ -1,50 +1,36 @@
-import { afterAll, describe, expect, test as base, vi } from 'vitest';
-import { fireEvent, render, screen, within } from '@testing-library/react';
-import { createRoutesStub, RouterContextProvider } from 'react-router';
-import type { Nexus, Scope } from '@nexusdi/core';
+import { fireEvent, screen, within } from '@testing-library/react';
+import type { Scope } from '@nexusdi/core';
 import type { ShipReading } from '@nexusdi/meridian-systems';
-import { existingScope, NEXUS_SCOPE } from '@nexusdi/react-router';
-import { nexusTest } from '@nexusdi/vitest';
+import type { NexusSetupStep } from '@nexusdi/vitest';
+import { describe, expect, vi } from 'vitest';
 
-import { BRIDGE_LINK, type CommandAnswer } from '../../app/bridge/bridge-link';
-import { BridgeConsole } from '../../app/bridge/bridge-console';
-import { FakeBridgeLink, fakeBridgeLink, shipAtStart } from '../doubles';
-import { built } from '../support/testing-di';
-import { scopeWith } from './scope-with';
+import { BRIDGE_LINK, type CommandAnswer } from '../../app/di/contracts';
+import {
+  FailingSnapshotLink,
+  FakeBridgeLink,
+  linkAt,
+  shipAtStart,
+} from '../doubles';
+import { test, withLink, type RenderRoute } from '../support/console';
 
-vi.mock('../../app/nexus.server', async () =>
-  (await import('../support/testing-di')).shipServer(),
-);
+vi.mock('../../app/nexus.server', () => import('../support/nexus-server'));
 
-const {
-  default: Safety,
-  action,
-  loader,
-} = await import('../../app/routes/systems/safety');
-
-afterAll(() => Promise.all(built.map((ship) => ship[Symbol.asyncDispose]())));
-
-/** A fresh BridgeConsole testing container per test, with the fake link. */
-const test = nexusTest(base, BridgeConsole, {
-  setup: (builder) => builder.override(BRIDGE_LINK, fakeBridgeLink),
-});
-
-const scopeOf = (ship: Nexus) =>
-  ship.createScope({
-    request: { mission: { id: 'survey-7', target: 'Kepler-442b' } },
-  });
+const safety = await import('../../app/routes/systems/safety');
 
 /**
- * Renders the page with its loader and action in `scope`, as React Router
- * runs them, and waits for the loader's data.
+ * Renders the page with its loader and action in a request scope, as React
+ * Router runs them, and waits for the loader's data.
  */
-async function renderPage(scope: Scope) {
-  const Stub = createRoutesStub(
-    [{ path: '/systems/safety', Component: Safety, action, loader }],
-    new RouterContextProvider(new Map([[NEXUS_SCOPE, existingScope(scope)]])),
-  );
-  render(<Stub initialEntries={['/systems/safety']} />);
+async function renderPage(
+  renderRoute: RenderRoute,
+  overrides?: NexusSetupStep,
+) {
+  const page = await renderRoute(safety, {
+    path: '/systems/safety',
+    overrides,
+  });
   await screen.findByRole('button', { name: 'Open door' });
+  return page.scope;
 }
 
 /** The text of each gauge in the list `label` names, in order. */
@@ -109,22 +95,16 @@ const shipAt190: ShipReading = {
   },
 };
 
-class LinkAt190 extends FakeBridgeLink {
-  override async snapshot() {
-    return shipAt190;
-  }
-}
+const LinkAt190 = linkAt(shipAt190);
 
 describe('the safety gauges', () => {
-  test('say no alarms on the idle ship', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('say no alarms on the idle ship', async ({ renderRoute }) => {
+    await renderPage(renderRoute);
     expect(screen.getByText('No alarms')).toBeDefined();
   });
 
-  test('list each alarm with its subject', async () => {
-    await using scope = await scopeWith(LinkAt190, built);
-    await renderPage(scope);
+  test('list each alarm with its subject', async ({ renderRoute }) => {
+    await renderPage(renderRoute, withLink(LinkAt190));
     const alarms = screen.getByRole('list', { name: 'Alarms' });
     expect(
       within(alarms)
@@ -135,10 +115,9 @@ describe('the safety gauges', () => {
   });
 
   test('show every door shut at tick 0 with the pressure of each side', async ({
-    nexus,
+    renderRoute,
   }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+    await renderPage(renderRoute);
     expect(await gauges('bridge-habitat door')).toEqual([
       'Shut',
       '101.3 kPa',
@@ -151,9 +130,10 @@ describe('the safety gauges', () => {
     ]);
   });
 
-  test('show an open door and the pressure of each side to 0.1 kPa at tick 190', async () => {
-    await using scope = await scopeWith(LinkAt190, built);
-    await renderPage(scope);
+  test('show an open door and the pressure of each side to 0.1 kPa at tick 190', async ({
+    renderRoute,
+  }) => {
+    await renderPage(renderRoute, withLink(LinkAt190));
     expect(await gauges('habitat-airlock door')).toEqual([
       'Open',
       '101.2 kPa',
@@ -171,9 +151,10 @@ describe('the safety gauges', () => {
     ]);
   });
 
-  test('show the fire, the flood and the temperature of each charged room', async () => {
-    await using scope = await scopeWith(LinkAt190, built);
-    await renderPage(scope);
+  test('show the fire, the flood and the temperature of each charged room', async ({
+    renderRoute,
+  }) => {
+    await renderPage(renderRoute, withLink(LinkAt190));
     expect(await gauges('Reactor bay fire suppression')).toEqual([
       '0.18',
       '1,235 mol',
@@ -187,9 +168,8 @@ describe('the safety gauges', () => {
     expect(screen.queryByLabelText('Airlock fire suppression')).toBeNull();
   });
 
-  test('head each section at the second level', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('head each section at the second level', async ({ renderRoute }) => {
+    await renderPage(renderRoute);
     expect(
       screen
         .getAllByRole('heading', { level: 2 })
@@ -203,14 +183,10 @@ describe('the safety gauges', () => {
     ]);
   });
 
-  test('say the snapshot is offline when it fails, and keep the forms', async () => {
-    class SnapshotDown extends FakeBridgeLink {
-      override async snapshot(): Promise<ShipReading> {
-        throw new Error('bridge-api answered 503 for /sim');
-      }
-    }
-    await using scope = await scopeWith(SnapshotDown, built);
-    await renderPage(scope);
+  test('say the snapshot is offline when it fails, and keep the forms', async ({
+    renderRoute,
+  }) => {
+    await renderPage(renderRoute, withLink(FailingSnapshotLink));
     expect(await screen.findByText('Ship snapshot offline')).toBeDefined();
     expect(screen.queryByText('No alarms')).toBeNull();
     expect(screen.getByRole('button', { name: 'Close door' })).toBeDefined();
@@ -234,9 +210,8 @@ describe('the safety forms', () => {
     return command.mock.calls[0]?.[0];
   }
 
-  test('open a door', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('open a door', async ({ renderRoute }) => {
+    const scope = await renderPage(renderRoute);
     fireEvent.change(screen.getByLabelText('Door'), {
       target: { value: 'habitat-airlock' },
     });
@@ -247,9 +222,8 @@ describe('the safety forms', () => {
     });
   });
 
-  test('close a door', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('close a door', async ({ renderRoute }) => {
+    const scope = await renderPage(renderRoute);
     expect(await click(scope, 'Close door')).toStrictEqual({
       system: 'safety',
       action: 'close',
@@ -257,9 +231,8 @@ describe('the safety forms', () => {
     });
   });
 
-  test('flood a room', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('flood a room', async ({ renderRoute }) => {
+    const scope = await renderPage(renderRoute);
     fireEvent.change(screen.getByLabelText('Room'), {
       target: { value: 'reactor-bay' },
     });
@@ -270,9 +243,8 @@ describe('the safety forms', () => {
     });
   });
 
-  test('drill a room', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('drill a room', async ({ renderRoute }) => {
+    const scope = await renderPage(renderRoute);
     expect(await click(scope, 'Drill')).toStrictEqual({
       system: 'safety',
       action: 'drill',
@@ -280,7 +252,9 @@ describe('the safety forms', () => {
     });
   });
 
-  test('show the flight-log line of an accepted door command', async () => {
+  test('show the flight-log line of an accepted door command', async ({
+    renderRoute,
+  }) => {
     class LoggingLink extends FakeBridgeLink {
       override async command(): Promise<CommandAnswer> {
         return {
@@ -290,14 +264,13 @@ describe('the safety forms', () => {
         };
       }
     }
-    await using scope = await scopeWith(LoggingLink, built);
-    await renderPage(scope);
+    await renderPage(renderRoute, withLink(LoggingLink));
     fireEvent.click(screen.getByRole('button', { name: 'Open door' }));
     expect(await screen.findByText('Queued for tick 191')).toBeDefined();
     expect(screen.getByText('survey-9: opened bridge-habitat')).toBeDefined();
   });
 
-  test('show the refusal of a door and its fix', async () => {
+  test('show the refusal of a door and its fix', async ({ renderRoute }) => {
     class RefusingLink extends FakeBridgeLink {
       override async command(): Promise<CommandAnswer> {
         return {
@@ -310,8 +283,7 @@ describe('the safety forms', () => {
         };
       }
     }
-    await using scope = await scopeWith(RefusingLink, built);
-    await renderPage(scope);
+    await renderPage(renderRoute, withLink(RefusingLink));
     fireEvent.click(screen.getByRole('button', { name: 'Open door' }));
     expect(
       await screen.findByText(

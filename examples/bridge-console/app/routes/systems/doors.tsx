@@ -4,7 +4,7 @@ import type {
   ShipReading,
 } from '@nexusdi/meridian-systems';
 
-import { kilopascals } from '../../bridge/fixed';
+import { kilopascals } from '../../fixed';
 import { COMPARTMENT_NAMES } from './compartments';
 import { Gauges } from './system-page';
 

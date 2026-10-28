@@ -1,7 +1,11 @@
 import { defineModule, provide, Token } from '@nexusdi/core';
+import {
+  NAV_CHARTS,
+  type Course,
+  type INavCharts,
+} from '@nexusdi/meridian-systems/charts';
 
-import { NAV_CHARTS, type Course, type INavCharts } from '../bridge/contracts';
-import { Tactical } from '../bridge/tactical';
+import { Tactical } from './tactical.module';
 
 export interface INavRoutes {
   find(sector: string): Course;

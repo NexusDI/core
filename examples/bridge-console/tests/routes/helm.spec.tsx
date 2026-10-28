@@ -1,52 +1,33 @@
-import { afterAll, describe, expect, test as base, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { createRoutesStub, RouterContextProvider } from 'react-router';
-import type { Nexus, Scope } from '@nexusdi/core';
+import { fireEvent, screen } from '@testing-library/react';
 import type { ShipReading } from '@nexusdi/meridian-systems';
 import { BUNDLED_CHARTS } from '@nexusdi/meridian-systems/charts';
-import { existingScope, NEXUS_SCOPE } from '@nexusdi/react-router';
-import { nexusTest } from '@nexusdi/vitest';
+import type { NexusSetupStep } from '@nexusdi/vitest';
+import { describe, expect, vi } from 'vitest';
 
-import { BRIDGE_LINK } from '../../app/bridge/bridge-link';
-import type { CommandAnswer } from '../../app/bridge/bridge-link';
-import { BridgeConsole } from '../../app/bridge/bridge-console';
-import { FakeBridgeLink, fakeBridgeLink, shipAtStart } from '../doubles';
-import { built } from '../support/testing-di';
-import { scopeWith } from './scope-with';
+import { BRIDGE_LINK, type CommandAnswer } from '../../app/di/contracts';
+import {
+  FailingSnapshotLink,
+  FakeBridgeLink,
+  linkAt,
+  shipAtStart,
+} from '../doubles';
+import { test, withLink, type RenderRoute } from '../support/console';
 
-vi.mock('../../app/nexus.server', async () =>
-  (await import('../support/testing-di')).shipServer(),
-);
+vi.mock('../../app/nexus.server', () => import('../support/nexus-server'));
 
-const {
-  default: Helm,
-  action,
-  loader,
-} = await import('../../app/routes/systems/helm');
-
-afterAll(() => Promise.all(built.map((ship) => ship[Symbol.asyncDispose]())));
-
-/** A fresh BridgeConsole testing container per test, with the fake link. */
-const test = nexusTest(base, BridgeConsole, {
-  setup: (builder) => builder.override(BRIDGE_LINK, fakeBridgeLink),
-});
-
-const scopeOf = (ship: Nexus) =>
-  ship.createScope({
-    request: { mission: { id: 'survey-7', target: 'Kepler-442b' } },
-  });
+const helm = await import('../../app/routes/systems/helm');
 
 /**
- * Renders the page with its loader and action in `scope`, as React Router
- * runs them, and waits for the loader's data.
+ * Renders the page with its loader and action in a request scope, as React
+ * Router runs them, and waits for the loader's data.
  */
-async function renderPage(scope: Scope) {
-  const Stub = createRoutesStub(
-    [{ path: '/systems/helm', Component: Helm, action, loader }],
-    new RouterContextProvider(new Map([[NEXUS_SCOPE, existingScope(scope)]])),
-  );
-  render(<Stub initialEntries={['/systems/helm']} />);
+async function renderPage(
+  renderRoute: RenderRoute,
+  overrides?: NexusSetupStep,
+) {
+  const page = await renderRoute(helm, { path: '/systems/helm', overrides });
   await screen.findByRole('button', { name: 'Plot course' });
+  return page.scope;
 }
 
 /** The text of each gauge in the list named `label`, in order. */
@@ -170,14 +151,6 @@ const tiny: ShipReading = {
   helm: { attitude: 0, rate: -1e-9, torque: -1 },
 };
 
-/** A link double whose snapshot answers `ship`. */
-const linkAt = (ship: ShipReading): typeof FakeBridgeLink =>
-  class extends FakeBridgeLink {
-    override async snapshot() {
-      return ship;
-    }
-  };
-
 const idleHelm = ['0.0°', '0.0°', '0.00 °/s', '0 N·m', '0.0 MW'] as const;
 const idleDrive = [
   '0.00',
@@ -190,16 +163,14 @@ const idleDrive = [
 ] as const;
 
 describe('the helm gauges', () => {
-  test('read the ship at rest at tick 0', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('read the ship at rest at tick 0', async ({ renderRoute }) => {
+    await renderPage(renderRoute);
     expect(await gauges('Helm gauges')).toEqual(idleHelm);
     expect(await gauges('Main drive gauges')).toEqual(idleDrive);
   });
 
-  test('name each gauge', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('name each gauge', async ({ renderRoute }) => {
+    await renderPage(renderRoute);
     const names = async (label: string) =>
       [...(await screen.findByLabelText(label)).querySelectorAll('dt')].map(
         (dt) => dt.textContent,
@@ -269,16 +240,19 @@ describe('the helm gauges', () => {
       ['0.0°', '203.0°', '0.00 °/s', '0 N·m', '0.0 MW'],
       idleDrive,
     ],
-  ] as const)('read %s', async ([, ship, helm, drive]) => {
-    await using scope = await scopeWith(linkAt(ship), built);
-    await renderPage(scope);
-    expect(await gauges('Helm gauges')).toEqual(helm);
-    expect(await gauges('Main drive gauges')).toEqual(drive);
-  });
+  ] as const)(
+    'read %s',
+    async ([, ship, helmGauges, driveGauges], { renderRoute }) => {
+      await renderPage(renderRoute, withLink(linkAt(ship)));
+      expect(await gauges('Helm gauges')).toEqual(helmGauges);
+      expect(await gauges('Main drive gauges')).toEqual(driveGauges);
+    },
+  );
 
-  test('read a hair below zero as 0.00 °/s, never -0.00 °/s', async () => {
-    await using scope = await scopeWith(linkAt(tiny), built);
-    await renderPage(scope);
+  test('read a hair below zero as 0.00 °/s, never -0.00 °/s', async ({
+    renderRoute,
+  }) => {
+    await renderPage(renderRoute, withLink(linkAt(tiny)));
     expect(await gauges('Helm gauges')).toEqual([
       '0.0°',
       '0.0°',
@@ -288,9 +262,8 @@ describe('the helm gauges', () => {
     ]);
   });
 
-  test('head each section at the second level', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('head each section at the second level', async ({ renderRoute }) => {
+    await renderPage(renderRoute);
     expect(
       screen
         .getAllByRole('heading', { level: 2 })
@@ -298,14 +271,10 @@ describe('the helm gauges', () => {
     ).toEqual(['Helm', 'Main drive', 'Course', 'Burn']);
   });
 
-  test('say the snapshot is offline when it fails, and keep the controls', async () => {
-    class SnapshotDown extends FakeBridgeLink {
-      override async snapshot(): Promise<ShipReading> {
-        throw new Error('bridge-api answered 503 for /sim');
-      }
-    }
-    await using scope = await scopeWith(SnapshotDown, built);
-    await renderPage(scope);
+  test('say the snapshot is offline when it fails, and keep the controls', async ({
+    renderRoute,
+  }) => {
+    await renderPage(renderRoute, withLink(FailingSnapshotLink));
     expect(await screen.findByText('Ship snapshot offline')).toBeDefined();
     expect(screen.queryByLabelText('Helm gauges')).toBeNull();
     expect(screen.queryByLabelText('Main drive gauges')).toBeNull();
@@ -314,9 +283,8 @@ describe('the helm gauges', () => {
 });
 
 describe('the course button', () => {
-  test('lists the charted stars', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('lists the charted stars', async ({ renderRoute }) => {
+    await renderPage(renderRoute);
     const select = screen.getByRole('combobox');
     expect(select.getAttribute('name')).toBe('to');
     expect(
@@ -324,9 +292,10 @@ describe('the course button', () => {
     ).toEqual(Object.keys(BUNDLED_CHARTS));
   });
 
-  test('posts the star and shows the tick it queues for', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('posts the star and shows the tick it queues for', async ({
+    renderRoute,
+  }) => {
+    const scope = await renderPage(renderRoute);
     const command = vi.spyOn(scope.get(BRIDGE_LINK), 'command');
     fireEvent.click(screen.getByRole('button', { name: 'Plot course' }));
     expect((await screen.findByRole('status')).textContent).toBe(
@@ -343,10 +312,9 @@ describe('the course button', () => {
 
 describe('the burn button', () => {
   test('posts the level and shows the tick it queues for', async ({
-    nexus,
+    renderRoute,
   }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+    const scope = await renderPage(renderRoute);
     const command = vi.spyOn(scope.get(BRIDGE_LINK), 'command');
     fireEvent.click(screen.getByRole('button', { name: 'Burn' }));
     expect((await screen.findByRole('status')).textContent).toBe(
@@ -359,16 +327,17 @@ describe('the burn button', () => {
     });
   });
 
-  test('labels the level and bounds it from 0 to 1', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('labels the level and bounds it from 0 to 1', async ({
+    renderRoute,
+  }) => {
+    await renderPage(renderRoute);
     const input = screen.getByLabelText('Burn level');
     expect(input.getAttribute('min')).toBe('0');
     expect(input.getAttribute('max')).toBe('1');
     expect(input.getAttribute('step')).toBe('0.01');
   });
 
-  test('shows a refusal with its fix', async () => {
+  test('shows a refusal with its fix', async ({ renderRoute }) => {
     class Refusing extends FakeBridgeLink {
       override async command(): Promise<CommandAnswer> {
         return {
@@ -381,8 +350,7 @@ describe('the burn button', () => {
         };
       }
     }
-    await using scope = await scopeWith(Refusing, built);
-    await renderPage(scope);
+    await renderPage(renderRoute, withLink(Refusing));
     fireEvent.click(screen.getByRole('button', { name: 'Burn' }));
     expect((await screen.findByRole('alert')).textContent).toBe(
       'helm burn cannot use the level argument. It takes course with a charted star to steer for and burn with a level from 0 to 1.Fix: send the arguments in the ranges above.',

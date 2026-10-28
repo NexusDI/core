@@ -7,7 +7,11 @@ import {
 
 import { WATCH_LOG, type IWatchLog } from './contracts';
 
-/** One log per request, each entry prefixed with the request's mission. */
+/**
+ * One log per request, each entry prefixed with the request's mission. It
+ * starts empty on every request, so an entry a page records is gone on the
+ * next one.
+ */
 class WatchLog implements IWatchLog {
   static deps = [REQUEST] as const;
   readonly #entries: string[] = [];

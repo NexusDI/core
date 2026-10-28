@@ -1,6 +1,6 @@
 import type { DoorId, ShipReading } from '@nexusdi/meridian-systems';
 
-import type { CommandAnswer } from '../bridge/bridge-link';
+import type { CommandAnswer } from '../di/contracts';
 import type { Route } from './+types/airlock';
 import { snapshotLoader } from './snapshot-loader.server';
 import { AirlockControls } from './systems/airlock-controls';

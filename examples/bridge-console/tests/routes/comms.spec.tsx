@@ -1,50 +1,30 @@
-import { afterAll, describe, expect, test as base, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { createRoutesStub, RouterContextProvider } from 'react-router';
-import type { Nexus, Scope } from '@nexusdi/core';
+import { fireEvent, screen } from '@testing-library/react';
 import type { ShipReading } from '@nexusdi/meridian-systems';
-import { existingScope, NEXUS_SCOPE } from '@nexusdi/react-router';
-import { nexusTest } from '@nexusdi/vitest';
+import type { NexusSetupStep } from '@nexusdi/vitest';
+import { describe, expect, vi } from 'vitest';
 
-import { BRIDGE_LINK } from '../../app/bridge/bridge-link';
-import { BridgeConsole } from '../../app/bridge/bridge-console';
-import { FakeBridgeLink, fakeBridgeLink, shipAtStart } from '../doubles';
-import { built } from '../support/testing-di';
-import { scopeWith } from './scope-with';
+import { BRIDGE_LINK } from '../../app/di/contracts';
+import { FailingSnapshotLink, linkAt, shipAtStart } from '../doubles';
+import { test, withLink, type RenderRoute } from '../support/console';
 
-vi.mock('../../app/nexus.server', async () =>
-  (await import('../support/testing-di')).shipServer(),
-);
+vi.mock('../../app/nexus.server', () => import('../support/nexus-server'));
 
-const {
-  default: Comms,
-  action,
-  loader,
-} = await import('../../app/routes/systems/comms');
-
-afterAll(() => Promise.all(built.map((ship) => ship[Symbol.asyncDispose]())));
-
-/** A fresh BridgeConsole testing container per test, with the fake link. */
-const test = nexusTest(base, BridgeConsole, {
-  setup: (builder) => builder.override(BRIDGE_LINK, fakeBridgeLink),
-});
-
-const scopeOf = (ship: Nexus) =>
-  ship.createScope({
-    request: { mission: { id: 'survey-7', target: 'Kepler-442b' } },
-  });
+const comms = await import('../../app/routes/systems/comms');
 
 /**
- * Renders the page with its loader and action in `scope`, as React Router
- * runs them, and waits for the loader's data.
+ * Renders the page with its loader and action in a request scope, as React
+ * Router runs them, and waits for the loader's data.
  */
-async function renderPage(scope: Scope) {
-  const Stub = createRoutesStub(
-    [{ path: '/systems/comms', Component: Comms, action, loader }],
-    new RouterContextProvider(new Map([[NEXUS_SCOPE, existingScope(scope)]])),
-  );
-  render(<Stub initialEntries={['/systems/comms']} />);
+async function renderPage(
+  renderRoute: RenderRoute,
+  overrides?: NexusSetupStep,
+) {
+  const page = await renderRoute(comms, {
+    path: '/systems/comms',
+    overrides,
+  });
   await screen.findByRole('button', { name: 'Hail fleet traffic control' });
+  return page.scope;
 }
 
 /** The text of each gauge in the comms list, in order. */
@@ -114,20 +94,11 @@ const offline: ShipReading = {
   setpoints: { ...shipAtStart.setpoints, comms: { hail: true } },
 };
 
-/** A link double whose snapshot answers `ship`. */
-const linkAt = (ship: ShipReading): typeof FakeBridgeLink =>
-  class extends FakeBridgeLink {
-    override async snapshot() {
-      return ship;
-    }
-  };
-
 describe('the comms gauges', () => {
   test('read standby with no hail and no message at tick 0', async ({
-    nexus,
+    renderRoute,
   }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+    await renderPage(renderRoute);
     expect(await gauges()).toEqual(['standby', 'No', 'none', '0.0 MW']);
     expect(screen.getByText('No messages')).toBeDefined();
   });
@@ -154,15 +125,15 @@ describe('the comms gauges', () => {
       offline,
       ['no subspace link', 'Yes', 'none', '0.0 MW'],
     ],
-  ] as const)('read %s', async ([, ship, expected]) => {
-    await using scope = await scopeWith(linkAt(ship), built);
-    await renderPage(scope);
+  ] as const)('read %s', async ([, ship, expected], { renderRoute }) => {
+    await renderPage(renderRoute, withLink(linkAt(ship)));
     expect(await gauges()).toEqual(expected);
   });
 
-  test('list each message with its sender and tick', async () => {
-    await using scope = await scopeWith(linkAt(replied), built);
-    await renderPage(scope);
+  test('list each message with its sender and tick', async ({
+    renderRoute,
+  }) => {
+    await renderPage(renderRoute, withLink(linkAt(replied)));
     const items = screen
       .getByRole('list', { name: 'Messages' })
       .querySelectorAll('li');
@@ -172,9 +143,8 @@ describe('the comms gauges', () => {
     expect(screen.queryByText('No messages')).toBeNull();
   });
 
-  test('head each section at the second level', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('head each section at the second level', async ({ renderRoute }) => {
+    await renderPage(renderRoute);
     expect(
       screen
         .getAllByRole('heading', { level: 2 })
@@ -182,14 +152,10 @@ describe('the comms gauges', () => {
     ).toEqual(['Comms', 'Messages', 'Hail']);
   });
 
-  test('say the snapshot is offline when it fails, and keep the button', async () => {
-    class SnapshotDown extends FakeBridgeLink {
-      override async snapshot(): Promise<ShipReading> {
-        throw new Error('bridge-api answered 503 for /sim');
-      }
-    }
-    await using scope = await scopeWith(SnapshotDown, built);
-    await renderPage(scope);
+  test('say the snapshot is offline when it fails, and keep the button', async ({
+    renderRoute,
+  }) => {
+    await renderPage(renderRoute, withLink(FailingSnapshotLink));
     expect(await screen.findByText('Ship snapshot offline')).toBeDefined();
     expect(screen.queryByLabelText('Comms gauges')).toBeNull();
     expect(screen.queryByText('No messages')).toBeNull();
@@ -197,9 +163,10 @@ describe('the comms gauges', () => {
 });
 
 describe('the hail button', () => {
-  test('posts a hail and shows the tick it queues for', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('posts a hail and shows the tick it queues for', async ({
+    renderRoute,
+  }) => {
+    const scope = await renderPage(renderRoute);
     const command = vi.spyOn(scope.get(BRIDGE_LINK), 'command');
     fireEvent.click(
       screen.getByRole('button', { name: 'Hail fleet traffic control' }),

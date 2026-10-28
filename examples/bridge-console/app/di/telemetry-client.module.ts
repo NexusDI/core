@@ -1,18 +1,7 @@
-import { defineModule, provide, Token } from '@nexusdi/core';
+import { defineModule, provide } from '@nexusdi/core';
 import type { ShipReading } from '@nexusdi/meridian-systems';
 
-/** The browser's view of the ship's telemetry stream. */
-export interface ITelemetryClient {
-  /**
-   * Calls `next` with each ship reading the stream sends, and `offline` once
-   * when the stream ends or fails. The returned function closes the stream.
-   */
-  subscribe(
-    next: (ship: ShipReading) => void,
-    offline: (reason: string) => void,
-  ): () => void;
-}
-export const TELEMETRY_CLIENT = new Token<ITelemetryClient>('TelemetryClient');
+import { TELEMETRY_CLIENT, type ITelemetryClient } from './contracts';
 
 /**
  * Reads the console's `/telemetry` route through an EventSource. Only

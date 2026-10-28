@@ -9,7 +9,8 @@ import { bridgePlugins, OfflineMeridian } from '@nexusdi/bridge-api/ship';
 import { graph } from '@nexusdi/devtools';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { BRIDGE_LINK, BridgeLink } from '../app/bridge/bridge-link';
+import { BridgeLink } from '../app/di/bridge-link.module';
+import { BRIDGE_LINK } from '../app/di/contracts';
 
 let backend: Nexus;
 let server: ServerType;

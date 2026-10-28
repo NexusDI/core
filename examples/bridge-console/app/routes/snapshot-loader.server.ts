@@ -8,7 +8,7 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
 import type { LoaderFunctionArgs } from 'react-router';
 
-import { BRIDGE_LINK } from '../bridge/bridge-link';
+import { BRIDGE_LINK } from '../di/contracts';
 import { di } from '../nexus.server';
 
 /** A route loader that gives the ship now, or null when the backend fails. */

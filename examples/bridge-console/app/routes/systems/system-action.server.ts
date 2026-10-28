@@ -13,7 +13,7 @@ import {
   BRIDGE_LINK,
   type CommandAnswer,
   type IBridgeLink,
-} from '../../bridge/bridge-link';
+} from '../../di/contracts';
 import { di } from '../../nexus.server';
 
 /**

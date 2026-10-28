@@ -1,7 +1,7 @@
 import { defineModule } from '@nexusdi/core';
 
-import { Tactical } from './tactical';
-import { TelemetryClient } from './telemetry-client';
+import { Tactical } from './tactical.module';
+import { TelemetryClient } from './telemetry-client.module';
 
 /**
  * The client graph: NAV_CHARTS over the bundled table and TELEMETRY_CLIENT,

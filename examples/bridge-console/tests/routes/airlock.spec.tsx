@@ -1,50 +1,38 @@
-import { afterAll, describe, expect, test as base, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { createRoutesStub, RouterContextProvider } from 'react-router';
-import type { Nexus, Scope } from '@nexusdi/core';
+import { fireEvent, screen } from '@testing-library/react';
+import type { Scope } from '@nexusdi/core';
 import type { ShipReading } from '@nexusdi/meridian-systems';
-import { existingScope, NEXUS_SCOPE } from '@nexusdi/react-router';
-import { nexusTest } from '@nexusdi/vitest';
+import type { NexusSetupStep } from '@nexusdi/vitest';
+import { describe, expect, vi } from 'vitest';
 
-import { BRIDGE_LINK, type CommandAnswer } from '../../app/bridge/bridge-link';
-import { BridgeConsole } from '../../app/bridge/bridge-console';
-import { FakeBridgeLink, fakeBridgeLink, shipAtStart } from '../doubles';
-import { built } from '../support/testing-di';
-import { scopeWith } from './scope-with';
+import { BRIDGE_LINK, type CommandAnswer } from '../../app/di/contracts';
+import {
+  FailingSnapshotLink,
+  FakeBridgeLink,
+  linkAt,
+  shipAtStart,
+} from '../doubles';
+import {
+  contextOf,
+  test,
+  withLink,
+  type RenderRoute,
+} from '../support/console';
 
-vi.mock('../../app/nexus.server', async () =>
-  (await import('../support/testing-di')).shipServer(),
-);
+vi.mock('../../app/nexus.server', () => import('../support/nexus-server'));
 
-const {
-  default: Airlock,
-  action,
-  loader,
-} = await import('../../app/routes/airlock');
-
-afterAll(() => Promise.all(built.map((ship) => ship[Symbol.asyncDispose]())));
-
-/** A fresh BridgeConsole testing container per test, with the fake link. */
-const test = nexusTest(base, BridgeConsole, {
-  setup: (builder) => builder.override(BRIDGE_LINK, fakeBridgeLink),
-});
-
-const scopeOf = (ship: Nexus) =>
-  ship.createScope({
-    request: { mission: { id: 'survey-7', target: 'Kepler-442b' } },
-  });
+const airlock = await import('../../app/routes/airlock');
 
 /**
- * Renders the page with its loader and action in `scope`, as React Router
- * runs them, and waits for the loader's data.
+ * Renders the page with its loader and action in a request scope, as React
+ * Router runs them, and waits for the loader's data.
  */
-async function renderPage(scope: Scope) {
-  const Stub = createRoutesStub(
-    [{ path: '/airlock', Component: Airlock, action, loader }],
-    new RouterContextProvider(new Map([[NEXUS_SCOPE, existingScope(scope)]])),
-  );
-  render(<Stub initialEntries={['/airlock']} />);
+async function renderPage(
+  renderRoute: RenderRoute,
+  overrides?: NexusSetupStep,
+) {
+  const page = await renderRoute(airlock, { path: '/airlock', overrides });
   await screen.findByRole('button', { name: 'Open door' });
+  return page.scope;
 }
 
 /** The text of each gauge in the list `label` names, in order. */
@@ -142,24 +130,11 @@ const filling: ShipReading = {
   },
 };
 
-class LinkVenting extends FakeBridgeLink {
-  override async snapshot() {
-    return venting;
-  }
-}
-
-class LinkFilling extends FakeBridgeLink {
-  override async snapshot() {
-    return filling;
-  }
-}
-
 describe('the airlock gauges', () => {
   test('show the pump off and the vent shut, with both doors shut, at tick 0', async ({
-    nexus,
+    renderRoute,
   }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+    await renderPage(renderRoute);
     expect(await gauges('Airlock pump and vent')).toEqual(['off', 'Shut']);
     expect(await gauges('habitat-airlock door')).toEqual([
       'Shut',
@@ -173,9 +148,10 @@ describe('the airlock gauges', () => {
     ]);
   });
 
-  test('show an open vent and an open outer door with each side to 0.1 kPa', async () => {
-    await using scope = await scopeWith(LinkVenting, built);
-    await renderPage(scope);
+  test('show an open vent and an open outer door with each side to 0.1 kPa', async ({
+    renderRoute,
+  }) => {
+    await renderPage(renderRoute, withLink(linkAt(venting)));
     expect(await gauges('Airlock pump and vent')).toEqual(['off', 'Open']);
     expect(await gauges('habitat-airlock door')).toEqual([
       'Shut',
@@ -189,9 +165,8 @@ describe('the airlock gauges', () => {
     ]);
   });
 
-  test('show a filling pump and a shut vent', async () => {
-    await using scope = await scopeWith(LinkFilling, built);
-    await renderPage(scope);
+  test('show a filling pump and a shut vent', async ({ renderRoute }) => {
+    await renderPage(renderRoute, withLink(linkAt(filling)));
     expect(await gauges('Airlock pump and vent')).toEqual(['fill', 'Shut']);
     expect(await gauges('habitat-airlock door')).toEqual([
       'Shut',
@@ -205,9 +180,8 @@ describe('the airlock gauges', () => {
     ]);
   });
 
-  test('list the two airlock doors and no other', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('list the two airlock doors and no other', async ({ renderRoute }) => {
+    await renderPage(renderRoute);
     expect(screen.queryByLabelText('bridge-habitat door')).toBeNull();
     expect(screen.queryByLabelText('habitat-reactor-bay door')).toBeNull();
     const options = [
@@ -216,9 +190,8 @@ describe('the airlock gauges', () => {
     expect(options).toEqual(['habitat-airlock', 'airlock-outer']);
   });
 
-  test('head each section at the second level', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('head each section at the second level', async ({ renderRoute }) => {
+    await renderPage(renderRoute);
     expect(
       screen
         .getAllByRole('heading', { level: 2 })
@@ -226,14 +199,10 @@ describe('the airlock gauges', () => {
     ).toEqual(['Airlock', 'Doors', 'Pump and vent', 'Door control']);
   });
 
-  test('say the snapshot is offline when it fails, and keep the forms', async () => {
-    class SnapshotDown extends FakeBridgeLink {
-      override async snapshot(): Promise<ShipReading> {
-        throw new Error('bridge-api answered 503 for /sim');
-      }
-    }
-    await using scope = await scopeWith(SnapshotDown, built);
-    await renderPage(scope);
+  test('say the snapshot is offline when it fails, and keep the forms', async ({
+    renderRoute,
+  }) => {
+    await renderPage(renderRoute, withLink(FailingSnapshotLink));
     expect(await screen.findByText('Ship snapshot offline')).toBeDefined();
     expect(screen.queryByLabelText('airlock-outer door')).toBeNull();
     expect(screen.getByRole('button', { name: 'Set pump' })).toBeDefined();
@@ -256,9 +225,8 @@ describe('the airlock forms', () => {
     return command.mock.calls[0]?.[0];
   }
 
-  test('set the pump as a life-support command', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('set the pump as a life-support command', async ({ renderRoute }) => {
+    const scope = await renderPage(renderRoute);
     fireEvent.change(screen.getByLabelText('Airlock pump mode'), {
       target: { value: 'evacuate' },
     });
@@ -270,9 +238,8 @@ describe('the airlock forms', () => {
     });
   });
 
-  test('open the vent as a life-support command', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('open the vent as a life-support command', async ({ renderRoute }) => {
+    const scope = await renderPage(renderRoute);
     expect(await click(scope, 'Open vent')).toStrictEqual({
       system: 'life-support',
       action: 'vent',
@@ -281,9 +248,8 @@ describe('the airlock forms', () => {
     });
   });
 
-  test('shut the vent as a life-support command', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('shut the vent as a life-support command', async ({ renderRoute }) => {
+    const scope = await renderPage(renderRoute);
     expect(await click(scope, 'Shut vent')).toStrictEqual({
       system: 'life-support',
       action: 'vent',
@@ -292,9 +258,8 @@ describe('the airlock forms', () => {
     });
   });
 
-  test('open a door as a safety command', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('open a door as a safety command', async ({ renderRoute }) => {
+    const scope = await renderPage(renderRoute);
     fireEvent.change(screen.getByLabelText('Door'), {
       target: { value: 'airlock-outer' },
     });
@@ -305,9 +270,8 @@ describe('the airlock forms', () => {
     });
   });
 
-  test('close a door as a safety command', async ({ nexus }) => {
-    await using scope = await scopeOf(nexus);
-    await renderPage(scope);
+  test('close a door as a safety command', async ({ renderRoute }) => {
+    const scope = await renderPage(renderRoute);
     expect(await click(scope, 'Close door')).toStrictEqual({
       system: 'safety',
       action: 'close',
@@ -316,12 +280,12 @@ describe('the airlock forms', () => {
   });
 
   test('send an empty system for an action the page does not post', async ({
-    nexus,
+    openScope,
   }) => {
-    await using scope = await scopeOf(nexus);
+    const scope = await openScope();
     const command = vi.spyOn(scope.get(BRIDGE_LINK), 'command');
     const url = new URL('http://bridge/airlock');
-    await action({
+    await airlock.action({
       request: new Request(url, {
         method: 'POST',
         body: new URLSearchParams({ command: 'constructor' }),
@@ -329,9 +293,7 @@ describe('the airlock forms', () => {
       url,
       pattern: '/airlock',
       params: {},
-      context: new RouterContextProvider(
-        new Map([[NEXUS_SCOPE, existingScope(scope)]]),
-      ),
+      context: contextOf(scope),
     });
     expect(command.mock.calls[0]?.[0]).toStrictEqual({
       system: '',
@@ -339,7 +301,9 @@ describe('the airlock forms', () => {
     });
   });
 
-  test('show the flight-log line of an accepted door command', async () => {
+  test('show the flight-log line of an accepted door command', async ({
+    renderRoute,
+  }) => {
     class LoggingLink extends FakeBridgeLink {
       override async command(): Promise<CommandAnswer> {
         return {
@@ -349,14 +313,13 @@ describe('the airlock forms', () => {
         };
       }
     }
-    await using scope = await scopeWith(LoggingLink, built);
-    await renderPage(scope);
+    await renderPage(renderRoute, withLink(LoggingLink));
     fireEvent.click(screen.getByRole('button', { name: 'Open door' }));
     expect(await screen.findByText('Queued for tick 341')).toBeDefined();
     expect(screen.getByText('survey-9: opened airlock-outer')).toBeDefined();
   });
 
-  test('show the refusal of a door and its fix', async () => {
+  test('show the refusal of a door and its fix', async ({ renderRoute }) => {
     class RefusingLink extends FakeBridgeLink {
       override async command(): Promise<CommandAnswer> {
         return {
@@ -369,8 +332,7 @@ describe('the airlock forms', () => {
         };
       }
     }
-    await using scope = await scopeWith(RefusingLink, built);
-    await renderPage(scope);
+    await renderPage(renderRoute, withLink(RefusingLink));
     fireEvent.click(screen.getByRole('button', { name: 'Open door' }));
     expect(
       await screen.findByText(

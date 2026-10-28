@@ -1,9 +1,10 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
 
-import type { CommandAnswer } from '../../bridge/bridge-link';
-import { bearing, fixed, megawatts, turnRate } from '../../bridge/fixed';
+import type { CommandAnswer } from '../../di/contracts';
+import { bearing, fixed, megawatts, turnRate } from '../../fixed';
 import { snapshotLoader } from '../snapshot-loader.server';
 import type { Route } from './+types/helm';
+import { allocated } from './allocated';
 import { systemAction } from './system-action.server';
 import {
   ControlSection,
@@ -25,11 +26,6 @@ export const action: (args: Route.ActionArgs) => Promise<CommandAnswer> =
  */
 export const loader: (args: Route.LoaderArgs) => Promise<ShipReading | null> =
   snapshotLoader;
-
-/** The power the router granted the load `id`, in W. */
-function allocated(ship: ShipReading, id: string): number {
-  return ship.power.loads.find((load) => load.id === id)?.allocated ?? 0;
-}
 
 /**
  * The heading and the course in degrees, the turn rate in °/s, the thrusters'

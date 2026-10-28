@@ -1,13 +1,20 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
-import { Form } from 'react-router';
 
-import type { CommandAnswer } from '../../bridge/bridge-link';
-import { fixed, megawatts } from '../../bridge/fixed';
-import { Button, Section } from '../../components';
+import { Section } from '../../components';
+import type { CommandAnswer } from '../../di/contracts';
+import { fixed, megawatts } from '../../fixed';
 import { snapshotLoader } from '../snapshot-loader.server';
 import type { Route } from './+types/engineering';
+import { allocated } from './allocated';
 import { systemAction } from './system-action.server';
-import { ControlSection, Gauges, LevelForm, SystemPage } from './system-page';
+import {
+  ControlSection,
+  Gauges,
+  LevelForm,
+  SnapshotOffline,
+  SystemPage,
+  ToggleForm,
+} from './system-page';
 
 /** Sends the submitted form to bridge-api as an engineering command. */
 export const action: (args: Route.ActionArgs) => Promise<CommandAnswer> =
@@ -21,19 +28,19 @@ export const loader: (args: Route.LoaderArgs) => Promise<ShipReading | null> =
   snapshotLoader;
 
 /** The reactor level, its electric output, the coolant and the shields' power. */
-function EngineeringGauges({ ship }: { ship: ShipReading | null }) {
-  if (ship === null) return <p>Gauges offline</p>;
-  const shields = ship.power.loads.find((load) => load.id === 'shields');
+function EngineeringGauges({ ship }: { ship: ShipReading }) {
   return (
-    <Gauges
-      label="Engineering gauges"
-      gauges={[
-        ['Reactor level', fixed(ship.reactor.level, 2)],
-        ['Electric output', megawatts(ship.reactor.electric)],
-        ['Coolant', `${fixed(ship.coolant.temperature, 1)} K`],
-        ['Shields', megawatts(shields?.allocated ?? 0)],
-      ]}
-    />
+    <Section>
+      <Gauges
+        label="Engineering gauges"
+        gauges={[
+          ['Reactor level', fixed(ship.reactor.level, 2)],
+          ['Electric output', megawatts(ship.reactor.electric)],
+          ['Coolant', `${fixed(ship.coolant.temperature, 1)} K`],
+          ['Shields', megawatts(allocated(ship, 'shields'))],
+        ]}
+      />
+    </Section>
   );
 }
 
@@ -43,9 +50,11 @@ export default function Engineering({
 }: Route.ComponentProps) {
   return (
     <SystemPage answer={actionData}>
-      <Section>
+      {loaderData === null ? (
+        <SnapshotOffline />
+      ) : (
         <EngineeringGauges ship={loaderData} />
-      </Section>
+      )}
       <ControlSection title="Reactor">
         <LevelForm
           command="throttle"
@@ -55,15 +64,12 @@ export default function Engineering({
         />
       </ControlSection>
       <ControlSection title="Shields">
-        <Form method="post" className="flex gap-2">
-          <input type="hidden" name="command" value="shields" />
-          <Button type="submit" name="raised" value="true">
-            Raise shields
-          </Button>
-          <Button type="submit" name="raised" value="false" variant="outline">
-            Lower shields
-          </Button>
-        </Form>
+        <ToggleForm
+          command="shields"
+          field="raised"
+          on="Raise shields"
+          off="Lower shields"
+        />
       </ControlSection>
     </SystemPage>
   );

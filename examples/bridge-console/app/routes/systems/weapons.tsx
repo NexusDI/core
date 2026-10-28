@@ -1,9 +1,10 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
 
-import type { CommandAnswer } from '../../bridge/bridge-link';
-import { fixed, megawatts } from '../../bridge/fixed';
+import type { CommandAnswer } from '../../di/contracts';
+import { fixed, megawatts } from '../../fixed';
 import { snapshotLoader } from '../snapshot-loader.server';
 import type { Route } from './+types/weapons';
+import { allocated } from './allocated';
 import { systemAction } from './system-action.server';
 import {
   ControlSection,
@@ -34,7 +35,6 @@ const metres = (range: number) => `${fixed(range, 0)} m`;
 function WeaponsGauges({ ship }: { ship: ShipReading }) {
   const { status, charge, shots, hits, lastShot } = ship.weapons;
   const { armed, range } = ship.setpoints.weapons;
-  const load = ship.power.loads.find(({ id }) => id === 'railgun');
   return (
     <ControlSection title="Railgun">
       <Gauges
@@ -43,7 +43,7 @@ function WeaponsGauges({ ship }: { ship: ShipReading }) {
           ['Status', status],
           ['Armed', armed ? 'Yes' : 'No'],
           ['Capacitor charge', `${fixed(charge / 1e6, 1)} MJ`],
-          ['Capacitor power', megawatts(load?.allocated ?? 0)],
+          ['Capacitor power', megawatts(allocated(ship, 'railgun'))],
           ['Shot waiting', range === null ? 'none' : metres(range)],
           ['Shots fired', fixed(shots, 0)],
           ['Hits', fixed(hits, 0)],

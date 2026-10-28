@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it, vi } from 'vitest';
+import { describe, expect, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import type { NexusGraph } from '@nexusdi/devtools';
@@ -6,24 +6,15 @@ import type { ShipReading } from '@nexusdi/meridian-systems';
 import { NexusProvider } from '@nexusdi/react';
 import { createTestingContainer } from '@nexusdi/testing';
 
-import { BridgeClient } from '../../app/bridge/bridge.client';
-import { TELEMETRY_CLIENT } from '../../app/bridge/telemetry-client';
-import { FakeBridgeLink, shipAtStart } from '../doubles';
-import { built } from '../support/testing-di';
-import { contextOf, loaderArgs, scopeWith } from './scope-with';
+import { BridgeClient } from '../../app/di/bridge.client';
+import { TELEMETRY_CLIENT } from '../../app/di/contracts';
+import { FailingSnapshotLink, FakeBridgeLink, shipAtStart } from '../doubles';
+import { contextOf, loaderArgs, test, withLink } from '../support/console';
 
-vi.mock('../../app/nexus.server', async () =>
-  (await import('../support/testing-di')).shipServer(),
-);
+vi.mock('../../app/nexus.server', () => import('../support/nexus-server'));
 
-const {
-  default: Diagnostics,
-  loader,
-  ErrorBoundary,
-} = await import('../../app/routes/diagnostics');
+const diagnostics = await import('../../app/routes/diagnostics');
 const layout = await import('../../app/routes/ship-layout');
-
-afterAll(() => Promise.all(built.map((s) => s[Symbol.asyncDispose]())));
 
 type Provider = NexusGraph['providers'][number];
 const provider = (fields: Partial<Provider>): Provider => ({
@@ -91,13 +82,6 @@ class DevBridge extends FakeBridgeLink {
   }
 }
 
-/** A link whose backend does not answer `GET /sim`. */
-class SilentSim extends FakeBridgeLink {
-  override async snapshot(): Promise<ShipReading> {
-    throw new Error('bridge-api answered 502 for /sim');
-  }
-}
-
 /** A link whose backend is down: every call rejects. */
 class DownBridge extends FakeBridgeLink {
   override async snapshot(): Promise<ShipReading> {
@@ -112,41 +96,32 @@ function HydrateFallback() {
   return <p>Reading the graph</p>;
 }
 
-/**
- * Renders /diagnostics for a request whose BRIDGE_LINK is an instance of
- * `link`.
- */
-async function diagnostics(link: typeof FakeBridgeLink) {
-  const scope = await scopeWith(link, built);
-  const Stub = createRoutesStub(
-    [{ path: '/diagnostics', Component: Diagnostics, HydrateFallback, loader }],
-    contextOf(scope),
-  );
-  render(<Stub initialEntries={['/diagnostics']} />);
-  return scope;
-}
-
 describe('the ship layout loader', () => {
-  it("returns the backend's snapshot", async () => {
-    await using scope = await scopeWith(FakeBridgeLink, built);
+  test("returns the backend's snapshot", async ({ openScope }) => {
+    const scope = await openScope();
     expect(await layout.loader(loaderArgs(scope, '/diagnostics'))).toEqual(
       shipAtStart,
     );
   });
 
-  it('returns null when the backend fails', async () => {
-    await using scope = await scopeWith(SilentSim, built);
+  test('returns null when the backend fails', async ({ openScope }) => {
+    const scope = await openScope({ overrides: withLink(FailingSnapshotLink) });
     expect(await layout.loader(loaderArgs(scope, '/diagnostics'))).toBeNull();
   });
 
-  it('never revalidates, since the strip follows the stream', () => {
+  test('never revalidates, since the strip follows the stream', () => {
     expect(layout.shouldRevalidate()).toBe(false);
   });
 });
 
 describe('the diagnostics route', () => {
-  it('groups the providers under their module and prints each note', async () => {
-    const scope = await diagnostics(DevBridge);
+  test('groups the providers under their module and prints each note', async ({
+    renderRoute,
+  }) => {
+    await renderRoute(diagnostics, {
+      path: '/diagnostics',
+      overrides: withLink(DevBridge),
+    });
     const telemetry = await screen.findByRole('region', { name: 'Telemetry' });
     expect(within(telemetry).getByText('TelemetryFeed')).toBeDefined();
     expect(within(telemetry).getByText('system: Telemetry')).toBeDefined();
@@ -157,23 +132,24 @@ describe('the diagnostics route', () => {
     expect(within(root).getByText('NavCharts')).toBeDefined();
     // Plumbing such as core's REQUEST stays off the page.
     expect(screen.queryByText('Request')).toBeNull();
-    await scope[Symbol.asyncDispose]();
   });
 
-  it('says diagnostics are off when the backend serves no graph', async () => {
-    const scope = await diagnostics(FakeBridgeLink);
+  test('says diagnostics are off when the backend serves no graph', async ({
+    renderRoute,
+  }) => {
+    await renderRoute(diagnostics, { path: '/diagnostics' });
     expect(
       await screen.findByText('Diagnostics are off on this bridge'),
     ).toBeDefined();
-    await scope[Symbol.asyncDispose]();
   });
 
-  it('says the bridge is unreachable under the offline strip when the backend is down', async () => {
-    const scope = await scopeWith(DownBridge, built);
-    const browser = await createTestingContainer(BridgeClient)
+  test('says the bridge is unreachable under the offline strip when the backend is down', async ({
+    openScope,
+  }) => {
+    const scope = await openScope({ overrides: withLink(DownBridge) });
+    await using browser = await createTestingContainer(BridgeClient)
       .override(TELEMETRY_CLIENT, { useValue: { subscribe: () => () => {} } })
       .create();
-    built.push(browser);
     const Stub = createRoutesStub(
       [
         {
@@ -183,9 +159,9 @@ describe('the diagnostics route', () => {
           children: [
             {
               path: '/diagnostics',
-              Component: Diagnostics,
-              ErrorBoundary,
-              loader,
+              Component: diagnostics.default,
+              ErrorBoundary: diagnostics.ErrorBoundary,
+              loader: diagnostics.loader,
             },
           ],
         },
@@ -201,6 +177,5 @@ describe('the diagnostics route', () => {
     expect(
       screen.getByRole('status', { name: 'Ship status' }).textContent,
     ).toBe('Telemetry offline');
-    await scope[Symbol.asyncDispose]();
   });
 });

@@ -1,4 +1,4 @@
-import { BRIDGE_LINK } from '../bridge/bridge-link';
+import { BRIDGE_LINK } from '../di/contracts';
 import { di } from '../nexus.server';
 import type { Route } from './+types/telemetry';
 

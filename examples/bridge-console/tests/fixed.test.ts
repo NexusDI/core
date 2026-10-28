@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  bearing,
-  fixed,
-  kilopascals,
-  megawatts,
-  turnRate,
-} from '../app/bridge/fixed';
+import { bearing, fixed, kilopascals, megawatts, turnRate } from '../app/fixed';
 
 describe('fixed', () => {
   it("rounds a float's noise away", () => {

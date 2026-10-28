@@ -1,9 +1,9 @@
 import { defineModule } from '@nexusdi/core';
 
-import { BridgeLink } from './bridge-link';
-import { Tactical } from './tactical';
-import { TelemetryClient } from './telemetry-client';
-import { Watch } from './watch';
+import { BridgeLink } from './bridge-link.module';
+import { Tactical } from './tactical.module';
+import { TelemetryClient } from './telemetry-client.module';
+import { Watch } from './watch.module';
 
 /**
  * The server graph. It holds no runtime code from bridge-api: the console
