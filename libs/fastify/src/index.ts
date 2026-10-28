@@ -1,6 +1,7 @@
 export {
   nexus,
   type FastifyHandler,
+  type FastifyHook,
   type NexusFastify,
   type NexusFastifyOptions,
   type SectionHook,

@@ -68,6 +68,41 @@ type Route<G extends RouteGenericInterface> = RouteHandlerMethod<
   G
 >;
 
+/**
+ * A hook that `injectHook` wraps: it receives the resolved deps first, then
+ * Fastify's request and reply. It ends the request with
+ * `return reply.code(...).send(...)` or a throw, and returns nothing to let
+ * the request go on. The return type refuses a payload, which Fastify ignores
+ * in a hook.
+ */
+export type FastifyHook<
+  D extends DepsMap,
+  G extends RouteGenericInterface = RouteGenericInterface,
+> = (
+  deps: ResolvedDeps<D>,
+  req: FastifyRequest<G>,
+  reply: FastifyReply<G>,
+) => void | FastifyReply<G> | Promise<void | FastifyReply<G>>;
+
+/**
+ * The async hook `injectHook` returns. Fastify's onRequest, preValidation and
+ * preHandler async hook types have one shape, so it fits each of them.
+ */
+type Hook<G extends RouteGenericInterface> = onRequestAsyncHookHandler<
+  RawServerDefault,
+  RawRequestDefaultExpression,
+  RawReplyDefaultExpression,
+  G
+>;
+
+type InjectHook = <
+  const D extends DepsMap,
+  G extends RouteGenericInterface = RouteGenericInterface,
+>(
+  deps: D,
+  hook: FastifyHook<D, G>,
+) => Hook<G>;
+
 type Inject = <
   const D extends DepsMap,
   G extends RouteGenericInterface = RouteGenericInterface,
@@ -80,14 +115,17 @@ type Inject = <
 export interface SectionHook extends onRequestAsyncHookHandler {
   /** Like di.inject, validated after the section's first successful load. */
   inject: Inject;
+  /** Like di.injectHook, validated after the section's first successful load. */
+  injectHook: InjectHook;
 }
 
-/** What `nexus()` returns for Fastify: the plugin in two forms, `inject` for typed handlers, `scope` for other code and `load` for lazy sections. */
+/** What `nexus()` returns for Fastify: the plugin in two forms, `inject` for typed handlers, `injectHook` for typed hooks, `scope` for other code and `load` for lazy sections. */
 export interface NexusFastify {
   readonly plugin: FastifyPluginAsync;
   /** The same plugin without fastify-plugin's skip-override: scoped to the context it is registered in. */
   readonly encapsulatedPlugin: FastifyPluginAsync;
   inject: Inject;
+  injectHook: InjectHook;
   scope(req: FastifyRequest): Promise<Scope>;
   load(module: ModuleRef, options?: LoadOptions): SectionHook;
   /**
@@ -163,6 +201,22 @@ const handleOf = (req: FastifyRequest): RequestScope =>
   requireHandle(req.nexus, ADAPTER, 'di.plugin');
 
 /**
+ * The handle for a hook. null means a di.plugin decorator exists and its
+ * onRequest hook has not run yet for this request. Fastify runs an addHook
+ * call after the plugins registered before it have loaded, so in one context
+ * the hooks of a stage run in the order the app adds them. A parent
+ * context's hooks run before a child's, so a root onRequest hook also runs
+ * before di.encapsulatedPlugin's hook in a child context.
+ */
+function hookHandleOf(req: FastifyRequest): RequestScope {
+  if (req.nexus === null)
+    throw new Error(
+      `[${ADAPTER}] no scope on this request yet: an onRequest hook ran before di.plugin's. Register di.plugin (or di.encapsulatedPlugin, in this context or a parent) before addHook('onRequest', ...), or add the hook as a preHandler`,
+    );
+  return handleOf(req);
+}
+
+/**
  * Gives a Fastify app one NexusDI scope per request over `ship`, a container
  * or a function that builds one on the first request, and disposes the scope
  * when the raw response emits `close`.
@@ -210,10 +264,33 @@ export function nexus(
     return (req, reply) => run(req, reply) as ReturnType<Route<G>>;
   };
 
+  const hookOf =
+    <D extends DepsMap, G extends RouteGenericInterface>(
+      deps: D,
+      hook: FastifyHook<D, G>,
+      checked: () => Promise<void>,
+      section?: ModuleRef,
+      grant?: LoadOptions,
+    ): Hook<G> =>
+    // Two parameters: Fastify refuses an async hook that also takes done.
+    async (req, reply) => {
+      const result = await core.resolve({
+        handle: () => hookHandleOf(req),
+        deps,
+        checked,
+        section,
+        options: grant,
+        log: logOf(req),
+      });
+      if (!('deps' in result)) return stop(result, reply);
+      return hook(result.deps, req, reply);
+    };
+
   return {
     plugin: fp(register, { name: ADAPTER, fastify: '5.x' }),
     encapsulatedPlugin: register,
     inject: (deps, handler) => handlerOf(deps, handler, core.definition(deps)),
+    injectHook: (deps, hook) => hookOf(deps, hook, core.definition(deps)),
     scope: async (req) => handleOf(req).scope(),
     load(module, options) {
       const hook: onRequestAsyncHookHandler = async (req, reply) => {
@@ -222,7 +299,12 @@ export function nexus(
       };
       const sectionInject: Inject = (deps, handler) =>
         handlerOf(deps, handler, core.sectionCheck(deps), module, options);
-      return Object.assign(hook, { inject: sectionInject });
+      const sectionHook: InjectHook = (deps, fn) =>
+        hookOf(deps, fn, core.sectionCheck(deps), module, options);
+      return Object.assign(hook, {
+        inject: sectionInject,
+        injectHook: sectionHook,
+      });
     },
     [Symbol.asyncDispose]: () => core.dispose(),
   };
