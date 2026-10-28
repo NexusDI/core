@@ -9,7 +9,7 @@
     "@nexusdi/node": "*",
     "@nexusdi/react": "*",
     "@nexusdi/react-router": "*",
-    "@react-router/node": "8.4.0",
+    "@react-router/node": "8.5.0",
     "@react-router/serve": "8.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
