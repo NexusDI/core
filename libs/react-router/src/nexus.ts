@@ -5,7 +5,7 @@ import {
   type RouterContextProvider,
 } from 'react-router';
 
-import type { ModuleRef, Scope } from '@nexusdi/core';
+import type { LoadOptions, ModuleRef, Scope } from '@nexusdi/core';
 
 import { CLIENT_GONE, serveWithBody } from './internal/dispose-with-body.js';
 import {
@@ -52,7 +52,7 @@ type Inject = <const D extends DepsMap, A extends WithContext, R>(
   handler: (deps: ResolvedDeps<D>, args: A) => R,
 ) => (args: A) => Promise<Awaited<R>>;
 
-/** The route middleware `di.load(module)` returns: it loads the module once and extends the request's scope before the route's loaders run. */
+/** The route middleware `di.load(module, options?)` returns: it loads the module once, with the grant in `options.imports`, and extends the request's scope before the route's loaders run. */
 export interface SectionMiddleware extends MiddlewareFunction<Response> {
   /** Like di.inject, validated after the section's first successful load. */
   readonly inject: Inject;
@@ -71,7 +71,7 @@ export interface NexusRouter {
   readonly middleware: RouterMiddleware;
   readonly inject: Inject;
   scope(context: Readonly<RouterContextProvider>): Promise<Scope>;
-  load(module: ModuleRef): SectionMiddleware;
+  load(module: ModuleRef, options?: LoadOptions): SectionMiddleware;
 }
 
 /** The handle on the context, or undefined when di.middleware has not run. */
@@ -143,6 +143,7 @@ export function nexus(
       handler: (deps: ResolvedDeps<D>, args: A) => R,
       checked: () => Promise<void>,
       section?: ModuleRef,
+      grant?: LoadOptions,
     ) =>
     async (args: A): Promise<Awaited<R>> => {
       const result = await core.resolve({
@@ -150,6 +151,7 @@ export function nexus(
         deps,
         checked,
         section,
+        options: grant,
       });
       if (!('deps' in result)) return stop(result);
       return await handler(result.deps, args);
@@ -159,17 +161,22 @@ export function nexus(
     middleware,
     inject: (deps, handler) => handlerOf(deps, handler, core.definition(deps)),
     scope: async (context) => handleOf(context).scope(),
-    load(module) {
+    load(module, options) {
       const section: MiddlewareFunction<Response> = async (
         { context },
         next,
       ) => {
-        const result = await core.enter(module, handleIn(context));
+        const result = await core.enter(
+          module,
+          handleIn(context),
+          undefined,
+          options,
+        );
         if (result !== undefined) return stop(result);
         return next();
       };
       const sectionInject: Inject = (deps, handler) =>
-        handlerOf(deps, handler, core.sectionCheck(deps), module);
+        handlerOf(deps, handler, core.sectionCheck(deps), module, options);
       return Object.assign(section, { inject: sectionInject });
     },
   };

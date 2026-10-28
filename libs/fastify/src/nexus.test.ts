@@ -257,6 +257,49 @@ describe('nexus', () => {
       await ship[Symbol.asyncDispose]();
     });
 
+    it("loads a section with a grant once and lets its handler inject a token built from the granted module's export", async () => {
+      const HELM = new Token<string>('Helm');
+      const COURSE = new Token<string>('Course');
+      const Helm = defineModule({
+        name: 'Helm',
+        providers: [provide(HELM, { useValue: 'helm-1' })],
+        exports: [HELM],
+      });
+      const Chart = defineModule({
+        name: 'Chart',
+        providers: [
+          provide(COURSE, {
+            useFactory: (helm: string) => `course by ${helm}`,
+            deps: [HELM],
+          }),
+        ],
+        exports: [COURSE],
+      });
+      const ship = await Nexus.create(
+        defineModule({ name: 'Root', imports: [Helm], providers: bridge }),
+      );
+      const load = vi.spyOn(ship, 'load');
+      const di = nexus(ship, { request: mapping });
+      const app = Fastify();
+      await app.register(di.plugin);
+      const chart = di.load(Chart, { imports: [Helm] });
+      await app.register(async (section) => {
+        section.addHook('onRequest', chart);
+        section.get(
+          '/course',
+          chart.inject({ course: COURSE }, ({ course }) => course),
+        );
+      });
+      for (let i = 0; i < 2; i++)
+        expect((await app.inject({ url: '/course' })).body).toBe(
+          'course by helm-1',
+        );
+      expect(load).toHaveBeenCalledTimes(1);
+      expect(load).toHaveBeenCalledWith(Chart, { imports: [Helm] });
+      await app.close();
+      await ship[Symbol.asyncDispose]();
+    });
+
     it('extends an ambient scope from section.inject alone, with no section hook', async () => {
       const { ship, count } = await shipWithTrace();
       const di = nexus(ship, { request: mapping, scopes: nodeScopes() });

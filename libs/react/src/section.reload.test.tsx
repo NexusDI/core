@@ -147,6 +147,70 @@ describe('the development reload guard', () => {
     await ship[Symbol.asyncDispose]();
   });
 
+  describe('an edit of the grant under one section name', () => {
+    /** A page that loads the section with one grant, then renders a second handle with another. */
+    async function regrant(
+      second: (host: core.ModuleRef[]) => core.ModuleRef[],
+    ) {
+      const { defineModule, Nexus, provide, Token } = core;
+      const { lazySection, NexusProvider, SectionBoundary } = api;
+      const HELM = new Token<string>('Helm');
+      const DOCK = new Token<string>('Dock');
+      const Helm = defineModule({
+        name: 'Helm',
+        providers: [provide(HELM, { useValue: 'helm' })],
+        exports: [HELM],
+      });
+      const Dock = defineModule({
+        name: 'Dock',
+        providers: [provide(DOCK, { useValue: 'dock' })],
+        exports: [DOCK],
+      });
+      const Chart = defineModule({ name: 'Chart' });
+      const ship = await Nexus.create(
+        defineModule({ name: 'Root', imports: [Helm, Dock] }),
+      );
+      const tree = (imports: core.ModuleRef[]) => (
+        <NexusProvider container={ship}>
+          <SectionBoundary
+            section={lazySection('chart', async () => Chart, { imports })}
+            fallback={<p>Loading</p>}
+          >
+            <p>Charted</p>
+          </SectionBoundary>
+        </NexusProvider>
+      );
+      const view = await mount(tree([Helm, Dock]));
+      await screen.findByText('Charted');
+      await act(async () => view.rerender(tree(second([Helm, Dock]))));
+      return { view, ship };
+    }
+
+    it('reloads the page when the second handle grants another set', async () => {
+      vi.spyOn(console, 'info').mockImplementation(() => undefined);
+      const reload = stubReload();
+      const { view, ship } = await regrant(([helm]) => [
+        helm as core.ModuleRef,
+      ]);
+      await vi.waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+      view.unmount();
+      await ship[Symbol.asyncDispose]();
+    });
+
+    it('does nothing when the second handle grants the same set in another order', async () => {
+      const reload = stubReload();
+      const { view, ship } = await regrant(([helm, dock]) => [
+        dock as core.ModuleRef,
+        helm as core.ModuleRef,
+      ]);
+      await act(async () => new Promise((resolve) => setTimeout(resolve, 20)));
+      expect(screen.getByText('Charted')).toBeTruthy();
+      expect(reload).not.toHaveBeenCalled();
+      view.unmount();
+      await ship[Symbol.asyncDispose]();
+    });
+  });
+
   it.each(['getItem', 'setItem'] as const)(
     'reports the conflict without a reload when %s throws',
     async (method) => {

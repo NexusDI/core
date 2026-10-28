@@ -1,4 +1,9 @@
-import { moduleDefinitionOf, type ModuleRef } from '@nexusdi/core';
+import {
+  loadOnce,
+  moduleDefinitionOf,
+  type LoadOptions,
+  type ModuleRef,
+} from '@nexusdi/core';
 import {
   Component,
   Suspense,
@@ -12,23 +17,27 @@ import { useNexusContext } from './context.js';
 import { dev } from './dev.js';
 import { sectionConflict, sectionFailed } from './errors.js';
 import { useHydrated } from './hydrated.js';
-import type { SectionEntry, Store } from './store.js';
+import type { SectionEntry, SectionSlot, Store } from './store.js';
 
-/** The handle `lazySection` returns: the section's name and the loader that imports its module. */
+/** The handle `lazySection` returns: the section's name, the loader that imports its module and the options its load takes. */
 export interface LazySection {
   readonly name: string;
   readonly loader: () => Promise<ModuleRef>;
+  readonly options?: LoadOptions;
 }
 
 /**
- * A module-level handle for a section: its name and its loader. It runs
- * nothing; a SectionBoundary calls the loader once per container.
+ * A module-level handle for a section: its name, its loader and the
+ * `options` its load takes, such as `imports` for the modules of the host
+ * graph the section sees. It runs nothing; a SectionBoundary calls the
+ * loader once per container and loads the module with the options.
  */
 export function lazySection(
   name: string,
   loader: () => Promise<ModuleRef>,
+  options?: LoadOptions,
 ): LazySection {
-  return Object.freeze({ name, loader });
+  return Object.freeze({ name, loader, options });
 }
 
 /** The props of `SectionBoundary`: the section to load, the fallbacks for loading and for a load failure, and a callback for each failure. */
@@ -124,7 +133,7 @@ class Entry implements SectionEntry {
 function firstLoad(store: Store, section: LazySection): SectionEntry {
   return new Entry(section.name, (entry) =>
     call(section).then(async (module) => {
-      await store.container.load(module);
+      await loadOnce(store.container)(module, section.options);
       entry.module = module;
       await store.extendAll();
     }),
@@ -139,12 +148,26 @@ let reloading = false;
 
 const pageLeaving = () => new Promise<void>(() => undefined);
 
+/** Whether two handles grant the same modules, compared by identity with order and repeats ignored, as loadOnce keys them. */
+function sameGrant(
+  a: { readonly options?: LoadOptions },
+  b: { readonly options?: LoadOptions },
+): boolean {
+  const first = new Set(a.options?.imports);
+  const second = new Set(b.options?.imports);
+  return first.size === second.size && [...first].every((m) => second.has(m));
+}
+
 /**
- * A second handle for a section name: its module object against the one
- * `origin` loaded (react spec 12.3). The same object means only the file
- * holding lazySection changed.
+ * A second handle for a section name: its module object and grant against
+ * the ones `handle` and `origin` loaded (react spec 12.3). The same module
+ * object and grant mean only the file holding lazySection changed.
  */
-function recheck(origin: SectionEntry, section: LazySection): SectionEntry {
+function recheck(
+  handle: SectionSlot['handle'],
+  origin: SectionEntry,
+  section: LazySection,
+): SectionEntry {
   const conflict = () => {
     const error = sectionConflict(section.name);
     loadFailures.set(error, { section: section.name, error });
@@ -154,7 +177,7 @@ function recheck(origin: SectionEntry, section: LazySection): SectionEntry {
     origin.promise
       .then(() => call(section))
       .then((module) => {
-        if (module === origin.module) return;
+        if (module === origin.module && sameGrant(handle, section)) return;
         if (reloading) return pageLeaving();
         const loaded = moduleDefinitionOf(origin.module)?.name;
         if (!dev || moduleDefinitionOf(module)?.name !== loaded)
@@ -189,7 +212,7 @@ function entryFor(store: Store, section: LazySection): SectionEntry {
   if (slot.handle === section) return slot.origin;
   let entry = slot.checks.get(section);
   if (entry === undefined) {
-    entry = recheck(slot.origin, section);
+    entry = recheck(slot.handle, slot.origin, section);
     slot.checks.set(section, entry);
   }
   return entry;

@@ -1,7 +1,9 @@
 import {
   BlueprintError,
   isNexusError,
+  loadOnce,
   type DepsMap,
+  type LoadOptions,
   type LookupOptions,
   type ModuleRef,
   type Nexus,
@@ -286,27 +288,11 @@ export function once(fn: () => Promise<void>): () => Promise<void> {
   return () => (done ??= fn());
 }
 
-/** One promise per module and container; a failed load is forgotten. */
-export function loader(
-  container: () => Promise<Nexus>,
-): (module: ModuleRef) => Promise<Nexus> {
-  const loads = new WeakMap<Nexus, Map<ModuleRef, Promise<Nexus>>>();
-  return async (module) => {
-    const ship = await container();
-    let byModule = loads.get(ship);
-    if (byModule === undefined) {
-      byModule = new Map();
-      loads.set(ship, byModule);
-    }
-    const known = byModule.get(module);
-    if (known !== undefined) return known;
-    const pending = ship.load(module).then(() => ship);
-    byModule.set(module, pending);
-    const forget = byModule;
-    pending.catch(() => forget.delete(module));
-    return pending;
-  };
-}
+/** A section's load: the module and the modules it is granted, loaded once per container by loadOnce. */
+export type SectionLoad = (
+  module: ModuleRef,
+  options?: LoadOptions,
+) => Promise<void>;
 
 /** validate(deps) at most once per container, caching a failure. */
 export function validator(
@@ -345,11 +331,12 @@ export function disposer(
  * (integrations spec 3.9).
  */
 export async function enterSection(
-  load: (module: ModuleRef) => Promise<Nexus>,
+  load: SectionLoad,
   module: ModuleRef,
   handle: RequestScope | null | undefined,
+  options?: LoadOptions,
 ): Promise<void> {
-  await load(module);
+  await load(module, options);
   if (handle?.started === true) await (await handle.scope()).extend();
 }
 
@@ -418,14 +405,15 @@ function stopFor(
 
 /** A section's step before its handlers (enterSection); undefined when the request goes on. */
 export async function enterFor(step: {
-  readonly load: (module: ModuleRef) => Promise<Nexus>;
+  readonly load: SectionLoad;
   readonly section: ModuleRef;
+  readonly options?: LoadOptions;
   readonly handle: RequestScope | null | undefined;
   readonly log: NexusLog;
   readonly adapter: string;
 }): Promise<Stop | undefined> {
   try {
-    await enterSection(step.load, step.section, step.handle);
+    await enterSection(step.load, step.section, step.handle, step.options);
     return undefined;
   } catch (error) {
     return stopFor(error, step.log, step.adapter, 'load');
@@ -441,8 +429,9 @@ export async function resolveFor<D extends DepsMap>(step: {
   readonly deps: D;
   /** The deps check: definitionCheck's result, or a validator() for a section. */
   readonly checked: () => Promise<void>;
-  readonly load: (module: ModuleRef) => Promise<Nexus>;
+  readonly load: SectionLoad;
   readonly section?: ModuleRef;
+  readonly options?: LoadOptions;
   readonly log: NexusLog;
   readonly adapter: string;
 }): Promise<{ readonly deps: ResolvedDeps<D> } | Stop> {
@@ -457,6 +446,7 @@ export async function resolveFor<D extends DepsMap>(step: {
     const stop = await enterFor({
       load: step.load,
       section: step.section,
+      options: step.options,
       handle,
       log,
       adapter,
@@ -488,7 +478,8 @@ export function adapterCore(
 ) {
   const log = guardLog(options.log ?? defaultLog);
   const container = containerOf(ship);
-  const load = loader(container);
+  const load: SectionLoad = async (module, grant) =>
+    loadOnce(await container())(module, grant);
   return {
     log,
     /** A request's lazy handle, and its dispose step (disposer), logged through `requestLog` when given. */
@@ -524,6 +515,7 @@ export function adapterCore(
       readonly deps: D;
       readonly checked: () => Promise<void>;
       readonly section?: ModuleRef;
+      readonly options?: LoadOptions;
       readonly log?: NexusLog;
     }) => resolveFor({ ...step, load, log: step.log ?? log, adapter }),
     /** enterFor, bound to this container. */
@@ -531,6 +523,7 @@ export function adapterCore(
       section: ModuleRef,
       handle: RequestScope | null | undefined,
       requestLog: NexusLog = log,
-    ) => enterFor({ load, section, handle, log: requestLog, adapter }),
+      options?: LoadOptions,
+    ) => enterFor({ load, section, options, handle, log: requestLog, adapter }),
   };
 }

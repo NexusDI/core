@@ -48,6 +48,51 @@ describe('profileStartup', () => {
     expect(report.runs[2]?.builds.map((b) => b.token)).toEqual(['Lander']);
   });
 
+  it('loads a LoadEntry with a grant, so the module sees the granted exports', async () => {
+    const HELM = new Token<string>('Helm');
+    const COURSE = new Token<string>('Course');
+    const Helm = defineModule({
+      name: 'Helm',
+      providers: [provide(HELM, { useValue: 'helm-1' })],
+      exports: [HELM],
+    });
+    const Chart = defineModule({
+      name: 'Chart',
+      providers: [
+        provide(COURSE, {
+          useFactory: (helm: string) => helm,
+          deps: [HELM],
+        }),
+      ],
+    });
+    const root = defineModule({ name: 'Root', imports: [Helm] });
+    const report = await profileStartup(root, {
+      load: [{ module: Chart, imports: [Helm] }],
+    });
+    expect(report.runs.map((r) => [r.kind, r.ok])).toEqual([
+      ['create', true],
+      ['load', true],
+    ]);
+    expect(report.runs[1]?.builds.map((b) => b.token)).toEqual(['Course']);
+    const bare = await rejected(profileStartup(root, { load: [Chart] }));
+    expect(isNexusError(bare)).toBe(true);
+  });
+
+  it.each([
+    ['a string', 'Survey', 'the string "Survey"'],
+    ['an empty object', {}, 'an object'],
+    ['null', null, 'null'],
+  ])(
+    'rejects with core error that names the value for %s in the load list',
+    async (_label, value, received) => {
+      const error = await rejected(
+        profileStartup(Engineering, { load: [value as never] }),
+      );
+      expect(isNexusError(error, 'NEXUS_INVALID_MODULE')).toBe(true);
+      expect(error).toMatchObject({ received });
+    },
+  );
+
   it('disposes what create built when a load fails, and rejects with its error', async () => {
     const disposed: string[] = [];
     class Hull {

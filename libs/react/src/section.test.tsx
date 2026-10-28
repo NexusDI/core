@@ -33,6 +33,12 @@ const Navigation = defineModule({
   exports: [NAV_CHARTS],
 });
 
+const HELM = new Token<string>('Helm');
+const COURSE = new Token<string>('Course');
+function Course() {
+  return <p>{useService(COURSE)}</p>;
+}
+
 function Heading() {
   return <p>{useService(NAV_CHARTS).plot('Kepler-442b').heading}</p>;
 }
@@ -88,6 +94,13 @@ describe('lazySection', () => {
     });
     expect(loader).not.toHaveBeenCalled();
   });
+
+  it('keeps the options on the frozen handle', () => {
+    const options = { imports: [Navigation] };
+    const section = lazySection('navigation', async () => Navigation, options);
+    expect(section.options).toBe(options);
+    expect(Object.isFrozen(section)).toBe(true);
+  });
 });
 
 describe('SectionBoundary', () => {
@@ -113,6 +126,135 @@ describe('SectionBoundary', () => {
     expect(await screen.findAllByText('42')).toHaveLength(2);
     expect(loader).toHaveBeenCalledTimes(1);
     expect(loadEvents(events)).toBe(1);
+    view.unmount();
+  });
+
+  it('loads a section with a grant once and renders a component that reads a granted token', async () => {
+    const events: TraceEvent[] = [];
+    const Helm = defineModule({
+      name: 'Helm',
+      providers: [provide(HELM, { useValue: 'helm-1' })],
+      exports: [HELM],
+    });
+    const Chart = defineModule({
+      name: 'Chart',
+      providers: [
+        provide(COURSE, {
+          useFactory: (helm: string) => `course by ${helm}`,
+          deps: [HELM],
+        }),
+      ],
+      exports: [COURSE],
+    });
+    await using ship = await Nexus.create(
+      defineModule({ name: 'Root', imports: [Helm] }),
+      { plugins: [trace((e) => events.push(e))] },
+    );
+    const load = vi.spyOn(ship, 'load');
+    const section = lazySection('chart', async () => Chart, {
+      imports: [Helm],
+    });
+    const view = await mount(
+      <StrictMode>
+        <NexusProvider container={ship}>
+          <SectionBoundary section={section} fallback={<p>Loading</p>}>
+            <Course />
+          </SectionBoundary>
+          <SectionBoundary section={section} fallback={<p>Loading</p>}>
+            <Course />
+          </SectionBoundary>
+        </NexusProvider>
+      </StrictMode>,
+    );
+    expect(await screen.findAllByText('course by helm-1')).toHaveLength(2);
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(load).toHaveBeenCalledWith(Chart, { imports: [Helm] });
+    expect(loadEvents(events)).toBe(1);
+    view.unmount();
+  });
+
+  it('shares one load between two section names with the same module and grant', async () => {
+    const Helm = defineModule({
+      name: 'Helm',
+      providers: [provide(HELM, { useValue: 'helm-1' })],
+      exports: [HELM],
+    });
+    const Chart = defineModule({
+      name: 'Chart',
+      providers: [
+        provide(COURSE, {
+          useFactory: (helm: string) => `course by ${helm}`,
+          deps: [HELM],
+        }),
+      ],
+      exports: [COURSE],
+    });
+    await using ship = await Nexus.create(
+      defineModule({ name: 'Root', imports: [Helm] }),
+    );
+    const load = vi.spyOn(ship, 'load');
+    const grant = { imports: [Helm] };
+    const one = lazySection('chart-one', async () => Chart, grant);
+    const two = lazySection('chart-two', async () => Chart, {
+      imports: [Helm],
+    });
+    const view = await mount(
+      <NexusProvider container={ship}>
+        <SectionBoundary section={one} fallback={<p>Loading</p>}>
+          <Course />
+        </SectionBoundary>
+        <SectionBoundary section={two} fallback={<p>Loading</p>}>
+          <Course />
+        </SectionBoundary>
+      </NexusProvider>,
+    );
+    expect(await screen.findAllByText('course by helm-1')).toHaveLength(2);
+    expect(load).toHaveBeenCalledTimes(1);
+    view.unmount();
+  });
+
+  it('retries a failed load of a granted section', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const Helm = defineModule({
+      name: 'Helm',
+      providers: [provide(HELM, { useValue: 'helm-1' })],
+      exports: [HELM],
+    });
+    const Chart = defineModule({
+      name: 'Chart',
+      providers: [
+        provide(COURSE, {
+          useFactory: (helm: string) => `course by ${helm}`,
+          deps: [HELM],
+        }),
+      ],
+      exports: [COURSE],
+    });
+    await using ship = await Nexus.create(
+      defineModule({ name: 'Root', imports: [Helm] }),
+    );
+    const load = vi
+      .spyOn(ship, 'load')
+      .mockRejectedValueOnce(new Error('chart offline'));
+    const section = lazySection('chart', async () => Chart, {
+      imports: [Helm],
+    });
+    const view = await mount(
+      <NexusProvider container={ship}>
+        <SectionBoundary
+          section={section}
+          fallback={<p>Loading</p>}
+          errorFallback={Failed}
+        >
+          <Course />
+        </SectionBoundary>
+      </NexusProvider>,
+    );
+    const retry = await screen.findByRole('button');
+    expect(load).toHaveBeenCalledTimes(1);
+    await act(async () => retry.click());
+    expect(await screen.findByText('course by helm-1')).toBeTruthy();
+    expect(load).toHaveBeenCalledTimes(2);
     view.unmount();
   });
 

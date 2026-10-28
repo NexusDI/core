@@ -43,6 +43,22 @@ export function splitEntry(entry: unknown): SplitEntry {
   return { module: entry, imports: [] };
 }
 
+/**
+ * Splits a load entry into its module and the modules it grants. A module ref
+ * has no grant. A value that is neither form comes back as the module, so
+ * load() reports it as an invalid module. Tools that load entries pass the
+ * parts on to load() and keep no copy of this rule.
+ */
+export function splitLoadEntry(entry: LoadEntry): {
+  readonly module: ModuleRef;
+  readonly imports: readonly ModuleRef[];
+} {
+  return splitEntry(entry) as {
+    readonly module: ModuleRef;
+    readonly imports: readonly ModuleRef[];
+  };
+}
+
 /** The entry a load of `module` with `options` adds to the blueprint. */
 export function entryOf(module: unknown, options?: LoadOptions): LoadEntry {
   const imports = options?.imports;

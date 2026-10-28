@@ -1,6 +1,7 @@
 import {
   Nexus,
-  type ModuleRef,
+  splitLoadEntry,
+  type LoadEntry,
   type NexusPlugin,
   type RootRef,
 } from '@nexusdi/core';
@@ -19,7 +20,8 @@ export async function profileStartup(
   root: RootRef,
   options: {
     readonly plugins?: readonly NexusPlugin[];
-    readonly load?: readonly ModuleRef[];
+    /** Modules to load in order. An entry `{ module, imports }` loads with that grant, as `Nexus.load(module, { imports })` does. */
+    readonly load?: readonly LoadEntry[];
     /** Pass one to read report() while the run is still going, as the CLI's --timeout does. */
     readonly profiler?: Profiler;
   } = {},
@@ -29,7 +31,10 @@ export async function profileStartup(
     plugins: [profiler, ...(options.plugins ?? [])],
   });
   try {
-    for (const module of options.load ?? []) await ship.load(module);
+    for (const entry of options.load ?? []) {
+      const { module, imports } = splitLoadEntry(entry);
+      await ship.load(module, { imports });
+    }
   } catch (error) {
     await ship[Symbol.asyncDispose]().catch(() => undefined);
     throw error;

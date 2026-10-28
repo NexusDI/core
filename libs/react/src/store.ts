@@ -1,4 +1,4 @@
-import type { ModuleRef, Nexus, Scope } from '@nexusdi/core';
+import type { LoadOptions, ModuleRef, Nexus, Scope } from '@nexusdi/core';
 
 /** The promise one lazySection handle renders behind. */
 export interface SectionEntry {
@@ -13,7 +13,7 @@ export interface SectionEntry {
 /** One section name in one container (react spec 7.1, 12.3). */
 export interface SectionSlot {
   /** The handle whose loader put the module in the container. */
-  readonly handle: object;
+  readonly handle: { readonly options?: LoadOptions };
   readonly origin: SectionEntry;
   /** Every other handle of this name, each checked against `origin` once. */
   readonly checks: WeakMap<object, SectionEntry>;

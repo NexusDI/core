@@ -27,7 +27,6 @@ import {
   existingScope,
   guardLog,
   logLevel,
-  loader,
   logEach,
   NexusHttpError,
   once,
@@ -434,26 +433,12 @@ describe('validateNow', () => {
   });
 });
 
-describe('once, loader and validator', () => {
+describe('once and validator', () => {
   it('calls once at most once', async () => {
     const fn = vi.fn(() => Promise.resolve());
     const run = once(fn);
     await Promise.all([run(), run(), run()]);
     expect(fn).toHaveBeenCalledTimes(1);
-  });
-
-  it('loads a module once per container and forgets a failed load', async () => {
-    await using ship = await Nexus.create(providers);
-    const load = vi
-      .spyOn(ship, 'load')
-      .mockRejectedValueOnce(new Error('section offline'))
-      .mockResolvedValue(undefined);
-    const section = { name: 'Navigation' } as never;
-    const loadOf = loader(containerOf(ship));
-    await expect(loadOf(section)).rejects.toThrow('section offline');
-    expect(await loadOf(section)).toBe(ship);
-    expect(await loadOf(section)).toBe(ship);
-    expect(load).toHaveBeenCalledTimes(2);
   });
 
   it('validates once per container and keeps a failure', async () => {
@@ -487,7 +472,7 @@ describe('disposer, enterSection and definitionCheck', () => {
 
   it('loads the module and extends a started scope only', async () => {
     await using ship = await Nexus.create(providers);
-    const load = vi.fn(() => Promise.resolve(ship));
+    const load = vi.fn(() => Promise.resolve());
     const section = { name: 'Navigation' } as never;
     await enterSection(load, section, null);
     const idle = requestScope(containerOf(ship), () => survey);
@@ -500,6 +485,14 @@ describe('disposer, enterSection and definitionCheck', () => {
     expect(extend).toHaveBeenCalledOnce();
     expect(load).toHaveBeenCalledTimes(3);
     await busy.close();
+  });
+
+  it('passes the grant to the load', async () => {
+    const load = vi.fn((..._args: unknown[]) => Promise.resolve());
+    const section = { name: 'Chart' } as never;
+    const options = { imports: [{ name: 'Helm' } as never] };
+    await enterSection(load, section, null, options);
+    expect(load).toHaveBeenCalledExactlyOnceWith(section, options);
   });
 
   it('validates a live container at once and a function source on first use', async () => {
@@ -570,7 +563,7 @@ describe('requireHandle, mapError, enterFor and resolveFor', () => {
       handle: () => handle,
       deps: { mission: MISSION },
       checked: () => Promise.resolve(),
-      load: loader(containerOf(ship)),
+      load: () => Promise.resolve(),
       log: vi.fn(),
       adapter: '@nexusdi/test',
     });
@@ -587,7 +580,7 @@ describe('requireHandle, mapError, enterFor and resolveFor', () => {
       handle: () => handle,
       deps: { mission: MISSION },
       checked: () => Promise.resolve(),
-      load: loader(containerOf(ship)),
+      load: () => Promise.resolve(),
       log,
       adapter: '@nexusdi/test',
     });
@@ -605,7 +598,7 @@ describe('requireHandle, mapError, enterFor and resolveFor', () => {
       handle: () => existingScope({} as never),
       deps: { absent },
       checked: validator(containerOf(ship), { absent }),
-      load: loader(containerOf(ship)),
+      load: () => Promise.resolve(),
       log,
       adapter: '@nexusdi/test',
     });
@@ -614,7 +607,6 @@ describe('requireHandle, mapError, enterFor and resolveFor', () => {
   });
 
   it('passes a plain error from the handle lookup through unmapped', async () => {
-    await using ship = await Nexus.create(providers);
     const missing = new Error('register di.middleware');
     const result = await resolveFor({
       handle: () => {
@@ -622,7 +614,7 @@ describe('requireHandle, mapError, enterFor and resolveFor', () => {
       },
       deps: {},
       checked: () => Promise.resolve(),
-      load: loader(containerOf(ship)),
+      load: () => Promise.resolve(),
       log: vi.fn(),
       adapter: '@nexusdi/test',
     });
@@ -630,7 +622,6 @@ describe('requireHandle, mapError, enterFor and resolveFor', () => {
   });
 
   it('loads a section before it resolves, and reports a failed load as a load failure', async () => {
-    await using ship = await Nexus.create(providers);
     const log = vi.fn();
     const failing = vi.fn(() =>
       Promise.reject(new DisposedError({ target: 'container' })),
@@ -650,7 +641,7 @@ describe('requireHandle, mapError, enterFor and resolveFor', () => {
     });
     expect(
       await enterFor({
-        load: () => Promise.resolve(ship),
+        load: () => Promise.resolve(),
         section: { name: 'Navigation' } as never,
         handle: null,
         log,
