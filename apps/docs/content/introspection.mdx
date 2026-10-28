@@ -25,7 +25,7 @@ DevTools is a plugin that should be registered in your development environment. 
 
 The `graph(ship)` function returns the entire compiled dependency graph as a structured JSON object. This graph contains three key arrays:
 
-- **Modules:** The names and visibility (global/private) of every module. A module has a `name`, `global`, `imports` and `exports`.
+- **Modules:** The names and visibility (global/private) of every module. A module has a `name`, `global`, `imports`, `grants` and `exports`. The `grants` list holds the module ids that a [load grant](/load/#granting-host-modules-to-a-loaded-module) added to the module's own imports, and each also appears in `imports`. A granted module the module already imports stays out of `grants`. `toMermaid()` and `toDot()` draw a grant as a dashed edge and the other imports as solid edges.
 - **Providers:** Details on every provider, including its token, lifetime (singleton/transient), and whether it is eager or async. A provider has a `token` (the token's description or the class name), `module`, `lifetime`, `kind` (`class`, `value`, `factory` or `alias`), `eager`, `async`, the annotators' `notes`, the `implementation` class name and `internal`.
 - **Edges:** Every dependency link between providers, labeled by type (required, optional, lazy). The `kind` of an edge is `required`, `optional`, `lazy`, `all` or `alias`.
 

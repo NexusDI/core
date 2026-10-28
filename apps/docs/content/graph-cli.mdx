@@ -91,7 +91,7 @@ npx nexusdi graph src/meridian.module.ts#Meridian --plugins src/plugins.ts#plugi
 
 ### Drawing a Running Container's Graph from JSON
 
-A `.json` file written with `JSON.stringify(graph(ship))` from a running app is an entry too. The command checks the file with `parseGraph` from `@nexusdi/devtools`, which reads a `NexusGraph` back from `JSON.parse` output and checks every field:
+A `.json` file written with `JSON.stringify(graph(ship))` from a running app is an entry too. The command checks the file with `parseGraph` from `@nexusdi/devtools`, which reads a `NexusGraph` back from `JSON.parse` output and checks every field. Each module in the file lists in `grants` the ids a load grant added to its imports, and the DOT and Mermaid output draw those as dashed edges. A graph file written before grants existed has no such field, and the command reads it as an empty list:
 
 ```ts file=examples/meridian/src/pages/graph-cli.md region=parse-json
 

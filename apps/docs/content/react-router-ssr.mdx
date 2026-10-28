@@ -58,13 +58,15 @@ A route whose section is a module of its own registers `di.load(Navigation)` as 
 
 ```
 
-`Navigation` imports `Tactical`, and `load()` finds that module object already in the graph, so the section reads the root's `NAV_CHARTS`. A loaded module sees only what it imports. An app that picks its charts module at runtime, for example a relay or a bundled table, builds the section with `navigation(charts)` over the module object the root holds:
+`Navigation` imports `Tactical`, and `load()` finds that module object already in the graph, so the section reads the root's `NAV_CHARTS`. A loaded module sees what it imports, and what a grant gives it (below). An app that picks its charts module at runtime, for example a relay or a bundled table, builds the section with `navigation(charts)` over the module object the root holds:
 
 ```ts file=examples/meridian/src/pages/react-router-ssr.md region=lazy-runtime
 
 ```
 
 `load()` shares a module already in the graph only when the section imports that same object, so the charts download once. A `navigation()` built over a second `tactical(...)` call would get a second charts module of its own.
+
+A section that cannot import a host module by name takes a grant as the second argument: `di.load(Navigation, { imports: [Tactical] })`. `Navigation` and each module of its subtree that the graph did not hold then see the exports of `Tactical`, the module object the root imports. [Adding Modules After Startup](/load/#granting-host-modules-to-a-loaded-module) covers the rules of a grant.
 
 ## Test a Loader with a Scope It Owns
 
