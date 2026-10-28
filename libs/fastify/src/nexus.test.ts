@@ -19,7 +19,7 @@ import {
 import { trace } from '@nexusdi/devtools';
 import { nodeScopes } from '@nexusdi/node';
 
-import { nexus, type NexusFastify } from './index.js';
+import { nexus, type LogContext, type NexusFastify } from './index.js';
 
 interface Mission {
   id: string;
@@ -460,6 +460,171 @@ describe('nexus', () => {
         { adapter: '@nexusdi/fastify', phase: 'scope' },
       );
       expect(count('scope:create')).toBe(0);
+      await ship[Symbol.asyncDispose]();
+    });
+  });
+
+  describe('disposing the adapter', () => {
+    /** An app with the plugin and one di.inject route at /log. */
+    async function appOf(di: NexusFastify) {
+      const app = Fastify();
+      await app.register(di.plugin);
+      app.get(
+        '/log',
+        di.inject({ log: FLIGHT_LOG }, ({ log }) => log.entries()),
+      );
+      return app;
+    }
+
+    it('disposes a container it built once, and answers 503 after', async () => {
+      const { ship, count } = await shipWithTrace();
+      const source = vi.fn(() => Promise.resolve(ship));
+      const log = vi.fn();
+      const di = nexus(source, { request: mapping, log });
+      const app = await appOf(di);
+      expect((await app.inject({ url: '/log' })).statusCode).toBe(200);
+      await di[Symbol.asyncDispose]();
+      expect(count('dispose')).toBe(1);
+      expect(count('scope:create')).toBe(1);
+      expect((await app.inject({ url: '/log' })).statusCode).toBe(503);
+      expect(source).toHaveBeenCalledTimes(1);
+      expect(log).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'AdapterDisposedError' }),
+        expect.objectContaining({ phase: 'validate', status: 503 }),
+      );
+      await app.close();
+    });
+
+    it('serves two apps in a row, since closing an app leaves the adapter open', async () => {
+      const { ship } = await shipWithTrace();
+      const di = nexus(() => Promise.resolve(ship), { request: mapping });
+      for (let i = 0; i < 2; i += 1) {
+        const app = await appOf(di);
+        expect((await app.inject({ url: '/log' })).statusCode).toBe(200);
+        await app.close();
+      }
+      expect(ship.has(FLIGHT_LOG)).toBe(true);
+      await di[Symbol.asyncDispose]();
+    });
+
+    it('returns the first promise on a second call, rejected with a disposer error', async () => {
+      const cause = new Error('coolant pump stuck');
+      const PUMP = new Token<object>('CoolantPump');
+      const di = nexus(
+        () =>
+          Nexus.create([
+            provide(PUMP, {
+              useFactory: () => ({
+                [Symbol.asyncDispose]: () => Promise.reject(cause),
+              }),
+            }),
+          ]),
+        { request: mapping, log: () => {} },
+      );
+      const app = Fastify();
+      await app.register(di.plugin);
+      app.get(
+        '/pump',
+        di.inject({ pump: PUMP }, () => 'ok'),
+      );
+      expect((await app.inject({ url: '/pump' })).statusCode).toBe(200);
+      await app.close();
+      const first = di[Symbol.asyncDispose]();
+      expect(di[Symbol.asyncDispose]()).toBe(first);
+      await expect(first).rejects.toBe(cause);
+    });
+
+    it('answers 503 at phase load for a section after dispose', async () => {
+      const { ship } = await shipWithTrace();
+      const log = vi.fn();
+      const di = nexus(ship, { request: mapping, log });
+      const navigation = di.load(Navigation);
+      const app = Fastify();
+      await app.register(di.plugin);
+      await app.register(async (section) => {
+        section.addHook('onRequest', navigation);
+        section.get('/navigation', () => 'ok');
+      });
+      await di[Symbol.asyncDispose]();
+      expect((await app.inject({ url: '/navigation' })).statusCode).toBe(503);
+      expect(log).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'AdapterDisposedError' }),
+        expect.objectContaining({ phase: 'load', status: 503 }),
+      );
+      await app.close();
+      await ship[Symbol.asyncDispose]();
+    });
+
+    it('never calls a function no request called', async () => {
+      const source = vi.fn(() => Nexus.create(bridge));
+      const di = nexus(source, { request: mapping, log: () => {} });
+      const app = await appOf(di);
+      await di[Symbol.asyncDispose]();
+      expect((await app.inject({ url: '/log' })).statusCode).toBe(503);
+      await app.close();
+      expect(source).not.toHaveBeenCalled();
+    });
+
+    it('answers 503 to a request that waited on the build the dispose raced', async () => {
+      const { ship } = await shipWithTrace();
+      let finish!: (built: Nexus) => void;
+      const gate = new Promise<Nexus>((resolve) => (finish = resolve));
+      const log = vi.fn();
+      const source = vi.fn(() => gate);
+      const di = nexus(source, { request: mapping, log });
+      const app = await appOf(di);
+      const answer = app.inject({ url: '/log' });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(source).toHaveBeenCalledOnce(); // the request started the build
+      const disposed = di[Symbol.asyncDispose]();
+      finish(ship);
+      expect((await answer).statusCode).toBe(503);
+      // The step that reaches the container last decides which error it is.
+      const [error, context] = log.mock.calls[0] as [Error, LogContext];
+      expect(['AdapterDisposedError', 'DisposedError']).toContain(error.name);
+      expect(context.status).toBe(503);
+      await disposed;
+      expect(() => ship.has(FLIGHT_LOG)).toThrow();
+      await app.close();
+    });
+
+    it('leaves a given container open, serves a scope that exists, and refuses a new request', async () => {
+      const { ship } = await shipWithTrace();
+      const di = nexus(ship, { request: mapping, log: () => {} });
+      let resume!: () => void;
+      const paused = new Promise<void>((resolve) => (resume = resolve));
+      const app = await appOf(di);
+      app.get(
+        '/paused',
+        di.inject({ log: FLIGHT_LOG }, async (_, req) => {
+          await paused;
+          return (await di.scope(req)).get(FLIGHT_LOG).entries();
+        }),
+      );
+      const open = app.inject({ url: '/paused' });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await di[Symbol.asyncDispose]();
+      resume();
+      expect((await open).statusCode).toBe(200);
+      expect((await app.inject({ url: '/log' })).statusCode).toBe(503);
+      await app.close();
+      expect(ship.has(FLIGHT_LOG)).toBe(true);
+      await ship[Symbol.asyncDispose]();
+    });
+
+    it('answers 503 to a request that resolves nothing when scopes is set', async () => {
+      const { ship } = await shipWithTrace();
+      const di = nexus(ship, {
+        request: mapping,
+        scopes: nodeScopes(),
+        log: () => {},
+      });
+      const app = Fastify();
+      await app.register(di.plugin);
+      app.get('/ping', () => 'pong');
+      await di[Symbol.asyncDispose]();
+      expect((await app.inject({ url: '/ping' })).statusCode).toBe(503);
+      await app.close();
       await ship[Symbol.asyncDispose]();
     });
   });

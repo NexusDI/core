@@ -15,7 +15,7 @@ import { nodeScopes } from '@nexusdi/node';
 import { RouterContextProvider, type MiddlewareFunction } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { existingScope, NEXUS_SCOPE, nexus } from './index.js';
+import { existingScope, NEXUS_SCOPE, nexus, type LogContext } from './index.js';
 
 interface Mission {
   id: string;
@@ -513,6 +513,144 @@ describe('nexus', () => {
     expect(log.mock.calls[0]?.[1]).toEqual({
       adapter: '@nexusdi/react-router',
       phase: 'dispose',
+    });
+  });
+
+  describe('disposing the adapter', () => {
+    /** Runs one request through the middleware and a di.inject loader, and returns its status. */
+    const statusOf = async (di: ReturnType<typeof nexus>) => {
+      const loader = di.inject({ log: FLIGHT_LOG }, ({ log }) => log.entries());
+      const settled = await run(di.middleware, async (context) =>
+        Response.json(await loader({ context })),
+      ).catch((thrown: unknown) => ({ response: thrown as Response }));
+      return settled.response.status;
+    };
+
+    it('disposes a container it built once, and throws a 503 Response after', async () => {
+      const events: TraceEvent[] = [];
+      const source = vi.fn(() => ship(events));
+      const log = vi.fn();
+      const di = nexus(source, { request, log });
+      expect(await statusOf(di)).toBe(200);
+      await di[Symbol.asyncDispose]();
+      expect(count(events, 'dispose')).toBe(1);
+      expect(await statusOf(di)).toBe(503);
+      expect(source).toHaveBeenCalledTimes(1);
+      expect(log).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'AdapterDisposedError' }),
+        expect.objectContaining({ phase: 'validate', status: 503 }),
+      );
+    });
+
+    it('throws a 503 Response at phase load for a section after dispose', async () => {
+      const log = vi.fn();
+      const di = nexus(await ship(), { request, log });
+      const section = di.load(Navigation);
+      await di[Symbol.asyncDispose]();
+      const thrown = await run(di.middleware, (context) =>
+        Promise.resolve(
+          section({ context } as never, () =>
+            Promise.resolve(new Response('ok')),
+          ) as Promise<Response>,
+        ),
+      ).catch((e: unknown) => e);
+      expect((thrown as Response).status).toBe(503);
+      expect(log).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'AdapterDisposedError' }),
+        expect.objectContaining({ phase: 'load', status: 503 }),
+      );
+    });
+
+    it('never calls a function no request called', async () => {
+      const source = vi.fn(() => ship());
+      const di = nexus(source, { request, log: () => {} });
+      await di[Symbol.asyncDispose]();
+      expect(await statusOf(di)).toBe(503);
+      expect(source).not.toHaveBeenCalled();
+    });
+
+    it('throws a 503 Response to a request that waited on the build the dispose raced', async () => {
+      const events: TraceEvent[] = [];
+      let finish!: (built: Nexus) => void;
+      const gate = new Promise<Nexus>((resolve) => (finish = resolve));
+      const log = vi.fn();
+      const source = vi.fn(() => gate);
+      const di = nexus(source, { request, log });
+      const answer = statusOf(di);
+      await settle();
+      expect(source).toHaveBeenCalledOnce(); // the request started the build
+      const disposed = di[Symbol.asyncDispose]();
+      finish(await ship(events));
+      expect(await answer).toBe(503);
+      // The step that reaches the container last decides which error it is.
+      const [error, context] = log.mock.calls[0] as [Error, LogContext];
+      expect(['AdapterDisposedError', 'DisposedError']).toContain(error.name);
+      expect(context.status).toBe(503);
+      await disposed;
+      expect(count(events, 'dispose')).toBe(1);
+    });
+
+    it('leaves a given container open, serves a scope that exists, and refuses a new request', async () => {
+      const built = await ship();
+      const di = nexus(built, { request, log: () => {} });
+      let resume!: () => void;
+      const paused = new Promise<void>((resolve) => (resume = resolve));
+      const loader = di.inject(
+        { log: FLIGHT_LOG },
+        async (
+          _,
+          { context }: { context: Readonly<RouterContextProvider> },
+        ) => {
+          await paused;
+          return (await di.scope(context)).get(FLIGHT_LOG).entries();
+        },
+      );
+      const open = run(di.middleware, async (context) =>
+        Response.json(await loader({ context })),
+      );
+      await settle();
+      await di[Symbol.asyncDispose]();
+      resume();
+      expect((await open).response.status).toBe(200);
+      expect(await statusOf(di)).toBe(503);
+      expect(built.has(FLIGHT_LOG)).toBe(true);
+    });
+
+    it('throws a 503 Response to a request that resolves nothing when scopes is set', async () => {
+      const di = nexus(await ship(), {
+        request,
+        scopes: nodeScopes(),
+        log: () => {},
+      });
+      await di[Symbol.asyncDispose]();
+      const thrown = await run(
+        di.middleware,
+        async () => new Response('ok'),
+      ).catch((e: unknown) => e);
+      expect((thrown as Response).status).toBe(503);
+    });
+
+    it('returns the first promise on a second call, rejected with a disposer error', async () => {
+      const cause = new Error('coolant pump stuck');
+      const PUMP = new Token<object>('CoolantPump');
+      const di = nexus(
+        () =>
+          Nexus.create([
+            provide(PUMP, {
+              useFactory: () => ({
+                [Symbol.asyncDispose]: () => Promise.reject(cause),
+              }),
+            }),
+          ]),
+        { request, log: () => {} },
+      );
+      const loader = di.inject({ pump: PUMP }, () => 'ok');
+      await run(di.middleware, async (context) =>
+        Response.json(await loader({ context })),
+      );
+      const first = di[Symbol.asyncDispose]();
+      expect(di[Symbol.asyncDispose]()).toBe(first);
+      await expect(first).rejects.toBe(cause);
     });
   });
 });

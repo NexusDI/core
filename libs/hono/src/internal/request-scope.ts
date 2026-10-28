@@ -65,6 +65,14 @@ export class ContainerBuildError extends Error {
   }
 }
 
+/** Raised by the container getter after close(): the adapter was disposed. Maps to 503. */
+export class AdapterDisposedError extends Error {
+  constructor() {
+    super('the adapter was disposed');
+    this.name = 'AdapterDisposedError';
+  }
+}
+
 /** Raised by scope() after close(): the request has finished. */
 export class RequestFinishedError extends Error {
   constructor() {
@@ -105,23 +113,54 @@ export interface ClosableRequestScope extends RequestScope {
   close(): Promise<void>;
 }
 
-/** One container per source: the Nexus itself, or the memoised build of the function. */
-export function containerOf(source: ContainerSource): () => Promise<Nexus> {
+/** A source's container, and the close that ends the adapter's use of it. */
+export interface ContainerGetter {
+  /** The Nexus itself, or the memoised build of the function. Rejects with AdapterDisposedError after close(). */
+  (): Promise<Nexus>;
+  /**
+   * Refuses every later call, then disposes the container the function
+   * built, after waiting for a build in flight. A given Nexus belongs to the
+   * caller and stays open. A second call returns the first call's promise.
+   */
+  close(): Promise<void>;
+}
+
+/** One container per source: the Nexus itself, or the memoised build of the function, until close(). */
+export function containerOf(source: ContainerSource): ContainerGetter {
+  let closed: Promise<void> | undefined;
+  const refused = () => Promise.reject(new AdapterDisposedError());
   if (typeof source !== 'function') {
     const ready = Promise.resolve(source);
-    return () => ready;
+    return Object.assign(() => (closed === undefined ? ready : refused()), {
+      close: () => (closed ??= Promise.resolve()),
+    });
   }
   let pending: Promise<Nexus> | undefined;
-  return () => {
+  const get = (): Promise<Nexus> => {
+    if (closed !== undefined) return refused();
     // Promise.resolve().then() turns a synchronous throw into a rejection.
     pending ??= Promise.resolve()
       .then(source)
       .catch((error: unknown) => {
-        pending = undefined; // the next request builds again
+        pending = undefined; // the next request builds again, unless closed
         throw new ContainerBuildError({ cause: error });
       });
     return pending;
   };
+  const dispose = async (built: Promise<Nexus>): Promise<void> => {
+    const ship = await built.catch(() => undefined); // a failed build built nothing
+    await ship?.[Symbol.asyncDispose]();
+  };
+  return Object.assign(get, {
+    close(): Promise<void> {
+      if (closed === undefined) {
+        const built = pending;
+        pending = undefined; // the loader and validator caches go with the container
+        closed = built === undefined ? Promise.resolve() : dispose(built);
+      }
+      return closed;
+    },
+  });
 }
 
 export function requestScope(
@@ -160,9 +199,10 @@ export function existingScope(scope: Scope): ClosableRequestScope {
   };
 }
 
-/** 503 for ContainerBuildError and NEXUS_DISPOSED, 500 for any other NexusError, undefined for anything else. */
+/** 503 for ContainerBuildError, AdapterDisposedError and NEXUS_DISPOSED, 500 for any other NexusError, undefined for anything else. */
 export function statusOf(error: unknown): 500 | 503 | undefined {
   if (error instanceof ContainerBuildError) return 503;
+  if (error instanceof AdapterDisposedError) return 503;
   if (isNexusError(error, 'NEXUS_DISPOSED')) return 503;
   if (isNexusError(error)) return 500;
   return undefined;
@@ -525,5 +565,7 @@ export function adapterCore(
       requestLog: NexusLog = log,
       options?: LoadOptions,
     ) => enterFor({ load, section, options, handle, log: requestLog, adapter }),
+    /** The handle's [Symbol.asyncDispose]: closes the container getter (containerOf). */
+    dispose: (): Promise<void> => container.close(),
   };
 }

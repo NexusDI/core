@@ -47,3 +47,7 @@ test('the request mapping must return a NexusRequest', () => {
 test('nexus also takes a function that builds the container', () => {
   nexus(() => Nexus.create([]));
 });
+
+test('the handle is AsyncDisposable', () => {
+  expectTypeOf(nexus(ship)).toExtend<AsyncDisposable>();
+});

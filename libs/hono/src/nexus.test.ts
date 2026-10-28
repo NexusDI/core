@@ -17,7 +17,7 @@ import { HTTPException } from 'hono/http-exception';
 import { stream } from 'hono/streaming';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { NexusHttpError, nexus } from './index.js';
+import { NexusHttpError, nexus, type LogContext } from './index.js';
 
 interface Mission {
   id: string;
@@ -712,6 +712,137 @@ describe('nexus', () => {
     expect(log.mock.calls[0]?.[1]).toEqual({
       adapter: '@nexusdi/hono',
       phase: 'dispose',
+    });
+  });
+
+  describe('disposing the adapter', () => {
+    const logApp = (di: ReturnType<typeof nexus>) =>
+      new Hono().use(di.middleware).get(
+        '/log',
+        di.inject({ log: FLIGHT_LOG }, ({ log: l }, c) => c.json(l.entries())),
+      );
+
+    it('disposes a container it built once, and answers 503 after', async () => {
+      const events: TraceEvent[] = [];
+      const source = vi.fn(() => ship(events));
+      const log = vi.fn();
+      const di = nexus(source, { request: survey, log });
+      const app = logApp(di);
+      expect((await app.request('/log')).status).toBe(200);
+      await di[Symbol.asyncDispose]();
+      expect(count(events, 'dispose')).toBe(1);
+      expect((await app.request('/log')).status).toBe(503);
+      expect(source).toHaveBeenCalledTimes(1);
+      expect(log).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'AdapterDisposedError' }),
+        expect.objectContaining({ phase: 'validate', status: 503 }),
+      );
+    });
+
+    it('answers 503 at phase load for a section after dispose', async () => {
+      const log = vi.fn();
+      const di = nexus(await ship(), { request: survey, log });
+      const navigation = di.load(Navigation);
+      const app = new Hono()
+        .use(di.middleware)
+        .use('/nav/*', navigation)
+        .get('/nav/:sector', (c) => c.text('ok'));
+      await di[Symbol.asyncDispose]();
+      expect((await app.request('/nav/kepler')).status).toBe(503);
+      expect(log).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'AdapterDisposedError' }),
+        expect.objectContaining({ phase: 'load', status: 503 }),
+      );
+    });
+
+    it('never calls a function no request called', async () => {
+      const source = vi.fn(() => ship());
+      const di = nexus(source, { request: survey, log: () => {} });
+      await di[Symbol.asyncDispose]();
+      expect((await logApp(di).request('/log')).status).toBe(503);
+      expect(source).not.toHaveBeenCalled();
+    });
+
+    it('answers 503 to a request that waited on the build the dispose raced', async () => {
+      const events: TraceEvent[] = [];
+      let finish!: (built: Nexus) => void;
+      const gate = new Promise<Nexus>((resolve) => (finish = resolve));
+      const log = vi.fn();
+      const source = vi.fn(() => gate);
+      const di = nexus(source, { request: survey, log });
+      const answer = logApp(di).request('/log');
+      await settle();
+      expect(source).toHaveBeenCalledOnce(); // the request started the build
+      const disposed = di[Symbol.asyncDispose]();
+      finish(await ship(events));
+      expect((await answer).status).toBe(503);
+      // The step that reaches the container last decides which error it is.
+      const [error, context] = log.mock.calls[0] as [Error, LogContext];
+      expect(['AdapterDisposedError', 'DisposedError']).toContain(error.name);
+      expect(context.status).toBe(503);
+      await disposed;
+      expect(count(events, 'dispose')).toBe(1);
+    });
+
+    it('leaves a given container open, serves a scope that exists, and refuses a new request', async () => {
+      const built = await ship();
+      const di = nexus(built, { request: survey, log: () => {} });
+      let resume!: () => void;
+      const paused = new Promise<void>((resolve) => (resume = resolve));
+      const app = new Hono().use(di.middleware).get(
+        '/log',
+        di.inject({ log: FLIGHT_LOG }, async (_, c) => {
+          await paused;
+          const scope = await di.scope(c);
+          return c.json(scope.get(FLIGHT_LOG).entries());
+        }),
+      );
+      const open = app.request('/log');
+      await settle();
+      await di[Symbol.asyncDispose]();
+      resume();
+      expect((await open).status).toBe(200);
+      expect((await app.request('/log')).status).toBe(503);
+      expect(built.has(FLIGHT_LOG)).toBe(true);
+    });
+
+    it('answers 503 to a request that resolves nothing when scopes is set', async () => {
+      const di = nexus(await ship(), {
+        request: survey,
+        scopes: nodeScopes(),
+        log: () => {},
+      });
+      const app = new Hono()
+        .use(di.middleware)
+        .get('/health', (c) => c.text('ok'));
+      await di[Symbol.asyncDispose]();
+      expect((await app.request('/health')).status).toBe(503);
+    });
+
+    it('returns the first promise on a second call, rejected with a disposer error', async () => {
+      const cause = new Error('coolant pump stuck');
+      const PUMP = new Token<object>('CoolantPump');
+      const di = nexus(
+        () =>
+          Nexus.create([
+            provide(PUMP, {
+              useFactory: () => ({
+                [Symbol.asyncDispose]: () => Promise.reject(cause),
+              }),
+            }),
+          ]),
+        { request: survey, log: () => {} },
+      );
+      await new Hono()
+        .use(di.middleware)
+        .get(
+          '/pump',
+          di.inject({ pump: PUMP }, (_, c) => c.text('ok')),
+        )
+        .request('/pump');
+      const first = di[Symbol.asyncDispose]();
+      expect(di[Symbol.asyncDispose]()).toBe(first);
+      await expect(first).rejects.toBe(cause);
     });
   });
 });
