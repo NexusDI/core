@@ -5,7 +5,8 @@ import {
   type IAlarmSink,
 } from '@nexusdi/meridian-systems';
 
-import { AUDIT_LOG, AuditTrail, type IAuditLog } from './audit-trail.module';
+import { AuditTrail } from './audit-trail.module';
+import { AUDIT_LOG, type IAuditLog } from './contracts';
 
 /** Writes each alarm MasterAlarm raises or clears as one audit line. */
 class AuditAlarmSink implements IAlarmSink {
@@ -20,9 +21,8 @@ class AuditAlarmSink implements IAlarmSink {
 }
 
 /**
- * Global, because Safety imports nothing from the bridge: all(ALARM_SINKS)
- * in Safety reads the sinks of Safety and its imports, and the exports of
- * every global module.
+ * Exports ALARM_SINKS, so all(ALARM_SINKS) in Safety reads the audit sink
+ * although Safety imports nothing from the bridge.
  */
 export const AlarmPanel = defineModule({
   name: 'AlarmPanel',

@@ -2,7 +2,7 @@ import { Nexus, type TraceEvent } from '@nexusdi/core';
 import { SHIP_STATE } from '@nexusdi/meridian-systems';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { offlineMeridian } from '../src/ship/meridian';
+import { offlineMeridian } from '../src/ship/meridian.module';
 import { bridgePlugins } from '../src/ship/plugins';
 
 describe('the ship shutdown', () => {

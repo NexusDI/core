@@ -1,13 +1,8 @@
-import { defineModule, provide, Token } from '@nexusdi/core';
+import { defineModule, provide } from '@nexusdi/core';
 
-/** The calls the audit interceptor saw, which the app reads. */
-export interface IAuditLog {
-  record(call: string): void;
-  readonly calls: readonly string[];
-}
-export const AUDIT_LOG = new Token<IAuditLog>('AuditLog');
+import { AUDIT_LOG, type IAuditLog } from './contracts';
 
-class AuditLog implements IAuditLog {
+class AuditRecorder implements IAuditLog {
   readonly #calls: string[] = [];
   get calls() {
     return this.#calls;
@@ -23,6 +18,6 @@ class AuditLog implements IAuditLog {
  */
 export const AuditTrail = defineModule({
   name: 'AuditTrail',
-  providers: [provide(AUDIT_LOG, { useClass: AuditLog })],
+  providers: [provide(AUDIT_LOG, { useClass: AuditRecorder })],
   exports: [AUDIT_LOG],
 });

@@ -15,11 +15,11 @@ import {
   Meridian,
   OfflineMeridian,
   offlineMeridian,
-} from '../src/ship/meridian';
+} from '../src/ship/meridian.module';
 import { bridgePlugins, graphPlugins } from '../src/ship/plugins';
 
 describe('the bridge API graph', () => {
-  it('compiles with no user code (the startup check of spec 9.2)', () => {
+  it('compiles with no user code', () => {
     expect(() =>
       Nexus.check(Meridian, { plugins: bridgePlugins() }),
     ).not.toThrow();
@@ -164,7 +164,7 @@ describe('the bridge API graph', () => {
       expect(notes[`${token} in interceptors`]).toEqual([]);
 
     const bridgeModules = [
-      'BridgeApi',
+      'MissionScope',
       'AuditTrail',
       'AlarmPanel',
       'SimDriver',

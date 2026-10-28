@@ -7,7 +7,7 @@ import {
   type Mission,
 } from './contracts';
 
-class ShuttleFlightLog implements IFlightLog {
+class MissionFlightLog implements IFlightLog {
   static deps = [MISSION] as const;
   readonly #entries: string[] = [];
   constructor(private readonly mission: Mission) {}
@@ -19,8 +19,8 @@ class ShuttleFlightLog implements IFlightLog {
   }
 }
 
-export const BridgeApi = defineModule({
-  name: 'BridgeApi',
+export const MissionScope = defineModule({
+  name: 'MissionScope',
   providers: [
     // Sync and scoped: eager: false, so a request that never reads it never runs it.
     provide(MISSION, {
@@ -29,7 +29,7 @@ export const BridgeApi = defineModule({
       lifetime: 'scoped',
       eager: false,
     }),
-    provide(FLIGHT_LOG, { useClass: ShuttleFlightLog, lifetime: 'scoped' }),
+    provide(FLIGHT_LOG, { useClass: MissionFlightLog, lifetime: 'scoped' }),
   ],
   exports: [MISSION, FLIGHT_LOG],
 });

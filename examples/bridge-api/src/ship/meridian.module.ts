@@ -6,13 +6,13 @@ import {
 } from '@nexusdi/meridian-systems';
 
 // The FTL drive, which the bridge loads into a running ship. The graph target
-// draws it with --load src/ship/meridian.ts#FtlDrive.
+// draws it with --load src/ship/meridian.module.ts#FtlDrive.
 export { FtlDrive } from '@nexusdi/meridian-systems';
 
 import { AlarmPanel } from './alarm-panel.module';
 import { AuditTrail } from './audit-trail.module';
-import { BridgeApi } from './bridge-api.module';
 import type { SimMode } from './contracts';
+import { MissionScope } from './mission-scope.module';
 import { SimDriver } from './sim-driver.module';
 
 export const DEFAULT_RELAY_URL = 'https://relay.meridian.invalid';
@@ -38,7 +38,7 @@ function bridgeShip(
   return defineModule({
     name,
     imports: [
-      BridgeApi,
+      MissionScope,
       AuditTrail,
       AlarmPanel,
       meridianSystems(systems),

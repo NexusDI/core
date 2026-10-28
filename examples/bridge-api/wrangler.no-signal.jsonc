@@ -3,7 +3,7 @@
   // which config it runs under and asserts what the body wrapper alone does
   // on an abort.
   "name": "bridge-api-no-signal",
-  "main": "src/worker.ts",
+  "main": "src/entries/worker.ts",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
   "vars": { "RELAY_URL": "" },

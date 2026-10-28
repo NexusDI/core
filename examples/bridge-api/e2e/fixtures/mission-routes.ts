@@ -1,9 +1,9 @@
 import { Token } from '@nexusdi/core';
 import { streamSSE } from 'hono/streaming';
 
-import type { ExpressMount } from '../../src/express';
-import type { FastifyMount } from '../../src/fastify';
-import type { HonoMount } from '../../src/hono';
+import type { ExpressMount } from '../../src/entries/express';
+import type { FastifyMount } from '../../src/entries/fastify';
+import type { HonoMount } from '../../src/entries/hono';
 import type { BridgeOptions } from '../../src/bridge/options';
 import { MISSION_HEADER } from '../../src/bridge/mission';
 import { FLIGHT_LOG, MISSION } from '../../src/ship/contracts';

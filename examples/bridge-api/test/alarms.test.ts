@@ -9,27 +9,26 @@ import { createTestingContainer } from '@nexusdi/testing';
 import { nexusTest } from '@nexusdi/vitest';
 import { describe, expect, test as base } from 'vitest';
 
-import { createBridge } from '../src/hono';
-import { AUDIT_LOG } from '../src/ship/audit-trail.module';
-import { SIM_DRIVER } from '../src/ship/contracts';
-import { OfflineMeridian } from '../src/ship/meridian';
+import { createBridge } from '../src/entries/hono';
+import { AUDIT_LOG, SIM_DRIVER } from '../src/ship/contracts';
+import { OfflineMeridian } from '../src/ship/meridian.module';
 import { bridgePlugins } from '../src/ship/plugins';
-import { FailingProbe, MemoryAlarmSink } from './doubles';
+import { FailingProbe, RecordingAlarmSink } from './doubles';
 
 /**
- * Global, as AlarmPanel is: all(ALARM_SINKS) in Safety reads the sinks of
- * Safety and its imports, and the exports of every global module.
+ * Exports ALARM_SINKS, as AlarmPanel does, so all(ALARM_SINKS) in Safety
+ * reads the sink wherever the module sits in the graph.
  */
-const MemoryAlarms = defineModule({
-  name: 'MemoryAlarms',
+const RecordingAlarms = defineModule({
+  name: 'RecordingAlarms',
   global: true,
-  providers: [provide(ALARM_SINKS, { useClass: MemoryAlarmSink })],
+  providers: [provide(ALARM_SINKS, { useClass: RecordingAlarmSink })],
   exports: [ALARM_SINKS],
 });
 
 const AlarmTestShip = defineModule({
   name: 'AlarmTestShip',
-  imports: [OfflineMeridian, MemoryAlarms],
+  imports: [OfflineMeridian, RecordingAlarms],
 });
 
 const test = nexusTest(base, AlarmTestShip, {
@@ -58,7 +57,7 @@ describe('the alarm panel with a failing probe', () => {
     nexus.get(SIM_DRIVER, inShip).advance(10);
     const sink = nexus
       .get(ALARM_SINKS, inShip)
-      .find((entry) => entry instanceof MemoryAlarmSink);
+      .find((entry) => entry instanceof RecordingAlarmSink);
     expect(sink?.heard).toEqual(
       faults.map((alarm) => ({ call: 'raise', alarm, tick: 1 })),
     );

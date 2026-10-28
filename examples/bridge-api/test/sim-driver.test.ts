@@ -3,7 +3,7 @@ import { SHIP_STATE } from '@nexusdi/meridian-systems';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SIM_DRIVER } from '../src/ship/contracts';
-import { offlineMeridian } from '../src/ship/meridian';
+import { offlineMeridian } from '../src/ship/meridian.module';
 
 const sim = { seed: 7, dt: 0.5 };
 

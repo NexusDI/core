@@ -3,11 +3,11 @@ import type { AddressInfo } from 'node:net';
 import { graph } from '@nexusdi/devtools';
 import { nodeScopes } from '@nexusdi/node';
 
+import { stopOnSigterm } from '../env/drain';
+import { isDev, listening, port } from '../env/env';
+import { shipLog } from '../env/log';
+import { shipFromEnv } from '../env/ship';
 import { createBridge } from './fastify';
-import { stopOnSigterm } from './env/drain';
-import { isDev, listening, port } from './env/env';
-import { shipLog } from './env/log';
-import { shipFromEnv } from './env/ship';
 
 // The bridge runs each request in its scope, and the flight recorder reads it.
 const scopes = nodeScopes();

@@ -2,9 +2,9 @@ import { Nexus } from '@nexusdi/core';
 import { Hono } from 'hono';
 import { test } from 'vitest';
 
-import { createBridge } from '../src/hono';
+import { createBridge } from '../src/entries/hono';
 import { NAV_CHARTS } from '../src/ship/contracts';
-import { OfflineMeridian } from '../src/ship/meridian';
+import { OfflineMeridian } from '../src/ship/meridian.module';
 
 const ship = await Nexus.create(OfflineMeridian);
 const bridge = createBridge(ship);

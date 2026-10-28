@@ -19,7 +19,7 @@ const sse = (event: TelemetryEvent, data: string) =>
   `event: ${event}\ndata: ${data}\n\n`;
 
 /** Records the one sink the stream subscribes and counts its unsubscribes. */
-class FakeFeed implements ITelemetryFeed {
+class RecordingStreamFeed implements ITelemetryFeed {
   sink: TelemetrySink | undefined;
   readonly unsubscribe = vi.fn();
   constructor(private readonly first: ShipReading = frameAt(0)) {}
@@ -38,14 +38,14 @@ async function read(reader: ReadableStreamDefaultReader<Uint8Array>) {
 
 describe('telemetryStream', () => {
   it('sends the frame the feed gives at subscribe as a snapshot event', async () => {
-    const reader = telemetryStream(new FakeFeed()).getReader();
+    const reader = telemetryStream(new RecordingStreamFeed()).getReader();
     expect(await read(reader)).toBe(
       sse('snapshot', JSON.stringify(frameAt(0))),
     );
   });
 
   it('keeps only the latest frame while nobody reads', async () => {
-    const feed = new FakeFeed();
+    const feed = new RecordingStreamFeed();
     const reader = telemetryStream(feed).getReader();
     for (let tick = 1; tick <= 600; tick += 1) feed.sink?.next(frameAt(tick));
     expect(await read(reader)).toBe(
@@ -54,7 +54,7 @@ describe('telemetryStream', () => {
   });
 
   it('waits for the next frame once the reader has the latest', async () => {
-    const feed = new FakeFeed();
+    const feed = new RecordingStreamFeed();
     const reader = telemetryStream(feed).getReader();
     await read(reader);
     const next = read(reader);
@@ -63,7 +63,7 @@ describe('telemetryStream', () => {
   });
 
   it('sends an offline event on close and then ends', async () => {
-    const feed = new FakeFeed();
+    const feed = new RecordingStreamFeed();
     const reader = telemetryStream(feed).getReader();
     await read(reader);
     feed.sink?.close('ship offline');
@@ -72,7 +72,7 @@ describe('telemetryStream', () => {
   });
 
   it('sends the unsent frame before the offline event', async () => {
-    const feed = new FakeFeed();
+    const feed = new RecordingStreamFeed();
     const reader = telemetryStream(feed).getReader();
     feed.sink?.close('ship offline');
     expect(await read(reader)).toBe(
@@ -95,7 +95,7 @@ describe('telemetryStream', () => {
   });
 
   it('writes each line of a reason on its own data line', async () => {
-    const feed = new FakeFeed();
+    const feed = new RecordingStreamFeed();
     const reader = telemetryStream(feed).getReader();
     await read(reader);
     feed.sink?.close('reactor\nscram');
@@ -105,7 +105,7 @@ describe('telemetryStream', () => {
   });
 
   it('splits data at CRLF and CR as well as LF', async () => {
-    const feed = new FakeFeed();
+    const feed = new RecordingStreamFeed();
     const reader = telemetryStream(feed).getReader();
     await read(reader);
     feed.sink?.close('reactor\r\nscram\rcold');
@@ -115,7 +115,7 @@ describe('telemetryStream', () => {
   });
 
   it('unsubscribes once on cancel and ends a waiting read', async () => {
-    const feed = new FakeFeed();
+    const feed = new RecordingStreamFeed();
     const stream = telemetryStream(feed);
     const reader = stream.getReader();
     await read(reader);
@@ -126,7 +126,7 @@ describe('telemetryStream', () => {
   });
 
   it('ignores a frame after close', async () => {
-    const feed = new FakeFeed();
+    const feed = new RecordingStreamFeed();
     const reader = telemetryStream(feed).getReader();
     await read(reader);
     feed.sink?.close('ship offline');
@@ -136,7 +136,7 @@ describe('telemetryStream', () => {
   });
 
   it('unsubscribes and sends ship offline when the shutdown signal aborts', async () => {
-    const feed = new FakeFeed();
+    const feed = new RecordingStreamFeed();
     const shutdown = new AbortController();
     const reader = telemetryStream(feed, shutdown.signal).getReader();
     await read(reader);
@@ -147,7 +147,7 @@ describe('telemetryStream', () => {
   });
 
   it('sends ship offline at once and never subscribes after the shutdown signal aborted', async () => {
-    const feed = new FakeFeed();
+    const feed = new RecordingStreamFeed();
     const reader = telemetryStream(feed, AbortSignal.abort()).getReader();
     expect(await read(reader)).toBe(sse('offline', 'ship offline'));
     expect(await read(reader)).toBe('done');
@@ -155,7 +155,7 @@ describe('telemetryStream', () => {
   });
 
   it('stops listening to the shutdown signal once the stream is cancelled or offline', async () => {
-    const feed = new FakeFeed();
+    const feed = new RecordingStreamFeed();
     const shutdown = new AbortController();
     const remove = vi.spyOn(shutdown.signal, 'removeEventListener');
     const cancelled = telemetryStream(feed, shutdown.signal).getReader();
@@ -233,7 +233,7 @@ describe('telemetryStream with the FTL rating', () => {
   it('calls no extend for a frame whose FTL record reads offline', async () => {
     const { calls, frameRating } = fakeScope();
     const reader = telemetryStream(
-      new FakeFeed(ftlAt(0, 'offline')),
+      new RecordingStreamFeed(ftlAt(0, 'offline')),
       undefined,
       frameRating,
     ).getReader();
@@ -245,7 +245,7 @@ describe('telemetryStream with the FTL rating', () => {
 
   it('extends the scope once before it reads the drive on the first frame past offline', async () => {
     const { calls, frameRating } = fakeScope();
-    const feed = new FakeFeed(ftlAt(0, 'offline'));
+    const feed = new RecordingStreamFeed(ftlAt(0, 'offline'));
     const reader = telemetryStream(feed, undefined, frameRating).getReader();
     await read(reader);
     feed.sink?.next(ftlAt(1, 'idle'));
@@ -260,7 +260,7 @@ describe('telemetryStream with the FTL rating', () => {
 
   it('reuses the rating for every later frame', async () => {
     const { calls, scope, frameRating } = fakeScope();
-    const feed = new FakeFeed(ftlAt(1, 'idle'));
+    const feed = new RecordingStreamFeed(ftlAt(1, 'idle'));
     const reader = telemetryStream(feed, undefined, frameRating).getReader();
     await read(reader);
     feed.sink?.next(ftlAt(2, 'spooling'));
@@ -279,7 +279,7 @@ describe('telemetryStream with the FTL rating', () => {
       throw new Error('the scope closed');
     });
     const reader = telemetryStream(
-      new FakeFeed(ftlAt(1, 'idle')),
+      new RecordingStreamFeed(ftlAt(1, 'idle')),
       undefined,
       frameRating,
     ).getReader();

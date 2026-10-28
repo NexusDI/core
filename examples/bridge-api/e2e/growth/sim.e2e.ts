@@ -2,7 +2,8 @@ import { once } from 'node:events';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ShipSetup } from '../../src/ship/meridian';
+import type { ShipSetup } from '../../src/ship/meridian.module';
+import { FRAMEWORKS } from '../../test/support';
 import { start, urlOf } from '../entry-process';
 import { advance, manual, post, readShip, withShip } from './ship';
 
@@ -19,38 +20,35 @@ async function sixHundredTicks(url: string) {
   expect(ship.compartments.habitat.pressure).toBe(101_300);
 }
 
-describe.each(['hono', 'express', 'fastify'] as const)(
-  'the simulation on %s',
-  (framework) => {
-    it('advances a manual ship 600 ticks and reads it back', () =>
-      withShip(framework, manual, sixHundredTicks));
+describe.each(FRAMEWORKS)('the simulation on %s', (framework) => {
+  it('advances a manual ship 600 ticks and reads it back', () =>
+    withShip(framework, manual, sixHundredTicks));
 
-    it.each([0, 1.5, 10_001])('answers 400 for %s ticks', (ticks) =>
-      withShip(framework, manual, async (url) => {
-        expect((await post(url, '/sim/advance', { ticks })).status).toBe(400);
-      }),
-    );
+  it.each([0, 1.5, 10_001])('answers 400 for %s ticks', (ticks) =>
+    withShip(framework, manual, async (url) => {
+      expect((await post(url, '/sim/advance', { ticks })).status).toBe(400);
+    }),
+  );
 
-    it('answers 404 on a live ship and clears its timer on disposal', async () => {
-      const set = vi.spyOn(globalThis, 'setInterval');
-      const clear = vi.spyOn(globalThis, 'clearInterval');
-      try {
-        await withShip(framework, live, async (url) => {
-          expect((await post(url, '/sim/advance', { ticks: 3 })).status).toBe(
-            404,
-          );
-        });
-        // The live driver's interval is the one timer the ship starts.
-        const timers = set.mock.results.map((result) => result.value);
-        expect(timers).toHaveLength(1);
-        expect(clear.mock.calls.map(([timer]) => timer)).toContain(timers[0]);
-      } finally {
-        set.mockRestore();
-        clear.mockRestore();
-      }
-    });
-  },
-);
+  it('answers 404 on a live ship and clears its timer on disposal', async () => {
+    const set = vi.spyOn(globalThis, 'setInterval');
+    const clear = vi.spyOn(globalThis, 'clearInterval');
+    try {
+      await withShip(framework, live, async (url) => {
+        expect((await post(url, '/sim/advance', { ticks: 3 })).status).toBe(
+          404,
+        );
+      });
+      // The live driver's interval is the one timer the ship starts.
+      const timers = set.mock.results.map((result) => result.value);
+      expect(timers).toHaveLength(1);
+      expect(clear.mock.calls.map(([timer]) => timer)).toContain(timers[0]);
+    } finally {
+      set.mockRestore();
+      clear.mockRestore();
+    }
+  });
+});
 
 describe('the Hono server entry', () => {
   it('runs the manual ship SIM_MODE asks for, 600 ticks over HTTP', async () => {

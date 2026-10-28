@@ -2,8 +2,8 @@ import { Nexus } from '@nexusdi/core';
 import { nodeScopes } from '@nexusdi/node';
 import { describe, it } from 'vitest';
 
-import { createBridge } from '../../../src/hono';
-import { OfflineMeridian } from '../../../src/ship/meridian';
+import { createBridge } from '../../../src/entries/hono';
+import { OfflineMeridian } from '../../../src/ship/meridian.module';
 import { bridgePlugins } from '../../../src/ship/plugins';
 import { growthCases, runGrowthCase } from '../../runtime/growth-cases';
 
@@ -12,7 +12,7 @@ describe('the simulation on workerd', () => {
     '%s',
     async (_, each) => {
       // The ship and the bridge share one nodeScopes(), as
-      // src/worker.offline.ts builds them.
+      // src/entries/worker.offline.ts builds them.
       const scopes = nodeScopes();
       await using ship = await Nexus.create(OfflineMeridian, {
         plugins: bridgePlugins({ scopes }),

@@ -6,9 +6,10 @@ import { serve } from '@hono/node-server';
 import type { ContainerSource } from '@nexusdi/hono';
 import type { NodeScopes } from '@nexusdi/node';
 
-import { createBridge as expressBridge } from '../src/express';
-import { createBridge as fastifyBridge } from '../src/fastify';
-import { createBridge as honoBridge } from '../src/hono';
+import { createBridge as expressBridge } from '../src/entries/express';
+import { createBridge as fastifyBridge } from '../src/entries/fastify';
+import { createBridge as honoBridge } from '../src/entries/hono';
+import type { Framework } from '../test/support';
 import {
   expressMissionRoutes,
   fastifyMissionRoutes,
@@ -48,9 +49,7 @@ async function shut(server: Server): Promise<void> {
   await once(server, 'close');
 }
 
-export const servers: Readonly<
-  Record<'hono' | 'express' | 'fastify', StartBridge>
-> = {
+export const servers: Readonly<Record<Framework, StartBridge>> = {
   async hono(ship, scopes) {
     const server = serve({
       fetch: honoBridge(ship, { scopes, mount: honoMissionRoutes(scopes) })

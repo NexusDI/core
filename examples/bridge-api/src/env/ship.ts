@@ -1,7 +1,7 @@
 import { Nexus } from '@nexusdi/core';
 
 import type { IScopeSource } from '../ship/contracts';
-import { meridian, offlineMeridian } from '../ship/meridian';
+import { meridian, offlineMeridian } from '../ship/meridian.module';
 import { bridgePlugins } from '../ship/plugins';
 import { type Env, isDev, setupFromEnv } from './env';
 

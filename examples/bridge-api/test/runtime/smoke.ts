@@ -2,8 +2,8 @@ import { Nexus } from '@nexusdi/core';
 
 import { cases, type Leg } from '../../e2e/cases';
 import { honoMissionRoutes } from '../../e2e/fixtures/mission-routes';
-import { createBridge } from '../../src/hono';
-import { OfflineMeridian } from '../../src/ship/meridian';
+import { createBridge } from '../../src/entries/hono';
+import { OfflineMeridian } from '../../src/ship/meridian.module';
 import { serve } from './serve';
 
 // The bridge API's e2e cases on Deno or Bun, over OfflineMeridian, the
