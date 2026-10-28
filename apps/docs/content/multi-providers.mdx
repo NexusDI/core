@@ -9,7 +9,7 @@ requires: [lazy]
 
 In most cases, one token maps to one provider. However, some features require a collection of contributions from across the application, such as a list of all available diagnostics, a set of validation rules, or a collection of plugin handlers.
 
-**Multi-Providers** allow multiple modules to contribute to a single token, which is then resolved as an array of all visible contributions.
+**Multi-Providers** allow multiple modules to contribute to a single token, which is then resolved as an array of all contributions the reader can see.
 
 ## The `MultiToken`
 
@@ -19,7 +19,7 @@ To create a multi-provider, use the `MultiToken` class. This tells NexusDI that 
 
 ```
 
-Any number of modules can call `provide(DIAGNOSTICS, ...)` to add their own contribution to the list. A contribution is either a class, as `ReactorDiagnostic` is above, or a value, as the hull check is. A contribution that needs deps uses a factory. `ship.get(DIAGNOSTICS)` returns the contributions as an array, in the order the providers are listed. Across modules, a module's own contributions come first, then those of its imports in import order.
+Any number of modules can call `provide(DIAGNOSTICS, ...)` to add their own contribution to the list. A contribution is either a class, as `ReactorDiagnostic` is above, or a value, as the hull check is. A contribution that needs deps uses a factory. `ship.get(DIAGNOSTICS)` returns the contributions as an array. The walk is the depth-first pass `Nexus.create` makes over the module graph. `all()` lists the contributions in the order the walk first meets their modules, starting at the root and following each module's `imports` in order, and within a module in `providers` order.
 
 **Try it:** Save the region as `diagnostics.ts` and run `npx tsx diagnostics.ts`. It prints `[ 'reactor', 'hull' ]`. Add a third `provide(DIAGNOSTICS, { useValue: { system: 'shields', check: () => false } })` after the hull one and run it again: it prints `[ 'reactor', 'hull', 'shields' ]`. Delete that line and the array loses `shields` again. Then add `const DRONE_COUNT = new Token<number>('DroneCount');` (import `Token`), `provide(DRONE_COUNT, { useValue: 3 })` and `provide(DIAGNOSTICS, { useFactory: (n: number) => ({ system: 'drone' + n, check: () => true }), deps: [DRONE_COUNT] })` to the list: the array gains `drone3`.
 
@@ -41,20 +41,45 @@ flowchart LR
 
 **Try it:** Save the region as `panel.ts` and run it. It prints `reactor green, hull green`. Add a `Comms` module that provides and exports `SUBSPACE_LINK` with a `useValue` whose `send(report)` returns `'sent: ' + report`, import it into `Meridian`, and run it again: the panel prints `sent: reactor green, hull green`. Take `Comms` out of `Meridian`'s imports and the panel prints `reactor green, hull green` again.
 
-## Visibility and Encapsulation
+## Publishing Contributions
 
-Multi-providers follow the same visibility rules as standard providers:
+A library that defines an extension point cannot import the modules that extend it. A health library owns the `HEALTH_CHECKS` token and a `HealthService` that runs every check, and each application module that wants a check imports the library and contributes to the token. The module publishes its contributions by exporting the token.
 
-1. **Local Contributions:** A module always sees its own contributions.
-2. **Imported Contributions:** A module sees contributions from any imported module that explicitly exports the `MultiToken`.
-3. **Private Contributions:** If a module contributes to a `MultiToken` but does not export it, that contribution remains private to the module.
+```ts file=examples/meridian/src/pages/multi-providers.md region=publish
 
-This allows you to have "internal" diagnostics that only the module itself can see, while sharing "public" diagnostics with the rest of the application. `all()` elsewhere leaves a private contribution out with no error, because a private contribution is a valid design: the module can read its own entries.
+```
+
+`HealthService` sits in `HealthModule` and takes `all(HEALTH_CHECKS)`. `Engineering` and `Tactical` import `HealthModule`, bind a check each with `useClass`, and export `HEALTH_CHECKS`. `HealthModule` imports neither of them, and `HealthService` still runs both checks. `DeckReport` is a second collector in another module, and it counts the same two.
+
+For a `MultiToken` and a module, the container applies two rules. A module publishes its own contributions to the token when its `exports` names the token, and publishes none otherwise. A re-export, as in `exports: [OtherModule]`, publishes nothing of the token, because each module publishes its own contributions. The module's view of the token holds its own contributions plus everything that every module publishes.
+
+What a reader of `all()` sees:
+
+- Only same-module privacy remains. A contribution that its module does not export is read inside that module, and by root `get()` when the module is the root.
+- Two collectors of one token in two modules see one list, apart from each one's own private contributions. A plugin module's exported contributions (`NexusPlugin.modules`) are in that list, as any other module's are.
+
+`exports: [DIAGNOSTICS]` in a module with no contribution of its own is legal and does nothing. The contributions of its imports reach every collector without it, and the export raises no `NEXUS_INVALID_EXPORT`.
+
+**Try it:** Save the region as `health.ts` and run it. It prints `reactor green, hull red` and then `2`. Delete `exports: [HEALTH_CHECKS],` from `Tactical` and run it again: it prints `reactor green` and then `1`. Both collectors lose the hull check, and nothing throws. Put the line back and it prints `reactor green, hull red` and `2` again.
+
+The next region contributes to a token without exporting it, and the contribution stays private.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=unexported
 
 ```
 
-`Tactical` contributes the hull check and has no `exports`, so the panel sees only the reactor.
+`Tactical` contributes the hull check and has no `exports`, so the panel, which sits in `Meridian`, sees only the reactor. Only a reader inside `Tactical` would see the hull check.
 
 **Try it:** Save the region as `private.ts` and run it. It prints `[ 'reactor' ]`. Add `exports: [DIAGNOSTICS]` to `Tactical` and run it again: it prints `[ 'reactor', 'hull' ]`. Remove `exports` from `Tactical` and it prints `[ 'reactor' ]` again, with no error either way.
+
+### The Order of the List
+
+The list follows the walk, and the walk visits a module once, where it first meets it. Here `Meridian` imports `Hangar` before `Engineering`, and `Hangar` imports `Engineering` itself, so the walk meets `Engineering` inside `Hangar`:
+
+```ts file=examples/meridian/src/pages/multi-providers.md region=order
+
+```
+
+`Hangar` contributes `shuttle` and comes first. `Engineering` follows with `reactor` and `coolant` in `providers` order, and `Tactical` adds `hull` last. A private contribution of the collector's own module sorts into the list by the same order.
+
+**Try it:** Save the region as `order.ts` and run it. It prints `[ 'shuttle', 'reactor', 'coolant', 'hull' ]`. Swap `Hangar` and `Engineering` in `Meridian`'s imports and run it again: it prints `[ 'reactor', 'coolant', 'shuttle', 'hull' ]`. Swap them back and `shuttle` is first again.
