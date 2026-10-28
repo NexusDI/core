@@ -1,7 +1,8 @@
 import { isPreFinalPost, type DocsPage } from './site';
 
 const TOKEN = /^[A-Z][A-Z0-9_]*$/;
-const MODIFIER = /^(?:lazy|optional|all)\(\s*[A-Z][A-Z0-9_]*\s*\)$/;
+const MODIFIER =
+  /^(?:(?:lazy|optional|all)\(\s*[A-Z][A-Z0-9_]*\s*\)|lazy\(\s*all\(\s*[A-Z][A-Z0-9_]*\s*\)\s*\))$/;
 const CONTRACT = /^[A-Za-z_$][\w$]*\.(?:token|multi)<[^>]*>\([^)]*\)$/;
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 const DATA =
