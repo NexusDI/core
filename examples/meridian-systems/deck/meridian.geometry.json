@@ -10,70 +10,236 @@
     "beam": 16,
     "height": 13,
     "skin": 0.3,
-    "stations": [
+    "volumes": [
       {
-        "x": 0,
-        "halfBeam": 4.8,
-        "bottom": 1.6,
-        "top": 10.0,
-        "chamferBottom": [1.2, 1.2],
-        "chamferTop": [1.0, 0.6]
+        "id": "command",
+        "stations": [
+          {
+            "x": 0,
+            "halfBeam": 3.8,
+            "bottom": 3.0,
+            "top": 8.2,
+            "chamferBottom": [1.2, 1.0],
+            "chamferTop": [1.1, 0.5]
+          },
+          {
+            "x": 2,
+            "halfBeam": 5.0,
+            "bottom": 1.4,
+            "top": 9.4,
+            "chamferBottom": [1.4, 1.2],
+            "chamferTop": [0.6, 0.4]
+          },
+          {
+            "x": 7,
+            "halfBeam": 5.6,
+            "bottom": 0.9,
+            "top": 10.4,
+            "chamferBottom": [1.8, 1.2],
+            "chamferTop": [1.2, 0.8]
+          },
+          {
+            "x": 10.4,
+            "halfBeam": 5.6,
+            "bottom": 0.9,
+            "top": 10.4,
+            "chamferBottom": [1.8, 1.2],
+            "chamferTop": [1.2, 0.8]
+          }
+        ]
       },
       {
-        "x": 12,
-        "halfBeam": 8.0,
-        "bottom": 0.0,
-        "top": 11.8,
-        "chamferBottom": [3.0, 2.0],
-        "chamferTop": [1.8, 1.0]
+        "id": "habitat",
+        "stations": [
+          {
+            "x": 6.5,
+            "halfBeam": 5.4,
+            "bottom": 4.4,
+            "top": 10.2,
+            "chamferBottom": [1.0, 0.8],
+            "chamferTop": [1.4, 0.8]
+          },
+          {
+            "x": 10,
+            "halfBeam": 7.6,
+            "bottom": 3.6,
+            "top": 11.4,
+            "chamferBottom": [1.2, 1.0],
+            "chamferTop": [1.8, 1.0]
+          },
+          {
+            "x": 11.5,
+            "halfBeam": 8.0,
+            "bottom": 3.6,
+            "top": 11.8,
+            "chamferBottom": [1.2, 1.0],
+            "chamferTop": [1.8, 1.0]
+          },
+          {
+            "x": 27.6,
+            "halfBeam": 8.0,
+            "bottom": 3.6,
+            "top": 11.8,
+            "chamferBottom": [1.2, 1.0],
+            "chamferTop": [1.8, 1.0]
+          },
+          {
+            "x": 28.6,
+            "halfBeam": 6.4,
+            "bottom": 3.6,
+            "top": 11.6,
+            "chamferBottom": [1.0, 0.8],
+            "chamferTop": [1.8, 1.6]
+          }
+        ]
       },
       {
-        "x": 41,
-        "halfBeam": 8.0,
-        "bottom": 0.0,
-        "top": 11.8,
-        "chamferBottom": [3.0, 2.0],
-        "chamferTop": [1.8, 1.0]
+        "id": "bays",
+        "stations": [
+          {
+            "x": 14.2,
+            "halfBeam": 4.0,
+            "bottom": 1.2,
+            "top": 5.2,
+            "chamferBottom": [0.8, 0.7],
+            "chamferTop": [0.3, 0.3]
+          },
+          {
+            "x": 15,
+            "halfBeam": 4.8,
+            "bottom": 0.0,
+            "top": 5.2,
+            "chamferBottom": [0.6, 0.5],
+            "chamferTop": [0.3, 0.3]
+          },
+          {
+            "x": 31,
+            "halfBeam": 4.8,
+            "bottom": 0.0,
+            "top": 5.2,
+            "chamferBottom": [0.6, 0.5],
+            "chamferTop": [0.3, 0.3]
+          },
+          {
+            "x": 32,
+            "halfBeam": 3.4,
+            "bottom": 0.0,
+            "top": 5.2,
+            "chamferBottom": [0.5, 0.5],
+            "chamferTop": [0.3, 0.3]
+          },
+          {
+            "x": 38,
+            "halfBeam": 3.4,
+            "bottom": 0.0,
+            "top": 5.2,
+            "chamferBottom": [0.5, 0.5],
+            "chamferTop": [0.3, 0.3]
+          },
+          {
+            "x": 38.6,
+            "halfBeam": 3.6,
+            "bottom": 1.0,
+            "top": 5.2,
+            "chamferBottom": [0.4, 0.4],
+            "chamferTop": [0.3, 0.3]
+          },
+          {
+            "x": 43,
+            "halfBeam": 3.6,
+            "bottom": 1.0,
+            "top": 5.2,
+            "chamferBottom": [0.4, 0.4],
+            "chamferTop": [0.3, 0.3]
+          }
+        ]
       },
       {
-        "x": 42.5,
-        "halfBeam": 8.0,
-        "bottom": 0.4,
-        "top": 12.4,
-        "chamferBottom": [1.6, 1.6],
-        "chamferTop": [1.0, 0.8]
+        "id": "neck",
+        "stations": [
+          {
+            "x": 28.2,
+            "halfBeam": 5.8,
+            "bottom": 3.6,
+            "top": 11.6,
+            "chamferBottom": [0.8, 0.8],
+            "chamferTop": [1.6, 2.4]
+          },
+          {
+            "x": 43.2,
+            "halfBeam": 5.8,
+            "bottom": 3.6,
+            "top": 11.6,
+            "chamferBottom": [0.8, 0.8],
+            "chamferTop": [1.6, 2.4]
+          }
+        ]
       },
       {
-        "x": 55.5,
-        "halfBeam": 8.0,
-        "bottom": 0.4,
-        "top": 12.4,
-        "chamferBottom": [1.6, 1.6],
-        "chamferTop": [1.0, 0.8]
+        "id": "reactor",
+        "stations": [
+          {
+            "x": 42.4,
+            "halfBeam": 7.0,
+            "bottom": 0.8,
+            "top": 11.8,
+            "chamferBottom": [1.8, 1.4],
+            "chamferTop": [1.0, 0.8]
+          },
+          {
+            "x": 43.6,
+            "halfBeam": 8.0,
+            "bottom": 0.6,
+            "top": 12.6,
+            "chamferBottom": [2.0, 1.6],
+            "chamferTop": [1.2, 0.8]
+          },
+          {
+            "x": 54.4,
+            "halfBeam": 8.0,
+            "bottom": 0.6,
+            "top": 12.6,
+            "chamferBottom": [2.0, 1.6],
+            "chamferTop": [1.2, 0.8]
+          },
+          {
+            "x": 55.6,
+            "halfBeam": 7.0,
+            "bottom": 1.0,
+            "top": 11.8,
+            "chamferBottom": [1.8, 1.4],
+            "chamferTop": [1.0, 0.8]
+          }
+        ]
       },
       {
-        "x": 56.5,
-        "halfBeam": 6.4,
-        "bottom": 2.4,
-        "top": 10.4,
-        "chamferBottom": [1.4, 1.2],
-        "chamferTop": [1.2, 1.0]
-      },
-      {
-        "x": 65.5,
-        "halfBeam": 5.2,
-        "bottom": 3.4,
-        "top": 9.4,
-        "chamferBottom": [1.0, 1.0],
-        "chamferTop": [1.0, 0.8]
-      },
-      {
-        "x": 67,
-        "halfBeam": 5.2,
-        "bottom": 3.4,
-        "top": 9.4,
-        "chamferBottom": [1.0, 1.0],
-        "chamferTop": [1.0, 0.8]
+        "id": "drive",
+        "stations": [
+          {
+            "x": 55.2,
+            "halfBeam": 5.0,
+            "bottom": 3.4,
+            "top": 9.6,
+            "chamferBottom": [0.8, 0.7],
+            "chamferTop": [1.0, 0.8]
+          },
+          {
+            "x": 64,
+            "halfBeam": 4.6,
+            "bottom": 3.8,
+            "top": 9.0,
+            "chamferBottom": [0.6, 0.5],
+            "chamferTop": [0.8, 0.6]
+          },
+          {
+            "x": 66,
+            "halfBeam": 3.6,
+            "bottom": 4.4,
+            "top": 8.4,
+            "chamferBottom": [0.6, 0.5],
+            "chamferTop": [0.6, 0.5]
+          }
+        ]
       }
     ]
   },
@@ -458,7 +624,8 @@
         [6, 0, 7.7],
         [2.5, 0, 7.7],
         [2.5, -4, 7.7],
-        [2, -5.4, 6.4]
+        [2.5, -4, 4.8],
+        [2.5, -4.0, 1.7]
       ]
     },
     {
@@ -468,7 +635,8 @@
       "path": [
         [2.5, 0, 7.7],
         [2.5, 4, 7.7],
-        [2, 5.4, 6.4]
+        [2.5, 4, 4.8],
+        [2.5, 4.0, 1.7]
       ]
     },
     {
@@ -481,7 +649,7 @@
         [55, 0, 7.7],
         [63, 0, 7.7],
         [63, -3.5, 7.7],
-        [64, -5.6, 6.4]
+        [62, -8.2, 10.8]
       ]
     },
     {
@@ -491,7 +659,7 @@
       "path": [
         [63, 0, 7.7],
         [63, 3.5, 7.7],
-        [64, 5.6, 6.4]
+        [62, 8.2, 10.8]
       ]
     },
     {
@@ -529,7 +697,7 @@
         [15, 3.5, 7.7],
         [15, 3.5, 8.0],
         [15, 3.5, 11.2],
-        [14, 3.6, 11.9]
+        [14.5, 3.6, 12.4]
       ]
     },
     {
@@ -546,7 +714,7 @@
         [6, 0, 7.7],
         [4, 0, 7.7],
         [4, -4, 7.7],
-        [4, -6.0, 9.4]
+        [5, -5.3, 9.0]
       ]
     },
     {
@@ -556,7 +724,7 @@
       "path": [
         [4, 0, 7.7],
         [4, 4, 7.7],
-        [4, 6.0, 9.4]
+        [5, 5.3, 9.0]
       ]
     },
     {
@@ -569,7 +737,7 @@
         [55, 0, 7.7],
         [63, 0, 7.7],
         [63, -3.5, 7.7],
-        [64, -5.6, 8.6]
+        [67, -11.0, 8.0]
       ]
     },
     {
@@ -579,19 +747,30 @@
       "path": [
         [63, 0, 7.7],
         [63, 3.5, 7.7],
-        [64, 5.6, 8.6]
+        [67, 11.0, 8.0]
       ]
     },
     {
-      "id": "power.main-drive",
+      "id": "power.main-drive.port",
       "kind": "power",
       "load": "main-drive",
       "path": [
         [35, 0, 7.7],
         [43, 0, 7.7],
         [55, 0, 7.7],
-        [65, 0, 7.7],
-        [67, 0, 6.4]
+        [64, 0, 7.7],
+        [64, -3.5, 6.4],
+        [64, -5.6, 8.0]
+      ]
+    },
+    {
+      "id": "power.main-drive.starboard",
+      "kind": "power",
+      "load": "main-drive",
+      "path": [
+        [64, 0, 7.7],
+        [64, 3.5, 6.4],
+        [64, 5.6, 8.0]
       ]
     },
     {
@@ -668,6 +847,24 @@
       ]
     },
     {
+      "id": "coolant.nacelle.port",
+      "kind": "coolant",
+      "path": [
+        [54.5, 0, 6.4],
+        [54.5, -6, 6.4],
+        [54.5, -8.2, 8.0]
+      ]
+    },
+    {
+      "id": "coolant.nacelle.starboard",
+      "kind": "coolant",
+      "path": [
+        [54.5, 0, 6.4],
+        [54.5, 6, 6.4],
+        [54.5, 8.2, 8.0]
+      ]
+    },
+    {
       "id": "coolant.branch.emitters",
       "kind": "coolant",
       "path": [
@@ -720,8 +917,8 @@
       "id": "tanks.breech",
       "contents": "coolant and propellant",
       "x": [38.5, 42.5],
-      "y": [-5, 5],
-      "z": [8.2, 11.0]
+      "y": [-3.6, 3.6],
+      "z": [8.2, 10.8]
     },
     {
       "id": "tanks.reactor-keel",
@@ -739,94 +936,95 @@
     }
   ],
   "exterior": {
-    "windowBand": { "x": [0, 3], "y": [-3.4, 3.4], "z": [6.0, 7.3] },
+    "windowStrip": { "x": [0.15, 6.0], "z": [6.5, 7.6] },
     "railgun": {
       "axis": { "y": 0, "z": 9.6 },
       "x": [0, 30],
       "boreRadius": 0.45,
-      "shroud": { "x": [1, 30], "halfWidth": 1.3, "top": 12.6 },
+      "shroud": { "x": [0, 30], "halfWidth": 1.2, "top": 12.6 },
       "breechHump": { "x": [28, 39], "halfWidth": 3.0, "top": 13.0 }
     },
-    "masts": [
+    "commsHousing": {
+      "x": [10.5, 18.5],
+      "y": [1.4, 5.8],
+      "height": 0.9,
+      "array": { "width": 8, "height": 4 }
+    },
+    "sensorBlister": { "x": [5.5, 8.5], "y": 3.0, "radius": 1.0 },
+    "nacelles": [
       {
-        "id": "comms-mast",
-        "x": [12, 16],
-        "y": 3.6,
-        "base": 11.8,
-        "height": 4.0,
-        "array": { "width": 8, "height": 4 }
+        "id": "nacelle.port",
+        "axis": { "y": -8.2, "z": 8.0 },
+        "x": [50, 69.5],
+        "radius": 2.8,
+        "pylon": { "x": [55.5, 64] }
       },
       {
-        "id": "sensor-mast",
-        "x": [7.6, 8.4],
-        "y": 3.0,
-        "base": 11.4,
-        "height": 6.0
+        "id": "nacelle.starboard",
+        "axis": { "y": 8.2, "z": 8.0 },
+        "x": [50, 69.5],
+        "radius": 2.8,
+        "pylon": { "x": [55.5, 64] }
       }
     ],
-    "radiatorWings": [
-      {
-        "side": "port",
-        "root": { "x": [43, 55], "y": -8.0 },
-        "tip": { "x": [71, 77], "y": -48.0 },
-        "z": 7.2,
-        "thickness": 0.35,
-        "sweepDeg": 35
+    "radiators": {
+      "nacelleVanes": {
+        "x": [55, 67],
+        "count": 5,
+        "height": 0.6,
+        "arcDeg": [-60, 60]
       },
-      {
-        "side": "starboard",
-        "root": { "x": [43, 55], "y": 8.0 },
-        "tip": { "x": [71, 77], "y": 48.0 },
-        "z": 7.2,
-        "thickness": 0.35,
-        "sweepDeg": 35
-      }
-    ],
+      "flankLouvres": { "x": [44.5, 54], "z": [5.2, 8.8] }
+    },
     "emitters": [
-      { "id": "emitter.bow-port", "at": [2, -5.4, 6.4], "normal": [0, -1, 0] },
+      {
+        "id": "emitter.bow-port",
+        "at": [2.5, -4.0, 1.7],
+        "normal": [0, -0.5, -0.85]
+      },
       {
         "id": "emitter.bow-starboard",
-        "at": [2, 5.4, 6.4],
-        "normal": [0, 1, 0]
+        "at": [2.5, 4.0, 1.7],
+        "normal": [0, 0.5, -0.85]
       },
       { "id": "emitter.dorsal", "at": [30, 0, 13.0], "normal": [0, 0, 1] },
       { "id": "emitter.ventral", "at": [30, 0, -0.2], "normal": [0, 0, -1] },
       {
         "id": "emitter.stern-port",
-        "at": [64, -5.6, 6.4],
-        "normal": [0, -1, 0]
+        "at": [62, -8.2, 10.8],
+        "normal": [0, 0, 1]
       },
       {
         "id": "emitter.stern-starboard",
-        "at": [64, 5.6, 6.4],
-        "normal": [0, 1, 0]
+        "at": [62, 8.2, 10.8],
+        "normal": [0, 0, 1]
       }
     ],
     "rcsQuads": [
-      { "id": "rcs.bow-port", "at": [4, -6.0, 9.4] },
-      { "id": "rcs.bow-starboard", "at": [4, 6.0, 9.4] },
-      { "id": "rcs.stern-port", "at": [64, -5.6, 8.6] },
-      { "id": "rcs.stern-starboard", "at": [64, 5.6, 8.6] }
+      { "id": "rcs.bow-port", "at": [5, -5.3, 9.0] },
+      { "id": "rcs.bow-starboard", "at": [5, 5.3, 9.0] },
+      { "id": "rcs.stern-port", "at": [67, -11.0, 8.0] },
+      { "id": "rcs.stern-starboard", "at": [67, 11.0, 8.0] }
     ],
     "engineBells": [
       {
         "id": "bell.port",
-        "axis": { "y": -2.6, "z": 6.4 },
-        "x": [66.5, 72],
-        "throatRadius": 1.0,
-        "exitRadius": 2.2
+        "axis": { "y": -8.2, "z": 8.0 },
+        "x": [68, 72],
+        "throatRadius": 1.6,
+        "exitRadius": 2.6
       },
       {
         "id": "bell.starboard",
-        "axis": { "y": 2.6, "z": 6.4 },
-        "x": [66.5, 72],
-        "throatRadius": 1.0,
-        "exitRadius": 2.2
+        "axis": { "y": 8.2, "z": 8.0 },
+        "x": [68, 72],
+        "throatRadius": 1.6,
+        "exitRadius": 2.6
       }
     ],
     "markings": [
-      { "text": "MERIDIAN", "face": "port", "x": [5, 15], "z": 8.6 },
-      { "text": "MERIDIAN", "face": "starboard", "x": [5, 15], "z": 8.6 },
+      { "text": "MERIDIAN", "face": "port", "x": [3.6, 9.6], "z": 3.6 },
+      { "text": "MERIDIAN", "face": "starboard", "x": [3.6, 9.6], "z": 3.6 },
       { "text": "MERIDIAN", "face": "dorsal", "x": [44, 54], "y": 0 },
       { "text": "SV-01", "face": "port", "x": [44, 50], "z": 9.4 },
       { "text": "SV-01", "face": "starboard", "x": [44, 50], "z": 9.4 },

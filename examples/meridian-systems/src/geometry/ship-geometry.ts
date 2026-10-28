@@ -20,7 +20,7 @@ export interface Box {
 /**
  * One cross-section of the hull at `x`. The section is an octagon: a
  * rectangle `halfBeam` either side of the centreline from `bottom` to `top`,
- * with each corner cut by its chamfer `[dy, dz]`. The hull between two
+ * with each corner cut by its chamfer `[dy, dz]`. The volume between two
  * stations joins their corners with straight lines.
  */
 export interface HullStation {
@@ -30,6 +30,16 @@ export interface HullStation {
   readonly top: number;
   readonly chamferBottom: Span;
   readonly chamferTop: Span;
+}
+
+/**
+ * One mass of the hull, such as the command section or the reactor block.
+ * The hull is the union of its volumes, and the volumes overlap where they
+ * join.
+ */
+export interface HullVolume {
+  readonly id: string;
+  readonly stations: readonly HullStation[];
 }
 
 export interface DeckBand {
@@ -93,8 +103,8 @@ export interface Axis {
 }
 
 export interface Exterior {
-  /** The bridge's armoured window band in the bow face. */
-  readonly windowBand: Box;
+  /** The bridge's recessed window strip, round the bow under the brow. */
+  readonly windowStrip: { readonly x: Span; readonly z: Span };
   readonly railgun: {
     readonly axis: Axis;
     /** From the muzzle in the bow face to the breech in the capacitor room. */
@@ -111,23 +121,38 @@ export interface Exterior {
       readonly top: number;
     };
   };
-  readonly masts: readonly {
-    readonly id: string;
+  /** A faired dorsal housing with the phased array flush in its canted face. */
+  readonly commsHousing: {
+    readonly x: Span;
+    readonly y: Span;
+    readonly height: number;
+    readonly array: { readonly width: number; readonly height: number };
+  };
+  /** The survey sensors' dome on the command section's roof. */
+  readonly sensorBlister: {
     readonly x: Span;
     readonly y: number;
-    readonly base: number;
-    readonly height: number;
-    readonly array?: { readonly width: number; readonly height: number };
+    readonly radius: number;
+  };
+  /** The twin drive nacelles, each on a pylon from the drive section. */
+  readonly nacelles: readonly {
+    readonly id: string;
+    readonly axis: Axis;
+    readonly x: Span;
+    readonly radius: number;
+    readonly pylon: { readonly x: Span };
   }[];
-  /** Deployed. Each wing is a flat panel from its root on the hull to its tip. */
-  readonly radiatorWings: readonly {
-    readonly side: string;
-    readonly root: { readonly x: Span; readonly y: number };
-    readonly tip: { readonly x: Span; readonly y: number };
-    readonly z: number;
-    readonly thickness: number;
-    readonly sweepDeg: number;
-  }[];
+  readonly radiators: {
+    /** Fins along each nacelle, spread over `arcDeg` round its outboard side. */
+    readonly nacelleVanes: {
+      readonly x: Span;
+      readonly count: number;
+      readonly height: number;
+      readonly arcDeg: Span;
+    };
+    /** Louvred panels in the reactor block's flanks. */
+    readonly flankLouvres: { readonly x: Span; readonly z: Span };
+  };
   readonly emitters: readonly {
     readonly id: string;
     readonly at: Point;
@@ -160,7 +185,7 @@ export interface ShipGeometry {
     readonly height: number;
     /** The least distance from a room to the outside of the hull. */
     readonly skin: number;
-    readonly stations: readonly HullStation[];
+    readonly volumes: readonly HullVolume[];
   };
   readonly decks: readonly DeckBand[];
   readonly compartments: readonly CompartmentShape[];

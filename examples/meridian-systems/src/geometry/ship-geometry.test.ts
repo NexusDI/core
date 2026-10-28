@@ -55,9 +55,11 @@ const EPS = 1e-9;
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-/** The hull's octagon at `x`, as (y, z) corners counter-clockwise from the port keel corner. */
-function section(x: number): (readonly [number, number])[] {
-  const stations = hull.stations;
+/** A volume's octagon at `x`, as (y, z) corners counter-clockwise from the port keel corner. */
+function section(
+  stations: readonly HullStation[],
+  x: number,
+): (readonly [number, number])[] {
   const i = stations.findIndex((s, k) => k > 0 && x <= s.x);
   if (x < stations[0].x || i < 0) return [];
   const a = stations[i - 1];
@@ -84,9 +86,12 @@ function section(x: number): (readonly [number, number])[] {
   ];
 }
 
-/** The distance from (y, z) to the outside of the convex section; negative outside. */
-function depth(x: number, y: number, z: number): number {
-  const corners = section(x);
+/** The distance from (y, z) to the outside of one convex section; negative outside. */
+function sectionDepth(
+  corners: readonly (readonly [number, number])[],
+  y: number,
+  z: number,
+): number {
   if (corners.length === 0) return -Infinity;
   let least = Infinity;
   for (let k = 0; k < corners.length; k++) {
@@ -100,12 +105,27 @@ function depth(x: number, y: number, z: number): number {
   return least;
 }
 
+/** The depth of a point in the hull, the union of its volumes; negative outside. */
+const depth = (x: number, y: number, z: number) =>
+  Math.max(
+    ...hull.volumes.map((v) => sectionDepth(section(v.stations, x), y, z)),
+  );
+
+/**
+ * The corners of a box and points every 0.5 m along its x edges, so a box
+ * that spans two volumes cannot leave the hull between its corners.
+ */
 function corners(box: Box): Point[] {
   const out: Point[] = [];
-  for (const x of box.x)
+  const steps = Math.ceil((box.x[1] - box.x[0]) / 0.5);
+  for (let k = 0; k <= steps; k++) {
+    const x = lerp(box.x[0], box.x[1], k / steps);
     for (const y of box.y) for (const z of box.z) out.push([x, y, z]);
+  }
   return out;
 }
+
+const stations = hull.volumes.flatMap((v) => v.stations);
 
 const contains = (box: Box, p: Point) =>
   AXES.every(
@@ -150,7 +170,6 @@ describe('the ship geometry', () => {
       ...compartments.flatMap((c) => c.boxes),
       ...doors,
       ...tanks,
-      exterior.windowBand,
     ];
     for (const box of boxes)
       for (const axis of AXES) {
@@ -162,14 +181,31 @@ describe('the ship geometry', () => {
   });
 
   it('keeps the hull at 72 m by 16 m by 13 m, with the bells at the stern', () => {
-    expect(Math.max(...hull.stations.map((s) => s.halfBeam)) * 2).toBe(
-      hull.beam,
-    );
-    expect(Math.min(...hull.stations.map((s) => s.bottom))).toBe(0);
+    expect(Math.max(...stations.map((s) => s.halfBeam)) * 2).toBe(hull.beam);
+    expect(Math.min(...stations.map((s) => s.bottom))).toBe(0);
+    expect(Math.min(...stations.map((s) => s.x))).toBe(0);
     expect(exterior.railgun.breechHump.top).toBe(hull.height);
     for (const bell of exterior.engineBells)
       expect(bell.x[1]).toBe(hull.length);
-    expect(hull.stations[0].x).toBe(0);
+    for (const s of stations) {
+      expect(s.top, `station at ${s.x}`).toBeLessThanOrEqual(hull.height);
+      expect(s.x, `station at ${s.x}`).toBeLessThanOrEqual(hull.length);
+    }
+    for (const n of exterior.nacelles) {
+      expect(n.x[1], n.id).toBeLessThanOrEqual(hull.length);
+      expect(n.pylon.x[1], n.id).toBeLessThanOrEqual(hull.length);
+    }
+  });
+
+  it('puts the two drive nacelles and their bells symmetric about the long axis', () => {
+    const [port, starboard] = exterior.nacelles;
+    expect(port.axis.y).toBe(-starboard.axis.y);
+    expect(port.axis.z).toBe(starboard.axis.z);
+    for (const bell of exterior.engineBells) {
+      const nacelle = exterior.nacelles.find((n) => n.axis.y === bell.axis.y);
+      expect(nacelle?.axis.z, bell.id).toBe(bell.axis.z);
+      expect(bell.exitRadius, bell.id).toBeLessThanOrEqual(nacelle!.radius);
+    }
   });
 
   it('stacks three 3.2 m decks', () => {
@@ -300,6 +336,19 @@ describe('the ship geometry', () => {
         if (rooms[k - 1].length === 0 || rooms[k].length === 0) continue;
         const shared = rooms[k].filter((id) => rooms[k - 1].includes(id));
         expect(shared.length, `${conduit.id} leg ${k}`).toBeGreaterThan(0);
+        // Points every 0.25 m along the leg, so a leg between two boxes of
+        // one room cannot cross the void beside them.
+        const [a, b] = [conduit.path[k - 1], conduit.path[k]];
+        const steps = Math.ceil(
+          Math.hypot(...a.map((v, j) => b[j] - v)) / 0.25,
+        );
+        for (let s = 1; s < steps; s++) {
+          const p = a.map((v, j) => lerp(v, b[j], s / steps));
+          expect(
+            inRooms(p).length,
+            `${conduit.id} leg ${k} at ${p.join(', ')}`,
+          ).toBeGreaterThan(0);
+        }
       }
     }
   });
@@ -319,18 +368,14 @@ describe('the ship geometry', () => {
     ]);
   });
 
-  it('sweeps the radiator wings to a span of 96 m', () => {
-    const tips = exterior.radiatorWings.map((w) => w.tip.y);
-    expect(Math.max(...tips) - Math.min(...tips)).toBe(96);
-    for (const wing of exterior.radiatorWings) {
-      const sweep =
-        (Math.atan2(
-          wing.tip.x[0] - wing.root.x[0],
-          Math.abs(wing.tip.y - wing.root.y),
-        ) *
-          180) /
-        Math.PI;
-      expect(Math.abs(sweep - wing.sweepDeg)).toBeLessThan(0.5);
+  it('keeps the radiator vanes on the nacelles and the louvres on the reactor block', () => {
+    const { nacelleVanes, flankLouvres } = exterior.radiators;
+    for (const nacelle of exterior.nacelles) {
+      expect(nacelleVanes.x[0]).toBeGreaterThanOrEqual(nacelle.x[0]);
+      expect(nacelleVanes.x[1]).toBeLessThanOrEqual(nacelle.x[1]);
     }
+    const reactor = boxesOf('reactor-bay')[0];
+    expect(flankLouvres.x[0]).toBeGreaterThanOrEqual(reactor.x[0]);
+    expect(flankLouvres.x[1]).toBeLessThanOrEqual(reactor.x[1]);
   });
 });
