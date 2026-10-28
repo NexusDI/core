@@ -1,5 +1,5 @@
-# The repo's lint covers TypeScript alone. This file pins the style of the one
-# Python script here: `uvx ruff format` and `uvx ruff check` in this folder.
+# The repo's lint covers TypeScript alone. This file pins the style of the two
+# Python scripts here: `uvx ruff format` and `uvx ruff check` in this folder.
 line-length = 100
 target-version = "py311"
 
