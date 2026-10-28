@@ -1,6 +1,7 @@
 import { all } from '@nexusdi/core';
 
 import { BadCommandError } from '../errors';
+import { byCodeUnit } from './by-code-unit';
 import {
   COMMAND_HANDLERS,
   type ICommandDesk,
@@ -27,11 +28,7 @@ export class CommandDesk implements ICommandDesk {
       }
       this.handlers.set(handler.system, handler);
     }
-    // `<` compares UTF-16 code units and gives one order on every engine.
-    // `localeCompare` follows the host locale.
-    const names = [...this.handlers.keys()].sort((a, b) =>
-      a < b ? -1 : a > b ? 1 : 0,
-    );
+    const names = [...this.handlers.keys()].sort(byCodeUnit);
     this.serves = names.length === 0 ? 'no system' : listInWords(names);
   }
 

@@ -1,4 +1,5 @@
 import { all } from '@nexusdi/core';
+import { byCodeUnit } from './by-code-unit';
 import { callAll } from './call-all';
 import {
   type IRandomSource,
@@ -13,6 +14,7 @@ import {
   type ShipSnapshot,
   type TickListener,
 } from './contracts';
+import { Subscribers } from './subscribers';
 
 interface Entry {
   readonly system: IShipSystem;
@@ -28,8 +30,8 @@ export class FixedStepLoop implements ITickLoop {
   static deps = [SIM_CLOCK, SHIP_STATE, RNG, all(SHIP_SYSTEMS)] as const;
 
   private entries: readonly Entry[];
-  /** Each `listen` adds its own wrapper, so one function listened twice hears twice. */
-  private readonly listeners = new Set<TickListener>();
+  /** Each `listen` adds its own entry, so one function listened twice hears twice. */
+  private readonly listeners = new Subscribers<TickListener>();
 
   constructor(
     private readonly clock: ISimClock,
@@ -62,7 +64,7 @@ export class FixedStepLoop implements ITickLoop {
           time: this.clock.time,
         }),
       );
-      callAll(this.liveListeners(), this.state.snapshot());
+      callAll(this.listeners, this.state.snapshot());
     }
     return this.state.snapshot();
   }
@@ -78,19 +80,18 @@ export class FixedStepLoop implements ITickLoop {
     };
   }
 
+  /**
+   * A listener added during a tick first hears the next one, and one removed
+   * during a tick before its turn does not hear that tick.
+   */
   listen(listener: TickListener): () => void {
-    const entry: TickListener = (ship) => listener(ship);
-    this.listeners.add(entry);
-    return () => {
-      this.listeners.delete(entry);
-    };
+    return this.listeners.add(listener);
   }
 
   /**
    * Adds `system` with the fork for its name. `all()` returns the systems in
-   * registration order, so the loop sorts them by phase and then by name. `<`
-   * compares UTF-16 code units and gives one order on every engine.
-   * `localeCompare` follows the host locale.
+   * registration order, so the loop sorts them by phase and then by name in
+   * code-unit order.
    */
   private add(system: IShipSystem): Entry {
     if (this.entries.some((entry) => entry.system.name === system.name)) {
@@ -99,18 +100,8 @@ export class FixedStepLoop implements ITickLoop {
     const entry = { system, rng: this.rng.fork(system.name) };
     this.entries = [...this.entries, entry].sort(
       ({ system: a }, { system: b }) =>
-        a.phase - b.phase || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
+        a.phase - b.phase || byCodeUnit(a.name, b.name),
     );
     return entry;
-  }
-
-  /**
-   * Walks the listeners present when dispatch began and skips one removed
-   * since, so a listener added during a tick first hears the next one.
-   */
-  private *liveListeners(): Generator<TickListener> {
-    for (const entry of [...this.listeners]) {
-      if (this.listeners.has(entry)) yield entry;
-    }
   }
 }
