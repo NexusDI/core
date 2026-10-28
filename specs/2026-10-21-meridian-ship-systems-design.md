@@ -3690,9 +3690,9 @@ library's `e2e-growth` target holds the goldens, and `demo-growth` runs it too.
 | 2026-10-24 | The Starship Meridian is a small survey frigate: a crew of 6, 60 to 80 m long, with the 1.21 GW reactor (section 16.1)                                                                                                                                                                                                                                                                                               | owner                           |
 | 2026-10-24 | The deck plan grows so that every room the art shows is a live compartment with air, heat and doors; it adds only rooms a system or an Academy mission uses, no room exists only in the art, and the implementation rewrites the goldens once (sections 16.2 and 16.7)                                                                                                                                               | owner                           |
 | 2026-10-24 | The hull sections, fore to aft: bridge, chart room, computer core, habitat (quarters and galley), airlock, shuttle bay, drone bay, comms, weapons, engineering, reactor bay, FTL core and main drive, each with the code and the Academy mission section 16.3 maps                                                                                                                                                   | owner                           |
-| 2026-10-24 | The exterior shows the radiator wings, the deflector emitters, the RCS quads, the dorsal comms array and sensor mast, the spinal railgun barrel, the shuttle and drone bay doors, the airlock hatch, the main engine bells and the markings "MERIDIAN" and a hull number (section 16.6)                                                                                                                              | owner                           |
+| 2026-10-24 | The exterior shows the radiator wings, the deflector emitters, the RCS quads, the dorsal comms array and sensor mast, the spinal railgun barrel, the shuttle and drone bay doors, the airlock hatch, the main engine bells and the markings "MERIDIAN" and a hull number (section 16.6); the 2026-10-28 rows supersede the wings, the comms array and the sensor mast                                                | owner                           |
 | 2026-10-24 | The art is a grounded industrial look with terminal-style panels, an original design that copies no franchise's marks or layouts, and one identity for the MeridianOS demo, the docs front page and the Academy (section 16.6)                                                                                                                                                                                       | owner                           |
-| 2026-10-24 | The layout draws the physical conduits the simulation models: power from `PlasmaRouter` to each load, the coolant loop from the reactor bay to the radiator wings, and the atmosphere ducts through the doors (section 16.4)                                                                                                                                                                                         | owner                           |
+| 2026-10-24 | The layout draws the physical conduits the simulation models: power from `PlasmaRouter` to each load, the coolant loop from the reactor bay to the radiator wings, and the atmosphere ducts through the doors (section 16.4); superseded on 2026-10-28 for the coolant loop, which runs to the integrated radiators                                                                                                  | owner                           |
 | 2026-10-24 | The network overlay, a toggle in the MeridianOS chrome, draws the DI graph over the deck from devtools' graph edges alone, with `lazy()` and `optional()` dashed and a loaded section drawn once loaded; a missing provider or a broken import shows as a broken conduit (section 16.5)                                                                                                                              | owner                           |
 | 2026-10-24 | A physical conduit is drawn only where a real dependency or a physics flow exists (section 16.5)                                                                                                                                                                                                                                                                                                                     | owner                           |
 | 2026-10-24 | The design research gives guidelines, and the rule of cool outranks real-world constraints across the whole layout; the layout adopts the anchor guidelines and the trade-off recommendations section 16.1 lists                                                                                                                                                                                                     | owner                           |
@@ -3700,7 +3700,11 @@ library's `e2e-growth` target holds the goldens, and `demo-growth` runs it too.
 | 2026-10-24 | Gravity plating: the floors face dorsal, the deck plan is a true top-down view, and thrust is cosmetic (section 16.1)                                                                                                                                                                                                                                                                                                | owner                           |
 | 2026-10-24 | No tank section as a compartment, and reactor shielding does not drive the layout; tanks appear in the art only as exterior or cutaway detail, and a tank is no room (section 16.1)                                                                                                                                                                                                                                  | owner                           |
 | 2026-10-24 | The hull number is `SV-01`: the Meridian is the lead ship of the Meridian-class survey vessels, SV is the role and 01 the first hull of the class, with no link to the mission id `survey-7` (section 16.6)                                                                                                                                                                                                          | owner                           |
-| 2026-10-24 | The art draws compact "unobtanium" radiator wings, about 96 m in span and swept aft, so the ship fits on screen and reads well on the demo app, the front page, the docs and the Academy; the simulation keeps its heat figures (section 16.6)                                                                                                                                                                       | owner                           |
+| 2026-10-24 | The art draws compact "unobtanium" radiator wings, about 96 m in span and swept aft, so the ship fits on screen and reads well on the demo app, the front page, the docs and the Academy; the simulation keeps its heat figures (section 16.6); superseded on 2026-10-28 by the integrated radiators                                                                                                                 | owner                           |
+| 2026-10-28 | The drive sits in twin nacelles on pylons, port and starboard of the drive section and symmetric about the long axis, each ending in a larger bell (section 16.6)                                                                                                                                                                                                                                                    | owner                           |
+| 2026-10-28 | The radiators are part of the hull: vanes along both nacelles and louvred panels in the reactor block's flanks; the flat 96 m wings go, and the simulation keeps its heat figures (section 16.6)                                                                                                                                                                                                                     | owner                           |
+| 2026-10-28 | The comms array sits flush in the canted face of a faired dorsal housing, and the survey sensors in a blister on the command section's roof; no bare mast or antenna stands on the hull (section 16.6)                                                                                                                                                                                                               | owner                           |
+| 2026-10-28 | The bridge looks out through a recessed window strip round the bow under an armoured brow, split by the barrel's spine, with the bow emitters off the window line so the bow does not read as a face (section 16.6)                                                                                                                                                                                                  | owner                           |
 
 The owner made the rows whose source is "owner". The architect proposed the "tech lead"
 rows and the tech lead decided them, as `specs/plans/2026-10-21-meridian-g0-kernel.md`,
@@ -3889,7 +3893,7 @@ The Starship Meridian is a small survey frigate with a crew of 6 and the 1.21 GW
 of section 5.6. The hull is 72 m long, 16 m in the beam and 13 m high, inside the owner's
 60 to 80 m. `HULL` keeps its 4.0 × 10⁶ kg and 3.3 × 10⁹ kg·m²: 4,000 t fill the hull's
 box at 267 kg/m³, and a uniform 72 m rod of that mass gives 1.7 × 10⁹ kg·m², so the
-mass at the stern and in the radiator wings holds the rest. The main drive's 14.4 kN
+mass at the stern and in the drive nacelles holds the rest. The main drive's 14.4 kN
 moves the ship at 3.6 mm/s².
 
 The occupants are one watch: two crew on the bridge, two in the mess and two asleep in
@@ -3900,20 +3904,22 @@ The layout follows design guidelines, and the owner rules that the rule of cool 
 real-world constraints across the whole layout. Where a guideline and the look disagree,
 the look wins. The layout adopts these guidelines:
 
-- The main drive sits on the thrust line through the centre of mass: two bells on the long
-  axis, symmetric about it, with the reactor, the capacitor bank and the FTL core near
-  that axis.
+- The main drive sits on the thrust line through the centre of mass: two bells in twin
+  nacelles, symmetric about the long axis, with the reactor, the capacitor bank and the
+  FTL core near that axis.
 - The reactor sits aft. Engineering's control room sits forward of it, and the reactor bay
   is a separate, windowless volume.
-- Thin radiator wings sweep aft and outboard from the reactor bay, edge-on to the bow.
+- The radiators are part of the hull: vanes along both drive nacelles and louvred panels
+  in the reactor block's flanks.
 - The RCS quads sit far from the centre of mass, at the bow and the stern corners, clear
-  of the wings and the drive's plume.
+  of the drive's plume.
 - The railgun barrel runs above the main deck on the centreline, and the crew spine, the
   main deck's corridor, runs below it.
 - The shuttle bay sits midship and the drone bay aft of it, both ventral and both ahead of
   the reactor bay.
-- The comms mast stands on the dorsal ridge ahead of the barrel's breech shroud.
-- The bridge keeps a narrow armoured window band under a brow.
+- The comms array sits in a faired housing on the dorsal ridge ahead of the barrel's
+  breech hump.
+- The bridge keeps a recessed window strip under an armoured brow.
 - One master plan drives every view: section 16.2's decks and positions place every room,
   door and conduit, and the deck plan, the side view, the top view and the cutaway derive
   from it.
@@ -4100,9 +4106,9 @@ lives in the docs ship, `examples/meridian`, where the Academy's missions run.
 | Comms         | `comms-relay`, the array     | `Comms.forRoot({ frequency, transport, relayUrl })` or `OfflineComms`; `COMMS_ARRAY` (`PhasedArray`) over `optional(SUBSPACE_LINK)`; `CommsPower`                                     | configurable modules, Academy `05-open-channel`; an optional dependency                                             |
 | Weapons       | `capacitor-room`, the barrel | `Weapons`: `WEAPON_MOUNT` (`RailgunMount`) over `lazy(POWER_ROUTER)`; `WeaponsPower`                                                                                                  | a lazy edge to a provider the mount reads at fire time                                                              |
 | Engineering   | `engineering`                | `Engineering`: `REACTOR` (`FusionReactor`), `POWER_ROUTER` (`PlasmaRouter` over `lazy(SHIELD_GRID)` and `all(POWER_CONSUMERS)`), `SHIELD_GRID` (`DeflectorGrid`)                      | disposal, Academy `07-scram-drill`; a lazy cycle, Academy `08-power-loop`; the contribution point `POWER_CONSUMERS` |
-| Reactor bay   | `reactor-bay`, the wings     | `EngineeringPhysics` over `REACTOR` and the private `COOLANT_LOOP` (`RadiatorLoop`)                                                                                                   | a provider a module keeps out of its exports; `COOLANT_HIGH` and `REACTOR_TRIP`                                     |
+| Reactor bay   | `reactor-bay`, the radiators | `EngineeringPhysics` over `REACTOR` and the private `COOLANT_LOOP` (`RadiatorLoop`)                                                                                                   | a provider a module keeps out of its exports; `COOLANT_HIGH` and `REACTOR_TRIP`                                     |
 | FTL core      | `ftl-core`                   | `FtlDrive`, loaded with `ship.load(FtlDrive)` through `di.load`: `FTL_DRIVE` (`JumpDrive`) attaches its physics to `TICK_LOOP` and `FtlPower` to `POWER_ROUTER`                       | `load()` of a section into a running ship                                                                           |
-| Main drive    | `main-drive`, the bells      | `Propulsion`: `MAIN_DRIVE` (`PlasmaDrive`); `PropulsionPower`                                                                                                                         | a contribution to `POWER_CONSUMERS` whose heat reaches the coolant loop                                             |
+| Main drive    | `main-drive`, the nacelles   | `Propulsion`: `MAIN_DRIVE` (`PlasmaDrive`); `PropulsionPower`                                                                                                                         | a contribution to `POWER_CONSUMERS` whose heat reaches the coolant loop                                             |
 
 Academy `01-first-light` and `04-decks` teach over the whole ship and take no hull section
 of their own. The kernel modules (`Simulation`, `MeridianSystems`, `Telemetry`) and
@@ -4133,12 +4139,13 @@ A power conduit glows with its load's allocation over its demand. A load that `p
 lists goes dark on that tick, beside its `LOAD_SHED` alarm, and a 0 W load draws an idle
 line.
 
-The coolant loop runs from the reactor bay out to both radiator wings and back. Branches
+The coolant loop runs from the reactor bay out to the flank louvres and the vanes of both
+nacelles, and back. Branches
 run to each consumer whose heat reaches the loop in section 5.6: the main drive (heat share
 0.4), the deflector emitters (0.25), the FTL core (0.1, and the jump's pulse) and the
 capacitor room (the shot's pulse). Life support, comms and the thrusters put no heat in the
 loop, so they get no branch. The loop's colour follows `coolant.temperature` from 500 K to
-the 1,450 K trip, the wings show the louvres' opening `λ`, and a jump or a shot sends a
+the 1,450 K trip, the radiators show the louvres' opening `λ`, and a jump or a shot sends a
 pulse from its room to the loop on that tick.
 
 An atmosphere duct runs through each of the sixteen doors, beside the pump line between
@@ -4192,46 +4199,56 @@ sees the router's multi-token read as the power bus.
 This brief serves the concept boards and a later illustrator. One identity serves the
 MeridianOS demo, the docs front page and the Academy.
 
-The look is grounded and industrial: flat slab panels with visible seams, access plates,
-exposed trusses at the wing roots, stencilled compartment ids at each hatch, hazard
-banding at bay doors and hatches, and wear along the panel edges. The terminal panels are
-monochrome amber or green screens in a block type, framed by chunky physical switches.
+The look is grounded and industrial: chamfered plates layered over a lofted core with
+visible seams, detail at the joints (pylon roots, hatch frames), stencilled compartment
+ids at each hatch, hazard banding at bay doors and hatches, and wear along the plate
+edges. The shape language takes its cues from Star Citizen's multi-crew ships (CIG's
+Constellation and Carrack comm-links, 12783 and 14323), and the views stay readable as
+flat 2D shapes. The terminal panels are monochrome amber or green screens in a block
+type, framed by chunky physical switches.
 The design is original. It copies no franchise's ship silhouettes, logos, type, registry
 formats or interior layouts.
 
-The hull is a long, boxy spine with a blunt wedge bow, flat flanks and one deliberate
-curve, the brow over the bridge's window band, which gives the ship a face. The barrel's
+The hull is six masses of different widths and heights, each a lofted volume of
+`hull.volumes`: a raked command section at 0 to 10 m (bridge, chart room, computer
+core), the habitat body at 6.5 to 28.6 m with the bay module under it at 14 to 43 m, a
+narrow engineering neck at 28 to 43 m, the reactor block at 42 to 56 m and the drive
+section at 55 to 66 m between the twin nacelles. Each mass shows in both the side and the
+top silhouette. The bridge looks out through a recessed window strip that wraps the bow
+under an armoured brow, split on the centreline by the barrel's spine. The bow emitters
+sit under the chin, off the window line, so the bow does not read as a face. The barrel's
 shroud runs along the dorsal ridge as one line from the breech hump over the capacitor
-room to the muzzle in the bow face, above the window band. The reactor bay reads as a
-heavier, windowless block at 43 to 55 m, the wings hinge from it, and the drive section
-narrows to the bells on the long axis at the stern. In the cutaway, tanks fill the upper
+room to the muzzle at the bow, where it rides above the raked roof. The reactor bay reads
+as the heavier, windowless block, and the nacelles, each 2.8 m in radius at 50 to 69.5 m,
+carry the bells at the stern. In the cutaway, tanks fill the upper
 deck between the capacitor room and the reactor bay at 38.5 to 42.5 m, and the keel under
 the reactor bay. Engineering reaches the reactor bay's forward wall at 43 m on the main
 deck, so the hatch `engineering-reactor-bay` sits in a shared wall.
 
-The radiator wings are thin panels that sweep aft and outboard from the reactor bay and
-stand edge-on to the bow: wide from above, nearly gone from ahead. The owner calls them
-"unobtanium" radiators. The ship teaches on the demo app, the front page, the docs and the
-Academy, so it must fit on screen and read well, and the physics serves that goal. The art
-draws compact wings, each about 40 m outboard and 20 m in chord, swept aft 35° so its tip
-reaches the stern, which gives a deployed span of about 96 m. The simulation keeps the heat
-figures of section 5.6, including its 24,000 m² of radiator. Stowed, the panels fold flat along the flanks, and the compact ship reads as
-docked or idle.
+The radiators are built into the hull: five vanes along the outboard side of each
+nacelle at 55 to 67 m, and louvred panels in both flanks of the reactor block at 44.5 to
+54 m. The owner calls them "unobtanium" radiators. The ship teaches on the demo app, the
+front page, the docs and the Academy, so it must fit on one screen and read at thumbnail
+size, and the physics serves that goal. The overall width across the nacelles and vanes
+is about 23 m, and no part reaches past the 72 m length. The simulation keeps the heat
+figures of section 5.6, including its 24,000 m² of radiator, which the art does not
+draw to scale. The owner dropped the flat radiator wings of 96 m span on 2026-10-28.
 
-| Feature            | Placement                                                                                                                                          | Code                                   |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| bridge windows     | a narrow armoured band in the bow face, main deck, set back under the brow                                                                         | `bridge`                               |
-| radiator wings     | port and starboard, hinged on the reactor bay at 43 to 55 m, swept aft and outboard, edge-on to the bow                                            | `COOLANT_LOOP`, the louvres' `λ`       |
-| deflector emitters | six: a pair at the bow (2 m), a dorsal and a ventral at midship (30 m), a pair at the stern (64 m)                                                 | `SHIELD_GRID`                          |
-| RCS quads          | four, at the hull's corners: bow port and starboard at 4 m, stern port and starboard at 64 m, clear of the wings and the plume                     | `THRUSTERS`                            |
-| comms mast         | on the dorsal ridge at 12 to 16 m, starboard of the shroud and ahead of the breech hump, carrying the 8 m by 4 m phased array over the comms relay | `COMMS_ARRAY`                          |
-| sensor mast        | on the dorsal ridge at 8 m, starboard of the shroud, 6 m tall                                                                                      | the survey sensors; no token models it |
-| railgun barrel     | in the dorsal shroud above the main deck, from the breech over the capacitor room (30 m) to the muzzle in the bow face                             | `WEAPON_MOUNT`                         |
-| shuttle bay doors  | ventral, 18 to 28 m, 10 m by 5 m                                                                                                                   | `shuttle-bay-outer`                    |
-| drone bay doors    | ventral, 33 to 36 m, 3 m by 2 m                                                                                                                    | `drone-bay-outer`                      |
-| airlock hatch      | port flank at 25 m, 1.5 m by 2.0 m                                                                                                                 | `airlock-outer`                        |
-| main engine bells  | two bells on the long axis, symmetric about it, at 65 to 72 m                                                                                      | `MAIN_DRIVE`                           |
-| markings           | "MERIDIAN" on both bow flanks and the dorsal plate; the hull number `SV-01` on the flanks and the ventral skin                                     | none                                   |
+| Feature            | Placement                                                                                                                                      | Code                                   |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| bridge windows     | a recessed strip round the bow at 0 to 6 m, main deck, under the armoured brow, split by the barrel's spine                                    | `bridge`                               |
+| radiators          | five vanes along each nacelle at 55 to 67 m, and louvred panels in the reactor block's flanks at 44.5 to 54 m                                  | `COOLANT_LOOP`, the louvres' `λ`       |
+| deflector emitters | six: a pair under the bow's chin (2.5 m), a dorsal and a ventral at midship (30 m), a pair on the nacelles (62 m)                              | `SHIELD_GRID`                          |
+| RCS quads          | four: bow port and starboard on the command section's shoulders at 5 m, stern port and starboard on the nacelles at 67 m, clear of the plume   | `THRUSTERS`                            |
+| comms housing      | a faired dorsal pod at 10.5 to 18.5 m, starboard of the shroud, with the 8 m by 4 m phased array flush in its canted face over the comms relay | `COMMS_ARRAY`                          |
+| sensor blister     | a dome on the command section's roof at 5.5 to 8.5 m, starboard of the shroud                                                                  | the survey sensors; no token models it |
+| drive nacelles     | two, port and starboard of the drive section on pylons, 2.8 m in radius at 50 to 69.5 m, their axes 8.2 m off the centreline                   | `MAIN_DRIVE`                           |
+| railgun barrel     | in the dorsal shroud above the main deck, from the breech over the capacitor room (30 m) to the muzzle in the bow face                         | `WEAPON_MOUNT`                         |
+| shuttle bay doors  | ventral, 18 to 28 m, 10 m by 5 m                                                                                                               | `shuttle-bay-outer`                    |
+| drone bay doors    | ventral, 33 to 36 m, 3 m by 2 m                                                                                                                | `drone-bay-outer`                      |
+| airlock hatch      | port flank at 25 m, 1.5 m by 2.0 m                                                                                                             | `airlock-outer`                        |
+| main engine bells  | one at the end of each nacelle, symmetric about the long axis, at 68 to 72 m, 2.6 m in exit radius                                             | `MAIN_DRIVE`                           |
+| markings           | "MERIDIAN" on both bow flanks and the dorsal plate; the hull number `SV-01` on the reactor block's flanks and the ventral skin                 | none                                   |
 
 The Meridian is the lead ship of the Meridian-class survey vessels. In `SV-01`, SV is the
 role (survey vessel) and 01 is the first hull of the class. The hull number has no link to
@@ -4239,14 +4256,17 @@ the mission id `survey-7`.
 
 The views:
 
-- The side view (port) shows the full profile: the window band under the brow, the deck
-  lines at 3.2 m, the airlock hatch, both bay doors on the ventral line, the barrel's
-  shroud along the ridge, the two masts, the wings as thin fins, and the bells.
-- The top view (dorsal) shows the wings deployed and swept, the six emitters, the four RCS
-  quads, the shroud on the centreline, the masts and the markings.
+- The side view (port) shows the full profile: the six masses, the window strip under
+  the brow, the airlock hatch, both bay doors on the ventral line, the barrel's shroud
+  along the ridge, the comms housing, and the nacelle with its vanes and bell.
+- The top view (dorsal) shows the narrow neck between the habitat body and the reactor
+  block, the twin nacelles, the emitters, the RCS quads, the shroud on the centreline, the
+  comms housing, the sensor blister and the markings.
 - The cutaway (port, cut on the centreline) shows every compartment of section 16.2 at its
-  deck and position, labelled with its id, every door with its id, the tanks between
-  engineering and the reactor bay, and the conduits of section 16.4 in one colour per kind.
+  deck and position, labelled with its id, every door with its id, the tanks on the upper
+  deck at 38.5 to 42.5 m between the capacitor room and the reactor bay and in the keel
+  under the reactor bay, and the conduits of section 16.4 in one colour per kind. The
+  cut hides the storm shelter's water tank, port of the barrel at 12 to 27 m.
   The network overlay draws over the same cutaway as its own layer.
 - The deck plan is a true top-down view of each deck, since the floors face dorsal.
 
@@ -4256,13 +4276,14 @@ the cutaway and the deck plan, and the MeridianOS deck view and the front page's
 take their geometry from the same plan.
 
 `examples/meridian-systems/deck/meridian.geometry.json` holds that plan in metres: the hull
-stations, the three decks, each compartment's boxes with its `pressurised` flag, the
+volumes, the three decks, each compartment's boxes with its `pressurised` flag, the
 sixteen doors as rectangles on shared walls, floors and ceilings, the conduit routes of
 section 16.4, the tanks and the exterior parts. `@nexusdi/meridian-systems/geometry`
 exports it as `SHIP_GEOMETRY`, and a unit test checks that every room sits inside the
 hull, that no two boxes overlap, that every door lies on a face both its sides share and
 that every conduit leg stays inside one compartment. `tools/meridian-ship` builds the
-concept mesh and its renders from the same file. Fitting the rooms of section 16.2 into
+concept mesh and its renders from the same file, and projects the same file to SVG
+outlines for the website and the deck view. Fitting the rooms of section 16.2 into
 boxes changed five placements:
 
 - The airlock runs 5.5 m inboard from the port flank at 24 to 27 m, so its floor hatch
@@ -4270,8 +4291,8 @@ boxes changed five placements:
 - The habitat is three boxes: a companionway at 10 to 14 m port of the chart room, which
   meets the bridge, the mess at 14 to 28 m, and a galley at 14 to 24 m along the port
   flank forward of the airlock.
-- The comms relay sits starboard of the barrel, under the comms mast that the exterior
-  brief already places starboard of the shroud.
+- The comms relay sits starboard of the barrel, under the comms housing, which sits
+  starboard of the shroud.
 - Engineering runs to 43 m and the drone bay from 31 m, so the hatches
   `engineering-reactor-bay` and `shuttle-bay-drone-bay` sit in shared walls.
 - The shuttle bay is 8 m wide and runs from the ventral skin to the main deck's floor.
