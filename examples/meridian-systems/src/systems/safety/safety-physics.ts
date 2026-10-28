@@ -1,4 +1,3 @@
-import { stepSafety } from '../../physics/safety';
 import {
   COMPARTMENT_IDS,
   DECK_PLAN,
@@ -12,6 +11,8 @@ import {
   ATMOSPHERE_PROBE,
   type IAtmosphereProbe,
 } from '../life-support/contracts';
+
+import { stepSafety } from './safety-model';
 
 /** Runs the doors, the fires, the floods and the alarms in phase 5 of each tick. */
 export class SafetyPhysics implements IShipSystem {

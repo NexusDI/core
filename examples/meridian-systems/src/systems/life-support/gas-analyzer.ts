@@ -1,4 +1,3 @@
-import type { AtmosphereReading } from '../../physics/atmosphere';
 import {
   COMPARTMENT,
   type CompartmentId,
@@ -8,6 +7,7 @@ import {
 
 import {
   ATMOSPHERE_PROBE,
+  type AtmosphereReading,
   type IAtmosphereProbe,
   type IAtmosphereSensor,
 } from './contracts';

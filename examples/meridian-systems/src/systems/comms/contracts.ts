@@ -8,6 +8,33 @@ export const COMMS_SYSTEM = 'comms';
 /** The actions comms takes, in words. shipText reads it after "It takes". */
 export const COMMS_ACTIONS = 'hail with no arguments';
 
+/** What the phased array is doing at the end of a tick. */
+export type CommsStatus =
+  'standby' | 'no subspace link' | 'no power' | 'awaiting reply';
+
+/** One message the array received. */
+export interface CommsMessage {
+  /** The tick the message arrived. */
+  readonly tick: number;
+  readonly from: string;
+  readonly text: string;
+}
+
+/** The phased array at the end of a tick. */
+export interface CommsRecord {
+  readonly status: CommsStatus;
+  /** The tick the array sent its last hail, or null before the first. */
+  readonly sent: number | null;
+  /** The newest `MESSAGES_KEPT` messages the array received, oldest first. */
+  readonly messages: readonly CommsMessage[];
+}
+
+/** What the crew set for comms. */
+export interface CommsSetpoints {
+  /** True while a hail waits for the array to send it. */
+  readonly hail: boolean;
+}
+
 /** A channel to the fleet's subspace relay. */
 export interface ISubspaceLink {
   /** Downloads the relay's `channel` and answers its JSON body. */

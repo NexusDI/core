@@ -1,7 +1,8 @@
-import { FTL_SPOOL_LOAD, type FtlRating, ftlDemand } from '../../physics/ftl';
-import type { PowerLoad } from '../../physics/power';
 import type { ShipSnapshot } from '../../simulation/contracts';
-import type { IPowerConsumer } from '../engineering/contracts';
+import type { IPowerConsumer, PowerLoad } from '../engineering/contracts';
+
+import type { FtlRating } from './contracts';
+import { FTL_SPOOL_LOAD, ftlDemand } from './ftl-model';
 
 /**
  * The spool's load on the power router: the rating's power at priority 7

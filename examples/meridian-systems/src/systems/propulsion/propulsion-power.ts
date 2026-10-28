@@ -1,9 +1,8 @@
-import { driveDemand, MAIN_DRIVE_LOAD } from '../../physics/motion';
-import type { PowerLoad } from '../../physics/power';
 import type { ShipSnapshot } from '../../simulation/contracts';
-import type { IPowerConsumer } from '../engineering/contracts';
+import type { IPowerConsumer, PowerLoad } from '../engineering/contracts';
 
 import { type IMainDrive, MAIN_DRIVE } from './contracts';
+import { driveDemand, MAIN_DRIVE_LOAD } from './propulsion-model';
 
 /**
  * The main drive's load on the power router: the throttle times the drive's

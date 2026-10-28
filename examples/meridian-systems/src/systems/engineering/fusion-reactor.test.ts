@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
-import { FUSION_REACTOR } from '../../physics/thermal';
 import type { DeckPlan } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
+import { FUSION_REACTOR } from './engineering-model';
 import { FusionReactor } from './fusion-reactor';
 
 /** A store whose snapshot runs the reactor at `level` on tick 40. */

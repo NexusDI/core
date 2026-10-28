@@ -1,13 +1,12 @@
-import { LIFE_SUPPORT_LOAD, lifeSupportDemand } from '../../physics/atmosphere';
-import type { PowerLoad } from '../../physics/power';
-import type { IPowerConsumer } from '../engineering/contracts';
 import {
   DECK_PLAN,
   type DeckPlan,
   type ShipSnapshot,
 } from '../../simulation/contracts';
+import type { IPowerConsumer, PowerLoad } from '../engineering/contracts';
 
 import { LIFE_SUPPORT_OPTIONS, type LifeSupportOptions } from './contracts';
+import { LIFE_SUPPORT_LOAD, lifeSupportDemand } from './life-support-model';
 
 /**
  * Life support's load on the power router: every device's draw from the air

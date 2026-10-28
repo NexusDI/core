@@ -2,11 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
 import { PowerBudgetError } from '../../errors';
-import type { PowerLoad } from '../../physics/power';
 import type { DeckPlan, ShipSnapshot } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
-import type { IPowerConsumer, IShieldGrid } from './contracts';
+import type { IPowerConsumer, IShieldGrid, PowerLoad } from './contracts';
 import { PlasmaRouter } from './plasma-router';
 
 const RAISED: PowerLoad = {

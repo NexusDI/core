@@ -1,8 +1,8 @@
-import { type DriveRating, PLASMA_DRIVE } from '../../physics/motion';
 import type { QueuedCommand } from '../../simulation/commands';
 import { type IShipState, SHIP_STATE } from '../../simulation/contracts';
 
-import type { IMainDrive } from './contracts';
+import type { DriveRating, IMainDrive } from './contracts';
+import { PLASMA_DRIVE } from './propulsion-model';
 
 /** The Meridian's plasma drive. It queues its throttle on `SHIP_STATE`. */
 export class PlasmaDrive implements IMainDrive {

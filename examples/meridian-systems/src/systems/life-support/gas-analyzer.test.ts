@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
-import type { AtmosphereReading } from '../../physics/atmosphere';
 import type {
   CompartmentId,
   CompartmentState,
@@ -9,7 +8,7 @@ import type {
 } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
-import type { IAtmosphereProbe } from './contracts';
+import type { AtmosphereReading, IAtmosphereProbe } from './contracts';
 import { GasAnalyzer } from './gas-analyzer';
 
 const plan = deck satisfies DeckPlan;

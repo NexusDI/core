@@ -6,18 +6,21 @@ import {
   FtlNotSpooledError,
   PowerBudgetError,
 } from '../../errors';
-import { FTL_SPOOL } from '../../physics/ftl';
-import type { PowerLoad } from '../../physics/power';
 import type {
   DeckPlan,
   IShipSystem,
   ITickLoop,
 } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
-import type { IPowerConsumer, IPowerRouter } from '../engineering/contracts';
+import type {
+  IPowerConsumer,
+  IPowerRouter,
+  PowerLoad,
+} from '../engineering/contracts';
 import { BUNDLED_CHARTS, StarCharts } from '../tactical/star-charts';
 
 import { FTL_ACTIONS } from './contracts';
+import { FTL_SPOOL } from './ftl-model';
 import { FtlPhysics } from './ftl-physics';
 import { FtlPower } from './ftl-power';
 import { JumpDrive } from './jump-drive';

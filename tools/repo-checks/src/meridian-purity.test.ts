@@ -41,6 +41,44 @@ describe('impurities', () => {
     ).toEqual([]);
   });
 
+  it('reports a physics file that imports from a system folder', () => {
+    const text = fixture('physics-imports-system.txt');
+    expect(impurities([{ path: 'src/physics/doors.ts', text }])).toEqual([
+      'src/physics/doors.ts:1 imports from systems/; physics files hold laws no system owns',
+    ]);
+    expect(impurities([{ path: 'src/simulation/doors.ts', text }])).toEqual([]);
+  });
+
+  it.each([
+    'physics-side-effect-system.txt',
+    'physics-dynamic-system.txt',
+    'physics-require-system.txt',
+  ])('reports %s under physics', (name) => {
+    expect(impurities([source('src/physics/doors.ts', name)])).toEqual([
+      'src/physics/doors.ts:1 imports from systems/; physics files hold laws no system owns',
+    ]);
+  });
+
+  it('reports a @nexusdi/ import in a model file and allows it elsewhere', () => {
+    const text = fixture('model-imports-core.txt');
+    expect(
+      impurities([{ path: 'src/systems/comms/comms-model.ts', text }]),
+    ).toEqual([
+      'src/systems/comms/comms-model.ts:1 imports @nexusdi/; model files stay free of DI',
+    ]);
+    expect(
+      impurities([{ path: 'src/systems/comms/contracts.ts', text }]),
+    ).toEqual([]);
+  });
+
+  it('allows a model file that imports another system by relative path', () => {
+    expect(
+      impurities([
+        source('src/systems/safety/safety-model.ts', 'model-clean.txt'),
+      ]),
+    ).toEqual([]);
+  });
+
   it('reports a module file over the line limit', () => {
     const long = `${'// line\n'.repeat(MODULE_LINE_LIMIT + 1)}`;
     const ok = `${'// line\n'.repeat(MODULE_LINE_LIMIT)}`;

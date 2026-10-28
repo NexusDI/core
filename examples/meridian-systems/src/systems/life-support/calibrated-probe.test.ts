@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import calibration from '../../../deck/sensors.calibration.json';
 import deck from '../../../deck/meridian.deck.json';
-import { LIFE_SUPPORT_RATINGS, readAtmosphere } from '../../physics/atmosphere';
 import type { CompartmentId, DeckPlan } from '../../simulation/contracts';
 import { SeededRandom } from '../../simulation/seeded-random';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
 import { CalibratedProbe } from './calibrated-probe';
 import type { LifeSupportOptions } from './contracts';
+import { LIFE_SUPPORT_RATINGS, readAtmosphere } from './life-support-model';
 
 const plan = deck satisfies DeckPlan;
 const options: LifeSupportOptions = {

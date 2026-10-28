@@ -1,52 +1,15 @@
-import { SIGMA, T_BACKGROUND } from './constants';
+import { SIGMA, T_BACKGROUND } from '../../physics/constants';
+import { byCodeUnit } from '../../simulation/by-code-unit';
 
-/** The fixed figures of a fusion reactor. */
-export interface ReactorRating {
-  /** Thermal output at full level, in W. */
-  readonly thermal: number;
-  /** The share of the thermal output the reactor turns into electricity, 0 to 1. */
-  readonly efficiency: number;
-  /** The most the level moves toward its setpoint, per second. */
-  readonly ramp: number;
-}
-
-/** The reactor's state at the end of a tick. */
-export interface ReactorRecord {
-  /** The output level, 0 to 1. */
-  readonly level: number;
-  /** Thermal output, in W. */
-  readonly thermal: number;
-  /** Electric output, in W. */
-  readonly electric: number;
-  /** True once the coolant loop has tripped the reactor. */
-  readonly tripped: boolean;
-}
-
-/** The fixed figures of a coolant loop and its radiators. */
-export interface CoolantRating {
-  /** Coolant mass, in kg. */
-  readonly mass: number;
-  /** Specific heat capacity of the coolant, in J/(kg K). */
-  readonly heatCapacity: number;
-  /** Radiator area, in m². */
-  readonly area: number;
-  /** Radiator emissivity, 0 to 1. */
-  readonly emissivity: number;
-  /** The temperature the louvres hold the loop at, in K. They open above it. */
-  readonly standby: number;
-  /** The span above `standby` over which the louvres open fully, in K. */
-  readonly band: number;
-  /** The temperature the coolant alarm sounds at, in K. */
-  readonly alarm: number;
-  /** The temperature the loop trips the reactor at, in K. */
-  readonly trip: number;
-}
-
-/** The coolant loop's state at the end of a tick. */
-export interface CoolantRecord {
-  /** Coolant temperature, in K. */
-  readonly temperature: number;
-}
+import type {
+  CoolantRating,
+  CoolantRecord,
+  LoadRecord,
+  PowerLoad,
+  PowerRecord,
+  ReactorRating,
+  ReactorRecord,
+} from './contracts';
 
 /** The Meridian's reactor. */
 export const FUSION_REACTOR: ReactorRating = {
@@ -70,6 +33,17 @@ export const LITHIUM_LOOP: CoolantRating = {
   band: 50,
   alarm: 1_350,
   trip: 1_450,
+};
+
+/**
+ * The Meridian's deflector shield grid while raised. The lowered grid stays
+ * on the router with a demand of 0 W.
+ */
+export const DEFLECTOR_GRID: PowerLoad = {
+  id: 'shields',
+  priority: 2,
+  demand: 200e6,
+  heatShare: 0.25,
 };
 
 function clamp(value: number, low: number, high: number): number {
@@ -157,4 +131,52 @@ export function tripped(
   rating: CoolantRating,
 ): boolean {
   return coolant.temperature >= rating.trip;
+}
+
+function byPriorityThenId(a: PowerLoad, b: PowerLoad): number {
+  if (a.priority !== b.priority) return a.priority - b.priority;
+  return byCodeUnit(a.id, b.id);
+}
+
+/**
+ * Shares `output` (W) among `loads` by priority, then by id.
+ *
+ * A load whose whole demand fits in what remains gets it. A load that does not
+ * fit gets 0 and joins `shed`, and the router moves on to the next, so a later
+ * and smaller load can still fit. The ids compare with `byCodeUnit`, which
+ * orders by UTF-16 code unit on every runtime, so a replay serves the loads in
+ * the same order.
+ */
+export function allocatePower(
+  output: number,
+  loads: readonly PowerLoad[],
+): PowerRecord {
+  let remaining = output;
+  const records: LoadRecord[] = [];
+  const shed: string[] = [];
+  for (const load of [...loads].sort(byPriorityThenId)) {
+    const fits = load.demand <= remaining;
+    const allocated = fits ? load.demand : 0;
+    remaining -= allocated;
+    records.push({
+      id: load.id,
+      priority: load.priority,
+      demand: load.demand,
+      allocated,
+    });
+    if (!fits) shed.push(load.id);
+  }
+  return { output, loads: records, shed };
+}
+
+/** The heat the allocated loads put into the coolant loop, `Σ heatShare · allocated`, in W. */
+export function loadHeat(
+  record: PowerRecord,
+  loads: readonly PowerLoad[],
+): number {
+  const shares = new Map(loads.map((load) => [load.id, load.heatShare]));
+  return record.loads.reduce(
+    (sum, entry) => sum + (shares.get(entry.id) ?? 0) * entry.allocated,
+    0,
+  );
 }

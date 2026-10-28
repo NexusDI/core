@@ -1,8 +1,8 @@
-import { FUSION_REACTOR, type ReactorRating } from '../../physics/thermal';
 import type { QueuedCommand } from '../../simulation/commands';
 import { type IShipState, SHIP_STATE } from '../../simulation/contracts';
 
-import type { IReactorCore } from './contracts';
+import type { IReactorCore, ReactorRating } from './contracts';
+import { FUSION_REACTOR } from './engineering-model';
 
 /** The Meridian's fusion reactor. It reads its output from `SHIP_STATE` and queues its throttle there. */
 export class FusionReactor implements IReactorCore, Disposable {

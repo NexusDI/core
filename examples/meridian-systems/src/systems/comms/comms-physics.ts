@@ -1,4 +1,3 @@
-import { COMMS_LOAD, stepComms } from '../../physics/comms';
 import type {
   IShipSystem,
   Phase,
@@ -6,6 +5,7 @@ import type {
   TickContext,
 } from '../../simulation/contracts';
 
+import { COMMS_LOAD, stepComms } from './comms-model';
 import { COMMS_ARRAY, type ICommsArray } from './contracts';
 
 /** Steps the phased array in phase 6 of each tick. */

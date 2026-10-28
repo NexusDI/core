@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
-import type { Alarm } from '../../physics/safety';
 import type {
   ITickLoop,
   ShipSnapshot,
@@ -9,7 +8,7 @@ import type {
 } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
-import type { IAlarmSink } from './contracts';
+import type { Alarm, IAlarmSink } from './contracts';
 import { MasterAlarm } from './master-alarm';
 
 /** Records the listener the alarm gives `listen` and counts the unsubscribes. */

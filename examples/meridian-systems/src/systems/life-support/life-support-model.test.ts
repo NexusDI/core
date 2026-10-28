@@ -1,5 +1,24 @@
 import { describe, expect, it } from 'vitest';
 
+import { R } from '../../physics/constants';
+import {
+  AIR,
+  GASES,
+  molesAt,
+  pressure,
+  saturationPressure,
+  totalMoles,
+  transfer,
+  ventFraction,
+  type Air,
+} from '../../physics/gas';
+import { fnv1a32, splitmix32 } from '../../physics/rng';
+
+import type {
+  LifeSupportSetpoints,
+  RoomPlan,
+  SensorCalibration,
+} from './contracts';
 import {
   LIFE_SUPPORT_RATINGS,
   OCCUPANT,
@@ -13,23 +32,7 @@ import {
   oxygenRate,
   type AtmosphereInput,
   type AtmosphereResult,
-  type LifeSupportSetpoints,
-  type RoomPlan,
-  type SensorCalibration,
-} from './atmosphere';
-import { R } from './constants';
-import { fnv1a32, splitmix32 } from './rng';
-import {
-  AIR,
-  GASES,
-  molesAt,
-  pressure,
-  saturationPressure,
-  totalMoles,
-  transfer,
-  ventFraction,
-  type Air,
-} from './gas';
+} from './life-support-model';
 
 const dt = 0.5;
 const ratings = LIFE_SUPPORT_RATINGS;
@@ -631,5 +634,81 @@ describe('readAtmosphere', () => {
         draws('galley', 0),
       ),
     ).toThrow(/galley/);
+  });
+});
+
+describe('the thermostats', () => {
+  const rooms: readonly RoomPlan[] = [
+    {
+      id: 'bridge',
+      volume: 60,
+      conductance: 90,
+      structureHeatCapacity: 2_000_000,
+      occupants: 2,
+      equipment: ['heater', 'scrubber', 'oxygen'],
+    },
+    {
+      id: 'habitat',
+      volume: 120,
+      conductance: 150,
+      structureHeatCapacity: 4_000_000,
+      occupants: 4,
+      equipment: ['heater', 'scrubber', 'oxygen'],
+    },
+  ];
+  const setpoints: LifeSupportSetpoints = {
+    online: true,
+    heaters: {
+      bridge: { on: true, target: 293 },
+      habitat: { on: true, target: 293 },
+    },
+    scrubbers: { bridge: true, habitat: true },
+    oxygen: { bridge: true, habitat: true },
+    vents: {},
+    pumps: {},
+  };
+  const start = (volume: number): Air => ({
+    moles: molesAt(101_300, 293, volume, AIR),
+    temperature: 293,
+  });
+
+  /** An hour of the bridge and the habitat from 293 K, tick by tick. */
+  function hour(
+    visit: (tick: number, result: AtmosphereResult) => void = () => undefined,
+  ): AtmosphereResult {
+    const step: AtmosphereInput = {
+      compartments: { bridge: start(60), habitat: start(120) },
+      rooms,
+      setpoints,
+      coolantTemperature: 500,
+      shed: false,
+      dt,
+      ratings: LIFE_SUPPORT_RATINGS,
+    };
+    let result = stepAtmosphere(step);
+    visit(1, result);
+    for (let tick = 2; tick <= 7_200; tick++) {
+      result = stepAtmosphere({ ...step, compartments: result.compartments });
+      visit(tick, result);
+    }
+    return result;
+  }
+
+  it('holds the habitat between 292.4 K and 292.7 K from tick 2,400', () => {
+    hour((tick, { compartments }) => {
+      if (tick < 2_400) return;
+      expect(compartments.habitat.temperature).toBeGreaterThan(292.4);
+      expect(compartments.habitat.temperature).toBeLessThan(292.7);
+    });
+  });
+
+  it('settles the bridge at 292.726 K on 2,745 W', () => {
+    const end = hour();
+    expect(
+      Math.abs(end.compartments.bridge.temperature - 292.726),
+    ).toBeLessThanOrEqual(0.05);
+    expect(
+      Math.abs((end.lifeSupport.heaters.bridge ?? 0) - 2_745),
+    ).toBeLessThanOrEqual(5);
   });
 });

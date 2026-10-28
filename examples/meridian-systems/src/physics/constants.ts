@@ -16,6 +16,17 @@ export const T_HULL = 260;
  */
 export const KAPPA = 0.02;
 
+/** The hull's fixed figures. */
+export interface HullRating {
+  /** The ship's mass, in kg. */
+  readonly mass: number;
+  /** The moment of inertia about the yaw axis, in kg·m². */
+  readonly inertia: number;
+}
+
+/** The Meridian's hull, which the helm turns and the main drive pushes. */
+export const HULL: HullRating = { mass: 4.0e6, inertia: 3.3e9 };
+
 /** Molar heat capacity at constant volume of each gas, in J/(mol K). */
 export const CV = {
   O2: 21.0,

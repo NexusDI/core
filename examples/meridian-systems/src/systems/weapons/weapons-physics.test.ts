@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
-import { LITHIUM_LOOP } from '../../physics/thermal';
-import { RAILGUN } from '../../physics/weapons';
 import type {
   DeckPlan,
   IRandomSource,
@@ -10,8 +8,10 @@ import type {
   TickContext,
 } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+import { LITHIUM_LOOP } from '../engineering/engineering-model';
 
 import type { IWeaponMount } from './contracts';
+import { RAILGUN } from './weapons-model';
 import { WeaponsPhysics } from './weapons-physics';
 
 const idle = new ShipStateStore(deck satisfies DeckPlan).snapshot();

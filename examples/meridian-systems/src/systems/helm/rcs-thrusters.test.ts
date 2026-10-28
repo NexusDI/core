@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
-import { RCS_THRUSTERS } from '../../physics/motion';
 import type { DeckPlan } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
+import { RCS_THRUSTERS } from './helm-model';
 import { RcsThrusters } from './rcs-thrusters';
 
 describe('RcsThrusters', () => {

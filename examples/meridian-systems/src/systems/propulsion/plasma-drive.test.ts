@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
-import { PLASMA_DRIVE } from '../../physics/motion';
 import type { DeckPlan } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
 import { PlasmaDrive } from './plasma-drive';
+import { PLASMA_DRIVE } from './propulsion-model';
 
 describe('PlasmaDrive', () => {
   it('reads the plasma drive rating', () => {

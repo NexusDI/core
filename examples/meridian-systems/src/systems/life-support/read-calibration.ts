@@ -1,11 +1,8 @@
 import calibration from '../../../deck/sensors.calibration.json' with { type: 'json' };
-import {
-  LIFE_SUPPORT_RATINGS,
-  type SensorCalibration,
-} from '../../physics/atmosphere';
 import type { DeckPlan } from '../../simulation/contracts';
 
-import type { LifeSupportOptions } from './contracts';
+import type { LifeSupportOptions, SensorCalibration } from './contracts';
+import { LIFE_SUPPORT_RATINGS } from './life-support-model';
 
 /**
  * The factory `LifeSupport.forRootAsync` runs at startup: the analyzers'

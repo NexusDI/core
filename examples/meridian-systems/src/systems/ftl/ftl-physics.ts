@@ -1,11 +1,13 @@
-import { FTL_SPOOL_LOAD, type FtlRating, stepFtl } from '../../physics/ftl';
-import { LITHIUM_LOOP, pulseCoolant } from '../../physics/thermal';
 import type {
   IShipSystem,
   Phase,
   ShipSnapshot,
   TickContext,
 } from '../../simulation/contracts';
+import { LITHIUM_LOOP, pulseCoolant } from '../engineering/engineering-model';
+
+import type { FtlRating } from './contracts';
+import { FTL_SPOOL_LOAD, stepFtl } from './ftl-model';
 
 /**
  * Steps the FTL drive in phase 3 of each tick. `JumpDrive` builds

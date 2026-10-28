@@ -1,19 +1,15 @@
-import type { PowerLoad } from './power';
-import type { CoolantRecord, ReactorRecord } from './thermal';
+import type {
+  CoolantRecord,
+  PowerLoad,
+  ReactorRecord,
+} from '../engineering/contracts';
 
-/** The FTL drive's fixed figures. */
-export interface FtlRating {
-  /** The charge a jump spends, E_spool, in J. */
-  readonly energy: number;
-  /** The spool's draw while it charges, in W. */
-  readonly power: number;
-  /** The share of a jump's charge that ends in the coolant loop as one pulse. */
-  readonly pulseShare: number;
-  /** The reactor level the spool needs at the start of a tick, 0 to 1. */
-  readonly reactorLevel: number;
-  /** The spool holds once the coolant reaches this temperature at the start of a tick, in K. */
-  readonly coolantLimit: number;
-}
+import type {
+  FtlRating,
+  FtlRecord,
+  FtlSetpoints,
+  FtlStatus,
+} from './contracts';
 
 /** The Meridian's jump drive. */
 export const FTL_SPOOL: FtlRating = {
@@ -36,36 +32,6 @@ export const FTL_SPOOL_LOAD: Omit<PowerLoad, 'demand'> = {
 
 /** The sector the ship sits in before its first jump. */
 export const HOME_SECTOR = 'Sol';
-
-/**
- * `offline`: no drive is loaded; the store starts the record here, and the
- * drive's first step writes another status. `idle`: unarmed and below a full
- * charge. `held`: armed with no power this tick. The spool asks no power
- * while the reactor sits under 0.9 or the coolant at 1,300 K or more, and
- * the router sheds it when its budget runs short. `spooling`: armed and
- * charging.
- * `charged`: the charge is full.
- */
-export type FtlStatus = 'offline' | 'idle' | 'held' | 'spooling' | 'charged';
-
-/** The FTL drive at the end of a tick. */
-export interface FtlRecord {
-  readonly status: FtlStatus;
-  /** The spool's charge, in J. */
-  readonly charge: number;
-  /** The charted star the ship sits at, or HOME_SECTOR before the first jump. */
-  readonly sector: string;
-  /** The tick of the last jump, or null before the first. */
-  readonly jumped: number | null;
-}
-
-/** What the crew set for the FTL drive. */
-export interface FtlSetpoints {
-  /** True while the spool may charge. */
-  readonly armed: boolean;
-  /** The star of a jump the crew commanded, or null. */
-  readonly jump: string | null;
-}
 
 /** True when the reactor and the coolant at the start of a tick let the spool charge. */
 function spoolReady(

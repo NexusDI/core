@@ -1,11 +1,5 @@
 import { lazy } from '@nexusdi/core';
 
-import {
-  RAILGUN,
-  RAILGUN_LOAD,
-  type RailgunRating,
-  railgunDemand,
-} from '../../physics/weapons';
 import type { QueuedCommand } from '../../simulation/commands';
 import {
   type IShipState,
@@ -15,7 +9,8 @@ import {
 } from '../../simulation/contracts';
 import { type IPowerRouter, POWER_ROUTER } from '../engineering/contracts';
 
-import type { IWeaponMount } from './contracts';
+import type { IWeaponMount, RailgunRating } from './contracts';
+import { RAILGUN, RAILGUN_LOAD, railgunDemand } from './weapons-model';
 
 /**
  * The Meridian's railgun mount. It queues the crew's shots on `SHIP_STATE`

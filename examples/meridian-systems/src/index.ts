@@ -80,92 +80,88 @@ export { doorPressures, PRESSURE_INTERLOCK } from './physics/doors';
 export { GASES, pressure, type Gas } from './physics/gas';
 
 // Comms.
-export type {
-  CommsMessage,
-  CommsRecord,
-  CommsSetpoints,
-  CommsStatus,
-} from './physics/comms';
 export {
   COMMS_ARRAY,
   COMMS_OPTIONS,
+  type CommsMessage,
   type CommsOptions,
+  type CommsRecord,
+  type CommsSetpoints,
+  type CommsStatus,
   type ICommsArray,
   type ISubspaceLink,
   SUBSPACE_LINK,
 } from './systems/comms/contracts';
 
 // Engineering.
-export type { LoadRecord, PowerLoad, PowerRecord } from './physics/power';
-export type {
-  CoolantRating,
-  CoolantRecord,
-  ReactorRating,
-  ReactorRecord,
-} from './physics/thermal';
 export {
+  type CoolantRating,
+  type CoolantRecord,
   type IPowerConsumer,
   type IPowerRouter,
   type IReactorCore,
   type IShieldGrid,
+  type LoadRecord,
   POWER_CONSUMERS,
   POWER_ROUTER,
+  type PowerLoad,
+  type PowerRecord,
+  type ReactorRating,
+  type ReactorRecord,
   REACTOR,
   SHIELD_GRID,
 } from './systems/engineering/contracts';
 
 // The FTL drive, which a running ship adds with load(), and its contract.
-export type {
-  FtlRating,
-  FtlRecord,
-  FtlSetpoints,
-  FtlStatus,
-} from './physics/ftl';
-export { FTL_DRIVE, type IFtlDrive } from './systems/ftl/contracts';
+export {
+  FTL_DRIVE,
+  type FtlRating,
+  type FtlRecord,
+  type FtlSetpoints,
+  type FtlStatus,
+  type IFtlDrive,
+} from './systems/ftl/contracts';
 export { FtlDrive } from './systems/ftl/ftl-drive.module';
 
-// Helm and propulsion.
-export type {
-  DriveRecord,
-  DriveSetpoints,
-  HelmRecord,
-  HelmSetpoints,
-} from './physics/motion';
+// Helm.
 export {
+  type HelmRecord,
+  type HelmSetpoints,
   HELM,
   type IHelm,
   type IThrusters,
   THRUSTERS,
 } from './systems/helm/contracts';
-export { type IMainDrive, MAIN_DRIVE } from './systems/propulsion/contracts';
+
+// Propulsion.
+export {
+  type DriveRecord,
+  type DriveSetpoints,
+  type IMainDrive,
+  MAIN_DRIVE,
+} from './systems/propulsion/contracts';
 
 // Life support.
-export type {
-  AtmosphereReading,
-  HeaterSetpoint,
-  LifeSupportRecord,
-  LifeSupportSetpoints,
-  PumpMode,
-} from './physics/atmosphere';
 export {
   ATMOSPHERE_CONTROL,
   ATMOSPHERE_PROBE,
   ATMOSPHERE_SENSOR,
+  type AtmosphereReading,
+  type HeaterSetpoint,
   type IAtmosphereControl,
   type IAtmosphereProbe,
   type IAtmosphereSensor,
   LIFE_SUPPORT_OPTIONS,
   type LifeSupportOptions,
+  type LifeSupportRecord,
+  type LifeSupportSetpoints,
+  type PumpMode,
 } from './systems/life-support/contracts';
 
 // Safety.
-export type {
-  Alarm,
-  AlarmCode,
-  SafetyRecord,
-  SafetySetpoints,
-} from './physics/safety';
 export {
+  type Alarm,
+  type AlarmCode,
   ALARM_SINKS,
   BLAST_DOORS,
   FIRE_SUPPRESSION,
@@ -174,6 +170,8 @@ export {
   type IFireSuppression,
   type IMasterAlarm,
   MASTER_ALARM,
+  type SafetyRecord,
+  type SafetySetpoints,
 } from './systems/safety/contracts';
 
 // Tactical.
@@ -184,11 +182,12 @@ export {
 } from './systems/tactical/contracts';
 
 // Weapons.
-export type {
-  RailgunRating,
-  RailgunShot,
-  WeaponsRecord,
-  WeaponsSetpoints,
-  WeaponsStatus,
-} from './physics/weapons';
-export { type IWeaponMount, WEAPON_MOUNT } from './systems/weapons/contracts';
+export {
+  type IWeaponMount,
+  type RailgunRating,
+  type RailgunShot,
+  WEAPON_MOUNT,
+  type WeaponsRecord,
+  type WeaponsSetpoints,
+  type WeaponsStatus,
+} from './systems/weapons/contracts';

@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
+import type { CommsRecord, CommsSetpoints } from './contracts';
 import {
   COMMS_LOAD,
   commsDemand,
   MESSAGES_KEPT,
   RELAY_ROUND_TRIP,
   stepComms,
-  type CommsRecord,
-  type CommsSetpoints,
-} from './comms';
+} from './comms-model';
 
 const dt = 0.5;
 

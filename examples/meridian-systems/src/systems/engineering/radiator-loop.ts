@@ -1,6 +1,5 @@
-import { type CoolantRating, LITHIUM_LOOP } from '../../physics/thermal';
-
-import type { ICoolantLoop } from './contracts';
+import type { CoolantRating, ICoolantLoop } from './contracts';
+import { LITHIUM_LOOP } from './engineering-model';
 
 /** The Meridian's lithium coolant loop and its louvred radiators. */
 export class RadiatorLoop implements ICoolantLoop {

@@ -1,6 +1,5 @@
 import { MultiToken, Token } from '@nexusdi/core';
 
-import type { Alarm } from '../../physics/safety';
 import type { QueuedCommand } from '../../simulation/commands';
 
 /** The name safety answers to on the command desk. */
@@ -12,6 +11,54 @@ export const SAFETY_SYSTEM = 'safety';
  */
 export const SAFETY_ACTIONS =
   'open and close with a door of bridge-habitat, habitat-reactor-bay, habitat-airlock or airlock-outer, and flood and drill with a compartment of bridge, habitat or reactor-bay';
+
+/** Every alarm the safety step raises, in the order it evaluates them for a room. */
+export type AlarmCode =
+  | 'FIRE'
+  | 'SENSOR_FAULT'
+  | 'HYPOXIA'
+  | 'CO2_HIGH'
+  | 'PRESSURE_LOW'
+  | 'TEMPERATURE'
+  | 'DECOMPRESSION'
+  | 'COOLANT_HIGH'
+  | 'REACTOR_TRIP'
+  | 'LOAD_SHED';
+
+export interface Alarm {
+  readonly code: AlarmCode;
+  /** The compartment, the shed load's id, or `reactor`. */
+  readonly subject: string;
+}
+
+/** Safety at the end of a tick. `Id` narrows the keys to the deck's ids. */
+export interface SafetyRecord<Id extends string = string> {
+  /** The fire intensity φ of each compartment, 0 to 1, with 0 for no fire. */
+  readonly fires: Readonly<Record<Id, number>>;
+  /** The moles of N₂ the running flood of each charged room has released. */
+  readonly flooded: Readonly<Partial<Record<Id, number>>>;
+  /** The active alarms, in the order the step raised them. */
+  readonly alarms: readonly Alarm[];
+}
+
+/** What the crew set for safety. `Door` narrows the door keys to the deck's ids. */
+export interface SafetySetpoints<
+  Id extends string = string,
+  Door extends string = string,
+> {
+  /** True while the door stands open. */
+  readonly doors: Readonly<Record<Door, boolean>>;
+  /** True while the room's flood valve releases its charge. */
+  readonly floods: Readonly<Partial<Record<Id, boolean>>>;
+  /** True from the command until the tick that lights the drill fire. */
+  readonly drills: Readonly<Partial<Record<Id, boolean>>>;
+}
+
+/** The flood charge a compartment of the deck may carry. */
+export interface FloodPlan {
+  /** Moles of N₂ one flood releases. */
+  readonly floodCharge?: number;
+}
 
 /**
  * The blast-door panel. Each method queues the door's setpoint for the next

@@ -2,7 +2,7 @@ import { Nexus } from '@nexusdi/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { meridianSystems } from '../src/meridian-systems.module';
-import { toRadians, wrap } from '../src/physics/motion';
+import { toRadians, wrap } from '../src/systems/helm/helm-model';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
 import {
   SHIP_STATE,

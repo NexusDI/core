@@ -1,14 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  FTL_SPOOL,
-  ftlDemand,
-  HOME_SECTOR,
-  stepFtl,
-  type FtlRecord,
-  type FtlSetpoints,
-} from './ftl';
-import { LITHIUM_LOOP, pulseCoolant, type ReactorRecord } from './thermal';
+import type { ReactorRecord } from '../engineering/contracts';
+import { LITHIUM_LOOP, pulseCoolant } from '../engineering/engineering-model';
+
+import type { FtlRecord, FtlSetpoints } from './contracts';
+import { FTL_SPOOL, ftlDemand, HOME_SECTOR, stepFtl } from './ftl-model';
 
 const dt = 0.5;
 const power = FTL_SPOOL.power;

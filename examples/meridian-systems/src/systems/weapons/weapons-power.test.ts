@@ -1,15 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
-import {
-  RAILGUN,
-  type RailgunRating,
-  railgunDemand,
-} from '../../physics/weapons';
 import type { DeckPlan, ShipSnapshot } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
-import type { IWeaponMount } from './contracts';
+import type { IWeaponMount, RailgunRating } from './contracts';
+import { RAILGUN, railgunDemand } from './weapons-model';
 import { WeaponsPower } from './weapons-power';
 
 const start = new ShipStateStore(deck satisfies DeckPlan).snapshot();

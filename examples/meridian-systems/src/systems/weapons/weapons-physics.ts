@@ -1,13 +1,13 @@
-import { LITHIUM_LOOP, pulseCoolant } from '../../physics/thermal';
-import { RAILGUN_LOAD, stepWeapons } from '../../physics/weapons';
 import type {
   IShipSystem,
   Phase,
   ShipSnapshot,
   TickContext,
 } from '../../simulation/contracts';
+import { LITHIUM_LOOP, pulseCoolant } from '../engineering/engineering-model';
 
 import { type IWeaponMount, WEAPON_MOUNT } from './contracts';
+import { RAILGUN_LOAD, stepWeapons } from './weapons-model';
 
 /** Steps the railgun in phase 3 of each tick. */
 export class WeaponsPhysics implements IShipSystem {

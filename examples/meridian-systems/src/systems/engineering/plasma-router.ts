@@ -1,7 +1,6 @@
 import { all, lazy } from '@nexusdi/core';
 
 import { PowerBudgetError } from '../../errors';
-import { allocatePower, type PowerLoad } from '../../physics/power';
 import {
   type IShipState,
   SHIP_STATE,
@@ -14,8 +13,10 @@ import {
   type IPowerRouter,
   type IShieldGrid,
   POWER_CONSUMERS,
+  type PowerLoad,
   SHIELD_GRID,
 } from './contracts';
+import { allocatePower } from './engineering-model';
 
 /**
  * Lists the loads of a tick and checks a new load against the reactor's

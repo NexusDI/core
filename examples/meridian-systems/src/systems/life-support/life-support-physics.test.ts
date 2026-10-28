@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import calibration from '../../../deck/sensors.calibration.json';
 import deck from '../../../deck/meridian.deck.json';
-import { LIFE_SUPPORT_RATINGS, stepAtmosphere } from '../../physics/atmosphere';
 import type {
   DeckPlan,
   ShipSnapshot,
@@ -11,6 +10,7 @@ import type {
 import { SeededRandom } from '../../simulation/seeded-random';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
+import { LIFE_SUPPORT_RATINGS, stepAtmosphere } from './life-support-model';
 import { LifeSupportPhysics } from './life-support-physics';
 
 const plan = deck satisfies DeckPlan;

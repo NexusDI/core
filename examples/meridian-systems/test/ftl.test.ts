@@ -2,7 +2,7 @@ import { Nexus } from '@nexusdi/core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { meridianSystems } from '../src/meridian-systems.module';
-import { LITHIUM_LOOP } from '../src/physics/thermal';
+import { LITHIUM_LOOP } from '../src/systems/engineering/engineering-model';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
 import {
   SHIP_STATE,

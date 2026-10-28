@@ -1,5 +1,3 @@
-import { allocatePower, loadHeat } from '../../physics/power';
-import { stepCoolant, stepReactor, tripped } from '../../physics/thermal';
 import type {
   IShipSystem,
   Phase,
@@ -15,6 +13,13 @@ import {
   POWER_ROUTER,
   REACTOR,
 } from './contracts';
+import {
+  allocatePower,
+  loadHeat,
+  stepCoolant,
+  stepReactor,
+  tripped,
+} from './engineering-model';
 
 /** Steps the reactor, the power router and the coolant loop in phase 1 of each tick. */
 export class EngineeringPhysics implements IShipSystem {
