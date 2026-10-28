@@ -501,9 +501,15 @@ export const errorCases: readonly ErrorCase[] = [
       owner: 'PowerRouter',
       target: 'ShieldGrid',
       path: [],
+      contributor: null,
     }),
     code: 'NEXUS_NOT_READY',
-    fields: { owner: 'PowerRouter', target: 'ShieldGrid', path: [] },
+    fields: {
+      owner: 'PowerRouter',
+      target: 'ShieldGrid',
+      path: [],
+      contributor: null,
+    },
   },
   {
     name: 'NotReadyError (runtime cycle)',
@@ -511,12 +517,46 @@ export const errorCases: readonly ErrorCase[] = [
       owner: 'PowerRouter',
       target: 'ShieldGrid',
       path: ['PowerRouter', 'ShieldGrid'],
+      contributor: null,
     }),
     code: 'NEXUS_NOT_READY',
     fields: {
       owner: 'PowerRouter',
       target: 'ShieldGrid',
       path: ['PowerRouter', 'ShieldGrid'],
+      contributor: null,
+    },
+  },
+  {
+    name: 'NotReadyError (lazy all contribution)',
+    error: new NotReadyError({
+      owner: 'PowerRouter',
+      target: 'Conduits',
+      path: [],
+      contributor: 'PlasmaConduit (module Engineering)',
+    }),
+    code: 'NEXUS_NOT_READY',
+    fields: {
+      owner: 'PowerRouter',
+      target: 'Conduits',
+      path: [],
+      contributor: 'PlasmaConduit (module Engineering)',
+    },
+  },
+  {
+    name: 'NotReadyError (lazy all alias contribution)',
+    error: new NotReadyError({
+      owner: 'PowerRouter',
+      target: 'Conduits',
+      path: [],
+      contributor: 'useExisting #1 (module Engineering)',
+    }),
+    code: 'NEXUS_NOT_READY',
+    fields: {
+      owner: 'PowerRouter',
+      target: 'Conduits',
+      path: [],
+      contributor: 'useExisting #1 (module Engineering)',
     },
   },
   {

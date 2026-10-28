@@ -293,8 +293,12 @@ const provider: Builder<ProviderError> = (error) => {
 const notReady: Builder<NotReadyError> = (error) => {
   const cycle =
     error.path.length > 0 ? `\n  Runtime cycle: ${error.path.join(' → ')}` : '';
+  const first =
+    error.contributor === null
+      ? `${error.owner} called its lazy(${error.target}) thunk before ${error.target} was ready.`
+      : `${error.owner} called its lazy(all(${error.target})) thunk before the contribution ${error.contributor} was ready.`;
   return text(
-    `${error.owner} called its lazy(${error.target}) thunk before ${error.target} was ready.${cycle}\n` +
+    `${first}${cycle}\n` +
       `  Fix: call the thunk after startup, from a method, and not from a constructor, a factory's continuation or onInit.`,
   );
 };

@@ -480,6 +480,7 @@ function notBuilt(record: ProviderRecord): NotReadyError {
     owner: constructionStack.top()?.name ?? record.name,
     target: record.name,
     path: [],
+    contributor: null,
   });
 }
 
@@ -554,6 +555,7 @@ export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
       owner: constructionStack.top()?.name ?? record.name,
       target: record.name,
       path: constructionStack.cycleFrom(record.id, container),
+      contributor: null,
     });
   }
   const lazyAsync = (value: unknown): LazyAsyncError => {

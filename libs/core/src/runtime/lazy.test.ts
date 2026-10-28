@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { rejected, thrown } from '../../test-support/catch.js';
 import { deferred, flush } from '../../test-support/deferred.js';
 import { compile } from '../blueprint/compile.js';
-import { defineModule } from '../definitions/define-module.js';
+import {
+  defineModule,
+  type ModuleRef,
+  type ProviderEntry,
+} from '../definitions/define-module.js';
 import { all, lazy } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
 import { MultiToken, Token } from '../definitions/token.js';
@@ -323,6 +327,178 @@ describe('lazy(all())', () => {
     expect(built).toEqual([]);
   });
 
+  describe('contributor', () => {
+    class Alpha implements IHandler {
+      readonly name = 'alpha';
+      constructor(readonly bus: IBus) {}
+    }
+    class Beta implements IHandler {
+      readonly name = 'beta';
+      constructor(readonly bus: IBus) {}
+    }
+    const contributing = (name: string, providers: ProviderEntry[]) =>
+      defineModule({ name, providers, exports: [HANDLERS] });
+    const bridge = (imports: ModuleRef[]) =>
+      defineModule({
+        name: 'Bridge',
+        global: true,
+        imports,
+        providers: [
+          provide(BUS, {
+            useFactory: (handlers): IBus => {
+              handlers();
+              return { handlers };
+            },
+            deps: [lazy(all(HANDLERS))],
+          }),
+        ],
+        exports: [BUS],
+      });
+
+    it('names the first unready class contribution and its module, with target unchanged', async () => {
+      const error = await rejected(
+        Nexus.create(
+          bridge([
+            contributing('Hangar', [
+              provide(HANDLERS, { useClass: Alpha, deps: [BUS] }),
+            ]),
+            contributing('Dock', [
+              provide(HANDLERS, { useClass: Beta, deps: [BUS] }),
+            ]),
+          ]),
+        ),
+      );
+      const cause = (error as { cause: Error & Record<string, unknown> }).cause;
+      expect(cause).toMatchObject({
+        code: 'NEXUS_NOT_READY',
+        owner: 'Bus',
+        target: 'Handlers',
+        contributor: 'Alpha (module Hangar)',
+      });
+      expect(cause.message).toContain('contributor=Alpha (module Hangar)');
+    });
+
+    it('names the second contribution when the first listed one is ready', async () => {
+      const error = await rejected(
+        Nexus.create(
+          bridge([
+            contributing('Hangar', [
+              provide(HANDLERS, { useValue: { name: 'ready' } }),
+            ]),
+            contributing('Dock', [
+              provide(HANDLERS, { useClass: Beta, deps: [BUS] }),
+            ]),
+          ]),
+        ),
+      );
+      expect(error).toMatchObject({
+        cause: {
+          code: 'NEXUS_NOT_READY',
+          target: 'Handlers',
+          contributor: 'Beta (module Dock)',
+        },
+      });
+    });
+
+    it('names the alias record when the contribution is a useExisting of an unready provider', async () => {
+      const error = await rejected(
+        Nexus.create(
+          bridge([
+            contributing('Hangar', [
+              provide(Alpha, { deps: [BUS] }),
+              provide(HANDLERS, { useExisting: Alpha }),
+            ]),
+          ]),
+        ),
+      );
+      expect(error).toMatchObject({
+        cause: {
+          code: 'NEXUS_NOT_READY',
+          owner: 'Bus',
+          target: 'Handlers',
+          contributor: 'useExisting #1 (module Hangar)',
+        },
+      });
+    });
+
+    it('keeps target on the multi token and ends the path on the refused provider when an alias contribution closes a runtime cycle', async () => {
+      class Looper implements IHandler {
+        readonly name = 'looper';
+        constructor(handlers: () => readonly IHandler[]) {
+          handlers();
+        }
+      }
+      const error = await rejected(
+        Nexus.create(
+          defineModule({
+            name: 'Hangar',
+            providers: [
+              provide(Looper, { deps: [lazy(all(HANDLERS))] }),
+              provide(HANDLERS, { useExisting: Looper }),
+            ],
+          }),
+        ),
+      );
+      const cause = (error as { cause: Error & Record<string, unknown> }).cause;
+      expect(cause).toMatchObject({
+        code: 'NEXUS_NOT_READY',
+        owner: 'Looper',
+        target: 'Handlers',
+        contributor: 'useExisting #1 (module Hangar)',
+      });
+      expect((cause.path as string[]).at(-1)).toBe('Looper');
+    });
+
+    it('names a contribution without a class by its form and position', async () => {
+      const error = await rejected(
+        Nexus.create(
+          bridge([
+            contributing('Hangar', [
+              provide(HANDLERS, {
+                useFactory: (_bus: IBus) => ({ name: 'a' }),
+                deps: [BUS],
+              }),
+            ]),
+          ]),
+        ),
+      );
+      expect(error).toMatchObject({
+        cause: {
+          code: 'NEXUS_NOT_READY',
+          target: 'Handlers',
+          contributor: 'useFactory #1 (module Hangar)',
+        },
+      });
+    });
+
+    it('leaves contributor null for a plain lazy() thunk and keeps its message', async () => {
+      class EagerRouter {
+        constructor(shields: () => ShieldGrid) {
+          shields();
+        }
+      }
+      const error = await rejected(
+        Nexus.create(
+          defineModule({
+            name: 'Engineering',
+            providers: [
+              provide(EagerRouter, { deps: [lazy(ShieldGrid)] }),
+              provide(ShieldGrid, { deps: [EagerRouter as never] }),
+            ],
+          }),
+        ),
+      );
+      const cause = (error as { cause: Error & Record<string, unknown> }).cause;
+      expect(cause).toMatchObject({
+        code: 'NEXUS_NOT_READY',
+        contributor: null,
+      });
+      expect(cause.message).toBe(
+        '[NEXUS_NOT_READY] owner=EagerRouter target=ShieldGrid. https://nexus.js.org/errors/NEXUS_NOT_READY',
+      );
+    });
+  });
+
   it('meets NEXUS_DISPOSED in a collector disposer that calls the thunk, since the contributions go first', async () => {
     let met: unknown;
     class Bus implements IBus {
@@ -460,7 +636,12 @@ describe('lazy(all())', () => {
     await flush();
     gateHandler.resolve({ name: 'late' });
     expect(await rejected(creating)).toMatchObject({
-      cause: { code: 'NEXUS_NOT_READY', owner: 'Bus', target: 'Handlers' },
+      cause: {
+        code: 'NEXUS_NOT_READY',
+        owner: 'Bus',
+        target: 'Handlers',
+        contributor: 'useFactory #1 (module Root)',
+      },
     });
   });
 });
