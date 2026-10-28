@@ -1,0 +1,38 @@
+---
+title: NEXUS_LOAD_CONTRIBUTION
+kind: code
+description: ship.load() received a module that exports a contribution to a multi token.
+package: '@nexusdi/core'
+errorClass: LoadContributionError
+---
+
+# NEXUS_LOAD_CONTRIBUTION
+
+`NEXUS_LOAD_CONTRIBUTION` means `ship.load()` received a module that exports a contribution to a `MultiToken`. A collector that `Nexus.create` built holds the list it had at startup, so a loaded module cannot add to it. `load()` rejects with the error directly. `Nexus.check` with the `load` option reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). A loaded module may keep a contribution private and read it inside the module.
+
+## Reproduce `NEXUS_LOAD_CONTRIBUTION`
+
+The region loads `Survey`, which provides a value to the multi token `SYSTEMS` and exports the token. Without a plugin, core prints a one-line message that starts with the code and ends with the address of this page. With `errors()` from `@nexusdi/errors` registered (`npm install @nexusdi/errors@next`), the same error carries the full text and its fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_LOAD_CONTRIBUTION.md region=reproduce
+
+```
+
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. `load()` rejects, and the container keeps running. It prints the one-line message, then the full text. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `[ 'scout' ]`.
+
+## Fix `NEXUS_LOAD_CONTRIBUTION`
+
+`NEXUS_LOAD_CONTRIBUTION` is fixed by dropping the contribution from the loaded module and registering the provider from its `onInit` through a registry the collector offers. The module unregisters it on dispose. Here `FleetRoster` reads `all(SYSTEMS)` and offers `register(name)`, which returns the function that undoes it. `ScoutWing` in `Survey` registers `scout` in `onInit` and unregisters it in `Symbol.dispose`.
+
+```ts file=examples/meridian/src/errors/NEXUS_LOAD_CONTRIBUTION.md region=fix
+
+```
+
+Try it: add `provide(SYSTEMS, { useValue: 'scout' })` to the providers of `Survey` and `SYSTEMS` to its `exports`, and run `fixed.ts` again. `ship.load(Survey)` rejects with a `LoadContributionError` for `Survey`, and nothing after it runs. Remove both lines and the program prints `[ 'scout' ]` again.
+
+## Fields of `LoadContributionError`
+
+`LoadContributionError` has two fields:
+
+- `module`: the name of the loaded module that exports the contribution.
+- `token`: the description of the `MultiToken` it contributes to.

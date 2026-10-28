@@ -68,6 +68,10 @@ const meta: MetaRecord = {
     title: 'NEXUS_LOAD_GLOBAL_MODULE',
     display: 'hidden',
   },
+  NEXUS_LOAD_CONTRIBUTION: {
+    title: 'NEXUS_LOAD_CONTRIBUTION',
+    display: 'hidden',
+  },
   NEXUS_INVALID_MODULE_OPTIONS: {
     title: 'NEXUS_INVALID_MODULE_OPTIONS',
     display: 'hidden',

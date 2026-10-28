@@ -89,6 +89,7 @@ The first request into `/navigation/` loads `Navigation`, and `navigation.inject
 To maintain the integrity of the graph, NexusDI imposes a few restrictions on dynamic loading:
 
 - **No Global Modules:** You cannot `load()` a module marked as `global: true`. Global modules must be declared in the root module at startup because they affect the visibility of every other module. A global module makes its exports visible to every module, so a global module new to the graph would change what every existing module sees. Import a global module from the root module before `Nexus.create`, or load it without `global: true`.
+- **No Contributions to Multi Tokens:** A loaded module cannot export a contribution to a [`MultiToken`](/multi-providers/). A collector that `Nexus.create` built holds its list, and a later `load()` cannot extend it. The module may keep a contribution private and read it itself. To add to a collector from a loaded module, register the provider from the module's `onInit` through a registry the collector offers, and unregister it when the module is disposed.
 - **Sealed Container:** Once a provider is registered, it cannot be changed. `load()` adds new providers but does not allow you to replace existing ones.
 
 `load()` rejects a global module with [NEXUS_LOAD_GLOBAL_MODULE](/errors/NEXUS_LOAD_GLOBAL_MODULE/), which it throws directly, outside a `NEXUS_BLUEPRINT_INVALID` error. Its `module` property names the module, `Science` here:
@@ -98,6 +99,24 @@ To maintain the integrity of the graph, NexusDI imposes a few restrictions on dy
 ```
 
 **Try it:** Delete the `global: true,` line and run the region again. The load resolves and the region prints an empty line and then `undefined` twice, because there is no error to show.
+
+`load()` rejects a module that exports a contribution to a multi token with [NEXUS_LOAD_CONTRIBUTION](/errors/NEXUS_LOAD_CONTRIBUTION/), which it throws directly as well. Its `module` and `token` properties name the module and the token. `Nexus.check` with the `load` option reports it inside `NEXUS_BLUEPRINT_INVALID`.
+
+```ts file=examples/meridian/src/pages/load.md region=load-contribution
+
+```
+
+**Try it:** Save the region as `contribution.ts` and run it. It prints `NEXUS_LOAD_CONTRIBUTION`, `Survey` and `Systems`, one per line. Delete the `exports: [SYSTEMS],` line and run it again: the load resolves and it prints `undefined` three times.
+
+### Adding to a Collector from a Loaded Module
+
+A collector that wants contributions from loaded modules offers a registry. `HealthService` below keeps the list `all(HEALTH_CHECKS)` gave it and has a `register(check)` method that returns the function to unregister. `ScoutProbe` in the loaded `Survey` module takes `HEALTH_MONITOR`, registers its check in `onInit`, and unregisters it in `Symbol.dispose`. `Survey` exports no `HEALTH_CHECKS`, so the load succeeds:
+
+```ts file=examples/meridian/src/pages/load.md region=load-registry
+
+```
+
+**Try it:** Save the region as `registry.ts` and run it. It prints an empty line and then `scout`. Move the two `before` lines below the `load` and it prints `scout` twice.
 
 ### Why There Is No `set()`
 

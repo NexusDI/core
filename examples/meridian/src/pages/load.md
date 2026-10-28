@@ -244,6 +244,112 @@ console.log(named);
 
 <!-- #endregion load-global -->
 
+<!-- #region load-registry -->
+
+```ts @import.meta.vitest
+import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
+import { provide } from '@nexusdi/core';
+
+interface IHealthCheck {
+  readonly system: string;
+  check(): boolean;
+}
+interface IHealthMonitor {
+  register(check: IHealthCheck): () => void;
+  summary(): string;
+}
+interface IScoutProbe {
+  readonly name: string;
+}
+const HEALTH_CHECKS = new MultiToken<IHealthCheck>('HealthChecks');
+const HEALTH_MONITOR = new Token<IHealthMonitor>('HealthMonitor');
+const SCOUT_PROBE = new Token<IScoutProbe>('ScoutProbe');
+
+// The collector keeps its list and offers a registry beside it.
+class HealthService implements IHealthMonitor {
+  static deps = [all(HEALTH_CHECKS)] as const;
+  private readonly checks: IHealthCheck[];
+  constructor(checks: IHealthCheck[]) {
+    this.checks = [...checks];
+  }
+  register(check: IHealthCheck) {
+    this.checks.push(check);
+    return () => {
+      this.checks.splice(this.checks.indexOf(check), 1);
+    };
+  }
+  summary() {
+    return this.checks.map((each) => each.system).join(', ');
+  }
+}
+const Health = defineModule({
+  name: 'Health',
+  providers: [provide(HEALTH_MONITOR, { useClass: HealthService })],
+  exports: [HEALTH_MONITOR],
+});
+
+// The loaded module contributes from onInit and exports no HEALTH_CHECKS.
+class ScoutProbe implements IScoutProbe {
+  static deps = [HEALTH_MONITOR] as const;
+  readonly name = 'probe';
+  private unregister: (() => void) | undefined;
+  constructor(private readonly health: IHealthMonitor) {}
+  onInit() {
+    this.unregister = this.health.register({
+      system: 'scout',
+      check: () => true,
+    });
+  }
+  [Symbol.dispose]() {
+    this.unregister?.();
+  }
+}
+const Survey = defineModule({
+  name: 'Survey',
+  imports: [Health],
+  providers: [provide(SCOUT_PROBE, { useClass: ScoutProbe })],
+  exports: [SCOUT_PROBE],
+});
+
+await using ship = await Nexus.create(
+  defineModule({ name: 'Meridian', imports: [Health] }),
+);
+const before = ship.get(HEALTH_MONITOR).summary(); // -> ''
+console.log(before);
+await ship.load(Survey);
+const after = ship.get(HEALTH_MONITOR).summary(); // -> 'scout'
+console.log(after);
+```
+
+<!-- #endregion load-registry -->
+
+<!-- #region load-contribution -->
+
+```ts @import.meta.vitest
+import { MultiToken, Nexus, defineModule, isNexusError } from '@nexusdi/core';
+import { provide } from '@nexusdi/core';
+
+const SYSTEMS = new MultiToken<string>('Systems');
+
+const Survey = defineModule({
+  name: 'Survey',
+  providers: [provide(SYSTEMS, { useValue: 'scout' })],
+  exports: [SYSTEMS],
+});
+
+await using ship = await Nexus.create(defineModule({ name: 'Meridian' }));
+const error = await ship.load(Survey).catch((caught: unknown) => caught);
+const fields = isNexusError(error, 'NEXUS_LOAD_CONTRIBUTION') ? error : null;
+const code = fields?.code; // -> 'NEXUS_LOAD_CONTRIBUTION'
+console.log(code);
+const named = fields?.module; // -> 'Survey'
+console.log(named);
+const token = fields?.token; // -> 'Systems'
+console.log(token);
+```
+
+<!-- #endregion load-contribution -->
+
 <!-- #region lazy-route -->
 
 ```ts @import.meta.vitest
