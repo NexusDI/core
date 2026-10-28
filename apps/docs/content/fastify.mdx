@@ -50,6 +50,33 @@ To try it, save the region as `bridge.ts` and run `npx tsx bridge.ts`. It prints
 
 The thrown error is a `BlueprintError` holding [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/). With a live container, a wrong token fails when the app starts. Code that is not a route handler reads the scope with `await di.scope(req)`, which rejects when `di.plugin` has not run on the request.
 
+## Protecting Routes with Injected Hooks
+
+Route guards often require request-scoped services, such as an access-control provider, to determine if a request should proceed. Because `di.inject` wraps the final route handler, it cannot be used to create a hook that intercepts a request before it reaches that handler.
+
+**The `di.injectHook` function** resolves dependencies from the request's scope and passes them to a hook function. It takes the form `di.injectHook(deps, fn)`, where `fn` follows the `FastifyHook` type: `fn(deps, req, reply)`. `di.injectHook` returns an asynchronous hook compatible with `onRequest`, `preValidation`, and `preHandler` within route options or `addHook`.
+
+**Request flow.** The hook's return value decides whether the request goes on:
+
+- **To block a request:** Return the reply object, for example: `return reply.code(403).send()`.
+- **To allow a request:** Return nothing.
+
+A hook that throws sends the exception to Fastify's error handler.
+
+Returning a payload is a type error, as Fastify ignores payloads returned from hooks.
+
+```ts file=examples/meridian/src/pages/fastify.md region=guard
+
+```
+
+In this example, a request from `guest` receives a `403 Forbidden` response and never reaches the route. A request from `helm` passes the guard, allowing the route to respond with `main drive fired`.
+
+**Hook placement and timing** affect whether the dependency injection scope is available. Use `preHandler` or route-level `onRequest` hooks for guards. If you use an instance-level `addHook('onRequest', ...)` that is defined before `app.register(di.plugin)`, the hook will execute before the plugin creates the request scope. In this case, the hook will throw an error on every request informing you to register `di.plugin` first or to use `preHandler`. An `onRequest` hook added after the plugin works.
+
+**Request data.** Fastify parses the body after `onRequest`. Because `req.body` is `undefined` during the `onRequest` phase, use `preValidation` or `preHandler` if your guard needs to inspect the request body.
+
+**Validation timing** for `injectHook` mirrors that of `inject`. With a live container, `injectHook` checks the record when it is defined. With the function form the check runs on the first request. When using the section form `di.load(module).injectHook`, the check occurs after the section's first load.
+
 ## When the Scope Is Disposed
 
 The plugin's `onRequest` hook listens once for `reply.raw`'s `close` event and disposes the request's scope there. Node's `http.ServerResponse` emits `close` after `finish` on a normal reply, and emits `close` alone when the client aborts, so one listener covers both. A reply that sends a stream keeps its scope open until the stream ends or the client leaves.

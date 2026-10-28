@@ -56,6 +56,22 @@ The middleware stores the handle on `req.nexus`. The adapter types the field thr
 
 The thrown error is a `BlueprintError` holding [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/). With a live container, a wrong token fails when the app starts. Code that is not a route handler reads the scope with `await di.scope(req)`, which rejects when `di.middleware` has not run on the request.
 
+## Protecting Routes with `inject`
+
+Route guards ensure a request meets specific criteria, such as authentication or permission levels, before reaching a route handler. Because guards often rely on request-scoped services like an access-control provider, they require access to the current request context to make authorization decisions.
+
+Express needs no new API for it. When mounted as middleware, `di.inject` resolves the requested dependencies and then passes `req`, `res`, and `next` to the handler immediately following the resolved record.
+
+To implement a guard, define a handler using `di.inject(deps, (deps, req, res, next) => ...)` and mount it using `app.use`. The guard controls the request flow by either calling `next()` to allow the request to proceed or by sending a response to terminate the request.
+
+```ts file=examples/meridian/src/pages/express.md region=guard
+
+```
+
+In this example, a request from `guest` receives a `403 Forbidden` response, preventing the route from executing. A request from `helm` passes the guard and triggers the route response `main drive fired`.
+
+**Handling Guard Errors.** If a guard is defined as an `async` function and throws an error, Express 5 forwards the rejected promise to the error middleware. To specify the HTTP response code for these failures, throw an error object containing a `status` property.
+
 ## When the Scope Is Disposed
 
 The middleware listens once for the response's `close` event and disposes the request's scope there. Node's `http.ServerResponse` emits `close` after `finish` on a normal response, and emits `close` alone when the client aborts, so one listener covers both. A streamed response written with `res.write()` keeps its scope open until the stream ends with `res.end()` or the client leaves.

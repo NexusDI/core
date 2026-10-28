@@ -285,3 +285,87 @@ await ship[Symbol.asyncDispose]();
 ```
 
 <!-- #endregion ambient -->
+
+<!-- #region guard -->
+
+```ts @import.meta.vitest
+import { once } from 'node:events';
+import type { AddressInfo } from 'node:net';
+
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+import { nexus } from '@nexusdi/express';
+import express from 'express';
+
+interface IAccessControl {
+  mayFire(operator: string | undefined): boolean;
+}
+interface IMainDrive {
+  fire(): string;
+}
+const ACCESS = new Token<IAccessControl>('AccessControl');
+const MAIN_DRIVE = new Token<IMainDrive>('MainDrive');
+
+class HelmOnlyAccess implements IAccessControl {
+  mayFire(operator: string | undefined) {
+    return operator === 'helm';
+  }
+}
+class FusionDrive implements IMainDrive {
+  fire() {
+    return 'main drive fired';
+  }
+}
+
+const Meridian = defineModule({
+  name: 'Meridian',
+  providers: [
+    provide(ACCESS, { useClass: HelmOnlyAccess }),
+    provide(MAIN_DRIVE, { useClass: FusionDrive }),
+  ],
+});
+
+const ship = await Nexus.create(Meridian);
+const di = nexus(ship, {
+  request: () => ({ mission: { id: 'survey-7', target: 'Kepler-442b' } }),
+});
+
+const bridge = express();
+bridge.use(di.middleware);
+bridge.use(
+  '/drive',
+  di.inject({ access: ACCESS }, ({ access }, req, res, next) => {
+    if (!access.mayFire(req.get('x-operator'))) {
+      res.status(403).send('Forbidden');
+      return;
+    }
+    next();
+  }),
+);
+bridge.post(
+  '/drive/fire',
+  di.inject({ drive: MAIN_DRIVE }, ({ drive }, _req, res) => {
+    res.send(drive.fire());
+  }),
+);
+
+const server = bridge.listen(0);
+await once(server, 'listening');
+const { port } = server.address() as AddressInfo;
+const url = `http://127.0.0.1:${port}/drive/fire`;
+const denied = await fetch(url, {
+  method: 'POST',
+  headers: { 'x-operator': 'guest' },
+});
+const refusal = `${denied.status} ${await denied.text()}`; // -> '403 Forbidden'
+const allowed = await fetch(url, {
+  method: 'POST',
+  headers: { 'x-operator': 'helm' },
+});
+const fired = await allowed.text(); // -> 'main drive fired'
+console.log(refusal, fired);
+server.close();
+await once(server, 'close');
+await ship[Symbol.asyncDispose]();
+```
+
+<!-- #endregion guard -->

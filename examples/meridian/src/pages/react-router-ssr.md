@@ -388,3 +388,86 @@ await ship[Symbol.asyncDispose]();
 ```
 
 <!-- #endregion errors -->
+
+<!-- #region guard -->
+
+```ts @import.meta.vitest
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+import { nexus } from '@nexusdi/react-router';
+import { RouterContextProvider, type MiddlewareFunction } from 'react-router';
+
+interface IAccessControl {
+  mayFire(operator: string | undefined): boolean;
+}
+interface IMainDrive {
+  fire(): string;
+}
+const ACCESS = new Token<IAccessControl>('AccessControl');
+const MAIN_DRIVE = new Token<IMainDrive>('MainDrive');
+
+class HelmOnlyAccess implements IAccessControl {
+  mayFire(operator: string | undefined) {
+    return operator === 'helm';
+  }
+}
+class FusionDrive implements IMainDrive {
+  fire() {
+    return 'main drive fired';
+  }
+}
+
+const Meridian = defineModule({
+  name: 'Meridian',
+  providers: [
+    provide(ACCESS, { useClass: HelmOnlyAccess }),
+    provide(MAIN_DRIVE, { useClass: FusionDrive }),
+  ],
+});
+
+const ship = await Nexus.create(Meridian);
+const di = nexus(ship, {
+  request: () => ({ mission: { id: 'survey-7', target: 'Kepler-442b' } }),
+});
+
+// app/routes/drive.tsx
+const middleware: MiddlewareFunction<Response>[] = [
+  di.injectMiddleware(
+    { access: ACCESS },
+    async ({ access }, { request }, next) => {
+      if (!access.mayFire(request.headers.get('x-operator') ?? undefined))
+        return new Response('Forbidden', { status: 403 });
+      return next();
+    },
+  ),
+];
+const loader = di.inject({ drive: MAIN_DRIVE }, ({ drive }) => drive.fire());
+
+// What React Router does for a request: root middleware, route middleware, loader.
+async function visit(operator: string) {
+  const context = new RouterContextProvider();
+  const request = new Request('http://bridge/drive', {
+    headers: { 'x-operator': operator },
+  });
+  const args = {
+    request,
+    url: new URL(request.url),
+    pattern: '/drive',
+    params: {},
+    context,
+  };
+  const run = async () => new Response(await loader({ context }));
+  return di.middleware(args, async () => {
+    const answer = await middleware[0]!(args, run);
+    return answer ?? run(); // React Router calls next itself when a middleware returns nothing
+  });
+}
+
+const denied = await visit('guest');
+const refusal = `${denied.status} ${await denied.text()}`; // -> '403 Forbidden'
+const allowed = await visit('helm');
+const fired = await allowed.text(); // -> 'main drive fired'
+console.log(refusal, fired);
+await ship[Symbol.asyncDispose]();
+```
+
+<!-- #endregion guard -->

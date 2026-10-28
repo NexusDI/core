@@ -7,7 +7,7 @@ package: '@nexusdi/hono'
 
 # `@nexusdi/hono`
 
-A request-scoped service needs one scope per request, disposed when the response is done. A Hono handler that streams keeps writing after `next()` returns, so a scope disposed there is gone while the stream still reads it. `const di = nexus(ship)` gives a `NexusHono`: `di.middleware` gives each request a scope handle, and the first `di.inject` handler creates the scope and resolves its typed deps from it. With the `scopes` option the middleware creates the scope at once. The scope is disposed once, when the response body ends, errors or is cancelled, or when the request's signal aborts. A NexusDI error from creating the scope or resolving a handler's deps reaches Hono as an `HTTPException` with status 500 or 503, whose `cause` is a `NexusHttpError`. Each export has one entry below, with what the package's tests state about it.
+A request-scoped service needs one scope per request, disposed when the response is done. A Hono handler that streams keeps writing after `next()` returns, so a scope disposed there is gone while the stream still reads it. `const di = nexus(ship)` gives a `NexusHono`: `di.middleware` gives each request a scope handle, and the first `di.inject` handler creates the scope and resolves its typed deps from it. `di.injectMiddleware` does the same for a guard. With the `scopes` option the middleware creates the scope at once. The scope is disposed once, when the response body ends, errors or is cancelled, or when the request's signal aborts. A NexusDI error from creating the scope or resolving a handler's deps reaches Hono as an `HTTPException` with status 500 or 503, whose `cause` is a `NexusHttpError`. Each export has one entry below, with what the package's tests state about it.
 
 <ApiFilter />
 
@@ -30,6 +30,10 @@ A request-scoped service needs one scope per request, disposed when the response
 ## `HonoHandler`
 
 <!-- reference @nexusdi/hono#HonoHandler -->
+
+## `HonoMiddleware`
+
+<!-- reference @nexusdi/hono#HonoMiddleware -->
 
 ## `SectionMiddleware`
 

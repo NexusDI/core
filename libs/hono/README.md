@@ -9,7 +9,7 @@ A request-scoped service needs a scope per request, disposed when the response i
 
 ## How the scope follows the request
 
-`di.middleware` gives each request a scope handle. The first `di.inject` handler creates the scope and resolves its typed deps from it. The scope is disposed once, when the response body ends, errors or is cancelled, or when the request's signal aborts. On Workers the disposal goes to `executionCtx.waitUntil`, so the isolate stays up until it finishes.
+`di.middleware` gives each request a scope handle. The first `di.inject` handler creates the scope and resolves its typed deps from it. `di.injectMiddleware` does the same for a guard that ends the request before the route runs. The scope is disposed once, when the response body ends, errors or is cancelled, or when the request's signal aborts. On Workers the disposal goes to `executionCtx.waitUntil`, so the isolate stays up until it finishes.
 
 ## Installation
 

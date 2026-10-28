@@ -241,3 +241,82 @@ await ship[Symbol.asyncDispose]();
 ```
 
 <!-- #endregion ambient -->
+
+<!-- #region guard -->
+
+```ts @import.meta.vitest
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+import { nexus, type NexusEnv } from '@nexusdi/hono';
+import { Hono, type Context } from 'hono';
+
+interface IAccessControl {
+  mayFire(operator: string | undefined): boolean;
+}
+interface IMainDrive {
+  fire(): string;
+}
+const ACCESS = new Token<IAccessControl>('AccessControl');
+const MAIN_DRIVE = new Token<IMainDrive>('MainDrive');
+
+class HelmOnlyAccess implements IAccessControl {
+  mayFire(operator: string | undefined) {
+    return operator === 'helm';
+  }
+}
+class FusionDrive implements IMainDrive {
+  fire() {
+    return 'main drive fired';
+  }
+}
+
+const Meridian = defineModule({
+  name: 'Meridian',
+  providers: [
+    provide(ACCESS, { useClass: HelmOnlyAccess }),
+    provide(MAIN_DRIVE, { useClass: FusionDrive }),
+  ],
+});
+
+// Variables the guard sets for the routes after it.
+type OperatorEnv = NexusEnv & { Variables: { operator: string } };
+
+const ship = await Nexus.create(Meridian);
+const di = nexus(ship, {
+  request: () => ({ mission: { id: 'survey-7', target: 'Kepler-442b' } }),
+});
+
+const guard = di.injectMiddleware(
+  { access: ACCESS },
+  async ({ access }, c: Context<OperatorEnv>, next) => {
+    const operator = c.req.header('x-operator');
+    if (!access.mayFire(operator)) return c.text('Forbidden', 403);
+    c.set('operator', operator ?? '');
+    await next();
+  },
+);
+
+const drive = new Hono<OperatorEnv>()
+  .use(di.middleware)
+  .use('/drive/*', guard)
+  .post(
+    '/drive/fire',
+    di.inject({ drive: MAIN_DRIVE }, ({ drive }, c: Context<OperatorEnv>) =>
+      c.text(`${c.var.operator}: ${drive.fire()}`),
+    ),
+  );
+
+const denied = await drive.request('/drive/fire', {
+  method: 'POST',
+  headers: { 'x-operator': 'guest' },
+});
+const refusal = `${denied.status} ${await denied.text()}`; // -> '403 Forbidden'
+const allowed = await drive.request('/drive/fire', {
+  method: 'POST',
+  headers: { 'x-operator': 'helm' },
+});
+const fired = await allowed.text(); // -> 'helm: main drive fired'
+console.log(refusal, fired);
+await ship[Symbol.asyncDispose]();
+```
+
+<!-- #endregion guard -->
