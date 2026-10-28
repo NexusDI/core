@@ -112,8 +112,13 @@ console.log(frequency);
 <!-- #region module-exports -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 
 interface IReactorCore {
   readonly output: number;
@@ -321,9 +326,13 @@ console.log(course);
 <!-- #region errors -->
 
 ```ts @import.meta.vitest
-import { MissingProviderError, Nexus, Token } from '@nexusdi/core';
-import { isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  MissingProviderError,
+  Nexus,
+  Token,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 
 interface INavCharts {

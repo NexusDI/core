@@ -5,8 +5,13 @@ Regions for `apps/docs/content/errors/NEXUS_INTERCEPTORS_UNCHECKED.mdx`. Every b
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { isNexusError } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import type { NexusPlugin } from '@nexusdi/core';
 import { interceptor, interceptors } from '@nexusdi/interceptors';
 import type { CallContext, Interceptor, Next } from '@nexusdi/interceptors';

@@ -58,8 +58,13 @@ console.log(course);
 <!-- #region load-invalid -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 
 interface INavCharts {
   plot(to: string): string;
@@ -174,8 +179,13 @@ console.log(order);
 <!-- #region extend-scope -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 
 interface ISensorSweep {
   readonly target: string;
@@ -216,8 +226,13 @@ console.log(target);
 <!-- #region load-global -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 
 interface ISensorSweep {
   readonly target: string;
@@ -247,8 +262,14 @@ console.log(named);
 <!-- #region load-registry -->
 
 ```ts @import.meta.vitest
-import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  MultiToken,
+  Nexus,
+  Token,
+  all,
+  defineModule,
+  provide,
+} from '@nexusdi/core';
 
 interface IHealthCheck {
   readonly system: string;
@@ -326,8 +347,13 @@ console.log(after);
 <!-- #region load-contribution -->
 
 ```ts @import.meta.vitest
-import { MultiToken, Nexus, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  MultiToken,
+  Nexus,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 
 const SYSTEMS = new MultiToken<string>('Systems');
 

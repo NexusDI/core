@@ -5,8 +5,15 @@ Regions for `apps/docs/content/errors/NEXUS_NOT_READY.mdx`. Every block runs as 
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError, lazy } from '@nexusdi/core';
-import { provide, type NexusPlugin } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  lazy,
+  provide,
+  type NexusPlugin,
+} from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 
 interface IPowerRouter {

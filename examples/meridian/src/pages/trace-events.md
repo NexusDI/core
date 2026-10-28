@@ -81,8 +81,13 @@ console.log(sameClock, chromeTs > 0, new Date(unixMs).getFullYear() > 2000);
 <!-- #region third-party -->
 
 ```ts @import.meta.vitest
-import { NEXUS_PLUGIN_API, Nexus, Token, defineModule } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  NEXUS_PLUGIN_API,
+  Nexus,
+  Token,
+  defineModule,
+  provide,
+} from '@nexusdi/core';
 import type { NexusPlugin, TraceEvent } from '@nexusdi/core';
 
 interface ISubspaceLink {

@@ -86,7 +86,7 @@ console.log(profileTable(report));
 
 <!-- #endregion in-app -->
 
-<!-- #region in-app-sync -->
+<!-- Runs the edit of the in-app Try it, a plain factory. -->
 
 ```ts @import.meta.vitest
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
@@ -166,8 +166,6 @@ const async = charts?.async; // -> false
 console.log(async);
 ```
 
-<!-- #endregion in-app-sync -->
-
 <!-- #region critical-path -->
 
 ```ts @import.meta.vitest
@@ -231,7 +229,7 @@ console.log(chained);
 
 <!-- #endregion critical-path -->
 
-<!-- #region critical-path-barrier -->
+<!-- Runs the edit of the critical-path Try it, an async NavCharts without deps. -->
 
 ```ts @import.meta.vitest
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
@@ -287,8 +285,6 @@ const chained = path?.path.map((p) => p.dependsOnPrevious); // -> [false, false]
 console.log(chained);
 ```
 
-<!-- #endregion critical-path-barrier -->
-
 <!-- #region stalled -->
 
 ```ts @import.meta.vitest
@@ -323,7 +319,7 @@ console.log(waiting);
 
 <!-- #endregion stalled -->
 
-<!-- #region stalled-settled -->
+<!-- Runs the edit of the stalled Try it, a factory that settles. -->
 
 ```ts @import.meta.vitest
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
@@ -353,8 +349,6 @@ console.log(settled);
 const waiting = run?.pending.map((p) => `${p.token} ${p.what}`); // -> []
 console.log(waiting);
 ```
-
-<!-- #endregion stalled-settled -->
 
 <!-- #region trace-file -->
 
@@ -399,7 +393,7 @@ console.log(tracks);
 
 <!-- #endregion trace-file -->
 
-<!-- #region trace-file-value -->
+<!-- Runs the edit of the trace-file Try it, a reactor with eager: false. -->
 
 ```ts @import.meta.vitest
 import { writeFileSync } from 'node:fs';
@@ -439,8 +433,6 @@ const names = threads.map((e) => (e['args'] as { name: string }).name);
 const tracks = names; // -> ['steps']
 console.log(tracks);
 ```
-
-<!-- #endregion trace-file-value -->
 
 <!-- #region live -->
 

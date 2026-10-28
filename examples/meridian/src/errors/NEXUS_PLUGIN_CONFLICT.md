@@ -5,8 +5,13 @@ Regions for `apps/docs/content/errors/NEXUS_PLUGIN_CONFLICT.mdx`. Every block ru
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { NEXUS_PLUGIN_API, Nexus, Token, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  NEXUS_PLUGIN_API,
+  Nexus,
+  Token,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import type { NexusPlugin } from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 

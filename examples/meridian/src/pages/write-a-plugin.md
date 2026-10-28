@@ -5,8 +5,13 @@ Regions for `apps/docs/content/write-a-plugin.mdx`. Every block runs as a test.
 <!-- #region observe -->
 
 ```ts @import.meta.vitest
-import { NEXUS_PLUGIN_API, Nexus, Token, defineModule } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  NEXUS_PLUGIN_API,
+  Nexus,
+  Token,
+  defineModule,
+  provide,
+} from '@nexusdi/core';
 import type { NexusPlugin } from '@nexusdi/core';
 
 interface IReactorCore {
@@ -60,8 +65,15 @@ console.log(recorded);
 <!-- #region own-error -->
 
 ```ts @import.meta.vitest
-import { NEXUS_PLUGIN_API, Nexus, Token, defineModule } from '@nexusdi/core';
-import { errorBase, isNexusError, provide } from '@nexusdi/core';
+import {
+  NEXUS_PLUGIN_API,
+  Nexus,
+  Token,
+  defineModule,
+  errorBase,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import type { ErrorTextPack, NexusPlugin } from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 
@@ -138,8 +150,13 @@ console.log(full);
 <!-- #region own-event -->
 
 ```ts @import.meta.vitest
-import { NEXUS_PLUGIN_API, Nexus, Token, defineModule } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  NEXUS_PLUGIN_API,
+  Nexus,
+  Token,
+  defineModule,
+  provide,
+} from '@nexusdi/core';
 import type { NexusPlugin, TraceEvent } from '@nexusdi/core';
 import { trace } from '@nexusdi/devtools';
 
@@ -223,8 +240,13 @@ console.log(notes);
 <!-- #region canonical -->
 
 ```ts @import.meta.vitest
-import { NEXUS_PLUGIN_API, Nexus, Token, defineModule } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  NEXUS_PLUGIN_API,
+  Nexus,
+  Token,
+  defineModule,
+  provide,
+} from '@nexusdi/core';
 import type { NexusPlugin } from '@nexusdi/core';
 
 interface ISubspaceLink {

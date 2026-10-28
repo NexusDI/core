@@ -5,8 +5,13 @@ Regions for `apps/docs/content/error-text.mdx`. Every block runs as a test.
 <!-- #region package-pack -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import type { NexusPlugin } from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 import { interceptor, interceptors } from '@nexusdi/interceptors';
@@ -61,8 +66,13 @@ console.log(full);
 <!-- #region translate -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import type { ErrorTextPack } from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 
@@ -108,8 +118,13 @@ console.log(message);
 <!-- #region explain -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { explain } from '@nexusdi/errors';
 
 interface INavCharts {
@@ -150,8 +165,13 @@ console.log(full);
 <!-- #region devtools-and-inspect -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { devtools, inspect } from '@nexusdi/devtools';
 import { interceptor, interceptors } from '@nexusdi/interceptors';
 import type { CallContext, Interceptor, Next } from '@nexusdi/interceptors';

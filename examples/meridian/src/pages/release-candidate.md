@@ -5,8 +5,13 @@ Regions for `apps/docs/content/release-candidate.mdx`. Every block runs as a tes
 <!-- #region reproduction -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 
 // Replace these declarations with the smallest part of your app that fails.
 interface INavCharts {

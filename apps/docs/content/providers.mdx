@@ -45,6 +45,12 @@ The `deps` option has the same type check as `static deps`, and when a class car
 
 **Try it:** Change `deps: [REACTOR]` to `deps: []` and run `npx tsc`. TypeScript rejects the `provide(COMPUTER, ...)` call, because `VendorComputer` takes one parameter and the list holds none. Run the file anyway and `status()` throws a `TypeError`, because `reactor` is `undefined`. Change the list back to `[REACTOR]` and `npx tsc` reports nothing.
 
+Below, `QuantumComputer` declares `static deps = [REACTOR]` and its provider passes `deps: [SPARE]`, so the computer reads the spare reactor and `output` is `0.5`:
+
+```ts file=examples/meridian/src/pages/providers.md region=deps-wins
+
+```
+
 ## Advanced Provider Types
 
 Sometimes a simple class instantiation isn't enough. NexusDI provides several other ways to resolve tokens.

@@ -5,8 +5,13 @@ Regions for `apps/docs/content/errors/NEXUS_DEVTOOLS_UNREGISTERED.mdx`. Every bl
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule } from '@nexusdi/core';
-import { isNexusError, provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { graph } from '@nexusdi/devtools';
 
 interface IReactorCore {

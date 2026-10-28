@@ -5,8 +5,13 @@ Regions for `apps/docs/content/errors/NEXUS_INTERCEPTOR_NOT_READY.mdx`. Every bl
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { isNexusError } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { interceptor, interceptors } from '@nexusdi/interceptors';
 import type { CallContext, Interceptor, Next } from '@nexusdi/interceptors';
 
@@ -123,8 +128,13 @@ console.log(diagnosis);
 <!-- #region building -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { isNexusError } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { interceptor, interceptors } from '@nexusdi/interceptors';
 import type { CallContext, Interceptor, Next } from '@nexusdi/interceptors';
 

@@ -69,7 +69,7 @@ interface INavCharts {
 }
 
 // examples/federation-contracts/src/index.ts, the package the shell owns.
-const meridian = defineContract({ key: 'meridian', version: '2.3.0' });
+const meridian = defineContract({ key: 'meridian', version: '2.4.0' });
 const NAV_CHARTS = meridian.token<INavCharts>('NavCharts');
 
 const description = NAV_CHARTS.description; // -> 'meridian/NavCharts'
@@ -92,8 +92,8 @@ interface INavRoutes {
 }
 
 // The shell's copy of the contracts package, and the remote's copy.
-const meridian = defineContract({ key: 'meridian', version: '2.3.0' });
-const remoteMeridian = defineContract({ key: 'meridian', version: '2.3.0' });
+const meridian = defineContract({ key: 'meridian', version: '2.4.0' });
+const remoteMeridian = defineContract({ key: 'meridian', version: '2.4.0' });
 
 // The shell's contract module, global so that a loaded section sees it.
 const NAV_CHARTS = meridian.token<INavCharts>('NavCharts');

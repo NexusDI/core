@@ -5,8 +5,13 @@ Regions for `apps/docs/content/errors/NEXUS_LOAD_CONTRIBUTION.mdx`. Every block 
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { MultiToken, Nexus, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  MultiToken,
+  Nexus,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 
 const SYSTEMS = new MultiToken<string>('Systems');
@@ -34,8 +39,14 @@ console.log(text);
 <!-- #region fix -->
 
 ```ts @import.meta.vitest
-import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  MultiToken,
+  Nexus,
+  Token,
+  all,
+  defineModule,
+  provide,
+} from '@nexusdi/core';
 
 interface IFleetRoster {
   register(name: string): () => void;

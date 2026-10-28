@@ -5,8 +5,13 @@ Regions for `apps/docs/content/errors/NEXUS_DEVTOOLS_PROFILE_REUSED.mdx`. Every 
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { isNexusError } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { profile } from '@nexusdi/devtools';
 
 interface IReactorCore {

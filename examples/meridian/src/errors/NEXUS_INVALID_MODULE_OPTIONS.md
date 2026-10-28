@@ -5,8 +5,13 @@ Regions for `apps/docs/content/errors/NEXUS_INVALID_MODULE_OPTIONS.mdx`. Every b
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { errors, explain } from '@nexusdi/errors';
 import * as v from 'valibot';
 

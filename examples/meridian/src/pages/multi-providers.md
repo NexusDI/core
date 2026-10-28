@@ -7,13 +7,13 @@ Regions for `apps/docs/content/multi-providers.mdx`. Every block runs as a test.
 ```ts @import.meta.vitest
 import { MultiToken, Nexus, provide } from '@nexusdi/core';
 
-interface Diagnostic {
+interface IDiagnostic {
   readonly system: string;
   check(): boolean;
 }
-const DIAGNOSTICS = new MultiToken<Diagnostic>('Diagnostics');
+const DIAGNOSTICS = new MultiToken<IDiagnostic>('Diagnostics');
 
-class ReactorDiagnostic implements Diagnostic {
+class ReactorDiagnostic implements IDiagnostic {
   readonly system = 'reactor';
   check() {
     return true;
@@ -33,10 +33,17 @@ console.log(systems);
 <!-- #region panel -->
 
 ```ts @import.meta.vitest
-import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
-import { optional, provide } from '@nexusdi/core';
+import {
+  MultiToken,
+  Nexus,
+  Token,
+  all,
+  defineModule,
+  optional,
+  provide,
+} from '@nexusdi/core';
 
-interface Diagnostic {
+interface IDiagnostic {
   readonly system: string;
   check(): boolean;
 }
@@ -46,11 +53,11 @@ interface ISubspaceLink {
 interface IDiagnosticsPanel {
   report(): string;
 }
-const DIAGNOSTICS = new MultiToken<Diagnostic>('Diagnostics');
+const DIAGNOSTICS = new MultiToken<IDiagnostic>('Diagnostics');
 const SUBSPACE_LINK = new Token<ISubspaceLink>('SubspaceLink');
 const DIAGNOSTICS_PANEL = new Token<IDiagnosticsPanel>('DiagnosticsPanel');
 
-class ReactorDiagnostic implements Diagnostic {
+class ReactorDiagnostic implements IDiagnostic {
   readonly system = 'reactor';
   check() {
     return true;
@@ -59,7 +66,7 @@ class ReactorDiagnostic implements Diagnostic {
 class StatusBoard implements IDiagnosticsPanel {
   static deps = [all(DIAGNOSTICS), optional(SUBSPACE_LINK)] as const;
   constructor(
-    private readonly checks: Diagnostic[],
+    private readonly checks: IDiagnostic[],
     private readonly link: ISubspaceLink | undefined,
   ) {}
   report() {
@@ -98,8 +105,14 @@ console.log(report);
 <!-- #region publish -->
 
 ```ts @import.meta.vitest
-import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  MultiToken,
+  Nexus,
+  Token,
+  all,
+  defineModule,
+  provide,
+} from '@nexusdi/core';
 
 interface IHealthCheck {
   readonly system: string;
@@ -226,20 +239,26 @@ console.log(systems);
 <!-- #region unexported -->
 
 ```ts @import.meta.vitest
-import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  MultiToken,
+  Nexus,
+  Token,
+  all,
+  defineModule,
+  provide,
+} from '@nexusdi/core';
 
-interface Diagnostic {
+interface IDiagnostic {
   readonly system: string;
   check(): boolean;
 }
 interface IDiagnosticsPanel {
   systems(): string[];
 }
-const DIAGNOSTICS = new MultiToken<Diagnostic>('Diagnostics');
+const DIAGNOSTICS = new MultiToken<IDiagnostic>('Diagnostics');
 const DIAGNOSTICS_PANEL = new Token<IDiagnosticsPanel>('DiagnosticsPanel');
 
-class ReactorDiagnostic implements Diagnostic {
+class ReactorDiagnostic implements IDiagnostic {
   readonly system = 'reactor';
   check() {
     return true;
@@ -247,7 +266,7 @@ class ReactorDiagnostic implements Diagnostic {
 }
 class StatusBoard implements IDiagnosticsPanel {
   static deps = [all(DIAGNOSTICS)] as const;
-  constructor(private readonly checks: Diagnostic[]) {}
+  constructor(private readonly checks: IDiagnostic[]) {}
   systems() {
     return this.checks.map((each) => each.system);
   }
@@ -282,8 +301,15 @@ console.log(systems);
 <!-- #region lazy-all -->
 
 ```ts @import.meta.vitest
-import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
-import { lazy, provide } from '@nexusdi/core';
+import {
+  MultiToken,
+  Nexus,
+  Token,
+  all,
+  defineModule,
+  lazy,
+  provide,
+} from '@nexusdi/core';
 
 interface IBulletin {
   readonly text: string;
@@ -341,8 +367,15 @@ console.log(log);
 <!-- #region lazy-all-cycle -->
 
 ```ts @import.meta.vitest
-import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
-import { isNexusError, provide } from '@nexusdi/core';
+import {
+  MultiToken,
+  Nexus,
+  Token,
+  all,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 
 interface IHandler {
   handle(): void;
