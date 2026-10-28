@@ -30,7 +30,6 @@ const Tactical = defineModule({
     provide(NAV_CHARTS, { useValue: { plot: (to) => ({ to, heading: 42 }) } }),
   ],
   exports: [NAV_CHARTS],
-  global: true,
 });
 const Meridian = defineModule({ name: 'Meridian', imports: [Tactical] });
 
@@ -49,7 +48,9 @@ const Cartography = defineModule({
 });
 
 await using ship = await Nexus.create(Meridian);
-const error = await ship.load(Cartography).catch((caught: unknown) => caught);
+const error = await ship
+  .load(Cartography, { imports: [Tactical] })
+  .catch((caught: unknown) => caught);
 const inner = isNexusError(error, 'NEXUS_BLUEPRINT_INVALID')
   ? error.errors
   : [];
@@ -95,7 +96,7 @@ interface INavRoutes {
 const meridian = defineContract({ key: 'meridian', version: '2.4.0' });
 const remoteMeridian = defineContract({ key: 'meridian', version: '2.4.0' });
 
-// The shell's contract module, global so that a loaded section sees it.
+// The shell's contract module. The load below grants it to the section.
 const NAV_CHARTS = meridian.token<INavCharts>('NavCharts');
 const Tactical = defineModule({
   name: 'Tactical',
@@ -103,7 +104,6 @@ const Tactical = defineModule({
     provide(NAV_CHARTS, { useValue: { plot: (to) => ({ to, heading: 42 }) } }),
   ],
   exports: [NAV_CHARTS],
-  global: true,
 });
 const Meridian = defineModule({ name: 'Meridian', imports: [Tactical] });
 
@@ -123,7 +123,7 @@ const Cartography = defineModule({
 });
 
 await using ship = await Nexus.create(Meridian, { plugins: [federation()] });
-await ship.load(Cartography);
+await ship.load(Cartography, { imports: [Tactical] });
 const route = ship.get(NAV_ROUTES).find('Kepler-442b'); // -> 'Kepler-442b: heading 42'
 console.log(route);
 ```
@@ -162,7 +162,6 @@ const Tactical = defineModule({
     provide(NAV_CHARTS, { useValue: { plot: (to) => ({ to, heading: 42 }) } }),
   ],
   exports: [NAV_CHARTS],
-  global: true,
 });
 const Meridian = defineModule({ name: 'Meridian', imports: [Tactical] });
 
@@ -183,7 +182,9 @@ const Cartography = defineModule({
 await using ship = await Nexus.create(Meridian, {
   plugins: [federation(), errors({ text: [federationText] })],
 });
-const error = await ship.load(Cartography).catch((caught: unknown) => caught);
+const error = await ship
+  .load(Cartography, { imports: [Tactical] })
+  .catch((caught: unknown) => caught);
 const inner = isNexusError(error, 'NEXUS_BLUEPRINT_INVALID')
   ? error.errors[0]
   : undefined;

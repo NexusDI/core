@@ -95,6 +95,64 @@ code; // -> 'NEXUS_NOT_VISIBLE'
 
 <!-- #endregion modules -->
 
+## Loading once
+
+`loadOnce(container)` returns a load function that calls `container.load` once for each module and granted set.
+
+<!-- #region load-once -->
+
+```ts @import.meta.vitest
+import { Nexus, Token, defineModule, loadOnce, provide } from '@nexusdi/core';
+
+interface ISurveyDrone {
+  readonly serial: number;
+}
+const DRONE = new Token<ISurveyDrone>('SurveyDrone');
+let launched = 0;
+class ScoutDrone implements ISurveyDrone {
+  readonly serial = ++launched;
+}
+const Survey = defineModule({
+  name: 'Survey',
+  providers: [provide(DRONE, { useClass: ScoutDrone })],
+  exports: [DRONE],
+});
+
+await using ship = await Nexus.create(defineModule({ name: 'Meridian' }));
+const load = loadOnce(ship);
+const first = load(Survey);
+const second = load(Survey);
+await Promise.all([first, second]);
+first === second; // -> true
+launched; // -> 1
+loadOnce(ship) === load; // -> true
+```
+
+<!-- #endregion load-once -->
+
+## Splitting a load entry
+
+`splitLoadEntry(entry)` returns the module and the granted modules of a `LoadEntry`. A tool that loads entries calls `load(module, { imports })` with the parts, and a value that is neither form comes back as the module, so `load()` reports it.
+
+<!-- #region split-load-entry -->
+
+```ts @import.meta.vitest
+import { defineModule, splitLoadEntry } from '@nexusdi/core';
+
+const Engineering = defineModule({ name: 'Engineering' });
+const Survey = defineModule({ name: 'Survey' });
+
+const bare = splitLoadEntry(Survey);
+bare.module === Survey; // -> true
+bare.imports.length; // -> 0
+
+const granted = splitLoadEntry({ module: Survey, imports: [Engineering] });
+granted.module === Survey; // -> true
+granted.imports[0] === Engineering; // -> true
+```
+
+<!-- #endregion split-load-entry -->
+
 ## Async options
 
 `forRootAsync({ useFactory, deps })` computes a module's options at startup.

@@ -376,6 +376,119 @@ console.log(token);
 
 <!-- #endregion load-contribution -->
 
+<!-- #region load-grant -->
+
+```ts @import.meta.vitest
+import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
+import { provide } from '@nexusdi/core';
+
+interface INavCharts {
+  plot(to: string): string;
+}
+interface ISurveyDrone {
+  survey(): string;
+}
+const NAV_CHARTS = new Token<INavCharts>('NavCharts');
+const DRONE = new Token<ISurveyDrone>('SurveyDrone');
+
+class StarCharts implements INavCharts {
+  plot(to: string) {
+    return `course to ${to}`;
+  }
+}
+class ScoutDrone implements ISurveyDrone {
+  static deps = [NAV_CHARTS] as const;
+  constructor(private readonly charts: INavCharts) {}
+  survey() {
+    return this.charts.plot('Kepler-442b');
+  }
+}
+
+// The host's module. Survey cannot import it by name.
+const Tactical = defineModule({
+  name: 'Tactical',
+  providers: [provide(NAV_CHARTS, { useClass: StarCharts })],
+  exports: [NAV_CHARTS],
+});
+const Survey = defineModule({
+  name: 'Survey',
+  providers: [provide(DRONE, { useClass: ScoutDrone })],
+  exports: [DRONE],
+});
+
+await using ship = await Nexus.create(
+  defineModule({ name: 'Meridian', imports: [Tactical] }),
+);
+const refused = await ship.load(Survey).catch((caught: unknown) => caught);
+const refusedCode = isNexusError(refused) ? refused.code : null; // -> 'NEXUS_BLUEPRINT_INVALID'
+console.log(refusedCode);
+
+await ship.load(Survey, { imports: [Tactical] });
+const course = ship.get(DRONE).survey(); // -> 'course to Kepler-442b'
+console.log(course);
+```
+
+<!-- #endregion load-grant -->
+
+<!-- #region load-grant-reasons -->
+
+```ts @import.meta.vitest
+import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
+import { provide } from '@nexusdi/core';
+
+interface IFlag {
+  readonly name: string;
+}
+const TACTICAL_FLAG = new Token<IFlag>('TacticalFlag');
+const ENGINEERING_FLAG = new Token<IFlag>('EngineeringFlag');
+const SURVEY_FLAG = new Token<IFlag>('SurveyFlag');
+
+const Tactical = defineModule({
+  name: 'Tactical',
+  providers: [provide(TACTICAL_FLAG, { useValue: { name: 'tactical' } })],
+  exports: [TACTICAL_FLAG],
+});
+const Engineering = defineModule({
+  name: 'Engineering',
+  providers: [provide(ENGINEERING_FLAG, { useValue: { name: 'engineering' } })],
+  exports: [ENGINEERING_FLAG],
+});
+const Fresh = defineModule({ name: 'Fresh' });
+const Survey = defineModule({
+  name: 'Survey',
+  providers: [provide(SURVEY_FLAG, { useValue: { name: 'survey' } })],
+  exports: [SURVEY_FLAG],
+});
+const Meridian = defineModule({
+  name: 'Meridian',
+  imports: [Tactical, Engineering],
+});
+
+// The reason a load's grant is refused, or 'none' when the load resolves.
+const reasonOf = async (load: Promise<void>) => {
+  const error = await load.catch((caught: unknown) => caught);
+  return isNexusError(error, 'NEXUS_LOAD_GRANT') ? error.reason : 'none';
+};
+
+await using ship = await Nexus.create(Meridian);
+const absent = await reasonOf(ship.load(Survey, { imports: [Fresh] })); // -> 'not-in-graph'
+console.log(absent);
+const root = await reasonOf(ship.load(Survey, { imports: [Meridian] })); // -> 'root'
+console.log(root);
+
+await ship.load(Survey, { imports: [Tactical] });
+const same = await reasonOf(ship.load(Survey, { imports: [Tactical] })); // -> 'none'
+console.log(same);
+const bare = await reasonOf(ship.load(Survey)); // -> 'none'
+console.log(bare);
+const other = await reasonOf(ship.load(Survey, { imports: [Engineering] })); // -> 'already-loaded'
+console.log(other);
+const wired = await reasonOf(ship.load(Tactical, { imports: [Engineering] })); // -> 'already-loaded'
+console.log(wired);
+```
+
+<!-- #endregion load-grant-reasons -->
+
 <!-- #region lazy-route -->
 
 ```ts @import.meta.vitest

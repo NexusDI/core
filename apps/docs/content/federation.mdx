@@ -40,7 +40,9 @@ The contract lives in its own package, which the shell and every remote depend o
 
 `federation()` binds every copy of a contract token to one provider. The plugin matches tokens by contract key and token name, so the remote's `meridian/NavCharts` resolves to the provider the shell registered for its own `meridian/NavCharts`. Register it in the shell's `Nexus.create`. A remote registers no plugin, since the shell's container builds every section a remote hands it.
 
-The shell provides the contract tokens from a contract module, `Tactical` here, marked [`global: true`](/modules/). A remote cannot import the shell's `Tactical` object, so a section that [`load()`](/load/) adds sees `NAV_CHARTS` only through the exports of a global module.
+The shell provides the contract tokens from a contract module, `Tactical` here. Since a remote cannot directly import the shell's `Tactical` object, the shell grants the module to the section in the [`load()`](/load/): `ship.load(Cartography, { imports: [Tactical] })`. This makes the exports of `Tactical` available to `Cartography` and to each module of its subtree that the graph did not hold, as if they had imported the module directly. `Tactical` needs no `global: true`, and no other module of the shell sees a change.
+
+A grant is wiring, with no isolation. Because a remote runs within the shell's process, it can access any resource the shell's code can reach. For more details on how grants work, see [Granting Host Modules to a Loaded Module](/load/#granting-host-modules-to-a-loaded-module).
 
 ```ts file=examples/meridian/src/pages/federation.md region=load-section
 
@@ -48,7 +50,7 @@ The shell provides the contract tokens from a contract module, `Tactical` here, 
 
 **Try it:** Save the region as `section.ts` and run `npx tsx section.ts`. It prints `Kepler-442b: heading 42`. Change `Nexus.create(Meridian, { plugins: [federation()] })` to `Nexus.create(Meridian)` and run it again: `load()` rejects with `NEXUS_BLUEPRINT_INVALID`, whose `errors` list holds `NEXUS_MISSING_PROVIDER` for `meridian/NavCharts`. Put the plugin back and the region prints `Kepler-442b: heading 42` again.
 
-Delete `global: true,` from `Tactical` and run the region once more. `Cartography` no longer sees the exports of `Tactical`, and `load()` rejects with the same error. Put the line back.
+Delete the grant, `{ imports: [Tactical] }`, from the `load()` call and run the region once more. `Cartography` no longer sees the exports of `Tactical`, and `load()` rejects with the same error. Put the grant back.
 
 ## Check Contract Versions with `NEXUS_CONTRACT_VERSION`
 

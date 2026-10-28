@@ -105,6 +105,10 @@ On Node 22 and 24, `server.close()` leaves open a connection that has never sent
 
 An app that disposes the container before its server stops answers the remaining requests with a 503.
 
+## Load a Section on Its First Request
+
+`di.load(Navigation)` returns a middleware that loads a module once and extends the request's scope. A section that cannot import a host module by name takes the grant as the second argument, `di.load(Navigation, { imports: [Tactical] })`, and sees the exports of `Tactical`. [Adding Modules After Startup](/load/#granting-host-modules-to-a-loaded-module) covers the rules of a grant.
+
 ## Next Steps
 
 [Vitest fixtures](/vitest/) build a container with fakes in every test. To test a route, pass the `nexus` fixture to `nexus()` in place of `ship` and send the request with `app.request()`. [Running on Edge Runtimes](/edge/) gives the Worker and Vercel Edge entries. [`examples/bridge-api`](https://github.com/NexusDI/core/tree/release/0.4/examples/bridge-api) runs this setup as a full app in `src/entries/start.hono.ts`, on the same module graph as its Express and Fastify entries.
