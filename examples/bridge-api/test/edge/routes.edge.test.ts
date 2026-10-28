@@ -14,7 +14,7 @@ let vm: EdgeVM;
 const counts = () => vm.evaluate<Counts>('({ ...bridgeCounts })');
 
 // Bundles test/edge/entry.ts to one script and evaluates it in the Edge
-// Runtime VM, whose globals are Vercel's Edge Runtime (spec 9.8).
+// Runtime VM, whose globals are Vercel's Edge Runtime.
 beforeAll(async () => {
   const result = await build({
     entryPoints: [join(import.meta.dirname, 'entry.ts')],

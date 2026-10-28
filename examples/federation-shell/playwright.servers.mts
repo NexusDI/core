@@ -24,7 +24,7 @@ export function serve(
 
 /**
  * bridge-api's Hono entry on `port`, a manual ship on seed 7 as every e2e
- * server runs (ship systems spec 8.3). It answers `shellOrigin` with CORS
+ * server runs. It answers `shellOrigin` with CORS
  * headers, so a shell on that origin reads its telemetry and posts commands.
  */
 export function bridgeApi(port: number, shellOrigin: string) {

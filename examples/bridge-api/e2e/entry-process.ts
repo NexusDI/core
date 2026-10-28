@@ -20,7 +20,8 @@ export function start(
     PORT: '0',
     // An empty RELAY_URL selects OfflineMeridian, as an unset one does.
     RELAY_URL: '',
-    // Every e2e server runs a manual ship on seed 7 (spec 8.3).
+    // Every e2e server runs a manual ship on seed 7, so a tick runs only when
+    // a case asks and every leg reads the same ship.
     SIM_MODE: 'manual',
     SIM_SEED: '7',
     // Vitest sets NODE_ENV=test. A reader's shell leaves it unset, and

@@ -11,7 +11,7 @@ const BLOCK =
   /^(`{3,})(?:ts|typescript)\b[^\n]*@import\.meta\.vitest[^\n]*\n([\s\S]*?)\n\1[ \t]*$/gm;
 
 /**
- * The options of a reader's project (spec 5.3): strict, ES2022, bundler
+ * The options of a reader's project: strict, ES2022, bundler
  * resolution and the disposable lib, with Node's types for `console`. The
  * source condition resolves each package to the workspace source the
  * doctests run.

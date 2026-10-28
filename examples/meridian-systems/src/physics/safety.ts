@@ -288,7 +288,7 @@ function atmosphereAlarms(
 }
 
 /**
- * One safety step in phase 5, spec §5.10 and §5.11: the doors, the fires,
+ * One safety step in phase 5: the doors, the fires,
  * the floods and the alarms, in that order.
  *
  * Each open door trades gas in deck order. Each room's fire runs on

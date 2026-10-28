@@ -9,7 +9,7 @@ import {
 } from '../../simulation/contracts';
 import { LIFE_SUPPORT_OPTIONS, type LifeSupportOptions } from './contracts';
 
-/** Steps the air of every compartment in phase 4 of each tick, spec §5. */
+/** Steps the air of every compartment in phase 4 of each tick. */
 export class LifeSupportPhysics implements IShipSystem {
   static deps = [LIFE_SUPPORT_OPTIONS, DECK_PLAN] as const;
 
@@ -28,7 +28,7 @@ export class LifeSupportPhysics implements IShipSystem {
    * Offline, the ship comes back as it went in. Online, the devices run from
    * this tick's air unless the router shed the life-support load in phase 1.
    * The router priced the load on the air at the start of the tick, and no
-   * phase 2 or 3 system changes the compartments in G2, so the devices here
+   * phase 2 or 3 system changes the compartments, so the devices here
    * draw what the router allocated.
    */
   step(ship: ShipSnapshot, { dt }: TickContext): ShipSnapshot {

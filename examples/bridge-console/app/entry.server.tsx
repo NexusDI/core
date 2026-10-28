@@ -20,7 +20,7 @@ export default async function handleRequest(
   routerContext: EntryContext,
   loadContext: RouterContextProvider,
 ) {
-  // The request scope di.middleware set (react spec 9.1). React Router
+  // The request scope di.middleware set. React Router
   // renders a request no route matches without the root middleware, so the
   // slot is null and the page renders with no request scope.
   const scope = await loadContext.get(NEXUS_SCOPE)?.scope();

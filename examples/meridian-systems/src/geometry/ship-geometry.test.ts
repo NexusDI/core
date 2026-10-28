@@ -14,7 +14,7 @@ import {
 const { hull, decks, compartments, doors, conduits, tanks, exterior } =
   SHIP_GEOMETRY;
 
-/** Section 16.2's compartments, the four existing ids first, then fore to aft. */
+/** The compartments, the four existing ids first, then fore to aft. */
 const SPEC_COMPARTMENTS = [
   'bridge',
   'habitat',
@@ -32,7 +32,7 @@ const SPEC_COMPARTMENTS = [
   'main-drive',
 ];
 
-/** Section 16.2's doors, in deck order. */
+/** The doors, in deck order. */
 const SPEC_DOORS = [
   'bridge-habitat',
   'habitat-airlock',

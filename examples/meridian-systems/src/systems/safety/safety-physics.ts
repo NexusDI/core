@@ -13,7 +13,7 @@ import {
   type IAtmosphereProbe,
 } from '../life-support/contracts';
 
-/** Runs the doors, the fires, the floods and the alarms in phase 5 of each tick, spec §5. */
+/** Runs the doors, the fires, the floods and the alarms in phase 5 of each tick. */
 export class SafetyPhysics implements IShipSystem {
   // ATMOSPHERE_PROBE is LifeSupport's. It reaches Safety through the global
   // MeridianSystems, which re-exports LifeSupport.

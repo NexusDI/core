@@ -23,7 +23,7 @@ class ShuttleFlightLog implements IFlightLog {
   }
 }
 
-/** The gate's graph: the request scope of the bridge API, nothing else. Task 20 replaces it. */
+/** The gate's graph: the request scope of the bridge API, nothing else. */
 export const GateBridge = defineModule({
   name: 'BridgeApi',
   providers: [

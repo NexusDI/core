@@ -8,7 +8,7 @@ import type {
 } from '../../simulation/contracts';
 
 /**
- * Steps the FTL drive in phase 3 of each tick, spec §5.9. `JumpDrive` builds
+ * Steps the FTL drive in phase 3 of each tick. `JumpDrive` builds
  * it with its rating and attaches it to the loop.
  */
 export class FtlPhysics implements IShipSystem {

@@ -33,7 +33,7 @@ import {
 const dt = 0.5;
 const ratings = LIFE_SUPPORT_RATINGS;
 
-/** The deck of ruling 3: the four rooms with their equipment. */
+/** The four rooms of the test deck with their equipment. */
 const ROOMS: readonly RoomPlan[] = [
   {
     id: 'bridge',
@@ -146,7 +146,7 @@ function run(
 }
 
 describe('the crew and the deck in one tick', () => {
-  it('breathes and off-gasses per spec §5.3', () => {
+  it('breathes and off-gasses at the occupant rates', () => {
     const start = initial();
     const next = stepAtmosphere(
       input({ compartments: start, setpoints: ALL_OFF }),

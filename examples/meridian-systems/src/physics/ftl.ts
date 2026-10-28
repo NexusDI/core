@@ -15,7 +15,7 @@ export interface FtlRating {
   readonly coolantLimit: number;
 }
 
-/** The Meridian's jump drive, from spec §5.9. */
+/** The Meridian's jump drive. */
 export const FTL_SPOOL: FtlRating = {
   energy: 90e9,
   power: 900e6,
@@ -25,7 +25,7 @@ export const FTL_SPOOL: FtlRating = {
 };
 
 /**
- * The spool's place on the power router, spec §5.7. A tenth of its power ends
+ * The spool's place on the power router. A tenth of its power ends
  * in the coolant loop, and the drive asks its demand from `ftlDemand`.
  */
 export const FTL_SPOOL_LOAD: Omit<PowerLoad, 'demand'> = {
@@ -119,7 +119,7 @@ export interface FtlStep {
 }
 
 /**
- * Steps the FTL drive in phase 3 (spec §5.9).
+ * Steps the FTL drive in phase 3.
  *
  * A commanded jump on a full charge empties the spool, moves the ship to the
  * commanded star, disarms the drive and gives the loop `pulseShare · energy`

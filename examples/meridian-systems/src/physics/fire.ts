@@ -1,7 +1,7 @@
 import type { RoomPlan } from './atmosphere';
 import { heatCapacity, pressure, totalMoles, type Air, type Gas } from './gas';
 
-/** The fire law of spec §5.10. */
+/** The constants of the fire law. */
 export const FIRE = {
   /** K. A room lights by chance only above this temperature. */
   ignition: 330,

@@ -141,21 +141,19 @@ jobs:
       - run: npx nx fix-ci
         if: always()
 
-  # The second gate (demo apps spec 10.1): every project tagged demo runs its
-  # e2e suite here, against the workspace's packages, so a package change
-  # that breaks an app goes red before it reaches an rc. The release workflow
-  # requires the ruleset checks green on the commit it releases, and the
-  # owner adds this one to the rulesets after three green runs on
-  # release/0.4.
+  # The second gate: every project tagged demo runs its e2e suite here,
+  # against the workspace's packages, so a package change that breaks an app
+  # goes red before it reaches an rc. The "Demo apps" ruleset requires
+  # `demo-apps`, and the release workflow requires the ruleset checks green
+  # on the commit it releases.
   #
   # It runs every demo on every run, with the Nx cache. `nx affected` would
   # skip the demos on a push whose parent changed nothing they depend on,
   # and leave that commit with a green check that tested nothing. A demo
   # joins through its tag, with no edit here.
   #
-  # Budget: 8 minutes, so the run's wall time stays at main's. The spec
-  # estimated 8 min 15 s. With the four federation projects, run
-  # 39642501189 (2026-10-21) took 2 min 26 s with the Playwright browsers
+  # Budget: 8 minutes, so the run's wall time stays at main's. With the four
+  # federation projects, run 39642501189 (2026-10-21) took 2 min 26 s with the Playwright browsers
   # cached and no Nx task cached from an earlier run: setup 12 s, npm ci
   # 34 s, cache restore 3 s, system libraries 17 s, the demo-frontend
   # checks 44 s (36 tasks, the rspack builds included), and the e2e suites
@@ -163,7 +161,7 @@ jobs:
   # from the checks step's local cache). On a cache miss the Chromium
   # install takes 31 s, against 20 s for the restore and the system
   # libraries on a hit. Over 8 minutes, the job splits into a console leg
-  # and a federation leg in a matrix (demo apps spec 10.2).
+  # and a federation leg in a matrix.
   demo-apps:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -205,7 +203,7 @@ jobs:
 
       - run: npx nx run-many -t e2e --projects=tag:demo
 
-  # The growth track's e2e cases (ship systems spec section 14). Each
+  # The growth track's e2e cases. Each
   # project keeps them in an e2e-growth target, and only this job runs it. The
   # rulesets never require this check, so a red growth case shows on the run
   # and blocks no merge or release. A case moves into its app's e2e target,
@@ -255,7 +253,7 @@ jobs:
 
       # Stream mode prints every task's output, and the bridge-api growth
       # cases print a `sim-pin` line per leg with each pinned /sim body's
-      # size and hash. The spec's per-leg pins are read from those lines.
+      # size and hash. The per-leg pins are read from those lines.
       - run: npx nx run-many -t e2e-growth --projects=tag:demo --output-style=stream
 
   # The only check that reads a package as npm publishes it. Everything in
@@ -285,7 +283,7 @@ jobs:
       - run: npm run verify:packaging
 
   # Builds this tree as the /next/ site and as the root site, the way docs.yml
-  # builds them, and checks an rc and a final artifact (docs spec §15.3). The
+  # builds them, and checks an rc and a final artifact. The
   # rc switch that PR #71 reverted, and a final root build with no blog on
   # main, both fail here before they merge. A change that touches no docs
   # input ends the job after the diff, so the job always reports and the
@@ -436,8 +434,7 @@ jobs:
 
       - run: npm run check:type-floor
 
-  # The bridge API's suite on each edge runtime the integrations spec names
-  # (spec 9.8). One leg per runtime, so a red leg names the runtime. Runs on
+  # The bridge API's suite on each edge runtime. One leg per runtime, so a red leg names the runtime. Runs on
   # every push and pull request with no path filter, so the rulesets can
   # require it. No step runs `nx run-many`: release-verify-gate holds the one
   # gate step in the main job.
@@ -490,7 +487,7 @@ jobs:
         run: npx nx run @nexusdi/bridge-api:test-edge
 
   # Each adapter's tests against the floor and the newest release of every
-  # framework line its peer range admits (integrations spec 13.4). The leg
+  # framework line its peer range admits. The leg
   # list lives in scripts/adapter-peers.json; adapter-peers.test.ts holds
   # this matrix to it and each floor to the adapter's peer range. The runner
   # installs the leg with --no-save, checks the adapter resolves one copy,

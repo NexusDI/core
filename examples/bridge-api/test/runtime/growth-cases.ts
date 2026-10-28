@@ -544,8 +544,7 @@ function fnv1a(bytes: Uint8Array): string {
 }
 
 /**
- * Runs `each` on `fetch` and, for a case whose `/sim` bodies the ship systems
- * spec pins, prints one `sim-pin` line per pinned body after the case passes:
+ * Runs `each` on `fetch` and, for a case that pins `/sim` bodies, prints one `sim-pin` line per pinned body after the case passes:
  * the leg, the case, the tick (or `final`), the UTF-8 length of the body text
  * as the route sent it, and its FNV-1a hash. The line changes no assertion.
  * Every leg runs its cases through this function, so the lines share a format.

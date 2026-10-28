@@ -6,7 +6,7 @@ import type { QueuedCommand } from '../../simulation/commands';
 import type { ShipSnapshot } from '../../simulation/contracts';
 
 export interface IReactorCore {
-  /** Electric output now, in GW (docs §7.1). */
+  /** Electric output now, in GW. */
   readonly output: number;
   /** The reactor's fixed figures, in W and per second. */
   readonly rating: ReactorRating;

@@ -1,7 +1,7 @@
 /**
- * The ports of demo apps spec 7.1. The remote lists in e2e/remotes name the
- * remote ports. SHELL_PORT moves the three shell instances on a machine
- * where 4300 is taken; CI uses the spec's ports.
+ * The ports of the shell and the remotes. The remote lists in e2e/remotes name
+ * the remote ports. SHELL_PORT moves the three shell instances on a machine
+ * where 4300 is taken; CI keeps the defaults.
  */
 const shell = Number(process.env['SHELL_PORT'] ?? 4300);
 

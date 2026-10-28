@@ -48,7 +48,7 @@ export interface CoolantRecord {
   readonly temperature: number;
 }
 
-/** The Meridian's reactor, from spec §5.6. */
+/** The Meridian's reactor. */
 export const FUSION_REACTOR: ReactorRating = {
   thermal: 3.63e9,
   efficiency: 1 / 3,
@@ -56,7 +56,7 @@ export const FUSION_REACTOR: ReactorRating = {
 };
 
 /**
- * The Meridian's 200 t lithium loop, from spec §5.6.
+ * The Meridian's 200 t lithium loop.
  *
  * The standby temperature of 500 K sits above lithium's melting point of
  * 453.7 K, so the loop never freezes while the louvres are shut.

@@ -16,7 +16,7 @@ export const T_HULL = 260;
  */
 export const KAPPA = 0.02;
 
-/** Molar heat capacity at constant volume of each gas, in J/(mol K), from spec §5.1. */
+/** Molar heat capacity at constant volume of each gas, in J/(mol K). */
 export const CV = {
   O2: 21.0,
   N2: 20.8,

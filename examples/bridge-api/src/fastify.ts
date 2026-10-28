@@ -61,7 +61,7 @@ export async function createBridge(
       .code((error as { statusCode?: number }).statusCode ?? 500)
       .send();
   });
-  // Outside the encapsulated context that registers the adapter (spec 6.1),
+  // Outside the encapsulated context that registers the adapter,
   // so they get no scope handle.
   bridge.get('/health', async () => 'ok');
   bridge.get('/graph', async (_req, reply) =>

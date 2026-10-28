@@ -7,7 +7,7 @@ import { serve } from './playwright.servers.mts';
 
 /**
  * Three instances of the shell's e2e build, one per remote list, and the
- * four remote builds they load (demo apps spec 7.5). The e2e target builds
+ * four remote builds they load. The e2e target builds
  * every one of them first (project.json). The growth cases under e2e/growth
  * run only in the e2e-growth target (playwright.e2e-growth.config.mts).
  * Playwright prefixes a glob with a double star segment itself and Nx's

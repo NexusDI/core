@@ -20,7 +20,7 @@ export class FusionReactor implements IReactorCore, Disposable {
   }
 
   /**
-   * The scram: the control rods drop (docs §7.1). Commits the current
+   * The scram: the control rods drop. Commits the current
    * snapshot at the same tick with the reactor at level 0, no output and the
    * throttle at 0, so the last state a disposed ship shows is a cold reactor.
    * The power record stays the last tick's allocation: the scram drops the

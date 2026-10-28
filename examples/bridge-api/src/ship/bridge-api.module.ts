@@ -22,7 +22,7 @@ class ShuttleFlightLog implements IFlightLog {
 export const BridgeApi = defineModule({
   name: 'BridgeApi',
   providers: [
-    // Sync and scoped: eager: false, so a request that never reads it never runs it (spec 9.2).
+    // Sync and scoped: eager: false, so a request that never reads it never runs it.
     provide(MISSION, {
       useFactory: (request) => request.mission,
       deps: [REQUEST],
