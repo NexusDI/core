@@ -562,4 +562,60 @@ describe('@nexusdi/express on a real server', () => {
     await ship[Symbol.asyncDispose]();
     expect((await fetch(`${url}/log`)).status).toBe(503);
   });
+
+  it('runs a guard written with inject as middleware: it ends the request or calls next', async () => {
+    const { ship, count } = await bridgeWith();
+    const di = nexus(ship, { request: mapping });
+    const route = vi.fn((_req: express.Request, res: express.Response) => {
+      res.send('fired');
+    });
+    const url = await listen(
+      express()
+        .use(di.middleware)
+        .use(
+          '/drive',
+          di.inject({ log: FLIGHT_LOG }, ({ log }, req, res, next) => {
+            if (req.get('x-operator') !== 'helm') {
+              res.status(403).send('Forbidden');
+              return;
+            }
+            log.record('cleared');
+            next();
+          }),
+        )
+        .post('/drive/fire', route),
+    );
+    const denied = await fetch(`${url}/drive/fire`, { method: 'POST' });
+    expect(denied.status).toBe(403);
+    expect(route).not.toHaveBeenCalled();
+    const cleared = await fetch(`${url}/drive/fire`, {
+      method: 'POST',
+      headers: { 'x-operator': 'helm' },
+    });
+    expect(await cleared.text()).toBe('fired');
+    await vi.waitFor(() => expect(count('scope:dispose')).toBe(2));
+    await ship[Symbol.asyncDispose]();
+  });
+
+  it("passes a guard's async throw to the error handler, which answers its status", async () => {
+    const { ship } = await bridgeWith();
+    const di = nexus(ship, { request: mapping });
+    const url = await listen(
+      express()
+        .use(di.middleware)
+        .use(
+          di.inject({ log: FLIGHT_LOG }, async () => {
+            await Promise.resolve();
+            throw Object.assign(new Error('no badge'), { status: 401 });
+          }),
+        )
+        .get('/log', (_req, res) => {
+          res.send('fired');
+        }),
+    );
+    const res = await fetch(`${url}/log`);
+    expect(res.status).toBe(401);
+    expect(await res.text()).not.toContain('fired');
+    await ship[Symbol.asyncDispose]();
+  });
 });
