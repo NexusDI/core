@@ -1,3 +1,5 @@
+import { fieldOf } from './json-body';
+
 const MAX_TICKS = 10_000;
 
 /**
@@ -17,8 +19,7 @@ export const TICKS_REFUSED = {
  * request asks of the server.
  */
 export function parseTicks(body: unknown): number | undefined {
-  if (typeof body !== 'object' || body === null) return undefined;
-  const { ticks } = body as { ticks?: unknown };
+  const ticks = fieldOf(body, 'ticks');
   return typeof ticks === 'number' &&
     Number.isInteger(ticks) &&
     ticks >= 1 &&

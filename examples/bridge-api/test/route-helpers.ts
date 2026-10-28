@@ -6,7 +6,8 @@ import type { NodeScopes } from '@nexusdi/node';
 
 import { createBridge as expressBridge } from '../src/express';
 import { createBridge as fastifyBridge } from '../src/fastify';
-import { type BridgeOptions, createBridge as honoBridge } from '../src/hono';
+import type { BridgeOptions } from '../src/bridge/options';
+import { createBridge as honoBridge } from '../src/hono';
 import { OfflineMeridian } from '../src/ship/meridian';
 import { bridgePlugins } from '../src/ship/plugins';
 

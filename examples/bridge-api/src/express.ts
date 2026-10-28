@@ -21,11 +21,12 @@ import { answerCommand } from './bridge/commands';
 import { compartmentOf } from './bridge/compartment-of';
 import { answerJump, answerSpool, ftlRating } from './bridge/ftl';
 import { readJson } from './bridge/json-body';
+import { MISSION_HEADER, requestOf } from './bridge/mission';
+import type { BridgeOptions } from './bridge/options';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { telemetryReadable } from './bridge/telemetry-readable';
 import { SSE_HEADERS } from './bridge/telemetry-stream';
 import { UNCHARTED } from './bridge/uncharted';
-import type { BridgeOptions } from './hono';
 import { FLIGHT_LOG, MISSION, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
 
 export function createBridge(
@@ -33,16 +34,8 @@ export function createBridge(
   options: BridgeOptions = {},
 ) {
   const di = nexus(ship, {
-    request: (req) => {
-      const compartment = compartmentOf(req.path);
-      return {
-        mission: {
-          id: req.get('x-mission-id') ?? 'survey-7',
-          target: 'Kepler-442b',
-        },
-        ...(compartment === undefined ? {} : { compartment }),
-      };
-    },
+    request: (req) =>
+      requestOf(req.get(MISSION_HEADER), compartmentOf(req.path)),
     scopes: options.scopes,
     log: options.log,
   });
@@ -73,7 +66,7 @@ export function createBridge(
     di.inject(
       { charts: NAV_CHARTS, log: FLIGHT_LOG },
       async ({ charts, log }, req, res) => {
-        if (req.get('x-mission-id') === 'missing-provider')
+        if (req.get(MISSION_HEADER) === 'missing-provider')
           (await di.scope(req)).get(UNCHARTED);
         const to = String(req.params.to);
         log.record(`plotting ${to}`);
@@ -151,6 +144,12 @@ export function createBridge(
       },
     ),
   );
+  bridge.get(
+    '/commands',
+    di.inject({ state: SHIP_STATE }, ({ state }, _req, res) => {
+      res.json(state.log());
+    }),
+  );
   bridge.post(
     '/commands',
     text,
@@ -161,12 +160,6 @@ export function createBridge(
         res.status(answer.status).json(answer.body);
       },
     ),
-  );
-  bridge.get(
-    '/commands',
-    di.inject({ state: SHIP_STATE }, ({ state }, _req, res) => {
-      res.json(state.log());
-    }),
   );
   bridge.post(
     '/ftl/spool',

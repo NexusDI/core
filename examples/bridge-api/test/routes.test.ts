@@ -29,7 +29,7 @@ import { createBridge as fastifyBridge } from '../src/fastify';
 import { SIM_BODY_LIMIT, TICKS_REFUSED } from '../src/bridge/sim-ticks';
 import { createBridge as honoBridge } from '../src/hono';
 import { AUDIT_LOG } from '../src/ship/audit-trail.module';
-import { SIM_DRIVER } from '../src/ship/contracts';
+import { FLIGHT_LOG, SIM_DRIVER } from '../src/ship/contracts';
 import {
   DEFAULT_RELAY_URL,
   OfflineMeridian,
@@ -712,9 +712,25 @@ describe.each(['hono', 'express', 'fastify'] as const)(
         '/compartments/%68abitat/atmosphere',
       );
       expect(status).toBe(404);
+      // The router keeps the id encoded, and the message decodes it for display.
       expect(body).toMatchObject({
         code: 'MERIDIAN_UNKNOWN_COMPARTMENT',
-        message: expect.stringContaining("'%68abitat'"),
+        message:
+          "No compartment is named 'habitat'. The deck has bridge, habitat, reactor-bay and airlock.",
+      });
+    });
+
+    test('GET /compartments/reactor%20bay/atmosphere names the room with its space', async ({
+      nexus,
+    }) => {
+      const { status, body } = await call(
+        nexus,
+        'GET',
+        '/compartments/reactor%20bay/atmosphere',
+      );
+      expect(status).toBe(404);
+      expect(body).toMatchObject({
+        message: expect.stringContaining("'reactor bay'"),
       });
     });
 
@@ -748,6 +764,25 @@ describe.each(['hono', 'express', 'fastify'] as const)(
       expect(
         await call(ship, 'GET', '/compartments/habitat/atmosphere'),
       ).toEqual({ status: 500, body: undefined });
+    });
+
+    test('a NexusError that ends in a 500 reaches the log option and leaves the body empty', async () => {
+      await using ship = await createTestingContainer(OfflineMeridian)
+        .override(FLIGHT_LOG, {
+          useFactory: () => {
+            throw new Error('the log failed');
+          },
+          lifetime: 'scoped',
+        })
+        .create();
+      const log = vi.fn();
+      expect(
+        await call(ship, 'GET', '/course/Kepler-442b', undefined, { log }),
+      ).toEqual({ status: 500, body: undefined });
+      expect(log).toHaveBeenCalledWith(
+        expect.objectContaining({ code: expect.stringMatching(/^NEXUS_/) }),
+        expect.objectContaining({ status: 500 }),
+      );
     });
   },
 );

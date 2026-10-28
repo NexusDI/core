@@ -1,6 +1,26 @@
 import { describe, expect, it } from 'vitest';
 
-import { readJson } from '../src/bridge/json-body';
+import { fieldOf, readJson } from '../src/bridge/json-body';
+
+describe('fieldOf', () => {
+  it('reads a field of an object body', () => {
+    expect(fieldOf({ ticks: 3 }, 'ticks')).toBe(3);
+    expect(fieldOf({ to: 'Kepler-442b' }, 'to')).toBe('Kepler-442b');
+  });
+
+  it('yields undefined for a missing field', () => {
+    expect(fieldOf({}, 'ticks')).toBeUndefined();
+  });
+
+  it.each([
+    ['null', null],
+    ['undefined', undefined],
+    ['a number', 3],
+    ['a string', 'ticks'],
+  ])('yields undefined for %s', (_what, body) => {
+    expect(fieldOf(body, 'ticks')).toBeUndefined();
+  });
+});
 
 describe('readJson', () => {
   it('parses a body sent as application/json', () => {
