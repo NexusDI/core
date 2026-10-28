@@ -6,7 +6,6 @@ import { DECK_PLAN, type SimOptions, TICK_LOOP } from './simulation/contracts';
 import { FixedStepLoop } from './simulation/fixed-step-loop';
 import { Simulation } from './simulation/simulation.module';
 import { Comms, OfflineComms } from './systems/comms/comms.module';
-import { DEFAULT_COMMS_FREQUENCY } from './systems/comms/contracts';
 import { Engineering } from './systems/engineering/engineering.module';
 import { Helm } from './systems/helm/helm.module';
 import { LifeSupport } from './systems/life-support/life-support.module';
@@ -52,14 +51,7 @@ export function meridianSystems({
   const [comms, tactical] =
     relayUrl === undefined
       ? [OfflineComms, OfflineTactical]
-      : [
-          Comms.forRoot({
-            frequency: DEFAULT_COMMS_FREQUENCY,
-            relayUrl,
-            relayTimeout,
-          }),
-          Tactical,
-        ];
+      : [Comms.forRoot({ relayUrl, relayTimeout }), Tactical];
   return defineModule({
     name: 'MeridianSystems',
     global: true,
