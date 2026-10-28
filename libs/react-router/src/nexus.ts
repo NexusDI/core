@@ -52,10 +52,33 @@ type Inject = <const D extends DepsMap, A extends WithContext, R>(
   handler: (deps: ResolvedDeps<D>, args: A) => R,
 ) => (args: A) => Promise<Awaited<R>>;
 
+/** The next() a server middleware receives: it runs the rest of the chain and resolves its Response. */
+type Next = () => Promise<Response>;
+
+/**
+ * A route middleware that `injectMiddleware` wraps: it receives the resolved
+ * deps first, then React Router's args and next(). It ends the request by
+ * returning or throwing a Response, and passes it on by returning next().
+ * React Router calls next() itself for a middleware that returns without
+ * calling it.
+ */
+type GuardMiddleware<D extends DepsMap, A extends WithContext> = (
+  deps: ResolvedDeps<D>,
+  args: A,
+  next: Next,
+) => Response | void | Promise<Response | void>;
+
+type InjectMiddleware = <const D extends DepsMap, A extends WithContext>(
+  deps: D,
+  middleware: GuardMiddleware<D, A>,
+) => (args: A, next: Next) => Promise<Response | void>;
+
 /** The route middleware `di.load(module, options?)` returns: it loads the module once, with the grant in `options.imports`, and extends the request's scope before the route's loaders run. */
 export interface SectionMiddleware extends MiddlewareFunction<Response> {
   /** Like di.inject, validated after the section's first successful load. */
   readonly inject: Inject;
+  /** Like di.injectMiddleware, validated after the section's first successful load. */
+  readonly injectMiddleware: InjectMiddleware;
 }
 
 /**
@@ -66,10 +89,11 @@ export type RouterMiddleware = (
   ...args: Parameters<MiddlewareFunction<Response>>
 ) => Promise<Response>;
 
-/** What `nexus()` returns for React Router: the root middleware, `inject` for typed loaders and actions, `scope` for other code and `load` for lazy routes. */
+/** What `nexus()` returns for React Router: the root middleware, `inject` for typed loaders and actions, `injectMiddleware` for typed route middleware, `scope` for other code and `load` for lazy routes. */
 export interface NexusRouter {
   readonly middleware: RouterMiddleware;
   readonly inject: Inject;
+  readonly injectMiddleware: InjectMiddleware;
   scope(context: Readonly<RouterContextProvider>): Promise<Scope>;
   load(module: ModuleRef, options?: LoadOptions): SectionMiddleware;
   /**
@@ -145,6 +169,25 @@ export function nexus(
     });
   };
 
+  /** Resolves the record for a loader, an action or a middleware, or throws through stop(). */
+  const depsFor = async <D extends DepsMap>(
+    deps: D,
+    context: Readonly<RouterContextProvider>,
+    checked: () => Promise<void>,
+    section?: ModuleRef,
+    grant?: LoadOptions,
+  ): Promise<ResolvedDeps<D>> => {
+    const result = await core.resolve({
+      handle: () => handleOf(context),
+      deps,
+      checked,
+      section,
+      options: grant,
+    });
+    if (!('deps' in result)) return stop(result);
+    return result.deps;
+  };
+
   const handlerOf =
     <const D extends DepsMap, A extends WithContext, R>(
       deps: D,
@@ -153,21 +196,32 @@ export function nexus(
       section?: ModuleRef,
       grant?: LoadOptions,
     ) =>
-    async (args: A): Promise<Awaited<R>> => {
-      const result = await core.resolve({
-        handle: () => handleOf(args.context),
-        deps,
-        checked,
-        section,
-        options: grant,
-      });
-      if (!('deps' in result)) return stop(result);
-      return await handler(result.deps, args);
-    };
+    async (args: A): Promise<Awaited<R>> =>
+      await handler(
+        await depsFor(deps, args.context, checked, section, grant),
+        args,
+      );
+
+  const middlewareOf =
+    <const D extends DepsMap, A extends WithContext>(
+      deps: D,
+      middleware: GuardMiddleware<D, A>,
+      checked: () => Promise<void>,
+      section?: ModuleRef,
+      grant?: LoadOptions,
+    ) =>
+    async (args: A, next: Next): Promise<Response | void> =>
+      await middleware(
+        await depsFor(deps, args.context, checked, section, grant),
+        args,
+        next,
+      );
 
   return {
     middleware,
     inject: (deps, handler) => handlerOf(deps, handler, core.definition(deps)),
+    injectMiddleware: (deps, middleware) =>
+      middlewareOf(deps, middleware, core.definition(deps)),
     scope: async (context) => handleOf(context).scope(),
     load(module, options) {
       const section: MiddlewareFunction<Response> = async (
@@ -185,7 +239,18 @@ export function nexus(
       };
       const sectionInject: Inject = (deps, handler) =>
         handlerOf(deps, handler, core.sectionCheck(deps), module, options);
-      return Object.assign(section, { inject: sectionInject });
+      const sectionMiddleware: InjectMiddleware = (deps, middleware) =>
+        middlewareOf(
+          deps,
+          middleware,
+          core.sectionCheck(deps),
+          module,
+          options,
+        );
+      return Object.assign(section, {
+        inject: sectionInject,
+        injectMiddleware: sectionMiddleware,
+      });
     },
     [Symbol.asyncDispose]: () => core.dispose(),
   };
