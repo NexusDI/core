@@ -1,0 +1,5 @@
+import type { PowerLoad } from '../engineering/contracts';
+import { LITHIUM_LOOP } from '../engineering/engineering-model';
+
+export const law = LITHIUM_LOOP;
+export type Load = PowerLoad;

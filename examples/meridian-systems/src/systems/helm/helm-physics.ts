@@ -1,12 +1,13 @@
-import { HULL, stepHelm, THRUSTERS_LOAD } from '../../physics/motion';
 import type {
   IShipSystem,
   Phase,
   ShipSnapshot,
   TickContext,
 } from '../../simulation/contracts';
+import { HULL } from '../../physics/constants';
 
 import { type IThrusters, THRUSTERS } from './contracts';
+import { stepHelm, THRUSTERS_LOAD } from './helm-model';
 
 /** Steps the helm in phase 2 of each tick. */
 export class HelmPhysics implements IShipSystem {

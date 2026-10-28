@@ -1,16 +1,22 @@
 import { MultiToken, Token } from '@nexusdi/core';
 
-import type { LifeSupportRecord, RoomPlan } from '../physics/atmosphere';
-import type { CommsRecord } from '../physics/comms';
 import type { DoorPlan } from '../physics/doors';
-import type { FloodPlan } from '../physics/fire';
-import type { FtlRecord } from '../physics/ftl';
 import type { Gas } from '../physics/gas';
-import type { DriveRecord, HelmRecord } from '../physics/motion';
-import type { PowerRecord } from '../physics/power';
-import type { SafetyRecord } from '../physics/safety';
-import type { CoolantRecord, ReactorRecord } from '../physics/thermal';
-import type { WeaponsRecord } from '../physics/weapons';
+import type { CommsRecord } from '../systems/comms/contracts';
+import type {
+  CoolantRecord,
+  PowerRecord,
+  ReactorRecord,
+} from '../systems/engineering/contracts';
+import type { FtlRecord } from '../systems/ftl/contracts';
+import type { HelmRecord } from '../systems/helm/contracts';
+import type {
+  LifeSupportRecord,
+  RoomPlan,
+} from '../systems/life-support/contracts';
+import type { DriveRecord } from '../systems/propulsion/contracts';
+import type { FloodPlan, SafetyRecord } from '../systems/safety/contracts';
+import type { WeaponsRecord } from '../systems/weapons/contracts';
 
 import type {
   LoggedChange,

@@ -3,12 +3,12 @@ import { explain } from '@nexusdi/errors';
 import { describe, expect, it } from 'vitest';
 
 import { BadCommandError } from '../../errors';
-import { RAILGUN } from '../../physics/weapons';
 import type { ShipCommand } from '../../simulation/commands';
 import { shipText } from '../../text';
 
 import { type IWeaponMount, WEAPONS_ACTIONS } from './contracts';
 import { refuseWeapons, WeaponsCommands } from './weapons-commands';
+import { RAILGUN } from './weapons-model';
 
 /** A mount that records each fire and answers tick 2. */
 function build() {

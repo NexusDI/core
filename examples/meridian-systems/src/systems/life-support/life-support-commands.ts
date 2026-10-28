@@ -1,4 +1,3 @@
-import type { PumpMode } from '../../physics/atmosphere';
 import {
   choiceArgument,
   commandRefusal,
@@ -18,6 +17,7 @@ import {
   type IAtmosphereControl,
   LIFE_SUPPORT_ACTIONS,
   LIFE_SUPPORT_SYSTEM,
+  type PumpMode,
 } from './contracts';
 
 /** The thermostat targets a heater command accepts, in K. */

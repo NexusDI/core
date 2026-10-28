@@ -1,13 +1,12 @@
-import type { PowerLoad } from '../../physics/power';
-import { RAILGUN_LOAD, railgunDemand } from '../../physics/weapons';
 import {
   SIM_OPTIONS,
   type ShipSnapshot,
   type SimOptions,
 } from '../../simulation/contracts';
-import type { IPowerConsumer } from '../engineering/contracts';
+import type { IPowerConsumer, PowerLoad } from '../engineering/contracts';
 
 import { type IWeaponMount, WEAPON_MOUNT } from './contracts';
+import { RAILGUN_LOAD, railgunDemand } from './weapons-model';
 
 /**
  * The capacitor's load on the power router at priority 6, from

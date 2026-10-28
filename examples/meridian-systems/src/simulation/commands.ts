@@ -1,11 +1,12 @@
 import { MultiToken, Token } from '@nexusdi/core';
 
-import type { LifeSupportSetpoints } from '../physics/atmosphere';
-import type { CommsSetpoints } from '../physics/comms';
-import type { FtlSetpoints } from '../physics/ftl';
-import type { DriveSetpoints, HelmSetpoints } from '../physics/motion';
-import type { SafetySetpoints } from '../physics/safety';
-import type { WeaponsSetpoints } from '../physics/weapons';
+import type { CommsSetpoints } from '../systems/comms/contracts';
+import type { FtlSetpoints } from '../systems/ftl/contracts';
+import type { HelmSetpoints } from '../systems/helm/contracts';
+import type { LifeSupportSetpoints } from '../systems/life-support/contracts';
+import type { DriveSetpoints } from '../systems/propulsion/contracts';
+import type { SafetySetpoints } from '../systems/safety/contracts';
+import type { WeaponsSetpoints } from '../systems/weapons/contracts';
 
 import type { CompartmentId, DoorId } from './contracts';
 

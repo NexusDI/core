@@ -2,13 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
 import { PowerBudgetError } from '../../errors';
-import type { PowerLoad } from '../../physics/power';
-import { RAILGUN } from '../../physics/weapons';
 import type { DeckPlan } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
-import type { IPowerRouter } from '../engineering/contracts';
+import type { IPowerRouter, PowerLoad } from '../engineering/contracts';
 
 import { RailgunMount } from './railgun-mount';
+import { RAILGUN } from './weapons-model';
 
 /** A mount at `dt` over a fake router that records each divert and refuses when told. */
 function build({ dt = 0.5, refuse = false } = {}) {

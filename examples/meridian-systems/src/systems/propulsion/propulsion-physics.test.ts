@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
-import { PLASMA_DRIVE } from '../../physics/motion';
 import type {
   DeckPlan,
   ShipSnapshot,
@@ -11,6 +10,7 @@ import { SeededRandom } from '../../simulation/seeded-random';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
 import type { IMainDrive } from './contracts';
+import { PLASMA_DRIVE } from './propulsion-model';
 import { PropulsionPhysics } from './propulsion-physics';
 
 const idle = new ShipStateStore(deck satisfies DeckPlan).snapshot();

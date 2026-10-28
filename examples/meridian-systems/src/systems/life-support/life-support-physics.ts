@@ -1,4 +1,3 @@
-import { LIFE_SUPPORT_LOAD, stepAtmosphere } from '../../physics/atmosphere';
 import {
   DECK_PLAN,
   type DeckPlan,
@@ -9,6 +8,7 @@ import {
 } from '../../simulation/contracts';
 
 import { LIFE_SUPPORT_OPTIONS, type LifeSupportOptions } from './contracts';
+import { LIFE_SUPPORT_LOAD, stepAtmosphere } from './life-support-model';
 
 /** Steps the air of every compartment in phase 4 of each tick. */
 export class LifeSupportPhysics implements IShipSystem {

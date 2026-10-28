@@ -1,13 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
+import type { WeaponsRecord, WeaponsSetpoints } from './contracts';
 import {
   hitChance,
   RAILGUN,
   railgunDemand,
   stepWeapons,
-  type WeaponsRecord,
-  type WeaponsSetpoints,
-} from './weapons';
+} from './weapons-model';
 
 const dt = 0.5;
 const power = RAILGUN.power;

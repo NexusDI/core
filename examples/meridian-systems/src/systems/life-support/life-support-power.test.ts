@@ -2,13 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import calibration from '../../../deck/sensors.calibration.json';
 import deck from '../../../deck/meridian.deck.json';
-import {
-  LIFE_SUPPORT_RATINGS,
-  lifeSupportDemand,
-} from '../../physics/atmosphere';
 import type { DeckPlan } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
+import { LIFE_SUPPORT_RATINGS, lifeSupportDemand } from './life-support-model';
 import { LifeSupportPower } from './life-support-power';
 
 const plan = deck satisfies DeckPlan;

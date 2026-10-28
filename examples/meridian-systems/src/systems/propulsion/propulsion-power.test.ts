@@ -1,16 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
-import {
-  driveDemand,
-  PLASMA_DRIVE,
-  type DriveRating,
-} from '../../physics/motion';
 import type { DeckPlan, ShipSnapshot } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
-import type { IMainDrive } from './contracts';
+import type { DriveRating, IMainDrive } from './contracts';
 import { PropulsionPower } from './propulsion-power';
+import { driveDemand, PLASMA_DRIVE } from './propulsion-model';
 
 const idle = new ShipStateStore(deck satisfies DeckPlan).snapshot();
 

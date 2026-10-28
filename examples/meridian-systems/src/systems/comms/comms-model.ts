@@ -1,31 +1,6 @@
-import type { PowerLoad } from './power';
+import type { PowerLoad } from '../engineering/contracts';
 
-/** What the phased array is doing at the end of a tick. */
-export type CommsStatus =
-  'standby' | 'no subspace link' | 'no power' | 'awaiting reply';
-
-/** One message the array received. */
-export interface CommsMessage {
-  /** The tick the message arrived. */
-  readonly tick: number;
-  readonly from: string;
-  readonly text: string;
-}
-
-/** The phased array at the end of a tick. */
-export interface CommsRecord {
-  readonly status: CommsStatus;
-  /** The tick the array sent its last hail, or null before the first. */
-  readonly sent: number | null;
-  /** The newest `MESSAGES_KEPT` messages the array received, oldest first. */
-  readonly messages: readonly CommsMessage[];
-}
-
-/** What the crew set for comms. */
-export interface CommsSetpoints {
-  /** True while a hail waits for the array to send it. */
-  readonly hail: boolean;
-}
+import type { CommsRecord, CommsSetpoints, CommsStatus } from './contracts';
 
 /**
  * The phased array's place on the power router. It asks this

@@ -1,9 +1,9 @@
-import { HULL, THRUSTERS_LOAD, thrustersDemand } from '../../physics/motion';
-import type { PowerLoad } from '../../physics/power';
 import type { ShipSnapshot } from '../../simulation/contracts';
-import type { IPowerConsumer } from '../engineering/contracts';
+import type { IPowerConsumer, PowerLoad } from '../engineering/contracts';
+import { HULL } from '../../physics/constants';
 
 import { type IThrusters, THRUSTERS } from './contracts';
+import { THRUSTERS_LOAD, thrustersDemand } from './helm-model';
 
 /**
  * The thrusters' load on the power router at priority 4: 20 MW at full

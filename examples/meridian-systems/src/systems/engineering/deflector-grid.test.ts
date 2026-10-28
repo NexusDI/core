@@ -2,11 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
 import { PowerBudgetError } from '../../errors';
-import type { PowerLoad } from '../../physics/power';
 import type { DeckPlan } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
-import type { IPowerRouter } from './contracts';
+import type { IPowerRouter, PowerLoad } from './contracts';
 import { DeflectorGrid } from './deflector-grid';
 
 function build(refuse = false) {

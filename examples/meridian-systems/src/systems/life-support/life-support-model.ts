@@ -1,4 +1,4 @@
-import { R, T_HULL } from './constants';
+import { R, T_HULL } from '../../physics/constants';
 import {
   GASES,
   heatCapacity,
@@ -10,8 +10,24 @@ import {
   ventFraction,
   type Air,
   type Gas,
-} from './gas';
-import type { PowerLoad } from './power';
+} from '../../physics/gas';
+import type { PowerLoad } from '../engineering/contracts';
+
+import type {
+  AtmosphereReading,
+  HeaterRating,
+  HeaterSetpoint,
+  LifeSupportRatings,
+  LifeSupportRecord,
+  LifeSupportSetpoints,
+  PumpMode,
+  PumpRating,
+  RoomPlan,
+  ScrubberRating,
+  ElectrolyserRating,
+  SensorCalibration,
+  VentRating,
+} from './contracts';
 
 /** The devices a compartment's plan can list under `equipment`. */
 export const LIFE_SUPPORT_DEVICES = [
@@ -32,111 +48,6 @@ export const LIFE_SUPPORT_LOAD: Omit<PowerLoad, 'demand'> = {
   priority: 1,
   heatShare: 0,
 };
-
-/**
- * The figures of one room that the atmosphere reads. The deck's
- * `CompartmentPlan` has this shape, so the simulation passes its plans
- * straight in.
- */
-export interface RoomPlan {
-  readonly id: string;
-  /** Cubic metres. */
-  readonly volume: number;
-  /** Hull conductance in W/K. */
-  readonly conductance: number;
-  /** J/K. */
-  readonly structureHeatCapacity: number;
-  readonly occupants: number;
-  /** Entries of `LIFE_SUPPORT_DEVICES`. The deck's JSON types them as strings. */
-  readonly equipment?: readonly string[];
-  /** The room the pump fills from and empties into. */
-  readonly pumpReservoir?: string;
-  /** The coolant loop's leak into this room, in W/K. */
-  readonly coolantConductance?: number;
-}
-
-/** `evacuate` moves a room's gas into its reservoir, and `fill` moves reservoir gas into the room. */
-export type PumpMode = 'off' | 'evacuate' | 'fill';
-
-export interface HeaterSetpoint {
-  readonly on: boolean;
-  /** The thermostat's target, in K. */
-  readonly target: number;
-}
-
-/**
- * What the crew set for life support. Each record holds a key for each room
- * whose plan lists that device. `Id` narrows the keys to the deck's ids.
- */
-export interface LifeSupportSetpoints<Id extends string = string> {
-  /** False until the crew brings life support online. While false, no term of the atmosphere runs. */
-  readonly online: boolean;
-  readonly heaters: Readonly<Partial<Record<Id, HeaterSetpoint>>>;
-  readonly scrubbers: Readonly<Partial<Record<Id, boolean>>>;
-  readonly oxygen: Readonly<Partial<Record<Id, boolean>>>;
-  /** True while the vent to space is open. */
-  readonly vents: Readonly<Partial<Record<Id, boolean>>>;
-  readonly pumps: Readonly<Partial<Record<Id, PumpMode>>>;
-}
-
-/** Life support at the end of a tick. */
-export interface LifeSupportRecord<Id extends string = string> {
-  /** The power each heater put into its room this tick, in W. */
-  readonly heaters: Readonly<Partial<Record<Id, number>>>;
-}
-
-/** A proportional thermostat on an electric heater. */
-export interface HeaterRating {
-  /** W/K. */
-  readonly gain: number;
-  /** W. */
-  readonly max: number;
-}
-
-export interface ScrubberRating {
-  /** m³/s. */
-  readonly flow: number;
-  /** W. */
-  readonly power: number;
-  /** The relative humidity it dries the air to, 0 to 1. */
-  readonly humidity: number;
-}
-
-/** An oxygen generator on a proportional controller. */
-export interface ElectrolyserRating {
-  /** mol/(s Pa). */
-  readonly gain: number;
-  /** mol/s. */
-  readonly max: number;
-  /** J per mol of O₂. */
-  readonly energy: number;
-  /** The O₂ partial pressure it holds, in Pa. */
-  readonly setpoint: number;
-}
-
-export interface PumpRating {
-  /** m³/s of the source room. */
-  readonly rate: number;
-  /** The draw at no pressure rise, in W. */
-  readonly base: number;
-  /** 0 to 1. */
-  readonly efficiency: number;
-  /** The rise in Pa from which the pump moves no gas. */
-  readonly maxRise: number;
-}
-
-export interface VentRating {
-  /** m². */
-  readonly area: number;
-}
-
-export interface LifeSupportRatings {
-  readonly heater: HeaterRating;
-  readonly scrubber: ScrubberRating;
-  readonly electrolyser: ElectrolyserRating;
-  readonly pump: PumpRating;
-  readonly vent: VentRating;
-}
 
 /** The bridge and habitat heaters. */
 const ELECTRIC_HEATER: HeaterRating = { gain: 10_000, max: 10_000 };
@@ -540,38 +451,6 @@ export function stepAtmosphere(input: AtmosphereInput): AtmosphereResult {
     compartments: Object.freeze(next),
     lifeSupport: heaterRecord(input, output),
   });
-}
-
-/** The noise amplitude of one analyzer, for each value it reads. */
-export interface SensorNoise {
-  /** K. */
-  readonly temperature: number;
-  /** Pa, of the total pressure. */
-  readonly pressure: number;
-  /** Pa, of each partial pressure. */
-  readonly partial: number;
-}
-
-/** The shape of `deck/sensors.calibration.json`. */
-export interface SensorCalibration<Id extends string = string> {
-  /** The step each reading rounds to: K for the temperature, Pa for every pressure. */
-  readonly resolution: {
-    readonly temperature: number;
-    readonly pressure: number;
-  };
-  readonly compartments: Readonly<Record<Id, { readonly noise: SensorNoise }>>;
-}
-
-/** One analyzer sample of one compartment. */
-export interface AtmosphereReading<Id extends string = string> {
-  readonly compartment: Id;
-  readonly tick: number;
-  /** K. */
-  readonly temperature: number;
-  /** Pa. */
-  readonly pressure: number;
-  /** Pa, for each gas. */
-  readonly partial: Readonly<Record<Gas, number>>;
 }
 
 /**

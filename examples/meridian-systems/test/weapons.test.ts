@@ -2,8 +2,8 @@ import { Nexus } from '@nexusdi/core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { meridianSystems } from '../src/meridian-systems.module';
-import { LITHIUM_LOOP } from '../src/physics/thermal';
-import { RAILGUN } from '../src/physics/weapons';
+import { LITHIUM_LOOP } from '../src/systems/engineering/engineering-model';
+import { RAILGUN } from '../src/systems/weapons/weapons-model';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
 import {
   SHIP_STATE,

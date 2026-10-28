@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../deck/meridian.deck.json';
 import { AIR, molesAt } from '../physics/gas';
-import type { LoadRecord } from '../physics/power';
-import { LITHIUM_LOOP } from '../physics/thermal';
+import type { LoadRecord } from '../systems/engineering/contracts';
+import { LITHIUM_LOOP } from '../systems/engineering/engineering-model';
 
 import {
   COMPARTMENT_IDS,

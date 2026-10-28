@@ -1,6 +1,12 @@
-import type { RoomPlan } from './atmosphere';
 import { KAPPA } from './constants';
 import { pressure, totalMoles, type Air } from './gas';
+
+/** The figures of one room that a door reads. The deck's compartment plans have this shape. */
+export interface DoorRoom {
+  readonly id: string;
+  /** Cubic metres. */
+  readonly volume: number;
+}
 
 /**
  * One door of the deck. The deck's `DoorPlan` has this shape, and the
@@ -45,7 +51,7 @@ export function doorFractions(
  */
 export function doorPressures(
   compartments: Readonly<Record<string, Air>>,
-  rooms: readonly Pick<RoomPlan, 'id' | 'volume'>[],
+  rooms: readonly DoorRoom[],
   door: DoorPlan,
 ): readonly [number, number] {
   const side = (id: string | undefined): number => {

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../deck/meridian.deck.json';
 import { COMPARTMENT_IDS } from '../simulation/contracts';
+
 import {
   SHIP_GEOMETRY,
   type Box,

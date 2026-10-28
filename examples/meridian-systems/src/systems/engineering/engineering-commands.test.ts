@@ -3,12 +3,12 @@ import { explain } from '@nexusdi/errors';
 import { describe, expect, it } from 'vitest';
 
 import { BadCommandError, PowerBudgetError } from '../../errors';
-import { FUSION_REACTOR } from '../../physics/thermal';
 import type { ShipCommand } from '../../simulation/commands';
 import { shipText } from '../../text';
 
 import type { IReactorCore, IShieldGrid } from './contracts';
 import { EngineeringCommands, refuseEngineering } from './engineering-commands';
+import { FUSION_REACTOR } from './engineering-model';
 
 const EXPECTED =
   'throttle with a level from 0 to 1 and shields with raised true or false';

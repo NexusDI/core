@@ -1,8 +1,8 @@
-import { RCS_THRUSTERS, type ThrusterRating, wrap } from '../../physics/motion';
 import type { QueuedCommand } from '../../simulation/commands';
 import { type IShipState, SHIP_STATE } from '../../simulation/contracts';
 
-import type { IThrusters } from './contracts';
+import type { IThrusters, ThrusterRating } from './contracts';
+import { RCS_THRUSTERS, wrap } from './helm-model';
 
 /** The Meridian's reaction control thrusters. They queue the course on `SHIP_STATE`. */
 export class RcsThrusters implements IThrusters {

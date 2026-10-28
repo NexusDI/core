@@ -1,0 +1,1 @@
+const rooms = await import('../systems/life-support/contracts');

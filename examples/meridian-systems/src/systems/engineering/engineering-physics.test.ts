@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
-import type { PowerLoad } from '../../physics/power';
-import {
-  type CoolantRating,
-  FUSION_REACTOR,
-  LITHIUM_LOOP,
-} from '../../physics/thermal';
 import { SeededRandom } from '../../simulation/seeded-random';
 import type {
   DeckPlan,
@@ -15,8 +9,15 @@ import type {
 } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
-import type { ICoolantLoop, IPowerRouter, IReactorCore } from './contracts';
+import type {
+  CoolantRating,
+  ICoolantLoop,
+  IPowerRouter,
+  IReactorCore,
+  PowerLoad,
+} from './contracts';
 import { EngineeringPhysics } from './engineering-physics';
+import { FUSION_REACTOR, LITHIUM_LOOP } from './engineering-model';
 
 /** `m · c_p` of the lithium loop, in J/K. */
 const LOOP_HEAT_CAPACITY = 200_000 * 4_170;

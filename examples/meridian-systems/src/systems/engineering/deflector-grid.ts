@@ -1,4 +1,3 @@
-import { DEFLECTOR_GRID, type PowerLoad } from '../../physics/power';
 import type { QueuedCommand } from '../../simulation/commands';
 import {
   type IShipState,
@@ -6,7 +5,13 @@ import {
   type ShipSnapshot,
 } from '../../simulation/contracts';
 
-import { type IPowerRouter, type IShieldGrid, POWER_ROUTER } from './contracts';
+import {
+  type IPowerRouter,
+  type IShieldGrid,
+  POWER_ROUTER,
+  type PowerLoad,
+} from './contracts';
+import { DEFLECTOR_GRID } from './engineering-model';
 
 /** The Meridian's deflector shields, a load of priority 2 on the power router. */
 export class DeflectorGrid implements IShieldGrid {

@@ -1,4 +1,4 @@
-import { HULL, MAIN_DRIVE_LOAD, stepDrive } from '../../physics/motion';
+import { HULL } from '../../physics/constants';
 import type {
   IShipSystem,
   Phase,
@@ -7,6 +7,7 @@ import type {
 } from '../../simulation/contracts';
 
 import { type IMainDrive, MAIN_DRIVE } from './contracts';
+import { MAIN_DRIVE_LOAD, stepDrive } from './propulsion-model';
 
 /** Steps the main drive in phase 2 of each tick. */
 export class PropulsionPhysics implements IShipSystem {

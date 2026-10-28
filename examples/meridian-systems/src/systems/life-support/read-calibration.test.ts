@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import calibration from '../../../deck/sensors.calibration.json';
 import deck from '../../../deck/meridian.deck.json';
-import { LIFE_SUPPORT_RATINGS } from '../../physics/atmosphere';
 import type { DeckPlan } from '../../simulation/contracts';
 
+import { LIFE_SUPPORT_RATINGS } from './life-support-model';
 import { readCalibration } from './read-calibration';
 
 const plan = deck satisfies DeckPlan;

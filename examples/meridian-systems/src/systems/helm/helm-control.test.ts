@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import { BadCommandError } from '../../errors';
-import { PLASMA_DRIVE, RCS_THRUSTERS } from '../../physics/motion';
 import type { IMainDrive } from '../propulsion/contracts';
+import { PLASMA_DRIVE } from '../propulsion/propulsion-model';
 import type { INavCharts } from '../tactical/contracts';
 
 import { HELM_ACTIONS, type IThrusters } from './contracts';
 import { HelmControl } from './helm-control';
+import { RCS_THRUSTERS } from './helm-model';
 
 /** A helm over doubles of its dependencies that record each call. */
 function build() {

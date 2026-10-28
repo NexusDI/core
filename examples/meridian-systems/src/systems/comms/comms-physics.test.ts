@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
-import { stepComms } from '../../physics/comms';
 import type {
   DeckPlan,
   ShipSnapshot,
@@ -10,6 +9,7 @@ import type {
 import { SeededRandom } from '../../simulation/seeded-random';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
+import { stepComms } from './comms-model';
 import { CommsPhysics } from './comms-physics';
 import type { ICommsArray } from './contracts';
 

@@ -1,8 +1,4 @@
 import {
-  type AtmosphereReading,
-  readAtmosphere,
-} from '../../physics/atmosphere';
-import {
   type CompartmentId,
   type CompartmentState,
   DECK_PLAN,
@@ -12,10 +8,12 @@ import {
 } from '../../simulation/contracts';
 
 import {
+  type AtmosphereReading,
   type IAtmosphereProbe,
   LIFE_SUPPORT_OPTIONS,
   type LifeSupportOptions,
 } from './contracts';
+import { readAtmosphere } from './life-support-model';
 
 /** The sensors of every compartment, with the noise and resolution of `options.calibration`. */
 export class CalibratedProbe implements IAtmosphereProbe {

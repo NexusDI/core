@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
-import { FTL_SPOOL, ftlDemand } from '../../physics/ftl';
 import type { DeckPlan, ShipSnapshot } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
+import { FTL_SPOOL, ftlDemand } from './ftl-model';
 import { FtlPower } from './ftl-power';
 
 const start = new ShipStateStore(deck satisfies DeckPlan).snapshot();

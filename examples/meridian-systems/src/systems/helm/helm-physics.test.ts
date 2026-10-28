@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
-import { HULL, RCS_THRUSTERS, stepHelm } from '../../physics/motion';
 import type {
   DeckPlan,
   ShipSnapshot,
@@ -9,8 +8,10 @@ import type {
 } from '../../simulation/contracts';
 import { SeededRandom } from '../../simulation/seeded-random';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+import { HULL } from '../../physics/constants';
 
 import type { IThrusters } from './contracts';
+import { RCS_THRUSTERS, stepHelm } from './helm-model';
 import { HelmPhysics } from './helm-physics';
 
 const idle = new ShipStateStore(deck satisfies DeckPlan).snapshot();

@@ -1,5 +1,4 @@
 import { FtlNotSpooledError } from '../../errors';
-import { FTL_SPOOL, FTL_SPOOL_LOAD, type FtlRating } from '../../physics/ftl';
 import type { QueuedCommand } from '../../simulation/commands';
 import {
   type IShipState,
@@ -10,8 +9,9 @@ import {
 import { type IPowerRouter, POWER_ROUTER } from '../engineering/contracts';
 import { type INavCharts, NAV_CHARTS } from '../tactical/contracts';
 
-import type { IFtlDrive } from './contracts';
+import type { FtlRating, IFtlDrive } from './contracts';
 import { refuseFtl } from './ftl-commands';
+import { FTL_SPOOL, FTL_SPOOL_LOAD } from './ftl-model';
 import { FtlPhysics } from './ftl-physics';
 import { FtlPower } from './ftl-power';
 

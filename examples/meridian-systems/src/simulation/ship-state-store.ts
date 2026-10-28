@@ -1,19 +1,28 @@
+import { AIR, molesAt } from '../physics/gas';
+import { COMMS_LOAD } from '../systems/comms/comms-model';
 import {
-  type HeaterSetpoint,
+  allocatePower,
+  DEFLECTOR_GRID,
+  LITHIUM_LOOP,
+} from '../systems/engineering/engineering-model';
+import { HOME_SECTOR } from '../systems/ftl/ftl-model';
+import { THRUSTERS_LOAD } from '../systems/helm/helm-model';
+import type {
+  HeaterSetpoint,
+  LifeSupportRecord,
+  LifeSupportSetpoints,
+  PumpMode,
+} from '../systems/life-support/contracts';
+import {
   LIFE_SUPPORT_DEVICES,
   LIFE_SUPPORT_LOAD,
-  type LifeSupportRecord,
-  type LifeSupportSetpoints,
-  type PumpMode,
-} from '../physics/atmosphere';
-import { COMMS_LOAD } from '../physics/comms';
-import { HOME_SECTOR } from '../physics/ftl';
-import { AIR, molesAt } from '../physics/gas';
-import { MAIN_DRIVE_LOAD, THRUSTERS_LOAD } from '../physics/motion';
-import { allocatePower, DEFLECTOR_GRID } from '../physics/power';
-import type { SafetyRecord, SafetySetpoints } from '../physics/safety';
-import { LITHIUM_LOOP } from '../physics/thermal';
-import { RAILGUN_LOAD } from '../physics/weapons';
+} from '../systems/life-support/life-support-model';
+import { MAIN_DRIVE_LOAD } from '../systems/propulsion/propulsion-model';
+import type {
+  SafetyRecord,
+  SafetySetpoints,
+} from '../systems/safety/contracts';
+import { RAILGUN_LOAD } from '../systems/weapons/weapons-model';
 
 import type {
   DeepPartial,

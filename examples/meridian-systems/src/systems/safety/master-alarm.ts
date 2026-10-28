@@ -1,6 +1,5 @@
 import { all } from '@nexusdi/core';
 
-import type { Alarm } from '../../physics/safety';
 import { callAll } from '../../simulation/call-all';
 import {
   type ITickLoop,
@@ -8,7 +7,12 @@ import {
   TICK_LOOP,
 } from '../../simulation/contracts';
 
-import { ALARM_SINKS, type IAlarmSink, type IMasterAlarm } from './contracts';
+import {
+  ALARM_SINKS,
+  type Alarm,
+  type IAlarmSink,
+  type IMasterAlarm,
+} from './contracts';
 
 function key(alarm: Alarm): string {
   return `${alarm.code}:${alarm.subject}`;
@@ -20,8 +24,8 @@ function key(alarm: Alarm): string {
  * alarm that never hears a tick.
  */
 export class MasterAlarm implements IMasterAlarm, Disposable {
-  // all(ALARM_SINKS) reads the sinks of Safety and its imports, and the
-  // exports of every global module.
+  // all(ALARM_SINKS) reads Safety's own providers plus the contributions of
+  // every module that names ALARM_SINKS in its exports.
   static deps = [TICK_LOOP, all(ALARM_SINKS)] as const;
 
   private last: readonly Alarm[] = [];

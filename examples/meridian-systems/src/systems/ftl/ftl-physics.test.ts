@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
-import { FTL_SPOOL } from '../../physics/ftl';
 import type {
   DeckPlan,
   ShipSnapshot,
@@ -10,6 +9,7 @@ import type {
 import { SeededRandom } from '../../simulation/seeded-random';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
+import { FTL_SPOOL } from './ftl-model';
 import { FtlPhysics } from './ftl-physics';
 
 const start = new ShipStateStore(deck satisfies DeckPlan).snapshot();

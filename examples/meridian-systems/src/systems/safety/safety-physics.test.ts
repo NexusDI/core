@@ -2,9 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import calibration from '../../../deck/sensors.calibration.json';
 import deck from '../../../deck/meridian.deck.json';
-import { LIFE_SUPPORT_RATINGS } from '../../physics/atmosphere';
 import { AIR, molesAt } from '../../physics/gas';
-import { stepSafety } from '../../physics/safety';
 import {
   COMPARTMENT_IDS,
   type DeckPlan,
@@ -16,7 +14,9 @@ import { SeededRandom } from '../../simulation/seeded-random';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 import { CalibratedProbe } from '../life-support/calibrated-probe';
 import type { IAtmosphereProbe } from '../life-support/contracts';
+import { LIFE_SUPPORT_RATINGS } from '../life-support/life-support-model';
 
+import { stepSafety } from './safety-model';
 import { SafetyPhysics } from './safety-physics';
 
 const plan = deck satisfies DeckPlan;

@@ -1,4 +1,3 @@
-import type { PumpMode } from '../../physics/atmosphere';
 import { ownKey } from '../../simulation/command-arguments';
 import type { QueuedCommand, SetpointChange } from '../../simulation/commands';
 import {
@@ -7,7 +6,7 @@ import {
   SHIP_STATE,
 } from '../../simulation/contracts';
 
-import type { IAtmosphereControl } from './contracts';
+import type { IAtmosphereControl, PumpMode } from './contracts';
 import { refuseLifeSupport } from './life-support-commands';
 
 type LifeSupportChange = NonNullable<SetpointChange['lifeSupport']>;

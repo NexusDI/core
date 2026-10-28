@@ -1,10 +1,10 @@
-import { toRadians } from '../../physics/motion';
 import type { QueuedCommand } from '../../simulation/commands';
 import { type IMainDrive, MAIN_DRIVE } from '../propulsion/contracts';
 import { type INavCharts, NAV_CHARTS } from '../tactical/contracts';
 
 import { type IHelm, type IThrusters, THRUSTERS } from './contracts';
 import { refuseHelm } from './helm-commands';
+import { toRadians } from './helm-model';
 
 /**
  * The Meridian's helm. It plots a course once, at the command, so a tick

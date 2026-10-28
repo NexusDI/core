@@ -2,7 +2,7 @@ import { Nexus } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
 import { UnknownCompartmentError } from '../src/errors';
-import { OFF_GASSING } from '../src/physics/atmosphere';
+import { OFF_GASSING } from '../src/systems/life-support/life-support-model';
 import { pressure, totalMoles } from '../src/physics/gas';
 import { meridianSystems } from '../src/meridian-systems.module';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';

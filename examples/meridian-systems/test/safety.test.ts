@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { InterlockError } from '../src/errors';
 import { meridianSystems } from '../src/meridian-systems.module';
 import { pressure, totalMoles } from '../src/physics/gas';
-import type { Alarm } from '../src/physics/safety';
+import type { Alarm } from '../src/systems/safety/contracts';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
 import {
   type CompartmentId,
