@@ -1,6 +1,4 @@
-import { Nexus } from '@nexusdi/core';
-import { interceptors } from '@nexusdi/interceptors';
-import { describe, expect, it } from 'vitest';
+import { describe, expect } from 'vitest';
 
 import { InterlockError } from '../src/errors';
 import { meridianSystems } from '../src/meridian-systems.module';
@@ -13,17 +11,13 @@ import {
   type ShipSnapshot,
   TICK_LOOP,
 } from '../src/simulation/contracts';
-import { BLAST_DOORS } from '../src/systems/safety/contracts';
-import { PressureInterlock } from '../src/systems/safety/pressure-interlock';
 
-const options = { seed: 7, dt: 0.5 };
+import { shipTest } from './fixtures';
+import { INTERLOCK_PLUGINS, SHIP_OPTIONS } from './support';
 
-const plugins = [
-  interceptors({
-    register: [PressureInterlock],
-    bindings: [{ token: BLAST_DOORS, methods: { open: [PressureInterlock] } }],
-  }),
-];
+const test = shipTest(meridianSystems(SHIP_OPTIONS), {
+  plugins: INTERLOCK_PLUGINS,
+});
 
 const pump = (desk: ICommandDesk, mode: string) =>
   desk.submit({
@@ -60,10 +54,9 @@ function gap(ship: ShipSnapshot, deck: DeckPlan, door: string): number {
 }
 
 describe('the airlock drill under the interlock', () => {
-  it('pumps the airlock down, vents it, holds the outer door open 20 ticks and fills it to the inner door', async () => {
-    await using ship = await Nexus.create(meridianSystems(options), {
-      plugins,
-    });
+  test('pumps the airlock down, vents it, holds the outer door open 20 ticks and fills it to the inner door', ({
+    nexus: ship,
+  }) => {
     const desk = ship.get(COMMAND_DESK);
     const loop = ship.get(TICK_LOOP);
     const deck = ship.get(DECK_PLAN);

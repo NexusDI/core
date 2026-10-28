@@ -1,11 +1,9 @@
 import { defineModule, Nexus, provide } from '@nexusdi/core';
-import { interceptors } from '@nexusdi/interceptors';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { InterlockError } from '../src/errors';
 import { meridianSystems } from '../src/meridian-systems.module';
 import { pressure, totalMoles } from '../src/physics/gas';
-import type { Alarm } from '../src/systems/safety/contracts';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
 import {
   type CompartmentId,
@@ -24,14 +22,16 @@ import {
   type IAlarmSink,
   MASTER_ALARM,
 } from '../src/systems/safety/contracts';
-import { PressureInterlock } from '../src/systems/safety/pressure-interlock';
 
-const options = { seed: 7, dt: 0.5 };
+import { shipTest } from './fixtures';
+import {
+  INTERLOCK_PLUGINS,
+  online,
+  RecordingAlarmSink,
+  SHIP_OPTIONS,
+  throttle,
+} from './support';
 
-const throttle = (desk: ICommandDesk, level: number) =>
-  desk.submit({ system: 'engineering', action: 'throttle', level });
-const online = (desk: ICommandDesk) =>
-  desk.submit({ system: 'life-support', action: 'online' });
 const open = (desk: ICommandDesk, door: string) =>
   desk.submit({ system: 'safety', action: 'open', door });
 const flood = (desk: ICommandDesk, compartment: string) =>
@@ -55,21 +55,10 @@ function fireOut(loop: ITickLoop, id: CompartmentId): number {
   throw new Error(`the fire in ${id} burns 200 ticks on`);
 }
 
-/** A sink that writes each call as an audit line would read it. */
-class RecordingSink implements IAlarmSink {
-  readonly calls: string[] = [];
-  raise(alarm: Alarm, tick: number): void {
-    this.calls.push(`raised ${alarm.code} ${alarm.subject} at tick ${tick}`);
-  }
-  clear(alarm: Alarm, tick: number): void {
-    this.calls.push(`cleared ${alarm.code} ${alarm.subject} at tick ${tick}`);
-  }
-}
-
 /**
- * The ship with `sink` among the alarm sinks. The sink's module is global,
- * since all(ALARM_SINKS) in Safety reads Safety's own providers plus the
- * exports of its imports and of the global modules.
+ * The ship with `sink` among the alarm sinks. The sink's module exports
+ * ALARM_SINKS, so all(ALARM_SINKS) in Safety reads the sink wherever the
+ * module sits in the graph.
  */
 function shipWith(sink: IAlarmSink) {
   const AlarmLog = defineModule({
@@ -80,25 +69,35 @@ function shipWith(sink: IAlarmSink) {
   });
   return defineModule({
     name: 'ShipWithAlarmLog',
-    imports: [meridianSystems(options), AlarmLog],
+    imports: [meridianSystems(SHIP_OPTIONS), AlarmLog],
   });
 }
 
+/** The sink of the ship every case but the interlock's builds, which each case starts empty. */
+const sink = new RecordingAlarmSink();
+const test = shipTest(shipWith(sink));
+
+beforeEach(() => {
+  sink.calls.length = 0;
+});
+
 describe('Safety', () => {
   it('passes the check', () => {
-    expect(() => Nexus.check(meridianSystems(options))).not.toThrow();
+    expect(() => Nexus.check(meridianSystems(SHIP_OPTIONS))).not.toThrow();
   });
 
-  it("shows the root Safety's tokens and the probe Safety reads", async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test("shows the root Safety's tokens and the probe Safety reads", ({
+    nexus: ship,
+  }) => {
     expect(ship.get(BLAST_DOORS)).toBeDefined();
     expect(ship.get(FIRE_SUPPRESSION)).toBeDefined();
     expect(ship.get(MASTER_ALARM).active()).toEqual([]);
     expect(ship.get(ATMOSPHERE_PROBE)).toBeDefined();
   });
 
-  it('answers a safety command through the desk and opens the door on the next tick', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('answers a safety command through the desk and opens the door on the next tick', ({
+    nexus: ship,
+  }) => {
     const answer = ship.get(COMMAND_DESK).submit({
       system: 'safety',
       action: 'open',
@@ -111,19 +110,13 @@ describe('Safety', () => {
 });
 
 describe('the interlock on the blast doors', () => {
-  const plugins = [
-    interceptors({
-      register: [PressureInterlock],
-      bindings: [
-        { token: BLAST_DOORS, methods: { open: [PressureInterlock] } },
-      ],
-    }),
-  ];
+  const test = shipTest(meridianSystems(SHIP_OPTIONS), {
+    plugins: INTERLOCK_PLUGINS,
+  });
 
-  it('refuses the outer door at tick 0, with the full sea-level pressure across it', async () => {
-    await using ship = await Nexus.create(meridianSystems(options), {
-      plugins,
-    });
+  test('refuses the outer door at tick 0, with the full sea-level pressure across it', ({
+    nexus: ship,
+  }) => {
     const desk = ship.get(COMMAND_DESK);
     const call = () => open(desk, 'airlock-outer');
     expect(call).toThrow(InterlockError);
@@ -143,10 +136,7 @@ describe('the interlock on the blast doors', () => {
     });
   });
 
-  it('opens a door with equal pressures on both sides', async () => {
-    await using ship = await Nexus.create(meridianSystems(options), {
-      plugins,
-    });
+  test('opens a door with equal pressures on both sides', ({ nexus: ship }) => {
     expect(open(ship.get(COMMAND_DESK), 'bridge-habitat')).toEqual({
       tick: 1,
     });
@@ -154,9 +144,9 @@ describe('the interlock on the blast doors', () => {
 });
 
 describe('a decompression through both airlock doors', () => {
-  it('shuts the habitat in and raises the alarm for one tick', async () => {
-    const sink = new RecordingSink();
-    await using ship = await Nexus.create(shipWith(sink));
+  test('shuts the habitat in and raises the alarm for one tick', ({
+    nexus: ship,
+  }) => {
     const desk = ship.get(COMMAND_DESK);
     const loop = ship.get(TICK_LOOP);
     const deck = ship.get(DECK_PLAN);
@@ -193,9 +183,9 @@ describe('a decompression through both airlock doors', () => {
 });
 
 describe('a fire in the habitat', () => {
-  it('lights in the hot habitat on a draw and goes out under a flood', async () => {
-    const sink = new RecordingSink();
-    await using ship = await Nexus.create(shipWith(sink));
+  test('lights in the hot habitat on a draw and goes out under a flood', ({
+    nexus: ship,
+  }) => {
     const desk = ship.get(COMMAND_DESK);
     const loop = ship.get(TICK_LOOP);
     const state = ship.get(SHIP_STATE);
@@ -240,8 +230,9 @@ describe('a fire in the habitat', () => {
     expect(sink.calls).toContain(`cleared FIRE habitat at tick ${out}`);
   });
 
-  it('lights a drill on the next tick and floods it out, and a drill on the flooded room lights nothing', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('lights a drill on the next tick and floods it out, and a drill on the flooded room lights nothing', ({
+    nexus: ship,
+  }) => {
     const desk = ship.get(COMMAND_DESK);
     const loop = ship.get(TICK_LOOP);
     const deck = ship.get(DECK_PLAN);

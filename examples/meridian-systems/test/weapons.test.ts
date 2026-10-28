@@ -1,5 +1,5 @@
 import { Nexus } from '@nexusdi/core';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, vi } from 'vitest';
 
 import { meridianSystems } from '../src/meridian-systems.module';
 import { LITHIUM_LOOP } from '../src/systems/engineering/engineering-model';
@@ -8,7 +8,6 @@ import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
 import {
   SHIP_STATE,
   SHIP_SYSTEMS,
-  type ShipSnapshot,
   TICK_LOOP,
 } from '../src/simulation/contracts';
 import { POWER_ROUTER } from '../src/systems/engineering/contracts';
@@ -16,20 +15,17 @@ import { FTL_DRIVE } from '../src/systems/ftl/contracts';
 import { FtlDrive } from '../src/systems/ftl/ftl-drive.module';
 import { WEAPON_MOUNT } from '../src/systems/weapons/contracts';
 
-const options = { seed: 7, dt: 0.5 };
+import { shipTest } from './fixtures';
+import { loadOf, SHIP_OPTIONS, throttle } from './support';
+
+const test = shipTest(meridianSystems(SHIP_OPTIONS));
 
 /** 0.0899 K: a quarter of the 300 MJ shot over the loop's heat capacity. */
 const PULSE_KELVIN =
   (0.25 * 300e6) / (LITHIUM_LOOP.mass * LITHIUM_LOOP.heatCapacity);
 
-const throttle = (desk: ICommandDesk, level: number) =>
-  desk.submit({ system: 'engineering', action: 'throttle', level });
 const fire = (desk: ICommandDesk, range: unknown) =>
   desk.submit({ system: 'weapons', action: 'fire', range });
-
-/** The load the router allocated `id` on `ship`. */
-const load = (ship: ShipSnapshot, id: string) =>
-  ship.power.loads.find((entry) => entry.id === id);
 
 /** The refusal a fire gets with `available` W free. */
 const budget = (available: number) =>
@@ -40,8 +36,8 @@ const budget = (available: number) =>
     available,
   });
 
-/** The offline ship. */
-const create = () => Nexus.create(meridianSystems(options));
+/** A second offline ship, for the cases that compare two runs. */
+const create = () => Nexus.create(meridianSystems(SHIP_OPTIONS));
 
 /** The parts of `ship` a case drives. */
 const parts = (ship: Nexus) => ({
@@ -60,13 +56,12 @@ function firstShot(ship: Nexus, range: number) {
 }
 
 describe('the weapons', () => {
-  it('checks as part of the ship', async () => {
-    expect(() => Nexus.check(meridianSystems(options))).not.toThrow();
+  test('checks as part of the ship', ({ nexus }) => {
+    expect(() => Nexus.check(meridianSystems(SHIP_OPTIONS))).not.toThrow();
     expect(() =>
-      Nexus.check(meridianSystems(options), { load: [FtlDrive] }),
+      Nexus.check(meridianSystems(SHIP_OPTIONS), { load: [FtlDrive] }),
     ).not.toThrow();
 
-    await using nexus = await create();
     const { desk, state } = parts(nexus);
     expect(nexus.get(WEAPON_MOUNT).rating).toBe(RAILGUN);
     expect(
@@ -99,8 +94,7 @@ describe('the weapons', () => {
     ]);
   });
 
-  it('starts idle and keeps the record by identity', async () => {
-    await using nexus = await create();
+  test('starts idle and keeps the record by identity', ({ nexus }) => {
     const { loop, state } = parts(nexus);
     const start = state.snapshot();
     expect(start.weapons).toStrictEqual({
@@ -124,7 +118,7 @@ describe('the weapons', () => {
       'main-drive',
       'railgun',
     ]);
-    expect(load(start, 'railgun')).toEqual({
+    expect(loadOf(start, 'railgun')).toEqual({
       id: 'railgun',
       priority: 6,
       demand: 0,
@@ -133,7 +127,7 @@ describe('the weapons', () => {
 
     const first = loop.advance(1);
     expect(first.weapons).toBe(start.weapons);
-    expect(load(first, 'railgun')).toEqual({
+    expect(loadOf(first, 'railgun')).toEqual({
       id: 'railgun',
       priority: 6,
       demand: 0,
@@ -141,8 +135,9 @@ describe('the weapons', () => {
     });
   });
 
-  it('refuses a fire on a cold ship and on a ramp, and every bad argument', async () => {
-    await using coldShip = await create();
+  test('refuses a fire on a cold ship and on a ramp, and every bad argument', async ({
+    nexus: coldShip,
+  }) => {
     const cold = parts(coldShip);
     expect(() => fire(cold.desk, 10_000)).toThrow(budget(0));
     for (const range of [
@@ -180,8 +175,9 @@ describe('the weapons', () => {
     expect(ramp.state.log().map(({ tick }) => tick)).toEqual([1]);
   });
 
-  it('flies the golden scenario: charges, hits at tick 32, tops up at 200 MW and misses at tick 41', async () => {
-    await using nexus = await create();
+  test('flies the golden scenario: charges, hits at tick 32, tops up at 200 MW and misses at tick 41', async ({
+    nexus,
+  }) => {
     const { desk, loop, state } = parts(nexus);
 
     expect(throttle(desk, 1)).toEqual({ tick: 1 });
@@ -198,7 +194,7 @@ describe('the weapons', () => {
       lastShot: null,
     });
     expect(charging.setpoints.weapons).toEqual({ armed: true, range: 10_000 });
-    expect(load(charging, 'railgun')).toMatchObject({
+    expect(loadOf(charging, 'railgun')).toMatchObject({
       demand: 300_000_000,
       allocated: 300_000_000,
     });
@@ -220,11 +216,11 @@ describe('the weapons', () => {
       status: 'charged',
       charge: 400_000_000,
     });
-    expect(load(full, 'railgun')).toMatchObject({
+    expect(loadOf(full, 'railgun')).toMatchObject({
       demand: 200_000_000,
       allocated: 200_000_000,
     });
-    expect(load(loop.advance(1), 'railgun')).toMatchObject({
+    expect(loadOf(loop.advance(1), 'railgun')).toMatchObject({
       demand: 0,
       allocated: 0,
     });
@@ -239,10 +235,10 @@ describe('the weapons', () => {
       hits: 1,
       lastShot: { tick: 41, range: 50_000, hit: false },
     });
-    expect(load(miss, 'railgun')?.demand).toBe(0);
+    expect(loadOf(miss, 'railgun')?.demand).toBe(0);
     const topping = loop.advance(1);
     expect(topping.weapons.charge).toBe(250_000_000);
-    expect(load(topping, 'railgun')?.allocated).toBe(300_000_000);
+    expect(loadOf(topping, 'railgun')?.allocated).toBe(300_000_000);
     expect(loop.advance(1).weapons.status).toBe('charged');
     expect(state.log().map(({ tick }) => tick)).toEqual([1, 31, 41]);
 
@@ -264,8 +260,9 @@ describe('the weapons', () => {
     );
   });
 
-  it('merges two fires in one tick and replaces the range of a waiting shot', async () => {
-    await using nexus = await create();
+  test('merges two fires in one tick and replaces the range of a waiting shot', ({
+    nexus,
+  }) => {
     const { desk, loop, state } = parts(nexus);
     throttle(desk, 1);
     loop.advance(30);
@@ -291,8 +288,7 @@ describe('the weapons', () => {
     ]);
   });
 
-  it('holds the capacitor when a full burn sheds it', async () => {
-    await using nexus = await create();
+  test('holds the capacitor when a full burn sheds it', ({ nexus }) => {
     const { desk, loop } = parts(nexus);
     throttle(desk, 0.6);
     loop.advance(60);
@@ -319,8 +315,9 @@ describe('the weapons', () => {
     expect(held.reactor.electric).toBe(726_000_000);
   });
 
-  it('charges beside the ftl spool and sheds the spool at tick 106', async () => {
-    await using nexus = await create();
+  test('charges beside the ftl spool and sheds the spool at tick 106', async ({
+    nexus,
+  }) => {
     const { desk, loop } = parts(nexus);
     await nexus.load(FtlDrive);
     const drive = nexus.get(FTL_DRIVE);
@@ -334,8 +331,8 @@ describe('the weapons', () => {
     const charges: number[] = [];
     for (let tick = 102; tick <= 105; tick++) {
       const ship = loop.advance(1);
-      expect(load(ship, 'ftl-spool')?.allocated).toBe(900_000_000);
-      expect(load(ship, 'railgun')?.allocated).toBe(300_000_000);
+      expect(loadOf(ship, 'ftl-spool')?.allocated).toBe(900_000_000);
+      expect(loadOf(ship, 'railgun')?.allocated).toBe(300_000_000);
       expect(ship.power.shed).toEqual([]);
       charges.push(ship.weapons.charge);
       if (tick === 103) {
@@ -352,8 +349,8 @@ describe('the weapons', () => {
     const shed = loop.advance(1);
     expect(shed.tick).toBe(106);
     expect(shed.power.shed).toEqual(['ftl-spool']);
-    expect(load(shed, 'ftl-spool')?.allocated).toBe(0);
-    expect(load(shed, 'railgun')).toMatchObject({
+    expect(loadOf(shed, 'ftl-spool')?.allocated).toBe(0);
+    expect(loadOf(shed, 'railgun')).toMatchObject({
       demand: 200_000_000,
       allocated: 200_000_000,
     });
@@ -367,8 +364,8 @@ describe('the weapons', () => {
       hits: 1,
       lastShot: { tick: 107, range: 10_000, hit: false },
     });
-    expect(load(shot, 'railgun')?.allocated).toBe(0);
-    expect(load(shot, 'ftl-spool')?.allocated).toBe(900_000_000);
+    expect(loadOf(shot, 'railgun')?.allocated).toBe(0);
+    expect(loadOf(shot, 'ftl-spool')?.allocated).toBe(900_000_000);
     expect(shot.power.shed).toEqual([]);
 
     const again = loop.advance(1);
@@ -377,11 +374,12 @@ describe('the weapons', () => {
       code: 'LOAD_SHED',
       subject: 'ftl-spool',
     });
-    expect(load(again, 'railgun')?.allocated).toBe(300_000_000);
+    expect(loadOf(again, 'railgun')?.allocated).toBe(300_000_000);
   });
 
-  it('hits at 16,279 m and misses at 16,280 m on the first draw', async () => {
-    await using near = await create();
+  test('hits at 16,279 m and misses at 16,280 m on the first draw', async ({
+    nexus: near,
+  }) => {
     expect(firstShot(near, 16_279)).toEqual({
       tick: 32,
       range: 16_279,

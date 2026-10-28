@@ -4,43 +4,38 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { meridianSystems } from '../src/meridian-systems.module';
 import { toRadians, wrap } from '../src/systems/helm/helm-model';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
-import {
-  SHIP_STATE,
-  type ShipSnapshot,
-  TICK_LOOP,
-} from '../src/simulation/contracts';
+import { SHIP_STATE, TICK_LOOP } from '../src/simulation/contracts';
 import { HELM, HELM_ACTIONS, THRUSTERS } from '../src/systems/helm/contracts';
 import { MAIN_DRIVE } from '../src/systems/propulsion/contracts';
 import { BUNDLED_CHARTS } from '../src/systems/tactical/star-charts';
 
-const options = { seed: 7, dt: 0.5 };
-const RELAY = 'https://relay.test';
+import { shipTest } from './fixtures';
+import { loadOf, RELAY_URL, SHIP_OPTIONS, throttle } from './support';
+
+const test = shipTest(meridianSystems(SHIP_OPTIONS));
+
 const KEPLER = 0.7330382858376184;
 
-const throttle = (desk: ICommandDesk, level: number) =>
-  desk.submit({ system: 'engineering', action: 'throttle', level });
 const course = (desk: ICommandDesk, to: unknown) =>
   desk.submit({ system: 'helm', action: 'course', to });
 const burn = (desk: ICommandDesk, level: unknown) =>
   desk.submit({ system: 'helm', action: 'burn', level });
 
-/** The load the router allocated `id` on `ship`. */
-const load = (ship: ShipSnapshot, id: string) =>
-  ship.power.loads.find((entry) => entry.id === id);
-
 /** The relay graph, which downloads its charts at build. */
-const relayGraph = () => meridianSystems({ ...options, relayUrl: RELAY });
+const relayGraph = () =>
+  meridianSystems({ ...SHIP_OPTIONS, relayUrl: RELAY_URL });
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe('the helm and the drive', () => {
-  it('builds with the helm and the drive and lists helm on the desk', async () => {
-    expect(() => Nexus.check(meridianSystems(options))).not.toThrow();
+  test('builds with the helm and the drive and lists helm on the desk', ({
+    nexus: ship,
+  }) => {
+    expect(() => Nexus.check(meridianSystems(SHIP_OPTIONS))).not.toThrow();
     expect(() => Nexus.check(relayGraph())).not.toThrow();
 
-    await using ship = await Nexus.create(meridianSystems(options));
     expect(ship.get(HELM)).toBeDefined();
     expect(ship.get(THRUSTERS)).toBeDefined();
     expect(ship.get(MAIN_DRIVE)).toBeDefined();
@@ -54,8 +49,9 @@ describe('the helm and the drive', () => {
     );
   });
 
-  it('flies the golden scenario: sheds at tick 1, burns off axis at tick 50, settles at tick 688', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('flies the golden scenario: sheds at tick 1, burns off axis at tick 50, settles at tick 688', ({
+    nexus: ship,
+  }) => {
     const desk = ship.get(COMMAND_DESK);
     const loop = ship.get(TICK_LOOP);
 
@@ -65,13 +61,13 @@ describe('the helm and the drive', () => {
 
     // The reactor at 0.01 gives 12.1 MW, under the thrusters' 20 MW.
     const first = loop.advance(1);
-    expect(load(first, 'thrusters')).toEqual({
+    expect(loadOf(first, 'thrusters')).toEqual({
       id: 'thrusters',
       priority: 4,
       demand: 20_000_000,
       allocated: 0,
     });
-    expect(load(first, 'main-drive')).toEqual({
+    expect(loadOf(first, 'main-drive')).toEqual({
       id: 'main-drive',
       priority: 5,
       demand: 600_000_000,
@@ -91,7 +87,7 @@ describe('the helm and the drive', () => {
       rate: 0.0007575757575757576,
       torque: 5_000_000,
     });
-    expect(load(second, 'thrusters')?.allocated).toBe(20_000_000);
+    expect(loadOf(second, 'thrusters')?.allocated).toBe(20_000_000);
     expect(second.power.shed).toEqual(['main-drive']);
 
     for (let tick = 3; tick < 50; tick++) {
@@ -103,7 +99,7 @@ describe('the helm and the drive', () => {
     const burning = loop.advance(1);
     expect(burning.tick).toBe(50);
     expect(burning.reactor.electric).toBeCloseTo(605e6, 0);
-    expect(load(burning, 'main-drive')?.allocated).toBe(600_000_000);
+    expect(loadOf(burning, 'main-drive')?.allocated).toBe(600_000_000);
     expect(burning.drive.thrust).toBe(14_400);
     expect(burning.drive.acceleration).toBeCloseTo(0.003188247, 6);
     expect(burning.power.shed).toEqual([]);
@@ -125,7 +121,7 @@ describe('the helm and the drive', () => {
       if (settled === undefined && still) settled = last.tick;
       if (settled !== undefined) {
         expect(still).toBe(true);
-        expect(load(last, 'thrusters')?.demand).toBe(0);
+        expect(loadOf(last, 'thrusters')?.demand).toBe(0);
       }
       expect(last.coolant.temperature).toBeLessThan(1350);
     }
@@ -141,8 +137,7 @@ describe('the helm and the drive', () => {
     ).toEqual([1]);
   });
 
-  it('burns along the settled course from tick 801', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('burns along the settled course from tick 801', ({ nexus: ship }) => {
     const desk = ship.get(COMMAND_DESK);
     const loop = ship.get(TICK_LOOP);
 
@@ -162,8 +157,8 @@ describe('the helm and the drive', () => {
     }
     expect(settled).toBe(697);
     expect(ready.helm).toEqual({ attitude: KEPLER, rate: 0, torque: 0 });
-    expect(load(ready, 'thrusters')?.demand).toBe(0);
-    expect(load(ready, 'main-drive')?.demand).toBe(0);
+    expect(loadOf(ready, 'thrusters')?.demand).toBe(0);
+    expect(loadOf(ready, 'main-drive')?.demand).toBe(0);
 
     expect(burn(desk, 1)).toEqual({ tick: 801 });
     const end = loop.advance(400);
@@ -172,7 +167,7 @@ describe('the helm and the drive', () => {
     expect(end.drive.acceleration).toBeCloseTo(0.0036, 12);
     expect(end.drive.velocity).toBeCloseTo(0.72, 12);
     expect(end.drive.distance).toBeCloseTo(72.18, 12);
-    expect(load(end, 'main-drive')?.allocated).toBe(600_000_000);
+    expect(loadOf(end, 'main-drive')?.allocated).toBe(600_000_000);
     expect(end.safety.alarms).toEqual([]);
     expect(
       ship
@@ -182,8 +177,9 @@ describe('the helm and the drive', () => {
     ).toEqual([1, 11, 801]);
   });
 
-  it('refuses the shields at tick 16 with 193,600,000 W available', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('refuses the shields at tick 16 with 193,600,000 W available', ({
+    nexus: ship,
+  }) => {
     const desk = ship.get(COMMAND_DESK);
     const loop = ship.get(TICK_LOOP);
     const shields = () =>
@@ -205,8 +201,9 @@ describe('the helm and the drive', () => {
     expect(shields()).toEqual({ tick: 18 });
   });
 
-  it('refuses helm warp, a burn of 2 and a course to 42', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('refuses helm warp, a burn of 2 and a course to 42', ({
+    nexus: ship,
+  }) => {
     const desk = ship.get(COMMAND_DESK);
 
     expect(() => desk.submit({ system: 'helm', action: 'warp' })).toThrow(
@@ -228,8 +225,9 @@ describe('the helm and the drive', () => {
     expect(ship.get(SHIP_STATE).log()).toEqual([]);
   });
 
-  it('refuses a course to Vega, constructor and __proto__, which the charts do not hold', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('refuses a course to Vega, constructor and __proto__, which the charts do not hold', ({
+    nexus: ship,
+  }) => {
     const desk = ship.get(COMMAND_DESK);
 
     for (const to of ['Vega', 'constructor', '__proto__']) {
@@ -247,7 +245,7 @@ describe('the helm and the drive', () => {
   });
 
   it("steers the charted heading offline and from the relay's table", async () => {
-    await using offline = await Nexus.create(meridianSystems(options));
+    await using offline = await Nexus.create(meridianSystems(SHIP_OPTIONS));
     expect(course(offline.get(COMMAND_DESK), 'TRAPPIST-1e')).toEqual({
       tick: 1,
     });

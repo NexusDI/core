@@ -1,10 +1,9 @@
-import { defineModule, Nexus } from '@nexusdi/core';
+import { defineModule, isNexusError, Nexus } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
 import { meridianSystems } from '../src/meridian-systems.module';
 import { GASES, pressure } from '../src/physics/gas';
 import { COMMAND_DESK } from '../src/simulation/commands';
-import { UnknownCompartmentError } from '../src/errors';
 import {
   COMPARTMENT,
   DECK_PLAN,
@@ -14,20 +13,20 @@ import {
 import { roundNumber, roundSnapshot } from '../src/simulation/round-snapshot';
 import { TELEMETRY } from '../src/telemetry/contracts';
 
-import { test } from './fixtures';
-import { LOOP_WATCH, PROBE_LOG } from './probes';
+import { shipTest, test } from './fixtures';
+import { LOOP_WATCH, PROBE_LOG, SHIP_OPTIONS, caught } from './support';
 
 describe('meridianSystems', () => {
+  const test = shipTest(meridianSystems(SHIP_OPTIONS));
+
   it('passes the check', () => {
-    expect(() =>
-      Nexus.check(meridianSystems({ seed: 7, dt: 0.5 })),
-    ).not.toThrow();
+    expect(() => Nexus.check(meridianSystems(SHIP_OPTIONS))).not.toThrow();
   });
 
   it('exports TELEMETRY to a root that imports it', async () => {
     const Root = defineModule({
       name: 'Root',
-      imports: [meridianSystems({ seed: 7, dt: 0.5 })],
+      imports: [meridianSystems(SHIP_OPTIONS)],
     });
     expect(() => Nexus.check(Root)).not.toThrow();
     await using ship = await Nexus.create(Root);
@@ -35,22 +34,17 @@ describe('meridianSystems', () => {
   });
 
   it('builds on its own and gives one snapshot for one seed', async () => {
-    await using first = await Nexus.create(
-      meridianSystems({ seed: 7, dt: 0.5 }),
-    );
-    await using second = await Nexus.create(
-      meridianSystems({ seed: 7, dt: 0.5 }),
-    );
+    await using first = await Nexus.create(meridianSystems(SHIP_OPTIONS));
+    await using second = await Nexus.create(meridianSystems(SHIP_OPTIONS));
     const a = first.get(TICK_LOOP).advance(600);
     const b = second.get(TICK_LOOP).advance(600);
     expect(roundSnapshot(a)).toEqual(roundSnapshot(b));
     expect(a).toEqual(b);
   });
 
-  it('serves the command desk, which refuses a system no module handles', async () => {
-    await using ship = await Nexus.create(
-      meridianSystems({ seed: 7, dt: 0.5 }),
-    );
+  test('serves the command desk, which refuses a system no module handles', ({
+    nexus: ship,
+  }) => {
     expect(() =>
       ship.get(COMMAND_DESK).submit({ system: 'warp-core', action: 'engage' }),
     ).toThrow(
@@ -64,33 +58,28 @@ describe('meridianSystems', () => {
 });
 
 describe('COMPARTMENT', () => {
-  it('reads the compartment of the request a scope carries', async () => {
-    await using ship = await Nexus.create(
-      meridianSystems({ seed: 7, dt: 0.5 }),
-    );
+  const test = shipTest(meridianSystems(SHIP_OPTIONS));
+
+  test('reads the compartment of the request a scope carries', async ({
+    nexus: ship,
+  }) => {
     await using scope = await ship.createScope({
       request: { compartment: 'habitat' },
     });
     expect(scope.get(COMPARTMENT)).toBe('habitat');
   });
 
-  it('opens a scope whose request names no compartment and refuses only the get', async () => {
-    await using ship = await Nexus.create(
-      meridianSystems({ seed: 7, dt: 0.5 }),
-    );
+  test('opens a scope whose request names no compartment and refuses only the get', async ({
+    nexus: ship,
+  }) => {
     await using scope = await ship.createScope({ request: {} });
-    let refused: unknown;
-    try {
-      scope.get(COMPARTMENT);
-    } catch (error) {
-      refused = error;
-    }
     // Core rethrows a NexusError from a sync factory as it is, with no
     // ProviderError around it.
-    expect(refused).toBeInstanceOf(UnknownCompartmentError);
-    expect({ ...(refused as UnknownCompartmentError) }).toStrictEqual({
-      expected: 'bridge, habitat, reactor-bay and airlock',
-    });
+    const refused = caught(() => scope.get(COMPARTMENT));
+    if (!isNexusError(refused, 'MERIDIAN_UNKNOWN_COMPARTMENT')) {
+      throw new Error('expected MERIDIAN_UNKNOWN_COMPARTMENT');
+    }
+    expect(refused.expected).toBe('bridge, habitat, reactor-bay and airlock');
   });
 });
 
@@ -112,11 +101,8 @@ describe('Simulation.forRoot', () => {
     [{ seed: 7, dt: Number.POSITIVE_INFINITY }, 'dt', `${DT}, got Infinity`],
     [{ seed: 7 }, 'dt', `${DT}, got undefined`],
   ])('refuses %o at create', async (options, field, message) => {
-    const error = await Nexus.create(
-      meridianSystems(options as unknown as SimOptions),
-    ).then(
-      () => undefined,
-      (refused: unknown) => refused,
+    const error = await caught(() =>
+      Nexus.create(meridianSystems(options as unknown as SimOptions)),
     );
     expect(error).toMatchObject({
       code: 'NEXUS_PROVIDER_FAILED',
@@ -130,9 +116,8 @@ describe('Simulation.forRoot', () => {
   });
 
   it('lists every refused field', async () => {
-    const error = await Nexus.create(meridianSystems({ seed: -1, dt: 0 })).then(
-      () => undefined,
-      (refused: unknown) => refused,
+    const error = await caught(() =>
+      Nexus.create(meridianSystems({ seed: -1, dt: 0 })),
     );
     expect(error).toMatchObject({
       cause: {
