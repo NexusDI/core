@@ -76,6 +76,10 @@ const meta: MetaRecord = {
     title: 'NEXUS_LOAD_GRANT',
     display: 'hidden',
   },
+  NEXUS_UNREAD_CONTRIBUTION: {
+    title: 'NEXUS_UNREAD_CONTRIBUTION',
+    display: 'hidden',
+  },
   NEXUS_INVALID_MODULE_OPTIONS: {
     title: 'NEXUS_INVALID_MODULE_OPTIONS',
     display: 'hidden',

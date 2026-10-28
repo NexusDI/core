@@ -7,7 +7,7 @@ requires: [multi-providers]
 
 # Errors
 
-Every NexusDI error extends `NexusError` and carries a stable `code`, such as `NEXUS_MISSING_PROVIDER`, plus the fields that describe the failure. `Nexus.create` compiles the whole graph first and reports every compile error at once. A `MultiToken` contribution that a module keeps private, from the previous page, is a valid design and raises no error.
+Every NexusDI error extends `NexusError` and carries a stable `code`, such as `NEXUS_MISSING_PROVIDER`, plus the fields that describe the failure. `Nexus.create` compiles the whole graph first and reports every compile error at once. A `MultiToken` contribution that a module keeps private is valid when a provider in that module reads the token, as [Multi-Providers](/multi-providers/) shows. A private contribution that no provider can read raises [NEXUS_UNREAD_CONTRIBUTION](/errors/NEXUS_UNREAD_CONTRIBUTION/).
 
 ## Read a NexusDI error's `code` with `isNexusError()`
 

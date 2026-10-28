@@ -1,0 +1,71 @@
+---
+title: NEXUS_UNREAD_CONTRIBUTION
+kind: code
+description: A module contributes to a multi token, keeps the contribution private, and no provider in it reads the token.
+package: '@nexusdi/core'
+errorClass: UnreadContributionError
+---
+
+# NEXUS_UNREAD_CONTRIBUTION
+
+When a module provides a value to a `MultiToken` but does not export that token, the contribution is private to that module. If no provider within the same module reads that token, the contribution is unreachable by any provider.
+
+NexusDI identifies this as an `UnreadContributionError` to prevent dead code and configuration mistakes. The compiler raises this error for each contribution when all four of these conditions are met:
+
+- The module is not the root module.
+- The module does not export the token.
+- No provider in the module requests the token via `all()` or `lazy(all())` in its `deps` or properties.
+- The token is not pinned.
+
+`Nexus.create` reports this error as part of [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), occurring after the binding pass and following provider order. Because `ship.load()` and `Nexus.check` both trigger a compilation, they report the error in the same manner. A loaded module is an import of the root module. The root module is the only module the rule exempts, so it applies to a loaded module. A forgotten `exports: [TOKEN]` entry is a likely cause.
+
+## Reproduce `NEXUS_UNREAD_CONTRIBUTION`
+
+To see this error in action, consider a scenario where a module named `Tactical` binds `HullCheck` to the `HEALTH_CHECKS` multi token. If `Tactical` does not export the token and contains no providers that read it, the contribution is unread. Even if the root module `Meridian` has a `HealthService` that reads `all(HEALTH_CHECKS)`, that reader only sees contributions exported by other modules.
+
+Without the `@nexusdi/errors` plugin, core prints a one-line message starting with the error code and ending with the link to this page. If you register `errors()` from `@nexusdi/errors` (`npm install @nexusdi/errors@next`), the error includes the full descriptive text and instructions on how to fix it.
+
+```ts file=examples/meridian/src/errors/NEXUS_UNREAD_CONTRIBUTION.md region=reproduce
+
+```
+
+Try it: save the region above as `error.ts` and run `npx tsx error.ts`. `Nexus.create` will reject with `NEXUS_BLUEPRINT_INVALID`, and the first entry in the `errors` list will be this error. The example prints the one-line message followed by the full text. The `provider` field identifies the contribution: classes use their class name, factories use their function name, and other contributions use their form and index (e.g., `useValue #2`).
+
+## Fix `NEXUS_UNREAD_CONTRIBUTION`
+
+There are three ways to resolve this error, listed in the order the message gives them:
+
+1. **Collect the contribution locally.** Add a provider within the same module that reads the token. For example, `HullMonitor` can take `all(HEALTH_CHECKS)` in its `deps`, and `Tactical` can then export the monitor.
+2. **Export the token.** Add `HEALTH_CHECKS` to the `exports` list of the module to make the contribution visible to all collectors of that token, such as `HealthService` in `Meridian`.
+3. **Remove the contribution.** Delete the provider if the value is no longer needed.
+
+```ts file=examples/meridian/src/errors/NEXUS_UNREAD_CONTRIBUTION.md region=fix-collect
+
+```
+
+```ts file=examples/meridian/src/errors/NEXUS_UNREAD_CONTRIBUTION.md region=fix-export
+
+```
+
+Try it: save the first region as `collect.ts` and run `npx tsx collect.ts`; it will print `[ 'hull' ]`. If you remove `HULL_MONITOR` from the `providers` and `exports` of `Tactical`, `Nexus.create` rejects and the program ends with the uncaught `NEXUS_BLUEPRINT_INVALID`, which holds `NEXUS_UNREAD_CONTRIBUTION` for `HullCheck` in `Tactical`. Similarly, save the second region as `export.ts` and run it; it will also print `[ 'hull' ]`. Deleting `exports: [HEALTH_CHECKS]` from `Tactical` ends it with the same error.
+
+## Defining a "Reader"
+
+A "reader" is specifically a provider within the module that holds the contribution (or any collector if the module exports the token) that uses `all()` or `lazy(all())`. Contributions in the root module are always considered read because root `get()`, `resolve()`, `validate()`, and scope-level `get()` calls access them.
+
+Certain calls can see private contributions but do not count as readers for the purpose of this compiler check:
+
+- `get()`, `has()`, `resolve()`, and `validate()` when the `{ module }` option is provided.
+- `view.visible()` within a plugin.
+
+The `{ module }` option suits tests and debugging, and `view.visible()` serves plugins. Neither counts as a reader. Because the compiler cannot predict if these calls will occur at runtime, a program that relies solely on `get(TOKEN, { module: Tactical })` to read a private contribution will still fail at startup. You must either collect or export the token.
+
+**Pinned tokens** are exempt from this check. A plugin pins a token when its `compile.provider` hook rewrites a provider using `pin`. This replaces all other providers of that token and makes the replacement visible across every module.
+
+## Fields of `UnreadContributionError`
+
+The `UnreadContributionError` class provides three fields for debugging:
+
+- `token`: The description of the `MultiToken` associated with the contribution.
+- `module`: The name of the module containing the unread contribution.
+- `provider`: The name or identifier of the specific contribution.
