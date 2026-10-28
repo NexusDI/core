@@ -1,8 +1,11 @@
-import { meridianShared } from '@nexusdi/federation-contracts/shared';
+import {
+  meridianRemote,
+  type RemoteOptions,
+} from '@nexusdi/federation-contracts/rspack';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { cartography, type CartographyBuild } from './rspack.config';
+import { cartographyRemote } from './rspack.config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -11,9 +14,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  * version from drift/version.ts, one minor above the shell's, so the
  * shell's load() fails with NEXUS_CONTRACT_VERSION.
  */
-export const driftBuild: CartographyBuild = {
+export const driftBuild: RemoteOptions = {
+  ...cartographyRemote,
   out: 'drift',
-  shared: meridianShared(),
   contractAliases: {
     '@nexusdi/federation-contracts/version': path.resolve(
       __dirname,
@@ -22,4 +25,4 @@ export const driftBuild: CartographyBuild = {
   },
 };
 
-export default cartography(driftBuild);
+export default meridianRemote(driftBuild);

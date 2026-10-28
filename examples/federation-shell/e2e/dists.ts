@@ -1,33 +1,35 @@
 import { GROWTH, REMOTES } from './ports.ts';
+import type { StationRow } from '../src/stations.ts';
+
+/** The build folder of a station's remote, as a path under examples/. */
+const distOf = (id: StationRow['id'], out = 'main') =>
+  `federation-${id}/dist/${out}`;
 
 /** The shell's e2e build, which three shell instances serve. */
 export const SHELL_DIST = 'federation-shell/dist/e2e';
 
 /** The four remote builds the shell loads, each on its own port. */
 export const REMOTE_DISTS = [
-  { dist: 'federation-cartography/dist/main', port: REMOTES.cartography },
-  { dist: 'federation-command/dist/main', port: REMOTES.command },
-  { dist: 'federation-cartography/dist/drift', port: REMOTES.drift },
-  { dist: 'federation-cartography/dist/unshared', port: REMOTES.unshared },
+  { dist: distOf('cartography'), port: REMOTES.cartography },
+  { dist: distOf('command'), port: REMOTES.command },
+  { dist: distOf('cartography', 'drift'), port: REMOTES.drift },
+  { dist: distOf('cartography', 'unshared'), port: REMOTES.unshared },
 ] as const;
 
 /**
  * The two station builds. The gating suite serves neither one and checks
  * both for simulation code; the growth suite serves them.
  */
-const STATION_DISTS = [
-  'federation-engineering/dist/main',
-  'federation-life-support/dist/main',
-] as const;
+const STATION_DISTS = [distOf('engineering'), distOf('life-support')] as const;
 
 /**
  * The three remote builds the growth suite's shell loads, each on its
  * growth port. The e2e-growth target builds them first (project.json).
  */
 export const GROWTH_DISTS = [
-  { dist: 'federation-command/dist/main', port: GROWTH.command },
-  { dist: 'federation-engineering/dist/main', port: GROWTH.engineering },
-  { dist: 'federation-life-support/dist/main', port: GROWTH.lifeSupport },
+  { dist: distOf('command'), port: GROWTH.command },
+  { dist: distOf('engineering'), port: GROWTH.engineering },
+  { dist: distOf('life-support'), port: GROWTH.lifeSupport },
 ] as const;
 
 /**

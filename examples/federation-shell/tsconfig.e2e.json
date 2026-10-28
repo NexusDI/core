@@ -15,6 +15,7 @@
   "include": [
     "e2e/**/*.ts",
     "e2e/**/*.js",
+    "src/stations.ts",
     "playwright.config.mts",
     "playwright.e2e-growth.config.mts",
     "playwright.servers.mts"

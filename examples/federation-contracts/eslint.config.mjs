@@ -10,7 +10,9 @@ export default [
         {
           // src/shared.ts reads the versions of react and core from their
           // package.json files with require, which the rule does not see.
-          ignoredDependencies: ['@nexusdi/core', 'react'],
+          // @rspack/plugin-react-refresh loads react-refresh by name when
+          // the factory builds a development config.
+          ignoredDependencies: ['@nexusdi/core', 'react', 'react-refresh'],
           ignoredFiles: [
             '{projectRoot}/eslint.config.{js,cjs,mjs,ts,cts,mts}',
             '{projectRoot}/vitest.config.{js,ts,mjs,mts}',

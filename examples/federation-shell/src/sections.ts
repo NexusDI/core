@@ -1,54 +1,59 @@
 import { loadRemote } from '@module-federation/runtime';
 import type { ModuleRef } from '@nexusdi/core';
-import { lazySection } from '@nexusdi/react';
-import type { ComponentType } from 'react';
+import { lazySection, type LazySection } from '@nexusdi/react';
+import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 
-import { stations, type StationName } from './mf';
+import { stations } from './mf';
+import { STATIONS, type Station, type StationRow } from './stations';
 
 /** What a station exposes at ./section: its module and its component. */
-type SectionPackage<M extends string, C extends string> = Record<M, ModuleRef> &
-  Record<C, ComponentType>;
+type SectionPackage = Record<string, ModuleRef | ComponentType>;
 
 /** The section package of `station`, once /remotes.json registered it. */
-async function sectionOf<P>(station: StationName): Promise<P> {
-  if ((await stations)[station] === 'failed')
+async function sectionOf(station: StationRow): Promise<SectionPackage> {
+  if ((await stations)[station.remote] === 'failed')
     throw new Error(
-      `${station} is not in /remotes.json, so the shell cannot load its section.`,
+      `${station.remote} is not in /remotes.json, so the shell cannot load its section.`,
     );
-  const section = await loadRemote<P>(`${station}/section`);
+  const section = await loadRemote<SectionPackage>(`${station.remote}/section`);
   if (section == null)
-    throw new Error(`${station}/section loaded with no exports.`);
+    throw new Error(`${station.remote}/section loaded with no exports.`);
   return section;
 }
 
-type CartographyPackage = SectionPackage<'Cartography', 'StarMap'>;
-type CommandPackage = SectionPackage<'Command', 'CommandDeck'>;
-type EngineeringPackage = SectionPackage<
-  'EngineeringStation',
-  'EngineeringPanel'
->;
-type LifeSupportPackage = SectionPackage<
-  'LifeSupportStation',
-  'LifeSupportPanel'
->;
+/** The export `key` of the section package, which must exist. */
+function exportOf<T>(
+  section: SectionPackage,
+  station: Station,
+  key: string,
+): T {
+  const found = section[key];
+  if (found == null)
+    throw new Error(`${station.remote}/section exports no ${key}.`);
+  return found as T;
+}
 
-export const cartography = () =>
-  sectionOf<CartographyPackage>('federation_cartography');
-export const command = () => sectionOf<CommandPackage>('federation_command');
-export const engineering = () =>
-  sectionOf<EngineeringPackage>('federation_engineering');
-export const lifeSupport = () =>
-  sectionOf<LifeSupportPackage>('federation_life_support');
+/** A station's lazy section and its lazy panel. */
+export interface StationSection {
+  readonly section: LazySection;
+  readonly Panel: LazyExoticComponent<ComponentType>;
+}
 
-export const Cartography = lazySection('cartography', () =>
-  cartography().then((m) => m.Cartography),
-);
-export const Command = lazySection('command', () =>
-  command().then((m) => m.Command),
-);
-export const EngineeringStation = lazySection('engineering', () =>
-  engineering().then((m) => m.EngineeringStation),
-);
-export const LifeSupportStation = lazySection('life-support', () =>
-  lifeSupport().then((m) => m.LifeSupportStation),
+/** The lazy section and panel of each station, by station id. */
+export const SECTIONS: ReadonlyMap<string, StationSection> = new Map(
+  STATIONS.map((station) => [
+    station.id,
+    {
+      section: lazySection(station.id, async () =>
+        exportOf<ModuleRef>(await sectionOf(station), station, station.module),
+      ),
+      Panel: lazy(async () => ({
+        default: exportOf<ComponentType>(
+          await sectionOf(station),
+          station,
+          station.panel,
+        ),
+      })),
+    },
+  ]),
 );

@@ -6,7 +6,8 @@ contract's `TELEMETRY_FEED` and shows the reactor and coolant gauges and the pow
 It sends no command.
 
 It serves on port 4305, and the shell (`examples/federation-shell`) loads it on
-`/engineering`. The remote has no standalone page: `index.html` points at the shell.
+`/engineering`. The remote has no page of its own, only `remoteEntry.js` and the chunks of
+`./section`.
 
 ## Commands
 

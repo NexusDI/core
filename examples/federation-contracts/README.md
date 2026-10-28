@@ -51,6 +51,16 @@ each project's `rspack.config.ts` passes to its `ModuleFederationPlugin`. It sha
 `federation-cartography` uses to show `NEXUS_CORE_NOT_SHARED`. The `.` entry imports
 nothing from `./shared`, so a remote that bundles the contract bundles no build config.
 
+## The rspack factory
+
+`@nexusdi/federation-contracts/rspack` exports `meridianRemote({ name, port, decorators })`
+and `meridianShell({ name, port })`, the rspack config of a station remote and of the shell.
+A remote's `rspack.config.ts` is one call. The remote emits `remoteEntry.js` and the chunks
+of `./section` and no page, since the shell is the only page that loads it. `out`, `shared`
+and `contractAliases` select the drift and unshared builds of `federation-cartography`.
+`@nexusdi/federation-contracts/swc` exports the swc decorator settings the factory and
+a vitest config share.
+
 ## Commands
 
 ```sh
