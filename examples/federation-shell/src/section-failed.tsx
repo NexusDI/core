@@ -1,15 +1,20 @@
-/** The code of a NexusError, or the error's name for any other error. */
+import { isNexusError } from '@nexusdi/core';
+
+/** The code of a NexusError, or the class name of any other thrown value. */
 function codeOf(error: unknown): string {
-  if (typeof error === 'object' && error !== null) {
-    const { code, name } = error as { code?: unknown; name?: unknown };
-    if (typeof code === 'string') return code;
-    if (typeof name === 'string') return name;
-  }
+  if (isNexusError(error)) return error.code;
+  if (typeof error === 'object' && error !== null)
+    return error.constructor?.name ?? 'Error';
   return 'Error';
 }
 
-const messageOf = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error);
+/** An object with no prototype has no toString, so String() would throw on it. */
+const messageOf = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object' && error !== null)
+    return Object.prototype.toString.call(error);
+  return String(error);
+};
 
 /**
  * The fallback a station's SectionBoundary renders for a failed load. It

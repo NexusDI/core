@@ -28,8 +28,8 @@ export const STATIONS = [
     path: '/charts',
     remote: 'federation_cartography',
     port: 4301,
-    module: 'Cartography',
-    panel: 'StarMap',
+    module: 'CartographyStation',
+    panel: 'CartographyPanel',
     panelName: 'star map',
   },
   {
@@ -38,8 +38,8 @@ export const STATIONS = [
     path: '/command',
     remote: 'federation_command',
     port: 4302,
-    module: 'Command',
-    panel: 'CommandDeck',
+    module: 'CommandStation',
+    panel: 'CommandPanel',
     panelName: 'command deck',
   },
   {

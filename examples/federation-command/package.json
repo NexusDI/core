@@ -18,6 +18,7 @@
   "devDependencies": {
     "@nexusdi/federation": "*",
     "@nexusdi/testing": "*",
+    "@nexusdi/vitest": "*",
     "@rspack/cli": "2.2.9",
     "@rspack/dev-server": "2.2.1",
     "@types/react": "19.3.0",

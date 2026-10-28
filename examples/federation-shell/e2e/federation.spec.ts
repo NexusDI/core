@@ -54,8 +54,8 @@ test('lists both sections among the modules of graph(ship) after they load', asy
   await expect(modules.getByRole('listitem')).toContainText([
     'Meridian',
     'Tactical',
-    'Cartography',
-    'Command',
+    'CartographyStation',
+    'CommandStation',
   ]);
   expect(await seen()).toEqual([]);
 });
@@ -93,7 +93,7 @@ test('fails the unshared build with NEXUS_CORE_NOT_SHARED', async ({
   const failed = page.getByTestId('section-failed');
   await expect(failed).toContainText('NEXUS_CORE_NOT_SHARED');
   await expect(failed).toContainText(
-    'the module Cartography was made by another copy of @nexusdi/core',
+    'the module CartographyStation was made by another copy of @nexusdi/core',
   );
   await expect(failed).toContainText(
     'In Module Federation, share @nexusdi/core with singleton: true.',

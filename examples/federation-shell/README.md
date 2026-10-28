@@ -2,13 +2,13 @@
 
 The host of the federation demo: the Meridian shell. It holds the container `ship`, whose
 root `Meridian` imports `Tactical`, the global module that provides the contract's
-`NAV_CHARTS`, `TELEMETRY_FEED` and `COMMAND_LINK`. Four stations join the ship at runtime
+`NAV_CHARTS`, `STATION_TELEMETRY` and `COMMAND_LINK`. Four stations join the ship at runtime
 as sections, each a remote built and served on its own:
 
 - `/charts` loads `cartography` (`examples/federation-cartography`) and renders its
-  `StarMap`.
+  `CartographyPanel`.
 - `/command` loads `command` (`examples/federation-command`), whose classes use
-  decorators, and renders its `CommandDeck`, which sends helm orders.
+  decorators, and renders its `CommandPanel`, which sends helm orders.
 - `/engineering` loads `engineering` (`examples/federation-engineering`) and renders its
   `EngineeringPanel`.
 - `/life-support` loads `life-support` (`examples/federation-life-support`) and renders
@@ -20,7 +20,7 @@ station that fails to load renders `SectionFailed` with the error code and messa
 its retry button loads the section again. The contract lives in
 `examples/federation-contracts`, which the shell owns.
 
-`TELEMETRY_FEED` reads bridge-api's `GET /telemetry` stream, and `COMMAND_LINK` posts to
+`STATION_TELEMETRY` reads bridge-api's `GET /telemetry` stream, and `COMMAND_LINK` posts to
 its `POST /commands`. The shell reads bridge-api's address from `/bridge.json`,
 `{ "url": "..." }`, the first time a station asks for either, so startup fetches nothing.
 `public/bridge.json` names `http://localhost:3000/`, bridge-api's dev port, and bridge-api's

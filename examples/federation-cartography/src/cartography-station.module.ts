@@ -23,8 +23,8 @@ class SectorRoutes implements INavRoutes {
 }
 
 /** The cartography station's section. The shell adds it with load(). */
-export const Cartography = defineModule({
-  name: 'Cartography',
+export const CartographyStation = defineModule({
+  name: 'CartographyStation',
   providers: [provide(NAV_ROUTES, { useClass: SectorRoutes })],
   exports: [NAV_ROUTES],
 });

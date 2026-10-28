@@ -37,6 +37,12 @@
       "types": "./dist/rspack.d.ts",
       "import": "./dist/rspack.js",
       "default": "./dist/rspack.js"
+    },
+    "./testing": {
+      "@nexusdi/source": "./src/testing.ts",
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js",
+      "default": "./dist/testing.js"
     }
   },
   "dependencies": {

@@ -35,6 +35,9 @@
       "path": "../../libs/testing/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/vitest/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/federation/tsconfig.lib.json"
     }
   ]

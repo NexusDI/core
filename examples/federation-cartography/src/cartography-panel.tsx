@@ -1,9 +1,9 @@
 import { useService } from '@nexusdi/react';
 
-import { NAV_ROUTES } from './cartography.module';
+import { NAV_ROUTES } from './cartography-station.module';
 
 /** The plotted course to Kepler-442b, read from the shell's container. */
-export function StarMap() {
+export function CartographyPanel() {
   const routes = useService(NAV_ROUTES);
   return (
     <section aria-label="star map">

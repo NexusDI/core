@@ -71,7 +71,7 @@ export interface RemoteOptions {
 
 /**
  * The rspack config of a station remote. It emits `remoteEntry.js` and the
- * chunks of `./section`, with no entry module and no HTML page, because the
+ * chunks of `./section`, which is the remote's `src/index.ts`, with no entry module and no HTML page, because the
  * shell is the only page that loads a remote.
  */
 export function meridianRemote(options: RemoteOptions): ConfigFactory {
@@ -121,7 +121,7 @@ export function meridianRemote(options: RemoteOptions): ConfigFactory {
         new ModuleFederationPlugin({
           name,
           filename: 'remoteEntry.js',
-          exposes: { './section': './src/section.ts' },
+          exposes: { './section': './src/index.ts' },
           shared,
           dts: false,
         }),

@@ -15,7 +15,7 @@ import { describe, expect, it } from 'vitest';
 import {
   COMMAND_LINK,
   NAV_CHARTS,
-  TELEMETRY_FEED,
+  STATION_TELEMETRY,
   type ICommandLink,
   type INavCharts,
   type IStationTelemetry,
@@ -70,18 +70,17 @@ function stationOn(token: Token<unknown>) {
 }
 
 /** The errors `Nexus.check` reports for a shell at `version` and `remote`. */
-async function checkAgainst(
-  version: string,
-  remote = Cartography,
-): Promise<unknown[]> {
+function checkAgainst(version: string, remote = Cartography): unknown[] {
   const root = defineModule({
     name: 'Meridian',
     imports: [shellAt(version), remote],
   });
   try {
-    await Nexus.check(root, { plugins: [federation()] });
+    Nexus.check(root, { plugins: [federation()] });
   } catch (error) {
-    return (error as { errors: unknown[] }).errors;
+    if (isNexusError(error, 'NEXUS_BLUEPRINT_INVALID'))
+      return [...error.errors];
+    throw error;
   }
   return [];
 }
@@ -95,12 +94,12 @@ describe('the meridian contract', () => {
     expect(MERIDIAN_CONTRACT_VERSION).toBe('2.4.0');
   });
 
-  it('binds NAV_CHARTS to a provider of key meridian at 2.4.0', async () => {
-    expect(await checkAgainst('2.4.0')).toEqual([]);
+  it('binds NAV_CHARTS to a provider of key meridian at 2.4.0', () => {
+    expect(checkAgainst('2.4.0')).toEqual([]);
   });
 
-  it('marks NAV_CHARTS with version 2.4.0, which a 2.3.0 provider fails', async () => {
-    const errors = await checkAgainst('2.3.0');
+  it('marks NAV_CHARTS with version 2.4.0, which a 2.3.0 provider fails', () => {
+    const errors = checkAgainst('2.3.0');
     expect(errors).toHaveLength(1);
     const [error] = errors;
     expect(isNexusError(error, 'NEXUS_CONTRACT_VERSION')).toBe(true);
@@ -113,13 +112,13 @@ describe('the meridian contract', () => {
 
   it.each([
     { token: NAV_CHARTS, description: 'meridian/NavCharts' },
-    { token: TELEMETRY_FEED, description: 'meridian/StationTelemetry' },
+    { token: STATION_TELEMETRY, description: 'meridian/StationTelemetry' },
     { token: COMMAND_LINK, description: 'meridian/CommandLink' },
   ])(
     'describes $description and needs a 2.4.0 provider',
-    async ({ token, description }) => {
+    ({ token, description }) => {
       expect(token.description).toBe(description);
-      const errors = await checkAgainst('2.3.0', stationOn(token));
+      const errors = checkAgainst('2.3.0', stationOn(token));
       expect(errors).toHaveLength(1);
       const [error] = errors;
       expect(isNexusError(error, 'NEXUS_CONTRACT_VERSION')).toBe(true);

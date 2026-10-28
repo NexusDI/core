@@ -3,6 +3,11 @@ import { join } from 'node:path';
 
 import { expect, test } from '@playwright/test';
 import {
+  COMMAND_LINK,
+  NAV_CHARTS,
+  STATION_TELEMETRY,
+} from '@nexusdi/federation-contracts';
+import {
   DECK_PLAN,
   RNG,
   SHIP_STATE,
@@ -37,6 +42,14 @@ async function scripts(dist: string): Promise<string[]> {
     .filter((file) => file.endsWith('.js'))
     .map((file) => join(root, file));
 }
+
+test('describes no contract token with a simulation sentinel', () => {
+  for (const token of [NAV_CHARTS, STATION_TELEMETRY, COMMAND_LINK])
+    for (const sentinel of SIMULATION)
+      expect(String(token), `${sentinel} in ${String(token)}`).not.toContain(
+        sentinel,
+      );
+});
 
 for (const dist of DISTS)
   test(`keeps the simulation out of ${dist}`, async () => {
