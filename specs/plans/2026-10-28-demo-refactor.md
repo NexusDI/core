@@ -7,7 +7,9 @@ template, one naming scheme, one testing idiom, explicit module imports and no t
 scaffolding in the demo routes. It also fills the coverage gaps the audit found and fixes
 the UX bugs that are code bugs.
 
-The plan builds on `specs/2026-10-21-meridian-ship-systems-design.md`, sections 1 to 16. The
+The plan builds on `specs/2026-10-21-meridian-ship-systems-design.md`, sections 1 to 16, and
+on `specs/2026-10-28-extension-points-design.md`, whose core changes K1 to K4
+(`specs/plans/2026-10-28-extension-points.md`) the module graph of section 3.1 needs. The
 MeridianOS UI gets its own design spec later. This refactor leaves it a seam (section 3.9)
 and builds none of it.
 
@@ -63,11 +65,23 @@ the one configured instance in the graph.
 
 ### 2.2 Multi tokens and cycles
 
-The buses break decision 2. `blueprint/visibility.ts` gives a module its own providers, the
-exports of its imports (through re-exports) and the exports of every global module. `all(TOKEN)`
-in a module reads the contributions from those sources and nothing else. `walk.ts` rejects an
-import cycle with `NEXUS_MODULE_IMPORT_CYCLE`. Core has no module-level `lazy()` (Nest's
-`forwardRef`).
+The buses broke decision 2 under rc.2. `blueprint/visibility.ts` gave a module its own
+providers, the exports of its imports and the exports of every global, so `all(TOKEN)` read
+contributions only along a chain of exports into the collector's module. An upstream bus
+never saw a downstream system without a global aggregate. `walk.ts` rejects an import cycle
+with `NEXUS_MODULE_IMPORT_CYCLE`.
+
+The demo exposed a core gap, and `specs/2026-10-28-extension-points-design.md` closes it in
+0.4 (rc.3):
+
+- K1: every multi token collects across the container. A module publishes its own
+  contributions by naming the token in `exports`, and every `all(TOKEN)` sees every published
+  contribution plus its own module's private ones. `load()` rejects a published contribution
+  with `NEXUS_LOAD_CONTRIBUTION`.
+- K3: `lazy(all(TOKEN))` lets a collector break a provider cycle once for all contributors.
+- K2: compile rejects a private contribution that no provider can read, with
+  `NEXUS_UNREAD_CONTRIBUTION`, so a forgotten export fails at startup.
+- K4: `load(module, { imports: [Host] })` grants a loaded module the exports of host modules.
 
 The Meridian has four buses, each a collector over a multi token. `MasterAlarm` collects a
 fifth multi token, whose one contributor lives in bridge-api:
@@ -80,20 +94,11 @@ fifth multi token, whose one contributor lives in bridge-api:
 | `SHIP_STATE`   | `all(SHIP_RECORDS)`     | yes: every system reads and queues on it              |
 | `MASTER_ALARM` | `all(ALARM_SINKS)`      | no; bridge-api's `AlarmPanel` contributes a sink      |
 
-Two buses have a true cycle. `PlasmaRouter` in `Engineering` must see the consumers of
-`Weapons`, `Helm`, `Propulsion`, `LifeSupport` and `Comms`, so without a global `Engineering`
-must import those modules. `Weapons` reads `POWER_ROUTER`, so it must import `Engineering`, and
-the two imports form a cycle that core rejects. `ShipStateStore` sits in `Simulation`, which
-every system reads, so `Simulation` cannot import the systems either.
-
-The other two buses have no cycle. They needed a global only because today's aggregate is a
-function: `FtlDrive` arrives with `load()` as an import of the root, sees only its own imports
-and the globals, and cannot import an aggregate that `meridianSystems()` builds per call.
-
-Today's core rejects decision 2 as written. A global module that imports every
-contributor and exports the contribution tokens makes each contribution visible to every
-collector, and that is the one extra global the plan needs for the buses. The owner approved
-it on 2026-10-28 (O1, section 10).
+Under K1 the two buses that a contributor calls form provider cycles, and no module cycle.
+`PlasmaRouter` takes `lazy(all(POWER_CONSUMERS))`, so `RailgunMount` and the shield consumer
+take `POWER_ROUTER` directly. `ShipStateStore` takes `lazy(all(SHIP_RECORDS))` when a record
+contribution depends on `SHIP_STATE`, and plain `all(SHIP_RECORDS)` when every record is a
+value. Pass 4 of the compile reports a cycle left in place as `NEXUS_CIRCULAR_DEPENDENCY`.
 
 ### 2.3 The subspace link
 
@@ -108,6 +113,7 @@ relayTimeout })`, global, which the online ship imports and the offline ship omi
 charts when the link exists and reads the bundled table when it does not. `Comms` and
 `Tactical` become one constant each. A configured module that the app chooses at startup
 and several systems read is global, as `Simulation` is. This extends decision 2, and the owner approved it with O1.
+`Simulation` and `SubspaceLink` are the only globals in the demos.
 
 ## 3. Target shape
 
@@ -119,12 +125,12 @@ The target, which the tech lead ruled (section 9.1):
   `DECK_PLAN`, `SHIP_FILES` (T18), the scoped `COMPARTMENT`, and the two buses `TICK_LOOP`
   and `COMMAND_DESK`, whose classes already live in `simulation/`.
 - `SubspaceLink` (global, `forRoot`, optional): `SUBSPACE_LINK`.
-- `MeridianSystems` (global, a constant): it imports every system present at startup and
-  exports only the four contribution tokens `SHIP_SYSTEMS`, `COMMAND_HANDLERS`,
-  `POWER_CONSUMERS` and `SHIP_RECORDS`. It provides nothing and exports no plain token. Its
-  docblock says it in two sentences: a module sees the contributions of the modules it
-  imports and of the globals. A global that imports the contributors makes their
-  contributions visible to every collector.
+- `MeridianSystems` (a constant): it imports every system present at startup, so
+  an app pulls the ship in with one import. It provides nothing and exports nothing. Its
+  docblock says so in one sentence.
+- Each system module exports the multi tokens it contributes to (`SHIP_SYSTEMS`,
+  `COMMAND_HANDLERS`, `POWER_CONSUMERS`, `SHIP_RECORDS`), which publishes its contributions
+  to every bus (K1). K2 rejects a forgotten export at startup.
 - Each system module is a constant that imports the modules whose plain tokens it reads:
 
   | Module      | Imports                   | Reads through the import      |
@@ -145,19 +151,17 @@ The target, which the tech lead ruled (section 9.1):
   online ship, `MeridianSystems`, and the system modules whose tokens it reads: bridge-api
   imports `Tactical` for `/course`, `ShipLifeSupport` for the compartment route and `Telemetry`
   for the stream. T26 adds `Safety` for `ALARM_BOARD`.
-- Two app modules outside meridian-systems stay global, by the rule O1 approved. bridge-api's
-  `AlarmPanel` contributes `ALARM_SINKS` to `MasterAlarm`, which sits in `Safety` and imports
-  nothing from the bridge. The shell's `Tactical` exports the federation contracts to the
-  stations that `load()` adds, and a station cannot import the shell's module object. Each
-  keeps a docblock that gives its reason.
+- No app module is global. bridge-api's `AlarmPanel` exports `ALARM_SINKS`, so `MasterAlarm`
+  in `Safety` collects its sink (K1), and the bridge-api root imports it. The shell's
+  `Tactical` exports the federation contracts, the shell's root imports it, and each station
+  loads with `{ imports: [Tactical] }` (K4).
 - `meridianSystems()` goes. Nothing left in its options chooses an import, so finding 17
   closes with a constant.
 
 Every plain token now reaches its reader through an explicit import or from `Simulation`.
 
-A module test of one system needs the same visibility, or the loop never steps the system.
-T7's fixture provides a test global that imports the system under test and exports the
-contribution tokens.
+A module test imports the system under test next to `Simulation`, and the buses collect its
+published contributions. No test global remains.
 
 The goldens do not move with the graph. `allocatePower` sorts the loads by priority and id
 (`physics/power.ts:45,67`), `FixedStepLoop` sorts the systems by phase and name, and the RNG
@@ -533,7 +537,8 @@ T7. meridian-systems test idiom (M, after T4, lane M)
 
 - Scope: section 3.5. `test/support.ts`, the system tests on the `nexusTest` fixture with
   overrides, `e2e/golden.ts` with `recordGolden`. The fixture takes the system under test as
-  an argument, so T17 can wrap it in a test global that exports the contribution tokens.
+  an argument and imports it next to `Simulation`. After K1 (T17) the buses collect its
+  contributions with no test global.
 - Files: `test/support.ts` (new), `test/fixtures.ts`, `test/ship-under-test.ts`, every
   `test/*.test.ts`, `e2e/golden.ts` (new) and every `e2e/*.e2e.ts`.
 - Tests first: a `recordGolden` unit test that records one existing golden and compares it
@@ -680,8 +685,9 @@ T16. FTL through DI (M, after T15, T10 and T11)
 - Tests first: a section added with `load()` adds no multi-token contribution. The test
   reads `all(SHIP_SYSTEMS)`, `all(COMMAND_HANDLERS)` and `all(POWER_CONSUMERS)` before and
   after `load(FtlDrive)` and gets the same entries, while the buses list the drive after
-  `JumpDrive.onInit` and drop it on dispose. T19 adds `all(SHIP_RECORDS)` to the test. The
-  desk refuses `ftl` before the load, and the desk's system list in `test/helm.test.ts`
+  `JumpDrive.onInit` and drop it on dispose. T19 adds `all(SHIP_RECORDS)` to the test. An
+  `FtlDrive` variant that exports `SHIP_SYSTEMS` fails `load()` with
+  `NEXUS_LOAD_CONTRIBUTION` (K1). The desk refuses `ftl` before the load, and the desk's system list in `test/helm.test.ts`
   names `ftl` after it.
 - E2e bodies that change: `bridge-api/e2e/growth/ftl.e2e.ts`,
   `bridge-console/e2e/growth/ftl.spec.ts`, and the desk refusal text in bridge-api's command
@@ -691,11 +697,14 @@ T16. FTL through DI (M, after T15, T10 and T11)
 - Verify: `checks(sys, api, console)`, then `run(e2e e2e-growth; sys, api, console)`.
   A `grep` of the spec for `attach` lists only lines of the decision log in section 15.
 
-T17. The module graph (L, after T16, T6 and T7)
+T17. The module graph (L, after T16, T6, T7, and core PRs K1, K3 and K2)
 
 - Scope: decision 2 by section 3.1, with `SubspaceLink` and the single `Comms` and
-  `Tactical`, `TICK_LOOP` and `COMMAND_DESK` moved into `Simulation`, `ShipLifeSupport`, and
-  the test global of T7's fixture. Amend section 3.2 and the hull section table of the ship
+  `Tactical`, `TICK_LOOP` and `COMMAND_DESK` moved into `Simulation`, `ShipLifeSupport`,
+  `MeridianSystems` as a plain constant, `PlasmaRouter` on `lazy(all(POWER_CONSUMERS))`, the
+  system modules exporting their contribution tokens, and `AlarmPanel` without `global`.
+  The test globals at `test/ship-under-test.ts:31`, `test/safety.test.ts:77` and
+  bridge-api's `test/alarms.test.ts:25` go. Amend section 3.2 and the hull section table of the ship
   systems spec.
 - Files: every `*.module.ts` in meridian-systems, `meridian-systems.module.ts`,
   `src/index.ts`, every user of `meridianSystems()` (the eight `e2e/*.e2e.ts` files and the
@@ -704,13 +713,34 @@ T17. The module graph (L, after T16, T6 and T7)
   `bridge-console/app/di/*`, the federation shell's `ship/`,
   `specs/2026-10-21-meridian-ship-systems-design.md`.
 - Tests first: a graph of `Simulation`, `MeridianSystems` and `Helm` checks, and `Helm`'s
-  node lists `Propulsion` and `Tactical` among its imports; a `Helm` without `Tactical` fails
+  node lists `Propulsion` and `Tactical` among its imports; `Weapons`' consumer reaches
+  `PlasmaRouter` with no global; `PlasmaRouter` on plain `all(POWER_CONSUMERS)` fails with
+  `NEXUS_CIRCULAR_DEPENDENCY` naming the router and the railgun consumer; a system module
+  without `exports: [SHIP_SYSTEMS]` fails with `NEXUS_UNREAD_CONTRIBUTION`; `MasterAlarm`
+  collects `AlarmPanel`'s sink with no global; a `Helm` without `Tactical` fails
   with `NEXUS_MISSING_PROVIDER`; a graph that imports `ShipLifeSupport` along two paths holds
   one `ATMOSPHERE_PROBE`, and a test module that imports two `forRootAsync` results and
   reads `ATMOSPHERE_PROBE` reports `NEXUS_AMBIGUOUS_PROVIDER`.
 - Goldens: none.
 - Verify: `checks(sys, api, console, fed)`, then
   `run(e2e e2e-growth; sys, api, console, fed)`. The goldens stay byte-identical.
+
+T17b. The shell grants `Tactical` (S, after T17, T12b and core PR K4, lane A)
+
+- Scope: the federation shell's `Tactical` loses `global: true`, the shell's root imports
+  it, and each row of `stations.ts` passes `{ imports: [Tactical] }` to its `lazySection`.
+  The station tests replace their test globals with a fake `Tactical` that the test root
+  imports and the test's `load()` grants. Its docblock says the shell grants it to each
+  station.
+- Files: `federation-shell/src/ship/tactical.ts`, `federation-shell/src/stations.ts`,
+  `federation-shell/src/ship/meridian.ts`, `federation-cartography/src/cartography.test.ts`,
+  `federation-command/src/command.test.ts`, `federation-engineering/src/engineering.test.ts`,
+  `federation-life-support/src/life-support.test.ts`, `federation-contracts/src/index.test.ts`,
+  the `@nexusdi/federation-contracts/testing` fake.
+- Tests first: a contract case: a station loaded without the grant fails with
+  `NEXUS_MISSING_PROVIDER` for `meridian/NavCharts`, and with it renders its panel.
+- E2e bodies that change: none; the stations show the same data.
+- Verify: `checks(fed)`, then `run(e2e; fed)`.
 
 T18. Calibration through real I/O (S, after T17, lane M)
 
@@ -953,12 +983,14 @@ does not move the version to 0.5.
 | PR  | Tasks      | Sizes         | Commits, estimated |
 | --- | ---------- | ------------- | ------------------ |
 | 1   | T1 to T14  | 5 S, 10 M     | 48                 |
-| 2   | T15 to T19 | 2 S, 1 M, 2 L | 25                 |
+| 2   | T15 to T19 | 3 S, 1 M, 2 L | 28                 |
 | 3   | T20 to T32 | 9 S, 4 M      | 40                 |
 | 4   | T33        | 1 L           | 6                  |
 | 5   | T34        | 1 S           | 3                  |
 
-PR 1 holds 15 tasks, since T12 splits into T12a and T12b. The commit counts include a
+PR 1 holds 15 tasks, since T12 splits into T12a and T12b. PR 2 holds six with T17b. T17
+waits for the core PRs K1, K3 and K2 of `specs/plans/2026-10-28-extension-points.md`, and
+T17b for K4. T15 and T16 run while the core PRs are open. The commit counts include a
 fix-up per review round. Fix-ups fold into their task commit
 before the PR merges, so no PR passes the 100-commit rebase limit.
 
@@ -1030,13 +1062,11 @@ pillars and the users. The rulings stand, and the sections above already follow 
   same `SectionError`.
 - O1: the tech lead confirmed section 2's claims in `walk.ts`, `visibility.ts`,
   `define-module.ts` and `load.ts`, and corrected the cycle claim. Only `POWER_CONSUMERS` and
-  `SHIP_RECORDS` have a contributor that calls the collector. `TICK_LOOP` and `COMMAND_DESK`
-  needed a global only because the aggregate was a function. The tech lead replaced the first
-  draft's global bus aggregate with the graph of section 3.1: the two buses join `Simulation`, and a
-  constant global `MeridianSystems` exports the four contribution tokens alone. With that
-  graph, userland gets container-wide contributions, so the core option of the first draft adds
-  no capability, and it would break the owner's "core stays unchanged". The plan files no
-  core issue.
+  `SHIP_RECORDS` have a contributor that calls the collector. The two other buses join
+  `Simulation`. The first ruling kept core unchanged and used a global `MeridianSystems`. The
+  owner reversed it on 2026-10-28 (section 10, O1): the global hid a core gap, and
+  `specs/2026-10-28-extension-points-design.md` closes it. The tech lead reviewed that design
+  twice and ruled its spec-internal points.
 - Other defects the tech lead found, all fixed above: the FTL record needs a registry on
   `SHIP_STATE` (T19); `FtlCommands` needs `lazy(FTL_DRIVE)` (T16); each contract case arrives
   with the task that brings each feature (section 7); T19 runs after T18; `ShipLifeSupport`
@@ -1048,24 +1078,25 @@ pillars and the users. The rulings stand, and the sections above already follow 
 
 The owner ruled on every open item on 2026-10-28. The sections above follow the rulings.
 
-O1. Three global modules: approved.
+O1. Two global modules, and the core changes K1 to K4: approved.
 
-- Decision 2 said that each system imports the modules it uses and that only `Simulation`
-  is global. The owner approved three globals in its place, each for one reason:
-  - `Simulation`: the kernel, with the clock, the ship state, the tick loop and the command
-    desk.
-  - `SubspaceLink`: optional. The online ship imports it at startup and the offline ship
-    omits it, so `optional(SUBSPACE_LINK)` sees the link or not.
-  - `MeridianSystems`: a constant global that imports every system and exports only the
-    four contribution tokens `SHIP_SYSTEMS`, `COMMAND_HANDLERS`, `POWER_CONSUMERS` and
-    `SHIP_RECORDS`. It provides nothing.
-- The case behind it: the power router collects every system's load through a multi token,
-  and the railgun calls the router to check that a shot fits the budget. Core shows a module
-  only the contributions of its imports and of the globals, and it refuses an import cycle,
-  so `Engineering` and `Weapons` cannot import each other. The snapshot store meets the same
-  cycle with the per-system records of decision 3.
-- Every other read between systems goes through an explicit import (section 3.1).
-- For users: core stays unchanged, and the demo teaches a rule that holds in 0.4. The modules
+- The owner first approved three globals (`Simulation`, `SubspaceLink`, `MeridianSystems`),
+  plus the global app modules `AlarmPanel` and the shell's `Tactical`. On 2026-10-28 the owner
+  said that adding things to global "seems like a copout": the demo is a test case for the container, and a
+  workaround that hides a container gap is the wrong answer.
+- The case: the power router collects every system's load through a multi token, and the
+  railgun calls the router. Under rc.2 a module saw only the contributions of its imports and
+  of the globals, and core refuses an import cycle. A library cannot own a collector for the
+  same reason, so the gap is core's.
+- The rulings: K1 (every multi token collects across the container, `exports` publishes,
+  `NEXUS_LOAD_CONTRIBUTION` in `compile()`) goes into 0.4 (rc.3) as the default for every
+  multi token, with no import-scoped mode. K2, K3 and K4 are in 0.4 too. rc users are not a
+  constraint: "they are aware that new RCs can break things".
+- Globals: `Simulation` (the kernel) and `SubspaceLink` (optional, chosen at startup).
+  `MeridianSystems` is a plain constant, `AlarmPanel` publishes its sink, and the shell
+  grants `Tactical` to each station.
+- For users: the demo teaches the 0.4 rule, with every read between systems through an
+  explicit import and every contribution published by `exports`. The modules
   `OfflineComms` and `OfflineTactical` and the function `meridianSystems()` go, and no
   package outside `examples/` imports them.
 
