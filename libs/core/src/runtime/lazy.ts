@@ -1,4 +1,9 @@
-import { REQUEST_ID, type ProviderRecord } from '../blueprint/blueprint.js';
+import {
+  REQUEST_ID,
+  type Blueprint,
+  type ProviderRecord,
+} from '../blueprint/blueprint.js';
+import { contributionLabel } from '../blueprint/contribution-label.js';
 import { DisposedError, NotReadyError } from '../errors/index.js';
 import { constructionStack } from './construction-stack.js';
 import { formatFor } from './format.js';
@@ -19,7 +24,20 @@ function notReady(
   const path = constructionStack.contains(target.id, container)
     ? constructionStack.cycleFrom(target.id, container)
     : [];
-  return new NotReadyError({ owner: owner.name, target: target.name, path });
+  return new NotReadyError({
+    owner: owner.name,
+    target: target.name,
+    path,
+    contributor: null,
+  });
+}
+
+/** `<label> (module <module name>)` for the contribution record `id`. */
+function contributorOf(bp: Blueprint, id: string): string | null {
+  const record = bp.providers.get(id);
+  if (record === undefined) return null;
+  const module = bp.modules.get(record.module)?.name ?? record.module;
+  return `${contributionLabel(record, bp.providers.values())} (module ${module})`;
 }
 
 /** A thunk may reach a target during disposal, until that target itself is disposed. */
@@ -157,7 +175,16 @@ export function makeListThunk(
       const steps: LazyStep[] = [];
       for (const id of targetIds) {
         const step = lazyStep(id, owner, ctx);
-        if (step instanceof NotReadyError) throw step;
+        // The contribution is the record of `id`, before any alias hop. Its
+        // name is the multi token's, so `target` stays the token the thunk
+        // collects when the contribution is an alias.
+        if (step instanceof NotReadyError)
+          throw new NotReadyError({
+            owner: step.owner,
+            target: ctx.bp.providers.get(id)?.name ?? step.target,
+            path: step.path,
+            contributor: contributorOf(ctx.bp, id),
+          });
         steps.push(step);
       }
       return steps.map((step) => run(step, resolve));
