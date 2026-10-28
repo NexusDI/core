@@ -170,7 +170,7 @@ It throws `LoadContributionError`, code `NEXUS_LOAD_CONTRIBUTION`, fields `modul
 `token`. The guard runs after the `compile.provider` hooks so a hook that removes or pins
 the record is honoured. A loaded module's private contributions stay legal, subject to K2.
 
-- `nexus.ts:106` wraps a thrown `LoadError` in `BlueprintError` for `Nexus.check`. One helper,
+- `nexus.ts:108` wraps a thrown `LoadError` in `BlueprintError` for `Nexus.check`. One helper,
   `isLoadError(error)`, covers `LoadError`, `LoadContributionError` and K4's
   `LoadGrantError`, and `Nexus.check` wraps each.
 - `errors/is-nexus-error.ts` maps the code to its class, and `NexusErrorCode` (`errors/codes.ts`) derives from that map.
@@ -392,7 +392,7 @@ extra)` already appends `extra` refs to a node's imports, the mechanism the root
   of `@nexusdi/cli` (`libs/cli/test-fixtures/json/graph.json`) carry it, and a renderer can
   draw a grant apart from an import. The field is additive, so the plugin API version stays.
 - The load-once logic: `loader()` in `libs/{express,fastify,hono,react-router}/src/internal/request-scope.ts`
-  (lines 290-303) keys a map on the module alone, in four copies (P4). Core exports one
+  (lines 290-309) keys a map on the module alone, in four copies (P4). Core exports one
   helper, `loadOnce(container)`, from `@nexusdi/core`, keyed on the module and its granted
   set, and the four adapters and `lazySection` use it. Core already decides the repeat rule
   of section 7.3, so the helper only shares the pending promise and forgets a failed load.
