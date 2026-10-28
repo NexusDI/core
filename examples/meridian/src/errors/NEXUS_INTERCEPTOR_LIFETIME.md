@@ -5,8 +5,13 @@ Regions for `apps/docs/content/errors/NEXUS_INTERCEPTOR_LIFETIME.mdx`. Every blo
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { isNexusError } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { interceptor, interceptors } from '@nexusdi/interceptors';
 import type { CallContext, Interceptor, Next } from '@nexusdi/interceptors';
 
@@ -59,8 +64,13 @@ console.log(message);
 <!-- #region full-text -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { isNexusError } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 import { interceptor, interceptors } from '@nexusdi/interceptors';
 import type { CallContext, Interceptor, Next } from '@nexusdi/interceptors';

@@ -167,8 +167,13 @@ console.log(hail);
 <!-- #region schema -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { isNexusError } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import * as v from 'valibot';
 
 const CommsSchema = v.object({
@@ -221,8 +226,13 @@ console.log(messages);
 <!-- #region missing-for-root -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { isNexusError } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 
 interface CommsOptions {
   readonly frequency: number;

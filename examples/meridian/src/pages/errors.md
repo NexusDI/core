@@ -5,8 +5,13 @@ Regions for `apps/docs/content/errors/index.mdx`. Every block runs as a test.
 <!-- #region blueprint -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { isNexusError } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 
 interface IReactorCore {
   readonly output: number;
@@ -62,8 +67,13 @@ console.log(tokens);
 <!-- #region one-line -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { isNexusError } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 
 interface IReactorCore {
   readonly output: number;
@@ -98,8 +108,13 @@ console.log(message);
 <!-- #region full-text -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { isNexusError } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 
 interface IReactorCore {
@@ -164,8 +179,13 @@ console.log(cause);
 <!-- #region log-fields -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { isNexusError } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 
 interface INavCharts {
   plot(to: string): string;

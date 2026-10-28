@@ -5,8 +5,13 @@ Regions for `apps/docs/content/errors/NEXUS_DUPLICATE_PROVIDER.mdx`. Every block
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 
 interface IReactorCore {
@@ -49,11 +54,11 @@ console.log(text);
 ```ts @import.meta.vitest
 import { MultiToken, Nexus, defineModule, provide } from '@nexusdi/core';
 
-interface Diagnostic {
+interface IDiagnostic {
   readonly system: string;
   run(): boolean;
 }
-const DIAGNOSTICS = new MultiToken<Diagnostic>('Diagnostics');
+const DIAGNOSTICS = new MultiToken<IDiagnostic>('Diagnostics');
 
 const Engineering = defineModule({
   name: 'Engineering',

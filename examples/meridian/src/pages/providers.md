@@ -114,6 +114,8 @@ console.log(status);
 
 <!-- #endregion explicit-deps -->
 
+<!-- #region deps-wins -->
+
 ```ts @import.meta.vitest
 import { Nexus, Token, provide } from '@nexusdi/core';
 
@@ -138,6 +140,8 @@ await using ship = await Nexus.create([
 const output = ship.get(COMPUTER).output; // -> 0.5
 console.log(output);
 ```
+
+<!-- #endregion deps-wins -->
 
 <!-- #region factories -->
 

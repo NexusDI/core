@@ -366,8 +366,13 @@ console.log(entries);
 <!-- #region exempt-missing -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { interceptor, interceptors } from '@nexusdi/interceptors';
 import type { CallContext, Interceptor, Next } from '@nexusdi/interceptors';
 
@@ -419,8 +424,13 @@ console.log(message);
 <!-- #region lifetime -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 import { interceptor, interceptors } from '@nexusdi/interceptors';
 import type { CallContext, Interceptor, Next } from '@nexusdi/interceptors';
@@ -482,8 +492,11 @@ console.log(lifetime?.message);
 
 ```ts @import.meta.vitest
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { UseInterceptors, interceptor } from '@nexusdi/interceptors';
-import { interceptors } from '@nexusdi/interceptors';
+import {
+  UseInterceptors,
+  interceptor,
+  interceptors,
+} from '@nexusdi/interceptors';
 import type { CallContext, Interceptor, Next } from '@nexusdi/interceptors';
 
 interface IShipComputer {

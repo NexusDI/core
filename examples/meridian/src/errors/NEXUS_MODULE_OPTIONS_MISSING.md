@@ -5,8 +5,13 @@ Regions for `apps/docs/content/errors/NEXUS_MODULE_OPTIONS_MISSING.mdx`. Every b
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 
 interface CommsOptions {

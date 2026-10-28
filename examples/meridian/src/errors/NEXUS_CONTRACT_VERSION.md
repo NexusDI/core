@@ -5,8 +5,13 @@ Regions for `apps/docs/content/errors/NEXUS_CONTRACT_VERSION.mdx`. Every block r
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { isNexusError } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { defineContract, federation } from '@nexusdi/federation';
 
 interface INavCharts {
@@ -64,8 +69,13 @@ console.log(message);
 <!-- #region full-text -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
-import { isNexusError } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 import { defineContract, federation } from '@nexusdi/federation';
 import { federationText } from '@nexusdi/federation/text';

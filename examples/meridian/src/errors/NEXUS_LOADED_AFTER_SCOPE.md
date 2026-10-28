@@ -5,8 +5,13 @@ Regions for `apps/docs/content/errors/NEXUS_LOADED_AFTER_SCOPE.mdx`. Every block
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import type { Scope } from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 

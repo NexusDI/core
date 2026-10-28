@@ -16,13 +16,13 @@ class QuantumComputer {
   constructor(readonly reactor: FusionReactor) {}
 
   status(): string {
-    return `ShipComputer online. Reactor output ${this.reactor.output} GW.`;
+    return `QuantumComputer online. Reactor output ${this.reactor.output} GW.`;
   }
 }
 
 await using ship = await Nexus.create([FusionReactor, QuantumComputer]);
 
-const status = ship.get(QuantumComputer).status(); // -> 'ShipComputer online. Reactor output 1.21 GW.'
+const status = ship.get(QuantumComputer).status(); // -> 'QuantumComputer online. Reactor output 1.21 GW.'
 console.log(status);
 ```
 

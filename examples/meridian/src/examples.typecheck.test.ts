@@ -56,6 +56,44 @@ function blocks(): Map<string, string> {
   return out;
 }
 
+/**
+ * The blocks that import one module in two value statements. A type-only
+ * import beside a value import of the same module is allowed, as in
+ * eslint's `import/no-duplicates`: the two statements do different work.
+ */
+function duplicateImports(): string[] {
+  const out: string[] = [];
+  for (const [name, code] of blocks()) {
+    const source = ts.createSourceFile(
+      name,
+      code,
+      ts.ScriptTarget.ES2022,
+      true,
+    );
+    const seen = new Set<string>();
+    const repeated = new Set<string>();
+    for (const statement of source.statements) {
+      if (!ts.isImportDeclaration(statement)) continue;
+      if (!ts.isStringLiteral(statement.moduleSpecifier)) continue;
+      const clause = statement.importClause;
+      if (clause === undefined || clause.isTypeOnly) continue;
+      const from = statement.moduleSpecifier.text;
+      if (seen.has(from)) repeated.add(from);
+      seen.add(from);
+    }
+    for (const from of repeated) {
+      out.push(`${relative(SRC, name)} imports ${from} twice`);
+    }
+  }
+  return out;
+}
+
+describe('the examples files', () => {
+  it('import each module in one value statement per block', () => {
+    expect(duplicateImports()).toEqual([]);
+  });
+});
+
 // One TypeScript program over every block takes about 6 s on a CI runner.
 describe('the examples files', { timeout: 60_000 }, () => {
   it('type-check, each block as a module of its own', () => {

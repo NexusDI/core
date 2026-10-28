@@ -5,8 +5,12 @@ Regions for `apps/docs/content/errors/NEXUS_MODULE_IMPORT_CYCLE.mdx`. Every bloc
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { Nexus, declareModuleClass, defineModule } from '@nexusdi/core';
-import { isNexusError } from '@nexusdi/core';
+import {
+  Nexus,
+  declareModuleClass,
+  defineModule,
+  isNexusError,
+} from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 
 // Two module classes that import each other. @Module from

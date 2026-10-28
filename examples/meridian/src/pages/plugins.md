@@ -5,8 +5,13 @@ Regions for `apps/docs/content/plugins.mdx`. Every block runs as a test.
 <!-- #region register -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule } from '@nexusdi/core';
-import { isNexusError, provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 
 interface INavCharts {
@@ -47,8 +52,13 @@ console.log(first);
 <!-- #region without-plugin -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule } from '@nexusdi/core';
-import { isNexusError, provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 
 interface INavCharts {
   plot(to: string): string;
@@ -119,8 +129,13 @@ console.log(tokens);
 <!-- #region twice -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule } from '@nexusdi/core';
-import { isNexusError, provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 
 interface IReactorCore {
@@ -152,8 +167,14 @@ console.log(message);
 <!-- #region version -->
 
 ```ts @import.meta.vitest
-import { NEXUS_PLUGIN_API, Nexus, Token } from '@nexusdi/core';
-import { defineModule, isNexusError, provide } from '@nexusdi/core';
+import {
+  NEXUS_PLUGIN_API,
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import type { NexusPlugin } from '@nexusdi/core';
 
 interface IReactorCore {
@@ -187,8 +208,14 @@ console.log(message);
 <!-- #region order -->
 
 ```ts @import.meta.vitest
-import { NEXUS_PLUGIN_API, Nexus, Token } from '@nexusdi/core';
-import { defineModule, isNexusError, provide } from '@nexusdi/core';
+import {
+  NEXUS_PLUGIN_API,
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import type { NexusPlugin } from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 

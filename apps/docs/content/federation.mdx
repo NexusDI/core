@@ -32,7 +32,7 @@ A contract gives every copy of a token the same name and a version. `defineContr
 
 ```
 
-**Try it:** Save the region as `contract.ts` and run `npx tsx contract.ts`. It prints `meridian/NavCharts`. Change `'2.3.0'` to `'v2'` and run it again: `defineContract()` throws `TypeError: defineContract({ key: 'meridian' }) needs a version such as 2.3.0, and got 'v2'.` Change it back.
+**Try it:** Save the region as `contract.ts` and run `npx tsx contract.ts`. It prints `meridian/NavCharts`. Change `'2.4.0'` to `'v2'` and run it again: `defineContract()` throws `TypeError: defineContract({ key: 'meridian' }) needs a version such as 2.3.0, and got 'v2'.` Change it back.
 
 The contract lives in its own package, which the shell and every remote depend on. Keep the contract with the shell's team. The shell provides every contract token, so the team that binds the providers decides what each token promises and when the version moves. A remote depends on the contract tokens and never provides one.
 

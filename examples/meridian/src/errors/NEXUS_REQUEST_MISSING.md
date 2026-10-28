@@ -5,9 +5,14 @@ Regions for `apps/docs/content/errors/NEXUS_REQUEST_MISSING.mdx`. Every block ru
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { Nexus, REQUEST, Token, defineModule } from '@nexusdi/core';
-import { isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  Nexus,
+  REQUEST,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 
 interface Mission {

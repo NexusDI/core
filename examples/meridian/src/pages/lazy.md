@@ -5,8 +5,13 @@ Regions for `apps/docs/content/lazy.mdx`. Every block runs as a test.
 <!-- #region cycle -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule } from '@nexusdi/core';
-import { isNexusError, provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 
 interface IPowerRouter {
   divert(): number;
@@ -103,8 +108,13 @@ console.log(draw);
 <!-- #region indirect-cycle -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule } from '@nexusdi/core';
-import { isNexusError, provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 
 interface INavComputer {
   plot(): string;
@@ -221,8 +231,14 @@ console.log(course);
 <!-- #region not-ready -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule } from '@nexusdi/core';
-import { isNexusError, lazy, provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  lazy,
+  provide,
+} from '@nexusdi/core';
 
 interface IPowerRouter {
   readonly reserve: number;
@@ -270,8 +286,15 @@ console.log(reason);
 <!-- #region collector -->
 
 ```ts @import.meta.vitest
-import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
-import { lazy, provide } from '@nexusdi/core';
+import {
+  MultiToken,
+  Nexus,
+  Token,
+  all,
+  defineModule,
+  lazy,
+  provide,
+} from '@nexusdi/core';
 
 interface IPowerConsumer {
   readonly name: string;
@@ -335,8 +358,16 @@ console.log(sameInstance);
 <!-- #region collector-not-ready -->
 
 ```ts @import.meta.vitest
-import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
-import { isNexusError, lazy, provide } from '@nexusdi/core';
+import {
+  MultiToken,
+  Nexus,
+  Token,
+  all,
+  defineModule,
+  isNexusError,
+  lazy,
+  provide,
+} from '@nexusdi/core';
 
 interface IPowerConsumer {
   readonly name: string;
@@ -396,8 +427,16 @@ console.log(built);
 <!-- #region collector-dispose -->
 
 ```ts @import.meta.vitest
-import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
-import { isNexusError, lazy, provide } from '@nexusdi/core';
+import {
+  MultiToken,
+  Nexus,
+  Token,
+  all,
+  defineModule,
+  isNexusError,
+  lazy,
+  provide,
+} from '@nexusdi/core';
 
 interface IPowerConsumer {
   readonly name: string;
