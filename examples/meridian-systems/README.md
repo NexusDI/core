@@ -41,7 +41,7 @@ The tokens follow the interface-first rule: each interface has a token named for
 | `BLAST_DOORS`          | `IBlastDoors`        | `BlastDoorControl`         | `Safety`                      |
 | `FIRE_SUPPRESSION`     | `IFireSuppression`   | `InertGasSuppression`      | `Safety`                      |
 | `MASTER_ALARM`         | `IMasterAlarm`       | `MasterAlarm`              | `Safety`                      |
-| `ALARM_SINKS`          | `IAlarmSink`         | one class per sink         | a global module of the app    |
+| `ALARM_SINKS`          | `IAlarmSink`         | one class per sink         | any module that exports it    |
 | `COMMS_OPTIONS`        | `CommsOptions`       | the `forRoot()` value      | `Comms`                       |
 | `SUBSPACE_LINK`        | `ISubspaceLink`      | `SubspaceRelay`            | `Comms`                       |
 | `COMMS_ARRAY`          | `ICommsArray`        | `PhasedArray`              | `Comms`, `OfflineComms`       |
@@ -321,7 +321,7 @@ A ship far from the fleet may or may not hold a link to the fleet's relay. A ser
 
 ### The Modules and Their Tokens
 
-`Comms`, in `src/systems/comms/comms.module.ts`, is a configured module. `Comms.forRoot({ frequency, transport: 'relay', relayUrl, relayTimeout? })` binds `COMMS_OPTIONS`, and the module binds the link and the array and makes three contributions:
+`Comms`, in `src/systems/comms/comms.module.ts`, is a configured module. `Comms.forRoot({ frequency, relayUrl, relayTimeout? })` binds `COMMS_OPTIONS`, and the zod schema in `comms-options-schema.ts` checks every field and refuses a key it does not know. The schema sets `frequency` to `DEFAULT_COMMS_FREQUENCY` (1420) for an untyped caller that leaves it out; the typed `forRoot` still asks for the field. `LifeSupport` has a zod schema in `life-support-options-schema.ts` for its calibration and ratings. `Comms` binds the link and the array and makes three contributions:
 
 ```text
 SUBSPACE_LINK     SubspaceRelay   deps [COMMS_OPTIONS]
@@ -341,7 +341,7 @@ The helm plots courses from `NAV_CHARTS`, an `INavCharts` whose `has(to)` answer
 
 ### The Ship With and Without a Relay
 
-`meridianSystems({ seed, dt, relayUrl })` imports `Comms.forRoot({ frequency: 1420, transport: 'relay', relayUrl })` and `Tactical`. Without `relayUrl` it imports `OfflineComms` and `OfflineTactical`. The aggregate re-exports whichever pair it imported, so the root reads `COMMS_ARRAY` and `NAV_CHARTS` on both ships, and `SUBSPACE_LINK` on the linked one. `bridge-api` builds its `Meridian` root with a relay and its `OfflineMeridian` root without one.
+`meridianSystems({ seed, dt, relayUrl })` imports `Comms.forRoot({ frequency: DEFAULT_COMMS_FREQUENCY, relayUrl, relayTimeout })` and `Tactical`. Without `relayUrl` it imports `OfflineComms` and `OfflineTactical`. The aggregate re-exports whichever pair it imported, so the root reads `COMMS_ARRAY` and `NAV_CHARTS` on both ships, and `SUBSPACE_LINK` on the linked one. `bridge-api` builds its `Meridian` root with a relay and its `OfflineMeridian` root without one.
 
 ### The Hail
 
@@ -625,12 +625,12 @@ The devtools graph lists every provider of the ship beside the server's own. `sh
 
 ## The Physics
 
-The classes delegate the arithmetic to pure functions. The laws that two systems share sit in `src/physics/`, and each system's own laws sit in `src/systems/<system>/<system>-model.ts`. Neither kind of file imports anything from `@nexusdi/`, and a file in `src/physics/` imports nothing from `systems/`. The record, setpoint and rating types sit in each system's `contracts.ts`.
+The classes delegate the arithmetic to pure functions. The laws that two systems share sit in `src/physics/`, and each system's own laws sit in `src/systems/<system>/<system>-model.ts`. Neither kind of file imports anything from `@nexusdi/`, and a file in `src/physics/` imports nothing from `systems/`. The record and setpoint types sit in each system's `contracts.ts`, and `HullRating` sits in `src/physics/constants.ts`.
 
 The shared laws in `src/physics/`:
 
 - `gas.ts` holds the five gases, the air fractions, `pressure(moles, temperature, volume)` from `P = nRT/V` with `R` from `constants.ts`, and `molesAt(pressure, temperature, volume, fractions)`, which fills a compartment. It also holds `heatCapacity`, the Magnus `saturationPressure`, `ventFraction` and `vent`, then `parcel`, which splits a share of each gas off a room's air, and `mix`, which adds a parcel to a room with its energy. `transfer` runs the two to move a share of each gas from one room to another, and `exchange` runs them both ways through a door.
-- `doors.ts` holds `DoorPlan`, `doorFractions`, `doorPressures` and `PRESSURE_INTERLOCK`.
+- `doors.ts` holds `DoorRoom`, `DoorPlan`, `doorFractions`, `doorPressures` and `PRESSURE_INTERLOCK`.
 - `constants.ts` holds `R`, `σ`, `T_hull`, `κ`, the molar heat capacities `CV` and the hull's figures `HULL`, which the helm and the main drive both read.
 - `rng.ts` holds `splitmix32` and `fnv1a32`, which `SeededRandom` uses for its streams and its forks.
 

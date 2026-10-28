@@ -191,7 +191,10 @@ describe('the meridian-systems eslint purity rules', () => {
       'node:perf_hooks performance',
       "import { performance } from 'node:perf_hooks';\nexport const t = performance.now();",
     ],
-    ['a package import', "import { z } from 'zod';\nexport const s = z;"],
+    [
+      'a package import',
+      "import { sum } from 'lodash';\nexport const s = sum([1]);",
+    ],
     ['a dynamic import', "export const c = await import('node:crypto');"],
     ['require', "export const c = require('node:crypto');"],
     ['eval', "export const t = eval('Date.now()');"],
@@ -469,6 +472,12 @@ describe('the meridian-systems eslint config', () => {
       expect(regex.test('node:crypto')).toBe(true);
       expect(regex.test('crypto')).toBe(true);
       expect(regex.test('@nexusdi/core')).toBe(false);
+      // Only src imports zod/mini, for the options schemas; a test file does
+      // not, and the full zod bundle stays out of the Worker.
+      expect(regex.test('zod/mini')).toBe(path.endsWith('.test.ts'));
+      expect(regex.test('zod')).toBe(true);
+      expect(regex.test('zod/v4')).toBe(true);
+      expect(regex.test('lodash')).toBe(true);
       // A test file imports @nexusdi/errors for explain(); src does not.
       expect(regex.test('@nexusdi/errors')).toBe(!path.endsWith('.test.ts'));
       expect(regex.test('./contracts')).toBe(false);
