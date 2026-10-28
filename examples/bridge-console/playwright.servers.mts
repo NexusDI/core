@@ -18,7 +18,9 @@ export const GROWTH_PORTS: SuitePorts = { console: 4220, api: 4221 };
 
 /**
  * The built console under react-router-serve, as it runs in production,
- * and bridge-api's Hono entry, which the console's loaders call over HTTP.
+ * and bridge-api's Hono server with the e2e fixture routes, which the
+ * console's loaders call over HTTP. The fixture adds the mission that makes
+ * the backend fail, for the case that shows a failed call.
  * The gating and the growth configs each start their own pair. The e2e and
  * e2e-growth targets build the console first (package.json).
  */
@@ -28,7 +30,7 @@ export function webServers(
   const bridgeApiUrl = `http://127.0.0.1:${ports.api}/`;
   return [
     {
-      command: 'node --import tsx ../bridge-api/src/entries/server.hono.ts',
+      command: 'node --import tsx ../bridge-api/e2e/fixtures/server.hono.ts',
       url: `${bridgeApiUrl}health`,
       reuseExistingServer: false,
       cwd: `${workspaceRoot}/examples/bridge-console`,
