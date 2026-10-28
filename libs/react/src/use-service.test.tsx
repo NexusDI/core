@@ -112,7 +112,7 @@ describe('useService', () => {
     unmount();
   });
 
-  it('returns a new array after a load() adds a contribution', async () => {
+  it('keeps the same array when a load() that adds a contribution is rejected', async () => {
     await using ship = await Nexus.create([
       provide(DIAGNOSTICS, { useValue: reactor }),
     ]);
@@ -131,10 +131,13 @@ describe('useService', () => {
       },
     );
     const before = result.current;
-    await ship.load(Hull);
+    await expect(ship.load(Hull)).rejects.toMatchObject({
+      code: 'NEXUS_LOAD_CONTRIBUTION',
+    });
     rerender();
-    expect(result.current).not.toBe(before);
-    expect(result.current.map((d) => d.system)).toEqual(['reactor', 'hull']);
+    expect(result.current).toBe(before);
+    expect(Object.isFrozen(before)).toBe(true);
+    expect(before.map((d) => d.system)).toEqual(['reactor']);
     unmount();
   });
 });

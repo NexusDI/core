@@ -205,29 +205,26 @@ describe('react', () => {
     ).toBeInstanceOf(TransientInRenderError);
   });
 
-  it('sees a transient contribution a later load() adds', async () => {
+  it('sees a transient provider a later load() publishes', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await using ship = await Nexus.create(
-      [provide(DIAGNOSTICS, { useValue: { system: 'reactor' } })],
+      [provide(NAV_CHARTS, { useValue: fakeCharts })],
       { plugins: [react()] },
     );
-    const first = hook(ship, () => useService(DIAGNOSTICS));
+    const first = hook(ship, () => useService(NAV_CHARTS));
     first.unmount();
     await ship.load(
       defineModule({
-        name: 'Hull',
+        name: 'Hangar',
         providers: [
-          provide(DIAGNOSTICS, {
-            useFactory: () => ({ system: 'hull' }),
-            lifetime: 'transient',
-          }),
+          provide(DRONE, { useClass: ScoutDrone, lifetime: 'transient' }),
         ],
-        exports: [DIAGNOSTICS],
+        exports: [DRONE],
       }),
     );
-    expect(
-      thrown(() => hook(ship, () => useService(DIAGNOSTICS))),
-    ).toBeInstanceOf(TransientInRenderError);
+    expect(thrown(() => hook(ship, () => useService(DRONE)))).toBeInstanceOf(
+      TransientInRenderError,
+    );
   });
 
   it('rejects a transient token under a scope too', async () => {

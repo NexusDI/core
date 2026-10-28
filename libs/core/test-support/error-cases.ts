@@ -13,6 +13,7 @@ import {
   LazyAsyncError,
   LifetimeError,
   LoadedAfterScopeError,
+  LoadContributionError,
   LoadError,
   MissingDepsError,
   MissingProviderError,
@@ -226,6 +227,12 @@ export const errorCases: readonly ErrorCase[] = [
     error: new LoadError({ module: 'Telemetry' }),
     code: 'NEXUS_LOAD_GLOBAL_MODULE',
     fields: { module: 'Telemetry' },
+  },
+  {
+    name: 'LoadContributionError',
+    error: new LoadContributionError({ module: 'Science', token: 'Log' }),
+    code: 'NEXUS_LOAD_CONTRIBUTION',
+    fields: { module: 'Science', token: 'Log' },
   },
   {
     name: 'ProviderError',

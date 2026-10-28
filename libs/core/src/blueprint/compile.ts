@@ -5,9 +5,11 @@ import { REQUEST } from '../definitions/request.js';
 import {
   BlueprintError,
   CircularDependencyError,
+  LoadContributionError,
   LoadError,
   type NexusError,
 } from '../errors/index.js';
+import { MultiToken } from '../definitions/token.js';
 import { bind } from './bind.js';
 import {
   NO_ENTRIES,
@@ -90,6 +92,36 @@ function checkNewGlobals(walked: WalkResult, previous: Blueprint): void {
     (m) => m.global && !previous.moduleByDefinition.has(m.definition),
   );
   if (added !== undefined) throw new LoadError({ module: added.name });
+}
+
+/**
+ * load()'s second rule: collectors built at startup hold their lists, so a
+ * module new to the graph cannot publish a contribution to a MultiToken. The
+ * first record by index that breaks it names the error. A pinned token is
+ * skipped, and so is a record a compile.provider hook removed, since the
+ * caller passes the records left after the hooks ran.
+ */
+function checkNewContributions(
+  walked: WalkResult,
+  records: readonly ProviderRecord[],
+  pinned: ReadonlyMap<TokenKey, readonly string[]>,
+  previous: Blueprint,
+): void {
+  const nodes = new Map(walked.modules.map((m) => [m.id, m]));
+  for (const record of records) {
+    if (!(record.token instanceof MultiToken) || pinned.has(record.token))
+      continue;
+    const node = nodes.get(record.module);
+    if (
+      node !== undefined &&
+      !previous.moduleByDefinition.has(node.definition) &&
+      node.exportTokens.includes(record.token)
+    )
+      throw new LoadContributionError({
+        module: node.name,
+        token: record.name,
+      });
+  }
 }
 
 /** The built-in REQUEST provider: scoped, visible in every module. */
@@ -176,6 +208,10 @@ export function compile(input: CompileInput): Blueprint {
     for (const [token, ids] of rewritten.pinned) pinned.set(token, ids);
   const nameOf = (id: string): string => providers.get(id)?.name ?? id;
   errors.push(...walked.exportErrors);
+  // Like checkNewGlobals, the guard throws alone: errors collected earlier in
+  // this compile do not reach the user.
+  if (input.previous !== undefined)
+    checkNewContributions(walked, records, pinned, input.previous);
 
   // Pass 2: visibility.
   const visible = computeVisibility(

@@ -6,7 +6,7 @@ import { HOOK_SITES } from '../definitions/hook-sites.js';
 import type { Dep, DepsMap, ResolvedDeps } from '../definitions/modifiers.js';
 import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
-import { BlueprintError, LoadError } from '../errors/index.js';
+import { BlueprintError, isLoadError } from '../errors/index.js';
 import { isThenable } from './build.js';
 import { compileTraced, observerFailed } from './compile-traced.js';
 import { resolveDeps, validateDeps } from './deps.js';
@@ -105,7 +105,7 @@ export class Nexus {
       throw formatThrown(
         plugins,
         () => (last === undefined ? undefined : viewOfBlueprint(last, canon)),
-        error instanceof LoadError ? new BlueprintError([error]) : error,
+        isLoadError(error) ? new BlueprintError([error]) : error,
       );
     }
   }

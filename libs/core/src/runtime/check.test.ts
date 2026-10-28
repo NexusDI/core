@@ -4,7 +4,7 @@ import { thrown } from '../../test-support/catch.js';
 import type { BlueprintView } from '../blueprint/views.js';
 import { defineModule } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
-import { Token } from '../definitions/token.js';
+import { MultiToken, Token } from '../definitions/token.js';
 import { Nexus } from './nexus.js';
 import type { TraceEvent } from './trace.js';
 
@@ -111,6 +111,28 @@ describe('Nexus.check', () => {
       { type: 'compile', phase: 'check', errors: 0 },
       { type: 'compile', phase: 'check', errors: 1 },
     ]);
+  });
+
+  it('reports a load of a module that exports a contribution as a LoadContributionError inside the BlueprintError', () => {
+    const LOG = new MultiToken<string>('Log');
+    const Listener = defineModule({
+      name: 'Listener',
+      providers: [provide(LOG, { useValue: 'own' })],
+      exports: [LOG],
+    });
+    const error = thrown(() =>
+      Nexus.check(defineModule({ name: 'Root' }), { load: [Listener] }),
+    );
+    expect(error).toMatchObject({
+      code: 'NEXUS_BLUEPRINT_INVALID',
+      errors: [
+        {
+          code: 'NEXUS_LOAD_CONTRIBUTION',
+          module: 'Listener',
+          token: 'Log',
+        },
+      ],
+    });
   });
 
   it('accepts a load of a global module the root already reaches', () => {

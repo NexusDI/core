@@ -25,6 +25,8 @@ export { InvalidTokenError } from './invalid-token-error.js';
 export { LazyAsyncError } from './lazy-async-error.js';
 export { LifetimeError, type ErrorLifetime } from './lifetime-error.js';
 export { LoadedAfterScopeError } from './loaded-after-scope-error.js';
+export { isLoadError } from './is-load-error.js';
+export { LoadContributionError } from './load-contribution-error.js';
 export { LoadError } from './load-error.js';
 export { MissingDepsError } from './missing-deps-error.js';
 export {

@@ -20,6 +20,7 @@ import type {
   LazyAsyncError,
   LifetimeError,
   LoadedAfterScopeError,
+  LoadContributionError,
   LoadError,
   MissingDepsError,
   MissingProviderError,
@@ -241,6 +242,12 @@ const load: Builder<LoadError> = (error) =>
       `  Fix: import ${error.module} from the root module, or make it non-global.`,
   );
 
+const loadContribution: Builder<LoadContributionError> = (error) =>
+  text(
+    `${error.module} publishes a contribution to ${error.token}, and load() cannot add to a multi token: collectors built at startup hold their lists.\n` +
+      `  Fix: drop the contribution from ${error.module} and register the provider from its onInit through the collector's registry, and unregister it on dispose.`,
+  );
+
 const provider: Builder<ProviderError> = (error) => {
   const lines = [
     `${error.token} (module ${error.module}) failed: ${causeText(error.cause)}`,
@@ -380,6 +387,7 @@ export const coreText = {
   NEXUS_MODULE_IMPORT_CYCLE: moduleImportCycle,
   NEXUS_MODULE_OPTIONS_MISSING: moduleOptions,
   NEXUS_LOAD_GLOBAL_MODULE: load,
+  NEXUS_LOAD_CONTRIBUTION: loadContribution,
   NEXUS_INVALID_MODULE_OPTIONS: moduleOptions,
   NEXUS_PROVIDER_FAILED: provider,
   NEXUS_NOT_READY: notReady,

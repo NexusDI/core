@@ -4,7 +4,8 @@ import { rejected } from '../../test-support/catch.js';
 import { deferred, flush } from '../../test-support/deferred.js';
 import { defineModule } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
-import { Token } from '../definitions/token.js';
+import { all } from '../definitions/modifiers.js';
+import { MultiToken, Token } from '../definitions/token.js';
 import { Nexus } from './nexus.js';
 
 class ReactorCore {}
@@ -110,6 +111,86 @@ describe('Nexus', () => {
       await ship.load(Wrapper);
       expect(ship.get(NAME)).toBe('x');
       expect(factory).toHaveBeenCalledOnce();
+    });
+
+    describe('contributions to a multi token', () => {
+      const LOG = new MultiToken<string>('Log');
+      const Listener = defineModule({
+        name: 'Listener',
+        providers: [provide(LOG, { useValue: 'own' })],
+        exports: [LOG],
+      });
+
+      it('rejects NEXUS_LOAD_CONTRIBUTION for a module that exports a contribution and leaves the container as it was', async () => {
+        const Root = defineModule({
+          name: 'Root',
+          providers: [provide(LOG, { useValue: 'root' })],
+        });
+        const ship = await Nexus.create(Root);
+        const error = await rejected(ship.load(Listener));
+        expect(error).toMatchObject({
+          code: 'NEXUS_LOAD_CONTRIBUTION',
+          module: 'Listener',
+          token: 'Log',
+        });
+        expect(ship.get(LOG)).toEqual(['root']);
+        await ship.load(Meridian);
+        expect(ship.get(LOG)).toEqual(['root']);
+      });
+
+      it('loads a module whose contribution stays private to a reader in the same module', async () => {
+        class Sink {
+          constructor(readonly lines: string[]) {}
+        }
+        const Quiet = defineModule({
+          name: 'Quiet',
+          providers: [
+            provide(LOG, { useValue: 'own' }),
+            provide(Sink, { deps: [all(LOG)] }),
+          ],
+          exports: [Sink],
+        });
+        const ship = await Nexus.create(Meridian);
+        await ship.load(Quiet);
+        expect(ship.get(Sink).lines).toEqual(['own']);
+        expect(ship.get(LOG)).toEqual([]);
+      });
+
+      it('lets the load through when a compile.provider hook removes the record', async () => {
+        const ship = await Nexus.create(Meridian, {
+          plugins: [
+            {
+              name: 'drop',
+              apiVersion: 1,
+              compile: {
+                provider: (p: { token: unknown }) =>
+                  p.token === LOG ? { remove: true } : undefined,
+              },
+            } as never,
+          ],
+        });
+        await ship.load(Listener);
+        expect(ship.get(LOG)).toEqual([]);
+      });
+
+      it('skips a token a compile.provider hook pinned', async () => {
+        const ship = await Nexus.create(Meridian, {
+          plugins: [
+            {
+              name: 'pin',
+              apiVersion: 1,
+              compile: {
+                provider: (p: { token: unknown }) =>
+                  p.token === LOG
+                    ? { with: provide(LOG, { useValue: 'pin' }), pin: true }
+                    : undefined,
+              },
+            } as never,
+          ],
+        });
+        await ship.load(Listener);
+        expect(ship.get(LOG)).toEqual(['pin']);
+      });
     });
 
     it('rejects NEXUS_INVALID_MODULE for a value that is not a module', async () => {
