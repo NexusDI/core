@@ -24,6 +24,20 @@ describe('interfaceFirstHits', () => {
     ).toEqual([]);
   });
 
+  it('accepts lazy(all()) of a token', () => {
+    expect(
+      interfaceFirstHits(
+        'static deps = [lazy(all(POWER_CONSUMERS))] as const;',
+      ),
+    ).toEqual([]);
+  });
+
+  it('flags lazy(all()) of a class', () => {
+    expect(
+      interfaceFirstHits('static deps = [lazy(all(FusionReactor))] as const;'),
+    ).toEqual(['deps entry lazy(all(FusionReactor))']);
+  });
+
   it('names a class token, a camelCase literal token and a class dep', () => {
     expect(
       interfaceFirstHits(
