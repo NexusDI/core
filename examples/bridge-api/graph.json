@@ -17,7 +17,7 @@
     },
     {
       "id": "m1",
-      "name": "BridgeApi",
+      "name": "MissionScope",
       "global": false,
       "imports": [],
       "exports": [
@@ -107,7 +107,7 @@
         "p13",
         "p15",
         "p16",
-        "p18",
+        "p17",
         "p19"
       ]
     },
@@ -246,7 +246,7 @@
       "eager": true,
       "async": null,
       "notes": [],
-      "implementation": "ShuttleFlightLog",
+      "implementation": "MissionFlightLog",
       "internal": false
     },
     {
@@ -258,7 +258,7 @@
       "eager": true,
       "async": null,
       "notes": [],
-      "implementation": "AuditLog",
+      "implementation": "AuditRecorder",
       "internal": false
     },
     {
@@ -431,18 +431,6 @@
     },
     {
       "id": "p17",
-      "token": "PowerConsumers",
-      "module": "m7",
-      "lifetime": "singleton",
-      "kind": "class",
-      "eager": true,
-      "async": null,
-      "notes": [],
-      "implementation": "ShieldPower",
-      "internal": false
-    },
-    {
-      "id": "p18",
       "token": "ShipSystems",
       "module": "m7",
       "lifetime": "singleton",
@@ -451,6 +439,18 @@
       "async": null,
       "notes": [],
       "implementation": "EngineeringPhysics",
+      "internal": false
+    },
+    {
+      "id": "p18",
+      "token": "PowerConsumers",
+      "module": "m7",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "ShieldPower",
       "internal": false
     },
     {
@@ -991,7 +991,7 @@
     },
     {
       "from": "p4",
-      "to": "p18",
+      "to": "p17",
       "kind": "all"
     },
     {
@@ -1101,7 +1101,7 @@
     },
     {
       "from": "p15",
-      "to": "p17",
+      "to": "p18",
       "kind": "all"
     },
     {
@@ -1141,22 +1141,22 @@
     },
     {
       "from": "p17",
-      "to": "p16",
-      "kind": "required"
-    },
-    {
-      "from": "p18",
       "to": "p13",
       "kind": "required"
     },
     {
-      "from": "p18",
+      "from": "p17",
       "to": "p14",
       "kind": "required"
     },
     {
-      "from": "p18",
+      "from": "p17",
       "to": "p15",
+      "kind": "required"
+    },
+    {
+      "from": "p18",
+      "to": "p16",
       "kind": "required"
     },
     {

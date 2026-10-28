@@ -7,8 +7,8 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 
 import { honoMissionRoutes } from '../../e2e/fixtures/mission-routes';
-import { createBridge } from '../../src/hono';
-import { OfflineMeridian } from '../../src/ship/meridian';
+import { createBridge } from '../../src/entries/hono';
+import { OfflineMeridian } from '../../src/ship/meridian.module';
 import { recorder, until } from './harness';
 
 describe('scope disposal on workerd', () => {

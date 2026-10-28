@@ -4,12 +4,12 @@ import { SELF } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 
 import { honoMissionRoutes } from '../../e2e/fixtures/mission-routes';
-import { createBridge } from '../../src/hono';
-import { OfflineMeridian } from '../../src/ship/meridian';
-import offlineWorker from '../../src/worker.offline';
+import { createBridge } from '../../src/entries/hono';
+import offlineWorker from '../../src/entries/worker.offline';
+import { OfflineMeridian } from '../../src/ship/meridian.module';
 import { recorder } from './harness';
 
-// Built at module scope, as src/worker.offline.ts does, with a trace plugin
+// Built at module scope, as src/entries/worker.offline.ts does, with a trace plugin
 // so the test counts scopes.
 const seen = recorder();
 const ship = await Nexus.create(OfflineMeridian, { plugins: [seen.plugin] });
@@ -61,7 +61,7 @@ describe('the bridge API on workerd, built at module scope', () => {
     expect(seen.count('scope:create')).toBe(created);
   });
 
-  it('serves the module-scope entry, src/worker.offline.ts', async () => {
+  it('serves the module-scope entry, src/entries/worker.offline.ts', async () => {
     // The entry runs requests in nodeScopes(), so the flight recorder finds
     // the request's log and the door command answers its entry.
     const res = await offlineWorker.request('/commands', {
@@ -81,8 +81,8 @@ describe('the bridge API on workerd, built at module scope', () => {
     });
   });
 
-  it('serves the configured entry, src/worker.ts, through the function form', async () => {
-    // RELAY_URL is empty in both configs, so src/worker.ts builds OfflineMeridian.
+  it('serves the configured entry, src/entries/worker.ts, through the function form', async () => {
+    // RELAY_URL is empty in both configs, so src/entries/worker.ts builds OfflineMeridian.
     const res = await SELF.fetch('https://bridge.test/course/Kepler-442b');
     expect(res.status).toBe(200);
     expect(((await res.json()) as { course: { to: string } }).course.to).toBe(

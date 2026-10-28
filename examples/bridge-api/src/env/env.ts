@@ -1,5 +1,5 @@
 import type { SimMode } from '../ship/contracts';
-import type { ShipSetup } from '../ship/meridian';
+import type { ShipSetup } from '../ship/meridian.module';
 
 const MODES: readonly SimMode[] = ['live', 'manual'];
 const MAX_SEED = 2 ** 32 - 1;

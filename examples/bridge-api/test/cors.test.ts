@@ -1,8 +1,8 @@
 import { Nexus } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
-import { createBridge } from '../src/hono';
-import { OfflineMeridian } from '../src/ship/meridian';
+import { createBridge } from '../src/entries/hono';
+import { OfflineMeridian } from '../src/ship/meridian.module';
 import { bridgePlugins } from '../src/ship/plugins';
 
 const SHELL = 'http://127.0.0.1:4330';

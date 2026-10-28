@@ -1,8 +1,9 @@
 import { Nexus } from '@nexusdi/core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { meridian } from '../src/ship/meridian';
+import { meridian } from '../src/ship/meridian.module';
 import { bridgePlugins } from '../src/ship/plugins';
+import { FRAMEWORKS } from '../test/support';
 import { cases, type Leg } from './cases';
 import { startRelay } from './relay';
 import { servers } from './servers';
@@ -32,12 +33,9 @@ function nodeLeg(framework: Leg['framework']): Leg {
   };
 }
 
-describe.each(['hono', 'express', 'fastify'] as const)(
-  'the bridge API on %s',
-  (framework) => {
-    for (const each of cases) {
-      if (each.frameworks && !each.frameworks.includes(framework)) continue;
-      it(each.name, () => each.run(nodeLeg(framework)));
-    }
-  },
-);
+describe.each(FRAMEWORKS)('the bridge API on %s', (framework) => {
+  for (const each of cases) {
+    if (each.frameworks && !each.frameworks.includes(framework)) continue;
+    it(each.name, () => each.run(nodeLeg(framework)));
+  }
+});

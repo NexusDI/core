@@ -13,7 +13,7 @@ const entry = join(dir, 'entry.ts');
 writeFileSync(
   entry,
   `import { Nexus } from '@nexusdi/core';
-import { OfflineMeridian } from '${new URL('../src/ship/meridian.ts', import.meta.url).pathname}';
+import { OfflineMeridian } from '${new URL('../src/ship/meridian.module.ts', import.meta.url).pathname}';
 const start = performance.now();
 const ship = await Nexus.create(OfflineMeridian);
 console.log(performance.now() - start);

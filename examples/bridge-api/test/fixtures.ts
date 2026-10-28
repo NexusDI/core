@@ -2,14 +2,14 @@ import { nexusTest } from '@nexusdi/vitest';
 import { test as base } from 'vitest';
 
 import { FLIGHT_LOG, NAV_CHARTS } from '../src/ship/contracts';
-import { Meridian } from '../src/ship/meridian';
+import { Meridian } from '../src/ship/meridian.module';
 import { bridgePlugins } from '../src/ship/plugins';
-import { FakeCharts, MemoryFlightLog } from './doubles';
+import { FixedCharts, FakeFlightLog } from './doubles';
 
 export const test = nexusTest(base, Meridian, {
   setup: (builder) =>
     builder
-      .override(NAV_CHARTS, { useClass: FakeCharts })
-      .override(FLIGHT_LOG, { useClass: MemoryFlightLog }),
+      .override(NAV_CHARTS, { useClass: FixedCharts })
+      .override(FLIGHT_LOG, { useClass: FakeFlightLog }),
   create: { plugins: bridgePlugins() },
 });

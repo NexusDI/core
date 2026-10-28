@@ -25,7 +25,7 @@ import { BUNDLED_CHARTS } from '@nexusdi/meridian-systems/charts';
 import type { IFlightLog, INavCharts } from '../src/ship/contracts';
 
 /** A class, so the audit interceptor wraps it: interceptors skip value providers. */
-export class FakeCharts implements INavCharts {
+export class FixedCharts implements INavCharts {
   /** It holds 42 for every star. */
   has() {
     return true;
@@ -35,7 +35,7 @@ export class FakeCharts implements INavCharts {
   }
 }
 
-export class MemoryFlightLog implements IFlightLog {
+export class FakeFlightLog implements IFlightLog {
   readonly #entries: string[] = [];
   record(entry: string) {
     this.#entries.push(entry);
@@ -83,7 +83,7 @@ export interface HeardAlarm {
 }
 
 /** Keeps every raise and clear it hears, in order. */
-export class MemoryAlarmSink implements IAlarmSink {
+export class RecordingAlarmSink implements IAlarmSink {
   readonly heard: HeardAlarm[] = [];
   raise(alarm: Alarm, tick: number) {
     this.heard.push({ call: 'raise', alarm, tick });
@@ -94,7 +94,7 @@ export class MemoryAlarmSink implements IAlarmSink {
 }
 
 /** A subspace link that answers the bundled charts, so a linked ship starts with no network. */
-export class LoopbackLink implements ISubspaceLink {
+export class FixedLink implements ISubspaceLink {
   async receive<T>(): Promise<T> {
     return BUNDLED_CHARTS as T;
   }
@@ -106,7 +106,7 @@ export class LoopbackLink implements ISubspaceLink {
  * an armed tick and jumps on a commanded one with no pulse. Its rating draws
  * 0 W, and every field is finite, so a telemetry frame carries it as JSON.
  */
-export class SimulatedJumpDrive implements IFtlDrive, Disposable {
+export class FakeJumpDrive implements IFtlDrive, Disposable {
   static deps = [TICK_LOOP, SHIP_STATE] as const;
 
   readonly rating: FtlRating = {
@@ -172,9 +172,9 @@ export class SimulatedJumpDrive implements IFtlDrive, Disposable {
   }
 }
 
-/** Stands in for FtlDrive with `overrideModule(FtlDrive, SimulatedFtlDrive, { lazy: true })`. */
-export const SimulatedFtlDrive = defineModule({
-  name: 'SimulatedFtlDrive',
-  providers: [provide(FTL_DRIVE, { useClass: SimulatedJumpDrive })],
+/** Stands in for FtlDrive with `overrideModule(FtlDrive, FakeFtlDrive, { lazy: true })`. */
+export const FakeFtlDrive = defineModule({
+  name: 'FakeFtlDrive',
+  providers: [provide(FTL_DRIVE, { useClass: FakeJumpDrive })],
   exports: [FTL_DRIVE],
 });

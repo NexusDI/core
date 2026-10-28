@@ -28,7 +28,7 @@ export function webServers(
   const bridgeApiUrl = `http://127.0.0.1:${ports.api}/`;
   return [
     {
-      command: 'node --import tsx ../bridge-api/src/server.hono.ts',
+      command: 'node --import tsx ../bridge-api/src/entries/server.hono.ts',
       url: `${bridgeApiUrl}health`,
       reuseExistingServer: false,
       cwd: `${workspaceRoot}/examples/bridge-console`,

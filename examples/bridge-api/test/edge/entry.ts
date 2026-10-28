@@ -1,11 +1,11 @@
 import { Nexus } from '@nexusdi/core';
 
 import { honoMissionRoutes } from '../../e2e/fixtures/mission-routes';
-import { createBridge } from '../../src/hono';
-import { OfflineMeridian } from '../../src/ship/meridian';
+import { createBridge } from '../../src/entries/hono';
+import { OfflineMeridian } from '../../src/ship/meridian.module';
 import { bridgePlugins } from '../../src/ship/plugins';
 
-// The offline worker of src/worker.offline.ts for Vercel's Edge Runtime: the
+// The offline worker of src/entries/worker.offline.ts for Vercel's Edge Runtime: the
 // same graph and plugins, built once per isolate, with no nodeScopes(), since
 // the VM has no node:async_hooks. A door command answers the tick alone. The
 // counters let the test read what happened inside the VM.

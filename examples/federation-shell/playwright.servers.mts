@@ -29,7 +29,7 @@ export function serve(
  */
 export function bridgeApi(port: number, shellOrigin: string) {
   return {
-    command: 'node --import tsx bridge-api/src/server.hono.ts',
+    command: 'node --import tsx bridge-api/src/entries/server.hono.ts',
     url: `http://127.0.0.1:${port}/health`,
     reuseExistingServer: false,
     cwd,

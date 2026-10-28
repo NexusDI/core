@@ -4,9 +4,9 @@ import { createTestingContainer } from '@nexusdi/testing';
 import { expect, it } from 'vitest';
 
 import { SUBSPACE_LINK } from '../src/ship/contracts';
-import { Meridian, OfflineMeridian } from '../src/ship/meridian';
+import { Meridian, OfflineMeridian } from '../src/ship/meridian.module';
 import { bridgePlugins } from '../src/ship/plugins';
-import { LoopbackLink } from './doubles';
+import { FixedLink } from './doubles';
 
 it('profiles the LifeSupportOptions factory as the async step of startup', async () => {
   const profiler = profile();
@@ -42,7 +42,7 @@ it('profiles the LifeSupportOptions factory as the async step of startup', async
 it('profiles the charts download of Meridian beside the LifeSupportOptions factory', async () => {
   const profiler = profile();
   const ship = await createTestingContainer(Meridian)
-    .override(SUBSPACE_LINK, { useClass: LoopbackLink })
+    .override(SUBSPACE_LINK, { useClass: FixedLink })
     .create({ plugins: [...bridgePlugins(), profiler] });
   await ship[Symbol.asyncDispose]();
   const report = profiler.report();

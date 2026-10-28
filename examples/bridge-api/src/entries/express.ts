@@ -24,17 +24,17 @@ import express, {
   type Request,
 } from 'express';
 
-import { answerAtmosphere } from './bridge/atmosphere';
-import { answerCommand } from './bridge/commands';
-import { compartmentOf } from './bridge/compartment-of';
-import { answerJump, answerSpool, ftlRating } from './bridge/ftl';
-import { readJson } from './bridge/json-body';
-import { MISSION_HEADER, requestOf } from './bridge/mission';
-import type { BridgeOptions } from './bridge/options';
-import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
-import { telemetryReadable } from './bridge/telemetry-readable';
-import { SSE_HEADERS } from './bridge/telemetry-stream';
-import { FLIGHT_LOG, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
+import { answerAtmosphere } from '../bridge/atmosphere';
+import { answerCommand } from '../bridge/commands';
+import { compartmentOf } from '../bridge/compartment-of';
+import { answerJump, answerSpool, ftlRating } from '../bridge/ftl';
+import { readJson } from '../bridge/json-body';
+import { MISSION_HEADER, requestOf } from '../bridge/mission';
+import type { BridgeOptions } from '../bridge/options';
+import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from '../bridge/sim-ticks';
+import { telemetryReadable } from '../bridge/telemetry-readable';
+import { SSE_HEADERS } from '../bridge/telemetry-stream';
+import { FLIGHT_LOG, NAV_CHARTS, SIM_DRIVER } from '../ship/contracts';
 
 /**
  * A hook for the e2e and runtime-test routes: it adds routes right after the

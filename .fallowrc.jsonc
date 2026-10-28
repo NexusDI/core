@@ -114,8 +114,8 @@
     "examples/bridge-api/test/runtime/growth.ts",
     "examples/bridge-api/test/edge/entry.ts",
     "examples/bridge-api/bench/*.{ts,mjs}",
-    "examples/bridge-api/src/server.*.ts",
-    "examples/bridge-api/src/worker.ts",
+    "examples/bridge-api/src/entries/server.*.ts",
+    "examples/bridge-api/src/entries/worker.ts",
     // examples/meridian-systems: the e2e-growth target runs the idle golden
     // by path, and the golden is read by the snapshot matcher, never imported.
     "examples/meridian-systems/e2e/**/*.ts",
@@ -557,12 +557,12 @@
       "benchmarks/src/scale/render/*.ts",
       // The bridge API wires the same routes once per framework, so each
       // server entry reads beside that framework's guide.
-      "examples/bridge-api/src/{express,fastify,hono}.ts",
+      "examples/bridge-api/src/entries/{express,fastify,hono}.ts",
       // The mission and flight log every adapter example and fixture
       // defines in its own self-contained app: the Next gate's graph and the
-      // bridge API's BridgeApi module.
+      // bridge API's MissionScope module.
       "examples/next-bridge/app/ship/gate.module.ts",
-      "examples/bridge-api/src/ship/bridge-api.module.ts",
+      "examples/bridge-api/src/ship/mission-scope.module.ts",
     ],
   },
 }

@@ -4,12 +4,13 @@ import type { AddressInfo } from 'node:net';
 import { Nexus } from '@nexusdi/core';
 import type { NodeScopes } from '@nexusdi/node';
 
-import { createBridge as expressBridge } from '../src/express';
-import { createBridge as fastifyBridge } from '../src/fastify';
 import type { BridgeOptions } from '../src/bridge/options';
-import { createBridge as honoBridge } from '../src/hono';
-import { OfflineMeridian } from '../src/ship/meridian';
+import { createBridge as expressBridge } from '../src/entries/express';
+import { createBridge as fastifyBridge } from '../src/entries/fastify';
+import { createBridge as honoBridge } from '../src/entries/hono';
+import { OfflineMeridian } from '../src/ship/meridian.module';
 import { bridgePlugins } from '../src/ship/plugins';
+import type { Framework } from './support';
 
 export interface Answer {
   readonly status: number;
@@ -33,6 +34,20 @@ export const json = (body: unknown): Payload => ({
   type: 'application/json',
   text: JSON.stringify(body),
 });
+
+/** A JSON body sent with the media type in another case and a charset. */
+export const charset = (body: unknown): Payload => ({
+  type: 'Application/JSON; charset=utf-8',
+  text: JSON.stringify(body),
+});
+
+/** Bodies every framework refuses the same way: none of them holds JSON it can read. */
+export const UNREADABLE: readonly (readonly [string, Payload])[] = [
+  ['malformed JSON', { type: 'application/json', text: '{ ticks' }],
+  ['an empty JSON body', { type: 'application/json', text: '' }],
+  ['a form', { type: 'application/x-www-form-urlencoded', text: 'ticks=3' }],
+  ['plain text', { type: 'text/plain', text: '{ "ticks": 3 }' }],
+];
 
 /** The status and the body: parsed for a JSON answer, undefined for an empty one, else the text. */
 function answerOf(status: number, type: unknown, text: string): Answer {
@@ -58,7 +73,7 @@ const init = (
       };
 
 /** One request to `ship` through each framework's bridge. */
-export const calls: Readonly<Record<'hono' | 'express' | 'fastify', Call>> = {
+export const calls: Readonly<Record<Framework, Call>> = {
   async hono(ship, method, path, payload, options, headers) {
     return answerOfResponse(
       await honoBridge(ship, options).request(

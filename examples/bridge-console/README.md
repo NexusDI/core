@@ -11,7 +11,7 @@ libraries, and the console's build target builds them first:
 
 ```sh
 npx nx run @nexusdi/bridge-console:build
-(cd examples/bridge-api && PORT=4211 node --import tsx src/server.hono.ts) &
+(cd examples/bridge-api && PORT=4211 node --import tsx src/entries/server.hono.ts) &
 npx nx run @nexusdi/bridge-console:dev
 ```
 

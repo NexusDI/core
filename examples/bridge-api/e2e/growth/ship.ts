@@ -7,8 +7,12 @@ import {
   type GrowthCase,
   runGrowthCase,
 } from '../../test/runtime/growth-cases';
-import { offlineMeridian, type ShipSetup } from '../../src/ship/meridian';
+import {
+  offlineMeridian,
+  type ShipSetup,
+} from '../../src/ship/meridian.module';
 import { bridgePlugins } from '../../src/ship/plugins';
+import { FRAMEWORKS } from '../../test/support';
 import { servers } from '../servers';
 
 /** The seeded manual ship every growth case starts from. */
@@ -73,7 +77,7 @@ export async function withShip(
  * suite name with `%s` for the framework.
  */
 export function describeOnNode(title: string, each: GrowthCase): void {
-  describe.each(['hono', 'express', 'fastify'] as const)(title, (framework) => {
+  describe.each(FRAMEWORKS)(title, (framework) => {
     it(each.name, () =>
       withShip(framework, manual, (url) =>
         runGrowthCase(`node-${framework}`, each, (path, init) =>

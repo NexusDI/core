@@ -2,9 +2,12 @@ import { Nexus } from '@nexusdi/core';
 import { createTestingContainer } from '@nexusdi/testing';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createBridge } from '../../src/hono';
+import { createBridge } from '../../src/entries/hono';
 import { NAV_CHARTS, type INavCharts } from '../../src/ship/contracts';
-import { DEFAULT_RELAY_URL, OfflineMeridian } from '../../src/ship/meridian';
+import {
+  DEFAULT_RELAY_URL,
+  OfflineMeridian,
+} from '../../src/ship/meridian.module';
 
 // The charts the fetching factory returns once its download succeeds.
 const offline = await Nexus.create(OfflineMeridian);

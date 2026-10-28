@@ -15,9 +15,11 @@ import {
 import { PressureInterlock } from '@nexusdi/meridian-systems/interlock';
 
 import { SHIP_TEXT } from '../bridge/refusal';
-import { AUDIT_LOG, AuditTrail, type IAuditLog } from './audit-trail.module';
+import { AuditTrail } from './audit-trail.module';
 import {
+  AUDIT_LOG,
   FLIGHT_LOG,
+  type IAuditLog,
   type IScopeSource,
   NAV_CHARTS,
   REQUEST_SCOPES,

@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 import { answerCommand } from '../src/bridge/commands';
 import { refusalOf, SHIP_TEXT } from '../src/bridge/refusal';
-import { MemoryFlightLog } from './doubles';
+import { FakeFlightLog } from './doubles';
 
 /** A desk whose submit() calls `answer`. */
 const desk = (answer: () => { tick: number }): ICommandDesk => ({
@@ -30,7 +30,7 @@ describe('answerCommand', () => {
       answerCommand(
         desk(() => ({ tick: 4 })),
         {},
-        new MemoryFlightLog(),
+        new FakeFlightLog(),
       ),
     ).toEqual({
       status: 202,
@@ -45,7 +45,7 @@ describe('answerCommand', () => {
       action: 'engage',
       expected: 'engineering',
     });
-    expect(answerCommand(refuse(error), {}, new MemoryFlightLog())).toEqual({
+    expect(answerCommand(refuse(error), {}, new FakeFlightLog())).toEqual({
       status: 400,
       body: {
         code: 'MERIDIAN_BAD_COMMAND',
@@ -62,7 +62,7 @@ describe('answerCommand', () => {
       demand: 200e6,
       available: 193.6e6,
     });
-    expect(answerCommand(refuse(error), {}, new MemoryFlightLog())).toEqual({
+    expect(answerCommand(refuse(error), {}, new FakeFlightLog())).toEqual({
       status: 409,
       body: {
         code: 'MERIDIAN_POWER_BUDGET',
@@ -75,7 +75,7 @@ describe('answerCommand', () => {
 
   it('answers 409 with the one-line message for a code no pack words', () => {
     const error = new NexusError('BRIDGE_PROBE', 'ProbeError', {});
-    expect(answerCommand(refuse(error), {}, new MemoryFlightLog())).toEqual({
+    expect(answerCommand(refuse(error), {}, new FakeFlightLog())).toEqual({
       status: 409,
       body: {
         code: 'BRIDGE_PROBE',
@@ -89,13 +89,13 @@ describe('answerCommand', () => {
       answerCommand(
         desk(() => ({ tick: 4 })),
         {},
-        new MemoryFlightLog(),
+        new FakeFlightLog(),
       ),
     ).toEqual({ status: 202, body: { tick: 4 } });
   });
 
   it('answers the flight log beside the tick when it holds entries', () => {
-    const log = new MemoryFlightLog();
+    const log = new FakeFlightLog();
     const opened = desk(() => {
       log.record('survey-7: opened bridge-habitat');
       return { tick: 4 };
@@ -112,7 +112,7 @@ describe('answerCommand', () => {
       difference: 101_300,
       limit: 5_000,
     });
-    expect(answerCommand(refuse(error), {}, new MemoryFlightLog())).toEqual({
+    expect(answerCommand(refuse(error), {}, new FakeFlightLog())).toEqual({
       status: 409,
       body: {
         code: 'MERIDIAN_INTERLOCK',
@@ -125,7 +125,7 @@ describe('answerCommand', () => {
 
   it('rethrows an error that is not a NexusError', () => {
     const bug = new Error('the handler broke');
-    expect(() => answerCommand(refuse(bug), {}, new MemoryFlightLog())).toThrow(
+    expect(() => answerCommand(refuse(bug), {}, new FakeFlightLog())).toThrow(
       bug,
     );
   });

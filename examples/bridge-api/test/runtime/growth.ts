@@ -1,15 +1,15 @@
 import { Nexus } from '@nexusdi/core';
 import { nodeScopes } from '@nexusdi/node';
 
-import { createBridge } from '../../src/hono';
-import { OfflineMeridian } from '../../src/ship/meridian';
+import { createBridge } from '../../src/entries/hono';
+import { OfflineMeridian } from '../../src/ship/meridian.module';
 import { bridgePlugins } from '../../src/ship/plugins';
 import { growthCases, runGrowthCase } from './growth-cases';
 import { serve } from './serve';
 
 // bridge-api's growth cases on Deno or Bun. Each case gets a fresh
 // OfflineMeridian behind Hono, so each one starts at tick 0. The ship and the
-// bridge share one nodeScopes(), as src/worker.offline.ts builds them, so the
+// bridge share one nodeScopes(), as src/entries/worker.offline.ts builds them, so the
 // interlock and the flight recorder run. Each failure is printed, and any
 // failure fails the run.
 const failures: string[] = [];

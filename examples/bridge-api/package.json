@@ -4,13 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.hono.ts"
+    "dev": "tsx watch src/entries/server.hono.ts"
   },
   "exports": {
     "./contracts": "./src/ship/contracts.ts",
     "./mission": "./src/bridge/mission.ts",
     "./ship": "./src/ship/index.ts",
-    "./hono": "./src/hono.ts"
+    "./hono": "./src/entries/hono.ts"
   },
   "dependencies": {
     "@hono/node-server": "2.1.5",

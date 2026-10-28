@@ -3,6 +3,7 @@ import { trace } from '@nexusdi/devtools';
 import { nodeScopes } from '@nexusdi/node';
 import { Context } from 'hono';
 
+import type { Framework } from '../test/support';
 import type { StartBridge } from './servers';
 
 /**
@@ -13,7 +14,7 @@ import type { StartBridge } from './servers';
  */
 export interface Leg {
   /** The framework the leg serves. The probe case is Hono's alone. */
-  readonly framework: 'hono' | 'express' | 'fastify';
+  readonly framework: Framework;
   readonly start: StartBridge;
   /** The leg's graph, built with `plugins`. */
   ship(plugins?: NexusPlugin[]): Promise<Nexus>;

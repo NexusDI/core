@@ -4,10 +4,10 @@
   // it on, so the dependency is visible. enable_request_signal makes
   // request.signal abort when the client disconnects.
   "name": "bridge-api",
-  "main": "src/worker.ts",
+  "main": "src/entries/worker.ts",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat", "enable_request_signal"],
-  // Empty, so src/worker.ts builds OfflineMeridian. An environment that reads
+  // Empty, so src/entries/worker.ts builds OfflineMeridian. An environment that reads
   // the relay sets it.
   "vars": { "RELAY_URL": "" },
 }

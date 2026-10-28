@@ -2,10 +2,11 @@ import { once } from 'node:events';
 
 import { describe, expect, it } from 'vitest';
 
+import { FRAMEWORKS } from '../test/support';
 import { start, urlOf } from './entry-process';
 
 describe.concurrent('the Node server entries', () => {
-  it.for(['server.hono.ts', 'server.express.ts', 'server.fastify.ts'])(
+  it.for(FRAMEWORKS.map((framework) => `server.${framework}.ts`))(
     '%s prints its URL, serves /health and exits 0 on SIGTERM',
     async (entry, { onTestFinished }) => {
       const child = start(entry, onTestFinished);

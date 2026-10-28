@@ -28,11 +28,15 @@ export function start(
     // spawn() passes no variable whose value is undefined.
     NODE_ENV: undefined,
   };
-  const child = spawn(process.execPath, ['--import', 'tsx', `src/${entry}`], {
-    cwd: join(import.meta.dirname, '..'),
-    env,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  const child = spawn(
+    process.execPath,
+    ['--import', 'tsx', `src/entries/${entry}`],
+    {
+      cwd: join(import.meta.dirname, '..'),
+      env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
   finished(() => {
     if (child.exitCode === null && child.signalCode === null)
       child.kill('SIGKILL');

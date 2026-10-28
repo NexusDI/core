@@ -1,12 +1,12 @@
 import { Nexus } from '@nexusdi/core';
 import { nodeScopes } from '@nexusdi/node';
 
+import { OfflineMeridian } from '../ship/meridian.module';
+import { bridgePlugins } from '../ship/plugins';
 import { createBridge } from './hono';
-import { OfflineMeridian } from './ship/meridian';
-import { bridgePlugins } from './ship/plugins';
 
 // Built at module scope: OfflineMeridian does no I/O while it is built, which
-// Workers allows in the global scope. src/worker.ts builds on the
+// Workers allows in the global scope. src/entries/worker.ts builds on the
 // first request, for a graph whose factories fetch.
 // The bridge runs each request in its scope, and the flight recorder reads it.
 const scopes = nodeScopes();

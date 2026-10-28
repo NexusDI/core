@@ -4,7 +4,7 @@ import { nodeScopes } from '@nexusdi/node';
 import { describe, expect, it } from 'vitest';
 
 import { FLIGHT_LOG } from '../src/ship/contracts';
-import { OfflineMeridian } from '../src/ship/meridian';
+import { OfflineMeridian } from '../src/ship/meridian.module';
 import { bridgePlugins } from '../src/ship/plugins';
 
 const open = (door: string) => ({ system: 'safety', action: 'open', door });

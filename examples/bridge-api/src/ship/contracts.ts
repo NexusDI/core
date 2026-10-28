@@ -26,6 +26,12 @@ export interface IFlightLog {
   entries(): readonly string[];
 }
 
+/** The calls the audit interceptor saw, which the app reads. */
+export interface IAuditLog {
+  record(call: string): void;
+  readonly calls: readonly string[];
+}
+
 /** The scope of the request in flight, such as the one `nodeScopes()` runs. */
 export interface IScopeSource {
   current(): Scope | undefined;
@@ -54,6 +60,7 @@ export type TelemetryFrame = ShipReading & { readonly ftlRating?: FtlRating };
 
 export const FLIGHT_LOG = new Token<IFlightLog>('FlightLog');
 export const MISSION = new Token<Mission>('Mission');
+export const AUDIT_LOG = new Token<IAuditLog>('AuditLog');
 export const DRIVER_OPTIONS = new Token<DriverOptions>('DriverOptions');
 export const SIM_DRIVER = new Token<ISimDriver>('SimDriver');
 export const REQUEST_SCOPES = new Token<IScopeSource>('RequestScopes');
