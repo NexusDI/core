@@ -174,7 +174,9 @@ describe('checkBehaviour', () => {
     );
     expect(findings).toHaveLength(1);
     expect(findings[0]).toMatch(
-      /^behaviour\/core\/Nexus\.json: the behaviour sidecar is .* over the 1400 kB raw/,
+      new RegExp(
+        `^behaviour/core/Nexus\\.json: the behaviour sidecar is .* over the ${BEHAVIOUR_BUDGET.raw / 1000} kB raw`,
+      ),
     );
   });
 
