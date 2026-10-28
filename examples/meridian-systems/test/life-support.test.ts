@@ -1,11 +1,11 @@
 import { Nexus } from '@nexusdi/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect } from 'vitest';
 
 import { UnknownCompartmentError } from '../src/errors';
 import { OFF_GASSING } from '../src/systems/life-support/life-support-model';
 import { pressure, totalMoles } from '../src/physics/gas';
 import { meridianSystems } from '../src/meridian-systems.module';
-import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
+import { COMMAND_DESK } from '../src/simulation/commands';
 import {
   type CompartmentId,
   DECK_PLAN,
@@ -20,15 +20,12 @@ import {
   ATMOSPHERE_SENSOR,
 } from '../src/systems/life-support/contracts';
 
-const options = { seed: 7, dt: 0.5 };
+import { shipTest } from './fixtures';
+import { loadOf, online, SHIP_OPTIONS, throttle } from './support';
 
-const throttle = (desk: ICommandDesk, level: number) =>
-  desk.submit({ system: 'engineering', action: 'throttle', level });
-const online = (desk: ICommandDesk) =>
-  desk.submit({ system: 'life-support', action: 'online' });
+const test = shipTest(meridianSystems(SHIP_OPTIONS));
 
-const lifeSupportLoad = (ship: ShipSnapshot) =>
-  ship.power.loads.find((load) => load.id === 'life-support');
+const lifeSupportLoad = (ship: ShipSnapshot) => loadOf(ship, 'life-support');
 
 function roomPressure(ship: ShipSnapshot, deck: DeckPlan, id: CompartmentId) {
   const room = deck.compartments.find((entry) => entry.id === id);
@@ -38,12 +35,13 @@ function roomPressure(ship: ShipSnapshot, deck: DeckPlan, id: CompartmentId) {
 }
 
 describe('LifeSupport', () => {
-  it('passes the check', () => {
-    expect(() => Nexus.check(meridianSystems(options))).not.toThrow();
+  test('passes the check', () => {
+    expect(() => Nexus.check(meridianSystems(SHIP_OPTIONS))).not.toThrow();
   });
 
-  it('shows the root its sensor in a scope and its panel', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('shows the root its sensor in a scope and its panel', async ({
+    nexus: ship,
+  }) => {
     expect(ship.get(ATMOSPHERE_CONTROL)).toBeDefined();
     await using scope = await ship.createScope({
       request: { compartment: 'habitat' },
@@ -54,8 +52,9 @@ describe('LifeSupport', () => {
     });
   });
 
-  it('shows the root the probe its analyzers read through', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('shows the root the probe its analyzers read through', async ({
+    nexus: ship,
+  }) => {
     const loop = ship.get(TICK_LOOP);
     loop.advance(3);
     const air = ship.get(SHIP_STATE).snapshot().compartments.bridge;
@@ -67,8 +66,9 @@ describe('LifeSupport', () => {
     );
   });
 
-  it('refuses a sensor for a compartment the deck lacks', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('refuses a sensor for a compartment the deck lacks', async ({
+    nexus: ship,
+  }) => {
     await using scope = await ship.createScope({
       request: { compartment: 'galley' },
     });
@@ -76,8 +76,9 @@ describe('LifeSupport', () => {
     expect(() => scope.get(ATMOSPHERE_SENSOR)).toThrow(UnknownCompartmentError);
   });
 
-  it('builds a new analyzer on each get, so two gets around a tick read two ticks', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('builds a new analyzer on each get, so two gets around a tick read two ticks', async ({
+    nexus: ship,
+  }) => {
     await using scope = await ship.createScope({
       request: { compartment: 'airlock' },
     });
@@ -89,8 +90,9 @@ describe('LifeSupport', () => {
     expect(first.read().tick).toBe(0);
   });
 
-  it('sheds life support at throttle 0, since the cold reactor gives no power', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('sheds life support at throttle 0, since the cold reactor gives no power', ({
+    nexus: ship,
+  }) => {
     online(ship.get(COMMAND_DESK));
     const next = ship.get(TICK_LOOP).advance(1);
     expect(next.setpoints.lifeSupport.online).toBe(true);
@@ -99,8 +101,9 @@ describe('LifeSupport', () => {
     expect(next.lifeSupport.heaters).toEqual({ bridge: 0, habitat: 0 });
   });
 
-  it('pumps the airlock down and holds it once the pump stalls', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('pumps the airlock down and holds it once the pump stalls', ({
+    nexus: ship,
+  }) => {
     const desk = ship.get(COMMAND_DESK);
     const loop = ship.get(TICK_LOOP);
     const deck = ship.get(DECK_PLAN);
@@ -145,7 +148,7 @@ describe('LifeSupport', () => {
     }
   });
 
-  it.each([
+  test.for([
     [
       'a heater in the airlock',
       { action: 'heater', compartment: 'airlock', on: true },
@@ -154,22 +157,23 @@ describe('LifeSupport', () => {
       'a pump in the habitat',
       { action: 'pump', compartment: 'habitat', mode: 'fill' },
     ],
-  ])('refuses %s as a bad argument', async (_name, command) => {
-    await using ship = await Nexus.create(meridianSystems(options));
-    expect(() =>
-      ship.get(COMMAND_DESK).submit({ system: 'life-support', ...command }),
-    ).toThrow(
-      expect.objectContaining({
-        code: 'MERIDIAN_BAD_COMMAND',
-        reason: 'argument',
-        system: 'life-support',
-      }),
-    );
-    expect(ship.get(SHIP_STATE).log()).toEqual([]);
-  });
+  ] as const)(
+    'refuses %s as a bad argument',
+    ([, command], { nexus: ship }) => {
+      expect(() =>
+        ship.get(COMMAND_DESK).submit({ system: 'life-support', ...command }),
+      ).toThrow(
+        expect.objectContaining({
+          code: 'MERIDIAN_BAD_COMMAND',
+          reason: 'argument',
+          system: 'life-support',
+        }),
+      );
+      expect(ship.get(SHIP_STATE).log()).toEqual([]);
+    },
+  );
 
-  it('stops stepping the air after an offline command', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('stops stepping the air after an offline command', ({ nexus: ship }) => {
     const desk = ship.get(COMMAND_DESK);
     throttle(desk, 0.01);
     online(desk);
@@ -183,8 +187,9 @@ describe('LifeSupport', () => {
     expect(loop.advance(120).compartments).toEqual(stopped.compartments);
   });
 
-  it('holds the habitat at 292.6 K after an hour online at throttle 0.01', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('holds the habitat at 292.6 K after an hour online at throttle 0.01', ({
+    nexus: ship,
+  }) => {
     const desk = ship.get(COMMAND_DESK);
     throttle(desk, 0.01);
     online(desk);

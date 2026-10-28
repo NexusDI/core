@@ -12,17 +12,16 @@ import { COMMS_ARRAY } from '../src/systems/comms/contracts';
 import { NAV_CHARTS } from '../src/systems/tactical/contracts';
 import { BUNDLED_CHARTS } from '../src/systems/tactical/star-charts';
 
-const options = { seed: 7, dt: 0.5 };
-const RELAY = 'https://relay.test';
+import { shipTest } from './fixtures';
+import { loadOf, RELAY_URL, SHIP_OPTIONS, throttle } from './support';
 
-const throttle = (desk: ICommandDesk, level: number) =>
-  desk.submit({ system: 'engineering', action: 'throttle', level });
+const test = shipTest(meridianSystems(SHIP_OPTIONS));
+
 const hail = (desk: ICommandDesk) =>
   desk.submit({ system: 'comms', action: 'hail' });
 
 /** The comms load the router allocated on `ship`. */
-const commsLoad = (ship: ShipSnapshot) =>
-  ship.power.loads.find((load) => load.id === 'comms');
+const commsLoad = (ship: ShipSnapshot) => loadOf(ship, 'comms');
 
 const REPLY = { from: 'fleet traffic control', text: 'sector clear' };
 
@@ -37,16 +36,18 @@ function stubRelay(): string[] {
 }
 
 /** The relay graph, which downloads its charts at build. */
-const relayGraph = () => meridianSystems({ ...options, relayUrl: RELAY });
+const relayGraph = () =>
+  meridianSystems({ ...SHIP_OPTIONS, relayUrl: RELAY_URL });
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe('comms on the offline ship', () => {
-  it('passes the check and plots a course over the bundled charts', async () => {
-    expect(() => Nexus.check(meridianSystems(options))).not.toThrow();
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('passes the check and plots a course over the bundled charts', ({
+    nexus: ship,
+  }) => {
+    expect(() => Nexus.check(meridianSystems(SHIP_OPTIONS))).not.toThrow();
     expect(ship.get(COMMS_ARRAY).linked).toBe(false);
     expect(ship.get(NAV_CHARTS).plot('Kepler-442b')).toEqual({
       to: 'Kepler-442b',
@@ -54,8 +55,9 @@ describe('comms on the offline ship', () => {
     });
   });
 
-  it('keeps a hail queued under no subspace link at 0 W with no alarm', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('keeps a hail queued under no subspace link at 0 W with no alarm', ({
+    nexus: ship,
+  }) => {
     const desk = ship.get(COMMAND_DESK);
     const loop = ship.get(TICK_LOOP);
     expect(hail(desk)).toEqual({ tick: 1 });
@@ -90,8 +92,9 @@ describe('comms on the offline ship', () => {
     ).toEqual([1, 21]);
   });
 
-  it('refuses comms send and lists comms among the systems', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('refuses comms send and lists comms among the systems', ({
+    nexus: ship,
+  }) => {
     const desk = ship.get(COMMAND_DESK);
     expect(() => desk.submit({ system: 'comms', action: 'send' })).toThrow(
       expect.objectContaining({

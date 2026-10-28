@@ -7,7 +7,7 @@ import { meridianSystems } from '../src/meridian-systems.module';
 import { NAV_CHARTS } from '../src/systems/tactical/contracts';
 import { BUNDLED_CHARTS } from '../src/systems/tactical/star-charts';
 
-const options = { seed: 7, dt: 0.5 };
+import { caught, SHIP_OPTIONS } from './support';
 
 const servers: Server[] = [];
 
@@ -59,7 +59,7 @@ describe('a relay that never answers', () => {
     // The server accepts the connection and holds the request open.
     const relayUrl = await relay(() => undefined);
     const start = Nexus.create(
-      meridianSystems({ ...options, relayUrl, relayTimeout: 50 }),
+      meridianSystems({ ...SHIP_OPTIONS, relayUrl, relayTimeout: 50 }),
     );
     await expect(start).rejects.toSatisfy(
       (error: unknown) => relayFault(error)?.reason === 'timeout',
@@ -74,7 +74,9 @@ describe('a relay that sends a partial body and stops', () => {
       res.write('{"Vega":');
     });
     await expect(
-      Nexus.create(meridianSystems({ ...options, relayUrl, relayTimeout: 50 })),
+      Nexus.create(
+        meridianSystems({ ...SHIP_OPTIONS, relayUrl, relayTimeout: 50 }),
+      ),
     ).rejects.toSatisfy(
       (error: unknown) => relayFault(error)?.reason === 'timeout',
     );
@@ -91,15 +93,14 @@ describe('relayTimeout', () => {
     ['a string', '50'],
     ['a value above 2 ** 31 - 1', 2_147_483_648],
   ])('refuses %s at create', async (_kind, relayTimeout) => {
-    const error = await Nexus.create(
-      meridianSystems({
-        ...options,
-        relayUrl: 'http://127.0.0.1:9',
-        relayTimeout: relayTimeout as number,
-      }),
-    ).then(
-      () => undefined,
-      (refused: unknown) => refused,
+    const error = await caught(() =>
+      Nexus.create(
+        meridianSystems({
+          ...SHIP_OPTIONS,
+          relayUrl: 'http://127.0.0.1:9',
+          relayTimeout: relayTimeout as number,
+        }),
+      ),
     );
     expect(error).toMatchObject({
       code: 'NEXUS_PROVIDER_FAILED',
@@ -133,7 +134,7 @@ describe('a relay that answers a table of the wrong shape', () => {
   ])('fails startup with MERIDIAN_RELAY for %s', async (_kind, body) => {
     const relayUrl = await answering(body);
     await expect(
-      Nexus.create(meridianSystems({ ...options, relayUrl })),
+      Nexus.create(meridianSystems({ ...SHIP_OPTIONS, relayUrl })),
     ).rejects.toSatisfy(
       (error: unknown) => relayFault(error)?.reason === 'malformed',
     );
@@ -147,7 +148,7 @@ describe('a relay that answers a valid table', () => {
   it('starts the ship and plots over the downloaded table', async () => {
     const relayUrl = await answering(JSON.stringify(BUNDLED_CHARTS));
     await using ship = await Nexus.create(
-      meridianSystems({ ...options, relayUrl }),
+      meridianSystems({ ...SHIP_OPTIONS, relayUrl }),
     );
     expect(ship.get(NAV_CHARTS).plot('Kepler-442b')).toEqual({
       to: 'Kepler-442b',
@@ -158,7 +159,7 @@ describe('a relay that answers a valid table', () => {
   it('starts the ship on the default timeout', async () => {
     const relayUrl = await answering('{"Vega":12.5}');
     await using ship = await Nexus.create(
-      meridianSystems({ ...options, relayUrl }),
+      meridianSystems({ ...SHIP_OPTIONS, relayUrl }),
     );
     expect(ship.get(NAV_CHARTS).has('Vega')).toBe(true);
   });

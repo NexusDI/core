@@ -1,9 +1,9 @@
 import { Nexus } from '@nexusdi/core';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, vi } from 'vitest';
 
 import { meridianSystems } from '../src/meridian-systems.module';
 import { LITHIUM_LOOP } from '../src/systems/engineering/engineering-model';
-import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
+import { COMMAND_DESK } from '../src/simulation/commands';
 import {
   SHIP_STATE,
   SHIP_SYSTEMS,
@@ -14,18 +14,17 @@ import { POWER_ROUTER } from '../src/systems/engineering/contracts';
 import { FTL_DRIVE } from '../src/systems/ftl/contracts';
 import { FtlDrive } from '../src/systems/ftl/ftl-drive.module';
 
-const options = { seed: 7, dt: 0.5 };
+import { shipTest } from './fixtures';
+import { loadOf, SHIP_OPTIONS, throttle } from './support';
+
+const test = shipTest(meridianSystems(SHIP_OPTIONS));
 
 /** 10.7914 K: a tenth of the 90 GJ charge over the loop's heat capacity. */
 const PULSE_KELVIN =
   (0.1 * 90e9) / (LITHIUM_LOOP.mass * LITHIUM_LOOP.heatCapacity);
 
-const throttle = (desk: ICommandDesk, level: number) =>
-  desk.submit({ system: 'engineering', action: 'throttle', level });
-
 /** The spool's load on `ship`. */
-const spoolLoad = (ship: ShipSnapshot) =>
-  ship.power.loads.find((entry) => entry.id === 'ftl-spool');
+const spoolLoad = (ship: ShipSnapshot) => loadOf(ship, 'ftl-spool');
 
 /** The refusal a spool gets with `available` W free. */
 const budget = (available: number) =>
@@ -56,9 +55,9 @@ async function loaded(ship: Nexus) {
 }
 
 describe('the FTL drive', () => {
-  it('checks as a load and fails alone', () => {
+  test('checks as a load and fails alone', () => {
     expect(() =>
-      Nexus.check(meridianSystems(options), { load: [FtlDrive] }),
+      Nexus.check(meridianSystems(SHIP_OPTIONS), { load: [FtlDrive] }),
     ).not.toThrow();
     expect(() => Nexus.check(FtlDrive)).toThrow(
       expect.objectContaining({
@@ -71,8 +70,9 @@ describe('the FTL drive', () => {
     );
   });
 
-  it('loads once, attaches a load at 0 W and keeps the desk list', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('loads once, attaches a load at 0 W and keeps the desk list', async ({
+    nexus: ship,
+  }) => {
     const loop = ship.get(TICK_LOOP);
     expect(ship.has(FTL_DRIVE)).toBe(false);
 
@@ -139,8 +139,9 @@ describe('the FTL drive', () => {
     ).toThrow("Two ship systems are named 'FtlDrive'.");
   });
 
-  it('detaches the loop when the router attach throws, and loads on a retry', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('detaches the loop when the router attach throws, and loads on a retry', async ({
+    nexus: ship,
+  }) => {
     const loop = ship.get(TICK_LOOP);
     vi.spyOn(ship.get(POWER_ROUTER), 'attach').mockImplementationOnce(() => {
       throw new Error('The router is down.');
@@ -163,8 +164,9 @@ describe('the FTL drive', () => {
     expect(loaded.power.loads.map(({ id }) => id)).toContain('ftl-spool');
   });
 
-  it('refuses a spool on a cold reactor and holds it until the reactor reaches 0.9', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('refuses a spool on a cold reactor and holds it until the reactor reaches 0.9', async ({
+    nexus: ship,
+  }) => {
     const { desk, loop, state, drive } = await loaded(ship);
 
     expect(() => drive.spool()).toThrow(budget(0));
@@ -196,8 +198,9 @@ describe('the FTL drive', () => {
     expect(state.log().map(({ tick }) => tick)).toEqual([1, 76]);
   });
 
-  it('flies the golden scenario: spools from tick 101, charges to tick 300, jumps at tick 301', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('flies the golden scenario: spools from tick 101, charges to tick 300, jumps at tick 301', async ({
+    nexus: ship,
+  }) => {
     const { desk, loop, state, drive } = await loaded(ship);
 
     throttle(desk, 1);
@@ -263,7 +266,7 @@ describe('the FTL drive', () => {
     });
 
     // The same run with no jump reads the loop 10.7914 K cooler at tick 301.
-    await using calm = await Nexus.create(meridianSystems(options));
+    await using calm = await Nexus.create(meridianSystems(SHIP_OPTIONS));
     const still = await loaded(calm);
     throttle(still.desk, 1);
     still.loop.advance(100);
@@ -279,8 +282,9 @@ describe('the FTL drive', () => {
     ).toBeLessThan(1e-9);
   });
 
-  it('sheds the spool beside the raised shields at tick 120', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('sheds the spool beside the raised shields at tick 120', async ({
+    nexus: ship,
+  }) => {
     const { desk, loop, drive } = await loaded(ship);
 
     throttle(desk, 1);
@@ -303,8 +307,9 @@ describe('the FTL drive', () => {
     ]);
   });
 
-  it('refuses a spool on a cold ship with 12.1 MW free', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('refuses a spool on a cold ship with 12.1 MW free', async ({
+    nexus: ship,
+  }) => {
     const { desk, loop, drive } = await loaded(ship);
 
     throttle(desk, 0.01);
@@ -313,8 +318,7 @@ describe('the FTL drive', () => {
     expect(() => drive.spool()).toThrow(budget(12_093_132.552581994));
   });
 
-  it('extends a scope opened before the load', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('extends a scope opened before the load', async ({ nexus: ship }) => {
     // A request's scope, as an adapter opens one before the handler runs.
     await using scope = await ship.createScope({ request: {} });
     await ship.load(FtlDrive);

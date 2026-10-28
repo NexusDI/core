@@ -1,13 +1,9 @@
-import { Nexus } from '@nexusdi/core';
-import { interceptors } from '@nexusdi/interceptors';
 import { expect, it } from 'vitest';
 
-import { meridianSystems } from '../src/meridian-systems.module';
-import { COMMAND_DESK, type ShipCommand } from '../src/simulation/commands';
-import { TICK_LOOP } from '../src/simulation/contracts';
-import { roundSnapshot } from '../src/simulation/round-snapshot';
-import { BLAST_DOORS } from '../src/systems/safety/contracts';
-import { PressureInterlock } from '../src/systems/safety/pressure-interlock';
+import type { ShipCommand } from '../src/simulation/commands';
+import { INTERLOCK_PLUGINS } from '../test/support';
+
+import { recordGolden } from './golden';
 
 const pump = (mode: string): ShipCommand => ({
   system: 'life-support',
@@ -54,36 +50,21 @@ const steps: readonly { at: number; commands: readonly ShipCommand[] }[] = [
 /** The last tick the golden pins, 20 ticks after the command that opens the inner door. */
 const end = 466;
 
-it('pins the airlock drill under the interlock, seed 7, to the golden', async () => {
-  await using nexus = await Nexus.create(
-    meridianSystems({ seed: 7, dt: 0.5 }),
-    {
-      plugins: [
-        interceptors({
-          register: [PressureInterlock],
-          bindings: [
-            { token: BLAST_DOORS, methods: { open: [PressureInterlock] } },
-          ],
-        }),
-      ],
+it('pins the airlock drill under the interlock, seed 7, to the golden', () =>
+  recordGolden(
+    'airlock',
+    ({ desk, loop, capture }) => {
+      // The golden pins the ship at each step after tick 0, read before that
+      // step's commands, and at the end.
+      const ticks: number[] = [];
+      let tick = 0;
+      for (const { at, commands } of steps) {
+        if (at > tick) ticks.push(capture(loop.advance(at - tick)).tick);
+        tick = at;
+        for (const command of commands) desk.submit(command);
+      }
+      ticks.push(capture(loop.advance(end - tick)).tick);
+      expect(ticks).toEqual([288, 317, 337, 446, 466]);
     },
-  );
-  const desk = nexus.get(COMMAND_DESK);
-  const loop = nexus.get(TICK_LOOP);
-
-  // The golden pins the ship at each step after tick 0, read before that
-  // step's commands, and at the end.
-  const record = [];
-  let tick = 0;
-  for (const { at, commands } of steps) {
-    if (at > tick) record.push(roundSnapshot(loop.advance(at - tick)));
-    tick = at;
-    for (const command of commands) desk.submit(command);
-  }
-  record.push(roundSnapshot(loop.advance(end - tick)));
-  expect(record.map((ship) => ship.tick)).toEqual([288, 317, 337, 446, 466]);
-
-  await expect(JSON.stringify(record, null, 2) + '\n').toMatchFileSnapshot(
-    'golden/airlock.seed-7.json',
-  );
-});
+    { create: { plugins: INTERLOCK_PLUGINS } },
+  ));

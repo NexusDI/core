@@ -24,23 +24,22 @@ import {
 import { ShieldPower } from '../src/systems/engineering/engineering-power';
 import { PlasmaRouter } from '../src/systems/engineering/plasma-router';
 
-const options = { seed: 7, dt: 0.5 };
+import { shipTest } from './fixtures';
+import { loadOf, SHIP_OPTIONS, throttle } from './support';
 
-const throttle = (desk: ICommandDesk, level: number) =>
-  desk.submit({ system: 'engineering', action: 'throttle', level });
+const test = shipTest(meridianSystems(SHIP_OPTIONS));
+
 const shields = (desk: ICommandDesk, raised: boolean) =>
   desk.submit({ system: 'engineering', action: 'shields', raised });
 /** The shields' record among the tick's loads, which other systems join. */
-const shieldsLoad = (ship: ShipSnapshot) =>
-  ship.power.loads.find((load) => load.id === 'shields');
+const shieldsLoad = (ship: ShipSnapshot) => loadOf(ship, 'shields');
 
 describe('Engineering', () => {
   it('passes the check', () => {
-    expect(() => Nexus.check(meridianSystems(options))).not.toThrow();
+    expect(() => Nexus.check(meridianSystems(SHIP_OPTIONS))).not.toThrow();
   });
 
-  it('shows its panel to the root and keeps its pipes', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('shows its panel to the root and keeps its pipes', ({ nexus: ship }) => {
     expect(() => ship.get(COOLANT_LOOP)).toThrow(
       expect.objectContaining({ code: 'NEXUS_NOT_VISIBLE' }),
     );
@@ -69,7 +68,7 @@ describe('Engineering', () => {
     }
     const Eager = defineModule({
       name: 'EagerEngineering',
-      imports: [Simulation.forRoot(options)],
+      imports: [Simulation.forRoot(SHIP_OPTIONS)],
       providers: [
         provide(POWER_ROUTER, { useClass: PlasmaRouter }),
         provide(SHIELD_GRID, { useClass: EagerGrid }),
@@ -106,8 +105,9 @@ describe('Engineering', () => {
     expect(packageRoot).not.toHaveProperty('COOLANT_LOOP');
   });
 
-  it('raises the shields once the reactor climbs past 200 MW, and sheds them as it falls', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('raises the shields once the reactor climbs past 200 MW, and sheds them as it falls', ({
+    nexus: ship,
+  }) => {
     const desk = ship.get(COMMAND_DESK);
     const loop = ship.get(TICK_LOOP);
 
@@ -146,8 +146,9 @@ describe('Engineering', () => {
     expect(shed.setpoints.shields).toEqual({ raised: true });
   });
 
-  it('applies a raise and a lower queued in one tick as the lower, so the grid draws nothing', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('applies a raise and a lower queued in one tick as the lower, so the grid draws nothing', ({
+    nexus: ship,
+  }) => {
     const desk = ship.get(COMMAND_DESK);
     const loop = ship.get(TICK_LOOP);
     throttle(desk, 1);
@@ -169,8 +170,9 @@ describe('Engineering', () => {
     });
   });
 
-  it('holds the idle ship after 600 ticks: level 0, 500 K and no load', async () => {
-    await using ship = await Nexus.create(meridianSystems(options));
+  test('holds the idle ship after 600 ticks: level 0, 500 K and no load', ({
+    nexus: ship,
+  }) => {
     const idle = ship.get(TICK_LOOP).advance(600);
     expect(idle.reactor.level).toBe(0);
     expect(idle.coolant.temperature).toBe(500);
@@ -184,8 +186,9 @@ describe('Engineering', () => {
     });
   });
 
-  it('scrams the reactor when the ship is disposed', async () => {
-    const ship = await Nexus.create(meridianSystems(options));
+  test('scrams the reactor when the ship is disposed', async ({
+    nexus: ship,
+  }) => {
     const state = ship.get(SHIP_STATE);
     throttle(ship.get(COMMAND_DESK), 1);
     ship.get(TICK_LOOP).advance(30);

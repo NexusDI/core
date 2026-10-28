@@ -8,14 +8,15 @@ import {
   type IShipSystem,
   SHIP_SYSTEMS,
   type ShipSnapshot,
-  TICK_LOOP,
 } from '../src/simulation/contracts';
-import { FixedStepLoop } from '../src/simulation/fixed-step-loop';
 import { Simulation } from '../src/simulation/simulation.module';
-import { FTL_DRIVE, type IFtlDrive } from '../src/systems/ftl/contracts';
+import { FTL_DRIVE } from '../src/systems/ftl/contracts';
 import { FtlDrive } from '../src/systems/ftl/ftl-drive.module';
 
-import { ShipUnderTest } from './ship-under-test';
+import { ProbeSystems, shipUnderTest } from './ship-under-test';
+import { FailingFtlDrive, SHIP_OPTIONS } from './support';
+
+const ShipUnderTest = shipUnderTest(ProbeSystems);
 
 interface IHelm {
   readonly heading: number;
@@ -24,13 +25,13 @@ interface IHelm {
 const HELM = new Token<IHelm>('Helm');
 
 /** One provider beside the ship, which the walk must leave unlabelled. */
-class Helm implements IHelm {
+class FakeHelm implements IHelm {
   readonly heading = 0;
 }
 
 const Bridge = defineModule({
   name: 'Bridge',
-  providers: [provide(HELM, { useClass: Helm })],
+  providers: [provide(HELM, { useClass: FakeHelm })],
   exports: [HELM],
 });
 
@@ -49,7 +50,7 @@ describe('shipNotes', () => {
   it('labels each provider under the module that binds TICK_LOOP with its system', () => {
     const Root = defineModule({
       name: 'Root',
-      imports: [meridianSystems({ seed: 7, dt: 0.5 }), Bridge],
+      imports: [meridianSystems(SHIP_OPTIONS), Bridge],
     });
     const byModule = notesByModule(inspect(Root, { annotate: [shipNotes] }));
     for (const name of ['MeridianSystems', 'Simulation', 'Telemetry']) {
@@ -75,7 +76,7 @@ describe('shipNotes', () => {
   });
 
   it('labels the engineering ship system with its phase and the reactor without one', () => {
-    const graph = inspect(meridianSystems({ seed: 7, dt: 0.5 }), {
+    const graph = inspect(meridianSystems(SHIP_OPTIONS), {
       annotate: [shipNotes],
     });
     const notesOf = (implementation: string) =>
@@ -117,14 +118,7 @@ describe('shipNotes', () => {
       providers: [provide(SHIP_SYSTEMS, { useClass: Stepper })],
       exports: [SHIP_SYSTEMS],
     });
-    const Loop = defineModule({
-      name: 'Loop',
-      global: true,
-      imports: [Simulation.forRoot({ seed: 7, dt: 0.5 }), Phased],
-      providers: [provide(TICK_LOOP, { useClass: FixedStepLoop })],
-      exports: [TICK_LOOP],
-    });
-    const graph = inspect(Loop, { annotate: [shipNotes] });
+    const graph = inspect(shipUnderTest(Phased), { annotate: [shipNotes] });
     expect(
       graph.providers.find((p) => p.implementation === 'Stepper')?.notes,
     ).toEqual(notes);
@@ -138,30 +132,14 @@ describe('shipNotes', () => {
     // Under a root, so FtlDrive sits outside the walk from TICK_LOOP's module.
     const ship = defineModule({
       name: 'Root',
-      imports: [meridianSystems({ seed: 7, dt: 0.5 })],
+      imports: [meridianSystems(SHIP_OPTIONS)],
     });
     const loaded = inspect(ship, { load: [FtlDrive], annotate: [shipNotes] });
     expect(notesOf(loaded, 'JumpDrive')).toEqual(['system: FtlDrive']);
 
-    /** A drive that refuses every command, for the stand-in module. */
-    class StandInDrive implements IFtlDrive {
-      readonly rating = {
-        energy: 0,
-        power: 0,
-        pulseShare: 0,
-        reactorLevel: 0,
-        coolantLimit: 0,
-      };
-      spool(): never {
-        throw new Error('the graph builds nothing');
-      }
-      jump(): never {
-        throw new Error('the graph builds nothing');
-      }
-    }
     const StandIn = defineModule({
       name: 'StandIn',
-      providers: [provide(FTL_DRIVE, { useClass: StandInDrive })],
+      providers: [provide(FTL_DRIVE, { useClass: FailingFtlDrive })],
       exports: [FTL_DRIVE],
     });
     const replaced = inspect(ship, {
@@ -175,13 +153,13 @@ describe('shipNotes', () => {
         },
       ],
     });
-    expect(notesOf(replaced, 'StandInDrive')).toEqual(['system: StandIn']);
+    expect(notesOf(replaced, 'FailingFtlDrive')).toEqual(['system: StandIn']);
   });
 
   it('gives no note to a root without TICK_LOOP', () => {
     const Root = defineModule({
       name: 'Root',
-      imports: [Simulation.forRoot({ seed: 7, dt: 0.5 }), Bridge],
+      imports: [Simulation.forRoot(SHIP_OPTIONS), Bridge],
     });
     const graph = inspect(Root, { annotate: [shipNotes] });
     expect(graph.providers.flatMap((provider) => provider.notes)).toEqual([]);
