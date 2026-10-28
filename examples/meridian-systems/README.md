@@ -321,7 +321,7 @@ A ship far from the fleet may or may not hold a link to the fleet's relay. A ser
 
 ### The Modules and Their Tokens
 
-`Comms`, in `src/systems/comms/comms.module.ts`, is a configured module. `Comms.forRoot({ frequency, relayUrl, relayTimeout? })` binds `COMMS_OPTIONS`, and the zod schema in `comms-options-schema.ts` checks every field and refuses a key it does not know. The schema sets `frequency` to `DEFAULT_COMMS_FREQUENCY` (1420) for an untyped caller that leaves it out; the typed `forRoot` still asks for the field. `LifeSupport` has a zod schema in `life-support-options-schema.ts` for its calibration and ratings. `Comms` binds the link and the array and makes three contributions:
+`Comms`, in `src/systems/comms/comms.module.ts`, is a configured module. `Comms.forRoot({ frequency?, relayUrl, relayTimeout? })` binds `COMMS_OPTIONS`, and the zod schema in `comms-options-schema.ts` checks every field and refuses a key it does not know. The schema sets `frequency` to `DEFAULT_COMMS_FREQUENCY` (1420) when a caller leaves it out, and `forRoot` takes the schema's input, so the field is optional there. `LifeSupport` has a zod schema in `life-support-options-schema.ts` for its calibration and ratings. `Comms` binds the link and the array and makes three contributions:
 
 ```text
 SUBSPACE_LINK     SubspaceRelay   deps [COMMS_OPTIONS]
@@ -341,7 +341,7 @@ The helm plots courses from `NAV_CHARTS`, an `INavCharts` whose `has(to)` answer
 
 ### The Ship With and Without a Relay
 
-`meridianSystems({ seed, dt, relayUrl })` imports `Comms.forRoot({ frequency: DEFAULT_COMMS_FREQUENCY, relayUrl, relayTimeout })` and `Tactical`. Without `relayUrl` it imports `OfflineComms` and `OfflineTactical`. The aggregate re-exports whichever pair it imported, so the root reads `COMMS_ARRAY` and `NAV_CHARTS` on both ships, and `SUBSPACE_LINK` on the linked one. `bridge-api` builds its `Meridian` root with a relay and its `OfflineMeridian` root without one.
+`meridianSystems({ seed, dt, relayUrl })` imports `Comms.forRoot({ relayUrl, relayTimeout })` and `Tactical`. Without `relayUrl` it imports `OfflineComms` and `OfflineTactical`. The aggregate re-exports whichever pair it imported, so the root reads `COMMS_ARRAY` and `NAV_CHARTS` on both ships, and `SUBSPACE_LINK` on the linked one. `bridge-api` builds its `Meridian` root with a relay and its `OfflineMeridian` root without one.
 
 ### The Hail
 
