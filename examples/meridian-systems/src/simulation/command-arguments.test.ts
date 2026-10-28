@@ -2,10 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { BadCommandError } from '../errors';
 import {
+  choiceArgument,
   commandRefusal,
   flagArgument,
   levelArgument,
   numberArgument,
+  optionalFlagArgument,
+  optionalNumberArgument,
+  ownKey,
   textArgument,
 } from './command-arguments';
 
@@ -89,5 +93,80 @@ describe('levelArgument', () => {
   it.each([-0.1, 1.5, NaN, '0.5', undefined])('refuses %o', (level) => {
     const command = { system: 'probe', action: 'ping', level };
     expect(() => levelArgument(command, 'level', refuse)).toThrow(badArgument);
+  });
+});
+
+describe('optionalNumberArgument', () => {
+  it('reads an absent argument as undefined', () => {
+    const command = { system: 'probe', action: 'ping' };
+    expect(
+      optionalNumberArgument(command, 'range', 0, 10, refuse),
+    ).toBeUndefined();
+  });
+
+  it.each([0, 7.5, 10])('reads %o between 0 and 10', (range) => {
+    const command = { system: 'probe', action: 'ping', range };
+    expect(optionalNumberArgument(command, 'range', 0, 10, refuse)).toBe(range);
+  });
+
+  it.each([-1, 11, NaN, '5', null])('refuses %o', (range) => {
+    const command = { system: 'probe', action: 'ping', range };
+    expect(() =>
+      optionalNumberArgument(command, 'range', 0, 10, refuse),
+    ).toThrow(badArgument);
+  });
+});
+
+describe('optionalFlagArgument', () => {
+  it('reads an absent argument as undefined', () => {
+    const command = { system: 'probe', action: 'ping' };
+    expect(optionalFlagArgument(command, 'on', refuse)).toBeUndefined();
+  });
+
+  it.each([true, false])('reads %o', (on) => {
+    const command = { system: 'probe', action: 'ping', on };
+    expect(optionalFlagArgument(command, 'on', refuse)).toBe(on);
+  });
+
+  it.each(['true', 1, null])('refuses %o', (on) => {
+    const command = { system: 'probe', action: 'ping', on };
+    expect(() => optionalFlagArgument(command, 'on', refuse)).toThrow(
+      badArgument,
+    );
+  });
+});
+
+describe('choiceArgument', () => {
+  const modes = ['off', 'fill'] as const;
+
+  it.each(modes)('reads %o', (mode) => {
+    const command = { system: 'probe', action: 'ping', mode };
+    expect(choiceArgument(command, 'mode', modes, refuse)).toBe(mode);
+  });
+
+  it.each(['drain', 'toString', 1, undefined, null])('refuses %o', (mode) => {
+    const command = { system: 'probe', action: 'ping', mode };
+    expect(() => choiceArgument(command, 'mode', modes, refuse)).toThrow(
+      badArgument,
+    );
+  });
+});
+
+describe('ownKey', () => {
+  const record = { bridge: 1 };
+
+  it('accepts a key the record holds', () => {
+    expect(ownKey(record, 'bridge')).toBe(true);
+  });
+
+  it.each(['galley', 'toString', '__proto__', 'constructor'])(
+    'refuses %o',
+    (key) => {
+      expect(ownKey(record, key)).toBe(false);
+    },
+  );
+
+  it('accepts a key that holds undefined', () => {
+    expect(ownKey({ bridge: undefined }, 'bridge')).toBe(true);
   });
 });

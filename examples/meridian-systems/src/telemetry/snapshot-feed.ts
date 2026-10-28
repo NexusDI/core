@@ -10,14 +10,10 @@ import {
   TICK_LOOP,
 } from '../simulation/contracts';
 import { readShip } from '../simulation/read-ship';
+import { Subscribers } from '../simulation/subscribers';
 import type { ITelemetryFeed, TelemetrySink } from './contracts';
 
 const OFFLINE = 'ship offline';
-
-/** One subscription, so a sink subscribed twice hears twice. */
-interface Entry {
-  readonly sink: TelemetrySink;
-}
 
 /**
  * Hands each sink the reading of every tick: the rounded snapshot with each
@@ -29,7 +25,8 @@ interface Entry {
 export class SnapshotFeed implements ITelemetryFeed, Disposable {
   static deps = [TICK_LOOP, SHIP_STATE, DECK_PLAN] as const;
 
-  private readonly entries = new Set<Entry>();
+  /** Each `subscribe` adds its own entry, so a sink subscribed twice hears twice. */
+  private readonly sinks = new Subscribers<TelemetrySink>();
   private stopListening: (() => void) | undefined;
   private offline = false;
 
@@ -49,37 +46,31 @@ export class SnapshotFeed implements ITelemetryFeed, Disposable {
       return () => {};
     }
     sink.next(readShip(this.state.snapshot(), this.deck));
-    const entry: Entry = { sink };
-    this.entries.add(entry);
-    return () => {
-      this.entries.delete(entry);
-    };
+    return this.sinks.add(sink);
   }
 
   [Symbol.dispose](): void {
     this.stopListening?.();
     this.offline = true;
-    const open = [...this.entries];
-    this.entries.clear();
+    const open = [...this.sinks];
+    this.sinks.clear();
     callAll(
-      open.map(({ sink }) => sink.close.bind(sink)),
+      open.map((sink) => sink.close.bind(sink)),
       OFFLINE,
     );
   }
 
-  /** Reads the snapshot once, and only while a sink is open. */
+  /**
+   * Reads the snapshot once, and only while a sink is open. A sink
+   * unsubscribed during the tick before its turn does not hear it.
+   */
   private send(ship: ShipSnapshot): void {
-    if (this.entries.size === 0) return;
-    callAll(this.openSinks(), readShip(ship, this.deck));
+    if (this.sinks.size === 0) return;
+    callAll(this.nextOfEach(), readShip(ship, this.deck));
   }
 
-  /**
-   * Walks the sinks open when dispatch began and skips one unsubscribed
-   * since, as the loop does with its listeners.
-   */
-  private *openSinks(): Generator<(frame: ShipReading) => void> {
-    for (const entry of [...this.entries]) {
-      if (this.entries.has(entry)) yield (frame) => entry.sink.next(frame);
-    }
+  /** Yields the `next` of each sink as `callAll` reaches it, so the skip of a removed sink holds. */
+  private *nextOfEach(): Generator<(frame: ShipReading) => void> {
+    for (const sink of this.sinks) yield (frame) => sink.next(frame);
   }
 }

@@ -7,6 +7,7 @@ import {
   SHIP_STATE,
   type ShipSnapshot,
 } from '../../simulation/contracts';
+import { Subscribers } from '../../simulation/subscribers';
 import {
   type IPowerConsumer,
   type IPowerRouter,
@@ -39,14 +40,10 @@ export class PlasmaRouter implements IPowerRouter {
    * The consumers `attach` added, in the order it added them. Each attach
    * holds its own entry, so a detach removes that attach alone.
    */
-  private attached: readonly { readonly consumer: IPowerConsumer }[] = [];
+  private readonly attached = new Subscribers<IPowerConsumer>();
 
   attach(consumer: IPowerConsumer): () => void {
-    const entry = { consumer };
-    this.attached = [...this.attached, entry];
-    return () => {
-      this.attached = this.attached.filter((other) => other !== entry);
-    };
+    return this.attached.add(consumer);
   }
 
   /**
@@ -57,7 +54,7 @@ export class PlasmaRouter implements IPowerRouter {
     return [
       this.shields().draw(ship),
       ...this.consumers.map((consumer) => consumer.draw(ship)),
-      ...this.attached.map(({ consumer }) => consumer.draw(ship)),
+      ...[...this.attached].map((consumer) => consumer.draw(ship)),
     ];
   }
 
