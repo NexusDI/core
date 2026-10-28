@@ -34,7 +34,8 @@ export function webServers(
       cwd: `${workspaceRoot}/examples/bridge-console`,
       env: {
         PORT: String(ports.api),
-        // Every e2e server runs a manual ship on seed 7 (spec 8.3).
+        // Every e2e server runs a manual ship on seed 7, so a tick runs only
+        // when a case asks and every leg reads the same ship.
         SIM_MODE: 'manual',
         SIM_SEED: '7',
       },

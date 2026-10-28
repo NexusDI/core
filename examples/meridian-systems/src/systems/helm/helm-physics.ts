@@ -7,7 +7,7 @@ import type {
 } from '../../simulation/contracts';
 import { type IThrusters, THRUSTERS } from './contracts';
 
-/** Steps the helm in phase 2 of each tick, spec §5.8. */
+/** Steps the helm in phase 2 of each tick. */
 export class HelmPhysics implements IShipSystem {
   static deps = [THRUSTERS] as const;
 

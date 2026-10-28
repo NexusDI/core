@@ -12,7 +12,7 @@ import { standardDecorators } from '../../libs/decorators/vite.decorators.ts';
 const { plugins: docExamplePlugins, ...docExampleConfig } = docExamples();
 
 /**
- * The Starship Meridian examples the docs site renders (spec 7.1). Every
+ * The Starship Meridian examples the docs site renders. Every
  * region a page cites sits in an `.md` file under `src/`, and every
  * `ts @import.meta.vitest` block there runs as a test, so a region the site
  * shows is a region this project ran.

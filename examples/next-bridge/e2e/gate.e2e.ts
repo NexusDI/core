@@ -35,7 +35,7 @@ function hiddenFields(html: string): FormData {
   return fields;
 }
 
-// The Next gate of integrations spec 10.1, kept as a canary. Next 16
+// The Next gate, kept as a canary. Next 16
 // evaluates nexus.server.ts once in the route handler layer and once in the
 // server action layer, so each process builds two containers, and
 // @nexusdi/next moved to 0.5. This test asserts the measured counts. It

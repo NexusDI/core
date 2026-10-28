@@ -7,7 +7,7 @@ import type {
 } from '../../simulation/contracts';
 import { type IMainDrive, MAIN_DRIVE } from './contracts';
 
-/** Steps the main drive in phase 2 of each tick, spec §5.8. */
+/** Steps the main drive in phase 2 of each tick. */
 export class PropulsionPhysics implements IShipSystem {
   static deps = [MAIN_DRIVE] as const;
 

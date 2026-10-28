@@ -55,7 +55,7 @@ export interface DeckBand {
 export interface CompartmentShape {
   /** A compartment id of the deck plan. */
   readonly id: string;
-  /** The hull section of section 16.3 of the ship systems spec. */
+  /** The hull section the room belongs to. */
   readonly hullSection: string;
   /** The colour group a drawing gives the room. */
   readonly role: string;
@@ -91,7 +91,7 @@ export interface DoorShape extends Box {
 
 export interface ConduitRoute {
   readonly id: string;
-  /** `power`, `coolant` or `atmosphere`, the three kinds of section 16.4. */
+  /** What the conduit carries: `power`, `coolant` or `atmosphere`. */
   readonly kind: string;
   /** The `power.loads` entry a power conduit feeds. */
   readonly load?: string;

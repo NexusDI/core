@@ -11,7 +11,7 @@ export interface PowerLoad {
 }
 
 /**
- * The Meridian's deflector shield grid while raised, from spec §5.7. The
+ * The Meridian's deflector shield grid while raised. The
  * lowered grid stays on the router with a demand of 0 W.
  */
 export const DEFLECTOR_GRID: PowerLoad = {
@@ -49,7 +49,7 @@ function byPriorityThenId(a: PowerLoad, b: PowerLoad): number {
 }
 
 /**
- * Shares `output` (W) among `loads` by priority, then by id (spec §5.7).
+ * Shares `output` (W) among `loads` by priority, then by id.
  *
  * A load whose whole demand fits in what remains gets it. A load that does not
  * fit gets 0 and joins `shed`, and the router moves on to the next, so a later

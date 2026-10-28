@@ -15,8 +15,8 @@ const options: LifeSupportOptions = {
   ratings: LIFE_SUPPORT_RATINGS,
 };
 
-/** G2's analyzer: the fork of the compartment and tick, drawn in order. */
-function g2Reading(rng: SeededRandom, id: CompartmentId, tick: number) {
+/** The reading drawn from the fork of the compartment and tick, in order. */
+function forkReading(rng: SeededRandom, id: CompartmentId, tick: number) {
   const air = new ShipStateStore(plan).snapshot().compartments[id];
   const room = plan.compartments.find((entry) => entry.id === id);
   if (!room) throw new Error(`the deck has no ${id}`);
@@ -25,12 +25,12 @@ function g2Reading(rng: SeededRandom, id: CompartmentId, tick: number) {
 }
 
 describe('CalibratedProbe', () => {
-  it("reads a compartment at a tick as G2's analyzer did", () => {
+  it('reads a compartment at a tick from the fork of that compartment and tick', () => {
     const rng = new SeededRandom({ seed: 7 });
     const probe = new CalibratedProbe(rng, options, plan);
     const air = new ShipStateStore(plan).snapshot().compartments.airlock;
     const reading = probe.read('airlock', air, 12);
-    expect(reading).toEqual(g2Reading(rng, 'airlock', 12));
+    expect(reading).toEqual(forkReading(rng, 'airlock', 12));
     expect(reading).toMatchObject({ compartment: 'airlock', tick: 12 });
   });
 

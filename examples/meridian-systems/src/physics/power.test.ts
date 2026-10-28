@@ -13,7 +13,7 @@ function load(
   return { id, priority, demand, heatShare };
 }
 
-/** The seven consumers of spec §5.7 at full demand. */
+/** The seven consumers on the router at full demand. */
 function consumers(drive = 600e6, weapons = 300e6): PowerLoad[] {
   return [
     load('ftl-spool', 7, 900e6, 0.1),

@@ -2,9 +2,8 @@ import type { ShipSnapshot } from './contracts';
 
 /**
  * Rounds a fraction to four significant digits and keeps an integer exact.
- * `Math.exp` and `Math.cos` may differ in the last bit between engines
- * (spec §8.3), and four digits hide that difference in a value far from a
- * threshold.
+ * `Math.exp` and `Math.cos` may differ in the last bit between engines,
+ * and four digits hide that difference in a value far from a threshold.
  */
 export function roundNumber(value: number): number {
   return roundToDigits(value, 4);

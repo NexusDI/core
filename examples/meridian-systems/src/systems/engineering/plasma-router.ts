@@ -18,7 +18,7 @@ import {
 /**
  * Lists the loads of a tick and checks a new load against the reactor's
  * output. It reads the shield grid through a thunk, since the grid reads the
- * router to check its own raised load (docs §7.1), and the loads of other
+ * router to check its own raised load, and the loads of other
  * systems through `POWER_CONSUMERS`.
  */
 export class PlasmaRouter implements IPowerRouter {

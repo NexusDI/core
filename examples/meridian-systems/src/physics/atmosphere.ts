@@ -23,7 +23,7 @@ export const LIFE_SUPPORT_DEVICES = [
 ] as const;
 
 /**
- * Life support's place on the power router, spec §5.7. Its demand comes from
+ * Life support's place on the power router. Its demand comes from
  * `lifeSupportDemand` each tick. The model puts none of its power into the
  * coolant loop.
  */
@@ -138,10 +138,10 @@ export interface LifeSupportRatings {
   readonly vent: VentRating;
 }
 
-/** The bridge and habitat heaters, spec §5.2. */
+/** The bridge and habitat heaters. */
 const ELECTRIC_HEATER: HeaterRating = { gain: 10_000, max: 10_000 };
 
-/** The CO₂ scrubbers, spec §5.3. */
+/** The CO₂ scrubbers. */
 const CO2_SCRUBBER: ScrubberRating = {
   flow: 0.05,
   power: 1_200,
@@ -149,7 +149,7 @@ const CO2_SCRUBBER: ScrubberRating = {
 };
 
 /**
- * The oxygen generators, spec §5.3. 600 kJ per mol O₂ is about 95 % efficient
+ * The oxygen generators. 600 kJ per mol O₂ is about 95 % efficient
  * against the 571.6 kJ higher heating value of the two moles of water that
  * give one mole of O₂, so the full 0.01 mol/s draws 6 kW. The generator takes
  * its water from the ship's tank and none from the room.
@@ -161,7 +161,7 @@ const ELECTROLYSER: ElectrolyserRating = {
   setpoint: 21_000,
 };
 
-/** The airlock's transfer pump, spec §5.4. */
+/** The airlock's transfer pump. */
 const TRANSFER_PUMP: PumpRating = {
   rate: 0.2,
   base: 400,
@@ -169,7 +169,7 @@ const TRANSFER_PUMP: PumpRating = {
   maxRise: 101_300,
 };
 
-/** The airlock's vent to space, spec §5.4. */
+/** The airlock's vent to space. */
 const SPACE_VENT: VentRating = { area: 0.01 };
 
 export const LIFE_SUPPORT_RATINGS: LifeSupportRatings = {
@@ -181,8 +181,8 @@ export const LIFE_SUPPORT_RATINGS: LifeSupportRatings = {
 };
 
 /**
- * One occupant per second: mol/s of each gas and W of body heat, from spec
- * §5.3 (0.84 kg O₂, 1.0 kg CO₂ and 2.5 kg water a day).
+ * One occupant per second: mol/s of each gas and W of body heat, from 0.84 kg
+ * O₂, 1.0 kg CO₂ and 2.5 kg water a day.
  */
 export const OCCUPANT = {
   O2: 3.038e-4,
@@ -499,7 +499,7 @@ function heaterRecord(
 }
 
 /**
- * One tick of the air in every room, spec §5.2 to §5.4.
+ * One tick of the air in every room.
  *
  * Each room first takes its own step from the start-of-tick air. Every open
  * vent then runs, then every pump that has not stalled. A shed tick runs no

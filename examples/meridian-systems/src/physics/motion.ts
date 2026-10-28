@@ -26,17 +26,17 @@ export interface ThrusterRating {
   readonly power: number;
 }
 
-/** The Meridian's hull, from spec §5.8. */
+/** The Meridian's hull. */
 export const HULL: HullRating = { mass: 4.0e6, inertia: 3.3e9 };
 
-/** The Meridian's plasma drive, from spec §5.8. */
+/** The Meridian's plasma drive. */
 export const PLASMA_DRIVE: DriveRating = {
   efficiency: 0.6,
   exhaust: 50_000,
   power: 600e6,
 };
 
-/** The Meridian's reaction control thrusters, from spec §5.8. */
+/** The Meridian's reaction control thrusters. */
 export const RCS_THRUSTERS: ThrusterRating = { maxTorque: 5e6, power: 20e6 };
 
 /** The helm's PD law: the natural frequency ω_n in rad/s and the damping ratio ζ. */
@@ -48,14 +48,14 @@ export const HELM_TUNING = { naturalFrequency: 0.05, damping: 1 } as const;
  */
 export const HELM_SETTLE = { angle: 1e-6, rate: 1e-6 } as const;
 
-/** The thrusters' place on the power router, spec §5.7. They put no power into the coolant loop. */
+/** The thrusters' place on the power router. They put no power into the coolant loop. */
 export const THRUSTERS_LOAD: Omit<PowerLoad, 'demand'> = {
   id: 'thrusters',
   priority: 4,
   heatShare: 0,
 };
 
-/** The main drive's place on the power router, spec §5.7. */
+/** The main drive's place on the power router. */
 export const MAIN_DRIVE_LOAD: Omit<PowerLoad, 'demand'> = {
   id: 'main-drive',
   priority: 5,
@@ -181,7 +181,7 @@ interface HelmTick {
 }
 
 /**
- * Steps the helm in phase 2 (spec §5.8).
+ * Steps the helm in phase 2.
  *
  * A helm that starts the tick settled holds the course with no rate and no
  * torque. Any other helm turns by semi-implicit Euler: `ω' = ω + τ / I · dt`
@@ -224,7 +224,7 @@ interface DriveTick {
 }
 
 /**
- * Steps the main drive in phase 2 (spec §5.8).
+ * Steps the main drive in phase 2.
  *
  * The drive pushes with the thrust of `power` and spends `ṁ = F / v_e`. The
  * ship gains `a = F · cos(attitude − course) / M` along the track, then

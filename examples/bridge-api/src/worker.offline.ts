@@ -6,7 +6,7 @@ import { OfflineMeridian } from './ship/meridian';
 import { bridgePlugins } from './ship/plugins';
 
 // Built at module scope: OfflineMeridian does no I/O while it is built, which
-// Workers allows in the global scope (spec 9.2). src/worker.ts builds on the
+// Workers allows in the global scope. src/worker.ts builds on the
 // first request, for a graph whose factories fetch.
 // The bridge runs each request in its scope, and the flight recorder reads it.
 const scopes = nodeScopes();

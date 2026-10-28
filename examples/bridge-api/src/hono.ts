@@ -217,7 +217,7 @@ export function createBridge(
       // A path no route matches answers an empty 404, as Express and
       // Fastify answer it, so no answer repeats the path.
       .notFound((c) => c.body(null, 404))
-      // The adapter's HTTPException keeps its 500 or 503 (spec 4.3); the
+      // The adapter's HTTPException keeps its 500 or 503; the
       // handler's own errors answer an empty 500.
       .onError((error, c) =>
         error instanceof HTTPException

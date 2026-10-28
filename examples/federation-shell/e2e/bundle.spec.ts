@@ -18,7 +18,7 @@ const examples = join(import.meta.dirname, '../..');
 /**
  * The descriptions of the simulation's tokens. A minifier keeps a token's
  * description as a string literal and renames function names, so these
- * strings show the library in a bundle (ship systems spec section 9).
+ * strings show the library in a bundle.
  */
 const SIMULATION = [
   TICK_LOOP,

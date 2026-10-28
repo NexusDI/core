@@ -20,8 +20,8 @@ class SectorRoutes implements INavRoutes {
 export const sectorRoutes = provide(NAV_ROUTES, { useClass: SectorRoutes });
 
 /**
- * The section the sectors route loads on its first request, with di.load
- * (react spec 9.1). A loaded module sees only what it imports, so it imports
+ * The section the sectors route loads on its first request, with di.load.
+ * A loaded module sees only what it imports, so it imports
  * Tactical, and `load()` finds that module object already in the graph.
  */
 export const Navigation = defineModule({

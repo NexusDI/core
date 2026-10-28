@@ -6,7 +6,7 @@ import { OfflineMeridian } from '../../src/ship/meridian';
 import { serve } from './serve';
 
 // The bridge API's e2e cases on Deno or Bun, over OfflineMeridian, the
-// graph every runtime leg runs (spec 9.8). Each mismatch is printed, and
+// graph every runtime leg runs. Each mismatch is printed, and
 // any mismatch fails the run.
 const failures: string[] = [];
 for (const each of cases) {

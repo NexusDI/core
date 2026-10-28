@@ -1,5 +1,5 @@
 /**
- * The toolchain recipes of spec 3.3: how each pinned toolchain builds a
+ * The toolchain recipes: how each pinned toolchain builds a
  * consumer's TypeScript, and which runtime runs the output. run-matrix.mjs
  * proves them on the packed packages; the benchmarks reuse them.
  */

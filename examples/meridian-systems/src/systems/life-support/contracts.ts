@@ -49,7 +49,7 @@ export interface IAtmosphereSensor {
  * when `compartment` has no such device on the deck.
  */
 export interface IAtmosphereControl {
-  /** Brings life support online. G2 has no command that takes it offline. */
+  /** Brings life support online. The interface has no command that takes it offline. */
   online(): QueuedCommand;
   /** Switches the heater, sets its thermostat target in K, or both. */
   heater(

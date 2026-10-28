@@ -8,7 +8,7 @@ import type {
 } from '../../simulation/contracts';
 import { type IWeaponMount, WEAPON_MOUNT } from './contracts';
 
-/** Steps the railgun in phase 3 of each tick, spec §5.9. */
+/** Steps the railgun in phase 3 of each tick. */
 export class WeaponsPhysics implements IShipSystem {
   static deps = [WEAPON_MOUNT] as const;
   static readonly phase: Phase = 3;

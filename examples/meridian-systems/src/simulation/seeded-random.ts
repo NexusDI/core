@@ -4,8 +4,7 @@ import { type IRandomSource, SIM_OPTIONS, type SimOptions } from './contracts';
 /**
  * splitmix32 over the seed in `SimOptions`. A fork seeds from FNV-1a of
  * `${seed}:${label}`, so its stream depends on the parent's seed and the
- * label, and draws from the parent or from other forks leave it unchanged
- * (spec §4.3).
+ * label, and draws from the parent or from other forks leave it unchanged.
  */
 export class SeededRandom implements IRandomSource {
   static deps = [SIM_OPTIONS] as const;

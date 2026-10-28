@@ -8,7 +8,7 @@ import { bridgePlugins } from './ship/plugins';
 // NAV_CHARTS downloads over the relay, and Workers refuses I/O at module
 // scope, so the relay graph uses the function form: one build per isolate,
 // on the first request. The offline graph does no I/O and could build at
-// module scope; Task 21's module-scope entry shows that form.
+// module scope, as src/worker.offline.ts does.
 export default createBridge(() =>
   Nexus.create(env.RELAY_URL ? meridian(env.RELAY_URL) : OfflineMeridian, {
     plugins: bridgePlugins(),

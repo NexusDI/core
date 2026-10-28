@@ -50,7 +50,7 @@ describe('the function form on workerd', () => {
 
   it('answers 503 to every request that awaited a cancelled build, then retries', async () => {
     // The first client aborts mid-build: workerd cancels the fetch that
-    // belongs to its request, and the shared build rejects (spec 9.2).
+    // belongs to its request, and the shared build rejects.
     vi.spyOn(globalThis, 'fetch')
       .mockRejectedValueOnce(
         new DOMException('The operation was aborted.', 'AbortError'),

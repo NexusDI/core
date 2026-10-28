@@ -7,7 +7,7 @@ import { cartography, type CartographyBuild } from './rspack.config';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
- * The drift build (demo apps spec 7.6): the contracts package reads its
+ * The drift build: the contracts package reads its
  * version from drift/version.ts, one minor above the shell's, so the
  * shell's load() fails with NEXUS_CONTRACT_VERSION.
  */

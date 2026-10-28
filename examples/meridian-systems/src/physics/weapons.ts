@@ -18,7 +18,7 @@ export interface RailgunRating {
   readonly range: number;
 }
 
-/** The Meridian's railgun, from spec §5.9. */
+/** The Meridian's railgun. */
 export const RAILGUN: RailgunRating = {
   capacity: 400e6,
   shot: 300e6,
@@ -30,7 +30,7 @@ export const RAILGUN: RailgunRating = {
 };
 
 /**
- * The capacitor's place on the power router, spec §5.7. The capacitor stores
+ * The capacitor's place on the power router. The capacitor stores
  * what it draws, so none of its power heats the loop; a shot puts its share
  * into the loop as a pulse. The mount asks its demand from `railgunDemand`.
  */
@@ -122,7 +122,7 @@ export interface WeaponsStep {
 }
 
 /**
- * Steps the railgun in phase 3 (spec §5.9).
+ * Steps the railgun in phase 3.
  *
  * The capacitor first charges by its allocation times `dt`, up to `capacity`.
  * A shot that waits then fires once the bank holds `shot` J: it spends the

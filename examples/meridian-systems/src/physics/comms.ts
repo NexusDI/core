@@ -28,7 +28,7 @@ export interface CommsSetpoints {
 }
 
 /**
- * The phased array's place on the power router, spec §5.7. It asks this
+ * The phased array's place on the power router. It asks this
  * demand on each tick a hail waits on a linked array with no reply
  * outstanding and 0 W otherwise, and puts none of its power into the coolant
  * loop.
@@ -112,7 +112,7 @@ function withStatus(record: CommsRecord, status: CommsStatus): CommsRecord {
 }
 
 /**
- * Steps the phased array in phase 6 (spec §5.12).
+ * Steps the phased array in phase 6.
  *
  * First a reply falls due: an array that awaits one gets it once
  * `(tick − sent) · dt` reaches `RELAY_ROUND_TRIP`, and returns to standby

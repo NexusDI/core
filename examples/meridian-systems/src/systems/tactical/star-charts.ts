@@ -31,7 +31,7 @@ function readCharts(answer: unknown): Record<string, number> {
 }
 
 export class StarCharts implements INavCharts {
-  /** Downloads the chart table over the subspace link. Does I/O, so a Worker builds it on the first request (spec 9.2). */
+  /** Downloads the chart table over the subspace link. Does I/O, so a Worker builds it on the first request, since a Worker allows no I/O in the global scope. */
   static async download(link: ISubspaceLink): Promise<StarCharts> {
     return new StarCharts(readCharts(await link.receive<unknown>('charts')));
   }

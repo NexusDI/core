@@ -1,7 +1,7 @@
 // The offline Worker of examples/bridge-api/src/worker.offline.ts at its
 // smallest: the container built at module scope, a request scope through
 // nodeScopes(), and Hono bundled in. The whole bundle is the figure a
-// Workers user compares with the platform's size limit (spec 9.6).
+// Workers user compares with the platform's size limit.
 import { Nexus } from '@nexusdi/core';
 import { nexus } from '@nexusdi/hono';
 import { nodeScopes } from '@nexusdi/node';

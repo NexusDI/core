@@ -70,7 +70,7 @@ async function eventually(
   leg.check(what, test(), true);
 }
 
-/** The bridge API's cases, the same on every leg (spec 9.8). */
+/** The bridge API's cases, the same on every leg. */
 export const cases: readonly Case[] = [
   {
     name: 'plots a course with the charts and the request mission',
