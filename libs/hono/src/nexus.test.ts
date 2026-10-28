@@ -12,12 +12,17 @@ import {
 } from '@nexusdi/core';
 import { trace } from '@nexusdi/devtools';
 import { nodeScopes } from '@nexusdi/node';
-import { Hono } from 'hono';
+import { Hono, type Context, type Next } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { stream } from 'hono/streaming';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { NexusHttpError, nexus, type LogContext } from './index.js';
+import {
+  NexusHttpError,
+  nexus,
+  type LogContext,
+  type NexusEnv,
+} from './index.js';
 
 interface Mission {
   id: string;
@@ -739,6 +744,34 @@ describe('nexus', () => {
       );
     });
 
+    it('answers 503 from injectMiddleware and a section injectMiddleware after dispose, and never runs them', async () => {
+      const source = vi.fn(() => ship());
+      const di = nexus(source, { request: survey, log: () => {} });
+      const guard = vi.fn(async (_deps: unknown, _c: Context, next: Next) =>
+        next(),
+      );
+      const sectionGuard = vi.fn(
+        async (_deps: unknown, _c: Context, next: Next) => next(),
+      );
+      const app = new Hono()
+        .use(di.middleware)
+        .use(di.injectMiddleware({ log: FLIGHT_LOG }, guard))
+        .use(
+          '/nav/*',
+          di
+            .load(Navigation)
+            .injectMiddleware({ routes: NAV_ROUTES }, sectionGuard),
+        )
+        .get('/nav/:sector', (c) => c.text('ok'));
+      expect((await app.request('/nav/kepler')).status).toBe(200);
+      expect(guard).toHaveBeenCalledOnce();
+      expect(sectionGuard).toHaveBeenCalledOnce();
+      await di[Symbol.asyncDispose]();
+      expect((await app.request('/nav/kepler')).status).toBe(503);
+      expect(guard).toHaveBeenCalledOnce();
+      expect(sectionGuard).toHaveBeenCalledOnce();
+    });
+
     it('answers 503 at phase load for a section after dispose', async () => {
       const log = vi.fn();
       const di = nexus(await ship(), { request: survey, log });
@@ -844,5 +877,211 @@ describe('nexus', () => {
       expect(di[Symbol.asyncDispose]()).toBe(first);
       await expect(first).rejects.toBe(cause);
     });
+  });
+});
+
+describe('injectMiddleware', () => {
+  const ACCESS = new Token<{ mayFire(operator: string | undefined): boolean }>(
+    'AccessControl',
+  );
+  const Access = defineModule({
+    name: 'Access',
+    providers: [
+      provide(ACCESS, {
+        useValue: { mayFire: (operator) => operator === 'helm' },
+      }),
+    ],
+    exports: [ACCESS],
+  });
+  async function guarded() {
+    const built = await Nexus.create(
+      defineModule({ name: 'Meridian', imports: [BridgeApi, Access] }),
+    );
+    ships.push(built);
+    return built;
+  }
+
+  it('ends the request from the middleware, and the route never runs', async () => {
+    const di = nexus(await guarded(), { request: survey, log: () => {} });
+    const route = vi.fn((c: Context) => c.text('fired'));
+    const app = new Hono()
+      .use(di.middleware)
+      .use(
+        '/drive/*',
+        di.injectMiddleware({ access: ACCESS }, async ({ access }, c, next) => {
+          if (!access.mayFire(c.req.header('x-operator')))
+            return c.text('Forbidden', 403);
+          return next();
+        }),
+      )
+      .post('/drive/fire', route);
+    const res = await app.request('/drive/fire', { method: 'POST' });
+    expect(res.status).toBe(403);
+    expect(await res.text()).toBe('Forbidden');
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  it('calls next, and the route sees the scoped instance the middleware saw', async () => {
+    const di = nexus(await guarded(), { request: survey, log: () => {} });
+    let seen: IFlightLog | undefined;
+    const app = new Hono()
+      .use(di.middleware)
+      .use(
+        di.injectMiddleware({ log: FLIGHT_LOG }, async ({ log }, _c, next) => {
+          seen = log;
+          log.record('cleared');
+          await next();
+        }),
+      )
+      .get(
+        '/log',
+        di.inject({ log: FLIGHT_LOG }, ({ log }, c) => {
+          expect(log).toBe(seen);
+          return c.json(log.entries());
+        }),
+      );
+    expect(await (await app.request('/log')).json()).toEqual([
+      'survey-7: cleared',
+    ]);
+  });
+
+  it('passes a value the middleware sets on c to a later route', async () => {
+    type OperatorEnv = NexusEnv & { Variables: { operator: string } };
+    const di = nexus(await guarded(), { request: survey, log: () => {} });
+    const app = new Hono<OperatorEnv>()
+      .use(di.middleware)
+      .use(
+        di.injectMiddleware(
+          { access: ACCESS },
+          async ({ access }, c: Context<OperatorEnv>, next) => {
+            const operator = c.req.header('x-operator') ?? '';
+            if (!access.mayFire(operator)) return c.text('Forbidden', 403);
+            c.set('operator', operator);
+            return next();
+          },
+        ),
+      )
+      .get('/whoami', (c) => c.text(c.var.operator));
+    const res = await app.request('/whoami', {
+      headers: { 'x-operator': 'helm' },
+    });
+    expect(await res.text()).toBe('helm');
+  });
+
+  it('passes a resolve failure to the error handler with the status and no core text', async () => {
+    const di = nexus(await guarded(), {
+      request: () => undefined as unknown as NexusRequest,
+      log: () => {},
+    });
+    const route = vi.fn((c: Context) => c.text('fired'));
+    const app = new Hono()
+      .use(di.middleware)
+      .use(
+        di.injectMiddleware({ log: FLIGHT_LOG }, async (_deps, _c, next) => {
+          await next();
+        }),
+      )
+      .get('/log', route);
+    const res = await app.request('/log');
+    expect(res.status).toBe(500);
+    expect(await res.text()).not.toContain('NEXUS_');
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  it('disposes the scope of a request the middleware ends or throws on', async () => {
+    const events: TraceEvent[] = [];
+    const di = nexus(await ship(events), { request: survey, log: () => {} });
+    const app = new Hono()
+      .use(di.middleware)
+      .use(
+        di.injectMiddleware({ log: FLIGHT_LOG }, async (_deps, c) => {
+          if (c.req.header('x-badge') === 'none')
+            throw new HTTPException(401, { message: 'no badge' });
+          return c.text('Forbidden', 403);
+        }),
+      )
+      .get('/log', (c) => c.text('fired'));
+    const ended = await app.request('/log');
+    expect(ended.status).toBe(403);
+    await ended.text(); // the scope lives until the body ends
+    const thrown = await app.request('/log', {
+      headers: { 'x-badge': 'none' },
+    });
+    expect(thrown.status).toBe(401);
+    await thrown.text();
+    await settle();
+    expect(count(events, 'scope:create')).toBe(2);
+    expect(count(events, 'scope:dispose')).toBe(2);
+  });
+
+  it('passes an error the middleware throws to onError', async () => {
+    const di = nexus(await guarded(), { request: survey, log: () => {} });
+    const app = new Hono()
+      .use(di.middleware)
+      .use(
+        di.injectMiddleware({ access: ACCESS }, async () => {
+          throw new HTTPException(401, { message: 'no badge' });
+        }),
+      )
+      .get('/log', (c) => c.text('fired'));
+    const res = await app.request('/log');
+    expect(res.status).toBe(401);
+    expect(await res.text()).toBe('no badge');
+  });
+
+  it('throws at definition for a token with no provider', async () => {
+    const di = nexus(await guarded(), { request: survey, log: () => {} });
+    expect(() =>
+      di.injectMiddleware({ x: UNCHARTED }, async (_, _c, next) => next()),
+    ).toThrow(/NEXUS_BLUEPRINT_INVALID/);
+  });
+
+  it('checks a section middleware at its first request, and answers 500 for a token no module provides', async () => {
+    const di = nexus(await guarded(), { request: survey, log: () => {} });
+    const navigation = di.load(Navigation);
+    const section = new Hono<{ Variables: { nexus: never } }>()
+      .use(navigation)
+      .use(
+        navigation.injectMiddleware({ x: UNCHARTED }, async (_, _c, next) =>
+          next(),
+        ),
+      )
+      .get('/', (c) => c.text('in sector'));
+    const app = new Hono().use(di.middleware).route('/nav', section);
+    const res = await app.request('/nav');
+    expect(res.status).toBe(500);
+    expect(await res.text()).not.toContain('NEXUS_');
+  });
+
+  it('defers a section middleware check to the first load, and resolves its exports', async () => {
+    const di = nexus(await guarded(), { request: survey, log: () => {} });
+    const navigation = di.load(Navigation);
+    expect(() =>
+      navigation.injectMiddleware({ x: UNCHARTED }, async (_, _c, next) =>
+        next(),
+      ),
+    ).not.toThrow();
+    const section = new Hono<{ Variables: { nexus: never } }>()
+      .use(navigation)
+      .use(
+        navigation.injectMiddleware(
+          { routes: NAV_ROUTES },
+          async ({ routes }, c, next) => {
+            if (c.req.header('x-sector') === undefined)
+              return c.text(routes.find('home'), 400);
+            return next();
+          },
+        ),
+      )
+      .get('/', (c) => c.text('in sector'));
+    const app = new Hono().use(di.middleware).route('/nav', section);
+    const res = await app.request('/nav');
+    expect(res.status).toBe(400);
+    expect(await res.text()).toBe('route to home');
+    expect(
+      await (
+        await app.request('/nav', { headers: { 'x-sector': 'vega' } })
+      ).text(),
+    ).toBe('in sector');
   });
 });

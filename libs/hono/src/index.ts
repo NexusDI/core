@@ -1,6 +1,7 @@
 export {
   nexus,
   type HonoHandler,
+  type HonoMiddleware,
   type NexusEnv,
   type NexusHono,
   type NexusHonoOptions,

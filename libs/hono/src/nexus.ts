@@ -1,4 +1,4 @@
-import type { Context, Handler, MiddlewareHandler } from 'hono';
+import type { Context, Handler, MiddlewareHandler, Next } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 
@@ -32,27 +32,66 @@ export type NexusHonoOptions = RequestOption<Context> & {
   readonly log?: NexusLog;
 };
 
-/** A route handler that receives the resolved deps first. `P` is the route's path, which types `c.req.param`. */
-export type HonoHandler<D extends DepsMap, P extends string = string> = (
-  deps: ResolvedDeps<D>,
-  c: Context<NexusEnv, P>,
-) => Response | Promise<Response>;
+/**
+ * A route handler that receives the resolved deps first. `P` types
+ * `c.req.param` and `E` types `c.var`; both come from an annotation on `c`.
+ * Hono does not pass the route's path to a handler defined apart from it, so
+ * `app.get('/b/:id', di.inject(...))` leaves `c.req.param('id')` as
+ * `string | undefined` unless `c` is annotated.
+ */
+export type HonoHandler<
+  D extends DepsMap,
+  P extends string = string,
+  E extends NexusEnv = NexusEnv,
+> = (deps: ResolvedDeps<D>, c: Context<E, P>) => Response | Promise<Response>;
 
-type Inject = <const D extends DepsMap, P extends string = string>(
+/**
+ * A middleware that receives the resolved deps first, then Hono's context
+ * and `next`. It ends the request by returning a Response or throwing, and
+ * passes it on with `await next()`. `P` and `E` come from an annotation on
+ * `c`, as for `HonoHandler`.
+ */
+export type HonoMiddleware<
+  D extends DepsMap,
+  P extends string = string,
+  E extends NexusEnv = NexusEnv,
+> = (
+  deps: ResolvedDeps<D>,
+  c: Context<E, P>,
+  next: Next,
+) => Promise<Response | void>;
+
+type Inject = <
+  const D extends DepsMap,
+  P extends string = string,
+  E extends NexusEnv = NexusEnv,
+>(
   deps: D,
-  handler: HonoHandler<D, P>,
-) => Handler<NexusEnv, P>;
+  handler: HonoHandler<D, P, E>,
+) => Handler<E, P>;
+
+type InjectMiddleware = <
+  const D extends DepsMap,
+  P extends string = string,
+  E extends NexusEnv = NexusEnv,
+>(
+  deps: D,
+  middleware: HonoMiddleware<D, P, E>,
+) => MiddlewareHandler<E, P>;
 
 /** The middleware `di.load(module, options?)` returns: it loads the module once, with the grant in `options.imports`, and extends the request's scope before the section's handlers run. */
 export interface SectionMiddleware extends MiddlewareHandler<NexusEnv> {
   /** Like di.inject, validated after the section's first successful load. */
   readonly inject: Inject;
+  /** Like di.injectMiddleware, validated after the section's first successful load. */
+  readonly injectMiddleware: InjectMiddleware;
 }
 
-/** What `nexus()` returns for Hono: the middleware, `inject` for typed handlers, `scope` for other code and `load` for lazy sections. */
+/** What `nexus()` returns for Hono: the middleware, `inject` for typed handlers, `injectMiddleware` for typed middleware, `scope` for other code and `load` for lazy sections. */
 export interface NexusHono {
   readonly middleware: MiddlewareHandler<NexusEnv>;
   readonly inject: Inject;
+  readonly injectMiddleware: InjectMiddleware;
   scope(c: Context): Promise<Scope>;
   load(module: ModuleRef, options?: LoadOptions): SectionMiddleware;
   /**
@@ -154,15 +193,19 @@ export function nexus(
     return undefined;
   });
 
-  const handlerOf =
-    <D extends DepsMap, P extends string>(
+  /**
+   * Wraps a handler or a middleware: Hono calls both with (c, next), takes a
+   * returned Response as the answer and passes a throw to onError.
+   */
+  const wrap =
+    <D extends DepsMap, P extends string, E extends NexusEnv, R>(
       deps: D,
-      handler: HonoHandler<D, P>,
+      fn: (deps: ResolvedDeps<D>, c: Context<E, P>, next: Next) => R,
       checked: () => Promise<void>,
       section?: ModuleRef,
       grant?: LoadOptions,
-    ): Handler<NexusEnv, P> =>
-    async (c) => {
+    ) =>
+    async (c: Context<E, P>, next: Next): Promise<Awaited<R> | Response> => {
       const result = await core.resolve({
         handle: () => handleOf(c),
         deps,
@@ -171,12 +214,13 @@ export function nexus(
         options: grant,
       });
       if (!('deps' in result)) return stop(result);
-      return handler(result.deps, c);
+      return await fn(result.deps, c, next);
     };
 
   return {
     middleware,
-    inject: (deps, handler) => handlerOf(deps, handler, core.definition(deps)),
+    inject: (deps, handler) => wrap(deps, handler, core.definition(deps)),
+    injectMiddleware: (deps, fn) => wrap(deps, fn, core.definition(deps)),
     scope: async (c) => handleOf(c).scope(),
     load(module, options) {
       const section = createMiddleware<NexusEnv>(async (c, next) => {
@@ -191,8 +235,13 @@ export function nexus(
         return undefined;
       });
       const sectionInject: Inject = (deps, handler) =>
-        handlerOf(deps, handler, core.sectionCheck(deps), module, options);
-      return Object.assign(section, { inject: sectionInject });
+        wrap(deps, handler, core.sectionCheck(deps), module, options);
+      const sectionMiddleware: InjectMiddleware = (deps, fn) =>
+        wrap(deps, fn, core.sectionCheck(deps), module, options);
+      return Object.assign(section, {
+        inject: sectionInject,
+        injectMiddleware: sectionMiddleware,
+      });
     },
     [Symbol.asyncDispose]: () => core.dispose(),
   };
