@@ -1,3 +1,4 @@
+import { ViewTransition } from 'react';
 import { Outlet } from 'react-router';
 import { Button } from '../components/Button';
 import type { Route } from './+types/layout';
@@ -54,9 +55,13 @@ export default function Layout(props: Route.ComponentProps) {
         </Button>
       </nav>
 
-      <main>
-        <Outlet />
-      </main>
+      {/* React cross-fades the page on each navigation, because React Router
+          runs its state updates in a React Transition. */}
+      <ViewTransition>
+        <main>
+          <Outlet />
+        </main>
+      </ViewTransition>
     </div>
   );
 }
