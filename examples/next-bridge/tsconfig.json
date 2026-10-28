@@ -51,6 +51,9 @@
   ],
   "references": [
     {
+      "path": "../../tools/doc-examples"
+    },
+    {
       "path": "../../libs/devtools"
     },
     {

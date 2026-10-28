@@ -5,7 +5,7 @@ import { trace } from '@nexusdi/devtools';
 import { headers } from 'next/headers';
 
 import { gateCounters } from './gate-counter';
-import { GateBridge } from './ship/gate.module';
+import { DockingGate } from './ship/docking-gate.module';
 
 gateCounters().evaluations += 1;
 
@@ -16,7 +16,7 @@ let ready: Promise<Nexus> | undefined;
  * this module builds none.
  */
 function ship(): Promise<Nexus> {
-  ready ??= Nexus.create(GateBridge, {
+  ready ??= Nexus.create(DockingGate, {
     plugins: [
       trace((event) => {
         if (event.type === 'compile' && event.phase === 'create')
