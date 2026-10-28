@@ -476,6 +476,34 @@ describe('nexus', () => {
       return app;
     }
 
+    it('answers 503 from injectHook and a section injectHook after dispose, and never runs them', async () => {
+      const { ship } = await shipWithTrace();
+      const di = nexus(() => Promise.resolve(ship), {
+        request: mapping,
+        log: () => {},
+      });
+      const hook = vi.fn(async () => {});
+      const sectionHook = vi.fn(async () => {});
+      const app = Fastify();
+      await app.register(di.plugin);
+      app.get(
+        '/navigation',
+        {
+          preHandler: [
+            di.injectHook({ log: FLIGHT_LOG }, hook),
+            di.load(Navigation).injectHook({ routes: NAV_ROUTES }, sectionHook),
+          ],
+        },
+        () => 'ok',
+      );
+      expect((await app.inject({ url: '/navigation' })).statusCode).toBe(200);
+      await di[Symbol.asyncDispose]();
+      expect((await app.inject({ url: '/navigation' })).statusCode).toBe(503);
+      expect(hook).toHaveBeenCalledOnce();
+      expect(sectionHook).toHaveBeenCalledOnce();
+      await app.close();
+    });
+
     it('disposes a container it built once, and answers 503 after', async () => {
       const { ship, count } = await shipWithTrace();
       const source = vi.fn(() => Promise.resolve(ship));
@@ -624,6 +652,241 @@ describe('nexus', () => {
       app.get('/ping', () => 'pong');
       await di[Symbol.asyncDispose]();
       expect((await app.inject({ url: '/ping' })).statusCode).toBe(503);
+      await app.close();
+      await ship[Symbol.asyncDispose]();
+    });
+  });
+
+  describe('injectHook', () => {
+    const ACCESS = new Token<{
+      mayFire(operator: string | undefined): boolean;
+    }>('AccessControl');
+    const access = provide(ACCESS, {
+      useValue: { mayFire: (operator) => operator === 'helm' },
+    });
+    async function guarded() {
+      return Nexus.create([...bridge, access]);
+    }
+
+    it('ends the request from a preHandler hook, and the route never runs', async () => {
+      const ship = await guarded();
+      const di = nexus(ship, { request: mapping });
+      const route = vi.fn(() => 'fired');
+      const later = vi.fn(async () => {});
+      const app = Fastify();
+      await app.register(di.plugin);
+      app.post(
+        '/drive/fire',
+        {
+          preHandler: [
+            di.injectHook(
+              { access: ACCESS },
+              async ({ access }, req, reply) => {
+                if (!access.mayFire(req.headers['x-operator'] as string))
+                  return reply.code(403).send({ error: 'Forbidden' });
+              },
+            ),
+            later,
+          ],
+        },
+        route,
+      );
+      const res = await app.inject({ method: 'POST', url: '/drive/fire' });
+      expect(res.statusCode).toBe(403);
+      expect(res.json()).toEqual({ error: 'Forbidden' });
+      expect(later).not.toHaveBeenCalled();
+      expect(route).not.toHaveBeenCalled();
+      const ok = await app.inject({
+        method: 'POST',
+        url: '/drive/fire',
+        headers: { 'x-operator': 'helm' },
+      });
+      expect(ok.body).toBe('fired');
+      await app.close();
+      await ship[Symbol.asyncDispose]();
+    });
+
+    it('lets the route see the scoped instance the hook saw', async () => {
+      const ship = await guarded();
+      const di = nexus(ship, { request: mapping });
+      const app = Fastify();
+      await app.register(di.plugin);
+      let seen: IFlightLog | undefined;
+      app.addHook(
+        'preHandler',
+        di.injectHook({ log: FLIGHT_LOG }, async ({ log }) => {
+          seen = log;
+          log.record('cleared');
+        }),
+      );
+      app.get(
+        '/log',
+        di.inject({ log: FLIGHT_LOG }, ({ log }) => {
+          expect(log).toBe(seen);
+          return log.entries();
+        }),
+      );
+      expect((await app.inject({ url: '/log' })).json()).toEqual([
+        'survey-7: cleared',
+      ]);
+      await app.close();
+      await ship[Symbol.asyncDispose]();
+    });
+
+    it('runs as an instance onRequest hook added after the plugin was registered', async () => {
+      const ship = await guarded();
+      const di = nexus(ship, { request: mapping });
+      const app = Fastify();
+      void app.register(di.plugin);
+      app.addHook(
+        'onRequest',
+        di.injectHook({ access: ACCESS }, async ({ access }, req, reply) => {
+          if (!access.mayFire(req.headers['x-operator'] as string))
+            return reply.code(403).send();
+        }),
+      );
+      app.get('/drive', () => 'fired');
+      expect((await app.inject({ url: '/drive' })).statusCode).toBe(403);
+      await app.close();
+      await ship[Symbol.asyncDispose]();
+    });
+
+    it('tells the user to register the plugin first when an onRequest hook was added before it', async () => {
+      const ship = await guarded();
+      const di = nexus(ship, { request: mapping });
+      const app = Fastify();
+      app.addHook(
+        'onRequest',
+        di.injectHook({ access: ACCESS }, async () => {}),
+      );
+      await app.register(di.plugin);
+      app.get('/drive', () => 'fired');
+      const res = await app.inject({ url: '/drive' });
+      expect(res.statusCode).toBe(500);
+      expect(res.json().message).toMatch(
+        /Register di\.plugin \(or di\.encapsulatedPlugin, in this context or a parent\) before addHook\('onRequest'/,
+      );
+      await app.close();
+      await ship[Symbol.asyncDispose]();
+    });
+
+    it('passes a resolve failure to the error handler with no core text', async () => {
+      const ship = await guarded();
+      const di = nexus(ship, {
+        request: () => undefined as unknown as NexusRequest,
+        log: () => {},
+      });
+      const route = vi.fn(() => 'fired');
+      const app = Fastify();
+      await app.register(di.plugin);
+      app.get(
+        '/log',
+        { preHandler: di.injectHook({ log: FLIGHT_LOG }, async () => {}) },
+        route,
+      );
+      const res = await app.inject({ url: '/log' });
+      expect(res.statusCode).toBe(500);
+      expect(res.body).not.toContain('NEXUS_');
+      expect(route).not.toHaveBeenCalled();
+      await app.close();
+      await ship[Symbol.asyncDispose]();
+    });
+
+    it('passes an error the hook throws to the error handler', async () => {
+      const ship = await guarded();
+      const di = nexus(ship, { request: mapping });
+      const app = Fastify();
+      await app.register(di.plugin);
+      app.get(
+        '/drive',
+        {
+          preHandler: di.injectHook({ access: ACCESS }, async () => {
+            throw Object.assign(new Error('no badge'), { statusCode: 401 });
+          }),
+        },
+        () => 'fired',
+      );
+      const res = await app.inject({ url: '/drive' });
+      expect(res.statusCode).toBe(401);
+      expect(res.json().message).toBe('no badge');
+      await app.close();
+      await ship[Symbol.asyncDispose]();
+    });
+
+    it('returns an async function of two parameters, which Fastify requires of an async hook', async () => {
+      const ship = await guarded();
+      const di = nexus(ship, { request: mapping });
+      expect(di.injectHook({ access: ACCESS }, async () => {})).toHaveLength(2);
+      expect(
+        di.load(Navigation).injectHook({ routes: NAV_ROUTES }, async () => {}),
+      ).toHaveLength(2);
+      await ship[Symbol.asyncDispose]();
+    });
+
+    it('throws at definition for a token with no provider', async () => {
+      const ship = await guarded();
+      const di = nexus(ship, { request: mapping, log: () => {} });
+      expect(() =>
+        di.injectHook({ routes: NAV_ROUTES }, async () => {}),
+      ).toThrow(/NEXUS_BLUEPRINT_INVALID/);
+      await ship[Symbol.asyncDispose]();
+    });
+
+    it('checks a section hook at its first request, and answers 500 for a token no module provides', async () => {
+      const ship = await guarded();
+      const di = nexus(ship, { request: mapping, log: () => {} });
+      const navigation = di.load(Navigation);
+      const absent = new Token<string>('Absent');
+      const app = Fastify();
+      await app.register(di.plugin);
+      await app.register(async (section) => {
+        section.addHook('onRequest', navigation);
+        section.get(
+          '/navigation',
+          { preHandler: navigation.injectHook({ absent }, async () => {}) },
+          () => 'in sector',
+        );
+      });
+      const res = await app.inject({ url: '/navigation' });
+      expect(res.statusCode).toBe(500);
+      expect(res.body).not.toContain('NEXUS_');
+      await app.close();
+      await ship[Symbol.asyncDispose]();
+    });
+
+    it("resolves a section hook's exports after the section loads", async () => {
+      const ship = await guarded();
+      const di = nexus(ship, { request: mapping });
+      const navigation = di.load(Navigation);
+      const app = Fastify();
+      await app.register(di.plugin);
+      await app.register(async (section) => {
+        section.addHook('onRequest', navigation);
+        section.get(
+          '/navigation',
+          {
+            preHandler: navigation.injectHook(
+              { routes: NAV_ROUTES },
+              async ({ routes }, req, reply) => {
+                if (req.headers['x-sector'] === undefined)
+                  return reply.code(400).send(routes);
+              },
+            ),
+          },
+          () => 'in sector',
+        );
+      });
+      const res = await app.inject({ url: '/navigation' });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toEqual(['Kepler']);
+      expect(
+        (
+          await app.inject({
+            url: '/navigation',
+            headers: { 'x-sector': 'vega' },
+          })
+        ).body,
+      ).toBe('in sector');
       await app.close();
       await ship[Symbol.asyncDispose]();
     });
