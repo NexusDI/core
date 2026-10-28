@@ -1,0 +1,9 @@
+# The repo's lint covers TypeScript alone. This file pins the style of the one
+# Python script here: `uvx ruff format` and `uvx ruff check` in this folder.
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "B", "I"]
+# Each zip() here pairs a list with its own tail or with a list built to its length.
+ignore = ["B905"]
