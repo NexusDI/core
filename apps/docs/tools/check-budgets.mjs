@@ -25,8 +25,13 @@ export const BUDGETS = {
  * Raw bytes are what the browser parses and gzip bytes are what it downloads.
  * The ceilings sit just above the largest sidecar, `core/Nexus.json` with 102
  * cases, at 1350 kB raw and 56.6 kB gzipped.
+ *
+ * 2026-10-28: the K1 to K4 extension-points tests grew core's sidecar to
+ * 1471.1 kB raw and 62.3 kB gzipped, so the ceilings sit at 1550 kB and 65 kB.
+ * Issue #235 tracks sharing the popups once per library in
+ * `tools/behaviour-data.mjs`; the ceilings drop again when it lands.
  */
-export const BEHAVIOUR_BUDGET = { raw: 1_400_000, gzip: 60_000 };
+export const BEHAVIOUR_BUDGET = { raw: 1_550_000, gzip: 65_000 };
 
 /**
  * A ratchet on everything one guide page loads, scripts and stylesheets.
