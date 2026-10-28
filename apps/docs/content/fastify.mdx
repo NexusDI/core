@@ -112,6 +112,10 @@ process.once('SIGTERM', () => {
 });
 ```
 
+With the function form `nexus(() => Nexus.create(Meridian))`, the adapter manages the container lifecycle. The app disposes the adapter in an `onClose` hook, `bridge.addHook('onClose', () => di[Symbol.asyncDispose]())`, and the adapter disposes the container it built.
+
+**Calling `close()`** triggers this disposal process, and any error encountered by a disposer rejects `close()`. Because the adapter disposes of whatever the function returns, the function must return a container that no other code holds. The plugin adds no `onClose` hook of its own, so a test app without that hook leaves `di` open after `app.close()`, and one `di` serves every app a test builds until the test disposes it.
+
 ## Load a Section on Its First Request
 
 `di.load(Navigation)` returns a hook that loads a module once and extends the request's scope. A section that cannot import a host module by name takes the grant as the second argument, `di.load(Navigation, { imports: [Tactical] })`, and sees the exports of `Tactical`. [Adding Modules After Startup](/load/#granting-host-modules-to-a-loaded-module) covers the rules of a grant.
