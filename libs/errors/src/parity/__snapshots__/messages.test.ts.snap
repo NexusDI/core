@@ -347,6 +347,11 @@ exports[`NexusError > keeps the message of a providers deps entry with a bad mod
   [NEXUS_INVALID_PROVIDER] Engineering.providers[0] deps[0] is optional(the MultiToken Diagnostics); optional() takes a class or a Token."
 `;
 
+exports[`NexusError > keeps the message of a providers deps entry with lazy(all())… 1`] = `
+"[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
+  [NEXUS_INVALID_PROVIDER] Engineering.providers[0] deps[0] is lazy(all(the Token NavCharts)); lazy(all()) takes a MultiToken."
+`;
+
 exports[`NexusError > keeps the message of a providers entry that is a module 1`] = `
 "[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
   [NEXUS_INVALID_PROVIDER] Engineering.providers[0] is the module Comms; add it to imports."
@@ -405,6 +410,8 @@ exports[`NexusError > keeps the message of new Token() with an empty description
 exports[`NexusError > keeps the message of resolve() with a bad modifier entry 1`] = `"[NEXUS_INVALID_TOKEN] deps.checks: an object is all(the Token NavCharts); all() takes a MultiToken."`;
 
 exports[`NexusError > keeps the message of resolve() with a bare MultiToken entry 1`] = `"[NEXUS_INVALID_TOKEN] deps.checks: the MultiToken Diagnostics collects many providers; wrap it in all()."`;
+
+exports[`NexusError > keeps the message of resolve() with a lazy(all()) of a plain… 1`] = `"[NEXUS_INVALID_TOKEN] deps.checks: an object is lazy(all(the Token NavCharts)); lazy(all()) takes a MultiToken."`;
 
 exports[`NexusError > keeps the message of resolve() with a missing deps[1] 1`] = `
 "[NEXUS_NOT_VISIBLE] deps[1]: ReactorCore is provided in Engineering, and the lookup module cannot see it.

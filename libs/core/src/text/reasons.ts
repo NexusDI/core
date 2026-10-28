@@ -17,6 +17,8 @@ function depSentence(
   values: readonly string[],
 ): string {
   const [first, second] = values;
+  if (kind === 'bad-modifier' && first === 'lazy-all')
+    return `is lazy(all(${second})); lazy(all()) takes a MultiToken`;
   if (kind === 'bad-modifier') {
     const takes =
       first === 'all'

@@ -70,6 +70,11 @@ export function bind(input: BindInput, errors: NexusError[]): BindResult {
           edges.push({ from: record.id, to, kind: 'all', written });
         return { kind: 'all', token: dep.token, ids };
       }
+      if (dep.kind === 'lazy-all') {
+        for (const to of ids)
+          edges.push({ from: record.id, to, kind: 'lazy', written });
+        return { kind: 'lazy-all', token: dep.token, ids };
+      }
       const [to] = ids;
       if (to === undefined) {
         if (dep.kind !== 'optional') reportMissing(dep.token);

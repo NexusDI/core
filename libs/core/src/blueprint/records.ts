@@ -292,7 +292,8 @@ export function depOf(value: unknown): DepEntry | BadDep {
   if (isModifier(value)) {
     if (
       !isToken(value.token) ||
-      value.token instanceof MultiToken !== (value.kind === 'all')
+      value.token instanceof MultiToken !==
+        (value.kind === 'all' || value.kind === 'lazy-all')
     ) {
       return {
         reason: 'bad-modifier',

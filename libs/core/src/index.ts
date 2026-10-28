@@ -61,6 +61,7 @@ export type {
   DepFor,
   DepsMap,
   Lazy,
+  LazyAll,
   Optional,
   Resolve,
   ResolveAll,
