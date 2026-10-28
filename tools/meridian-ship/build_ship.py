@@ -615,11 +615,52 @@ def build_interior(geometry, hull):
     door_mat = material("door", "#ffcc33", 0.1, 0.5)
     tank_mat = material("tank", "#6b7480", 0.5, 0.4)
     deck_mat = material("deck-plate", "#30353b", 0.3, 0.7)
+    fixture_mat = material("fixture", "#6d737b", 0.2, 0.6)
+    fixture_label = material("fixture-label", "#e6e8eb", 0.0, 0.8)
     for room in geometry["compartments"]:
         mat = material(f"room.{room['id']}", ROOM_COLOURS.get(room["id"], "#888888"), 0.0, 0.7)
         for k, box in enumerate(room["boxes"]):
+            # The cutaway looks in from port, so each room shows its far wall
+            # and its floor, and the fixtures stand in front of them.
+            (x0, x1), (y0, y1), (z0, z1) = box["x"], box["y"], box["z"]
+            xs, zs = (x0 + 0.07, x1 - 0.07), (z0 + 0.07, z1 - 0.07)
+            box_object(f"Room.{room['id']}.{k}.wall", xs, (y1 - 0.2, y1), zs, mat, "Interior")
             box_object(
-                f"Room.{room['id']}.{k}", box["x"], box["y"], box["z"], mat, "Interior", inset=0.07
+                f"Room.{room['id']}.{k}.floor", xs, (y0, y1), (z0, z0 + 0.06), mat, "Interior"
+            )
+        for f in room["fixtures"]:
+            (x0, x1), (y0, y1), (z0, z1) = f["x"], f["y"], f["z"]
+            if f["shape"] == "cylinder":
+                cx, cy, rx, ry = (x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2, (y1 - y0) / 2
+                ring = [
+                    (
+                        cx + rx * math.cos(2 * math.pi * j / 24),
+                        cy + ry * math.sin(2 * math.pi * j / 24),
+                    )
+                    for j in range(24)
+                ]
+                rings = [[(x, y, z) for x, y in ring] for z in (z0, z1)]
+                loft(f"Fixture.{f['id']}", rings, fixture_mat, "Interior")
+            else:
+                box_object(
+                    f"Fixture.{f['id']}",
+                    f["x"],
+                    f["y"],
+                    f["z"],
+                    fixture_mat,
+                    "Interior",
+                    bevel=0.04,
+                )
+            at = ((x0 + x1) / 2, -10.45, z1 + 0.25)
+            name = f["id"].split(".", 1)[1]
+            text_object(
+                f"Label.{f['id']}",
+                name,
+                at,
+                0.36,
+                fixture_label,
+                "Interior",
+                (math.radians(90), 0, 0),
             )
         big = max(room["boxes"], key=lambda b: (b["x"][1] - b["x"][0]) * (b["z"][1] - b["z"][0]))
         # Upper-deck labels sit above the railgun barrel, which crosses those rooms.

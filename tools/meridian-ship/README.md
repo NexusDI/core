@@ -45,14 +45,15 @@ The outputs:
 - `sv01-side.png`, `sv01-top.png`: orthographic, from port and from above, bow
   to the left, in Workbench.
 - `sv01-cutaway.png`: from port with the port half removed, every compartment in
-  its own colour with its id, the doors, the tanks and the conduits.
+  its own colour with its id, the fixtures with their names, the doors, the
+  tanks and the conduits.
 - `sv01-hero.png`: three-quarter perspective from starboard, in Eevee, for the
   front page.
 - `silhouette-side.png`, `silhouette-top.png`: flat black on white, for
   silhouette studies.
 - `sv01-side.svg`, `sv01-top.svg`, `sv01-cutaway.svg`, `sv01-deck-<deck>.svg`:
   vector outlines in metres, one SVG unit per metre. Each room carries
-  `data-room` and each door `data-door`.
+  `data-room`, each fixture `data-fixture` and each door `data-door`.
 
 A run takes a few seconds and under 1 GB of memory. Nothing in the scripts is
 random and the PNGs carry no stamp metadata, so the same geometry gives the

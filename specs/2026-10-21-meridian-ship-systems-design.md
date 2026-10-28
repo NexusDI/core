@@ -4283,7 +4283,20 @@ exports it as `SHIP_GEOMETRY`, and a unit test checks that every room sits insid
 hull, that no two boxes overlap, that every door lies on a face both its sides share and
 that every conduit leg stays inside one compartment. `tools/meridian-ship` builds the
 concept mesh and its renders from the same file, and projects the same file to SVG
-outlines for the website and the deck view. Fitting the rooms of section 16.2 into
+outlines for the website and the deck view.
+
+Each compartment lists its fixtures, 42 in all: two to five blockout boxes or upright
+cylinders per room, such as the bridge consoles and command chair, the bunks in the
+quarters, the reactor vessel, the FTL core's ring, the shuttle and the drones on their
+racks. Anything a viewer sees in both the cutaway and a deck plan lives in this list, so
+the two views and the PixiJS deck view agree, and the paint-over adds surface detail
+alone. The geometry test checks that each fixture sits inside its room, overlaps no
+other fixture and keeps 1.0 m clear in front of each wall door and 0.2 m round each
+hatch, and that every door of a room reaches every other door through free floor at
+least 1.0 m wide. The bay doors are exempt, since the shuttle and the drone sit over
+them to launch.
+
+Fitting the rooms of section 16.2 into
 boxes changed five placements:
 
 - The airlock runs 5.5 m inboard from the port flank at 24 to 27 m, so its floor hatch
