@@ -199,6 +199,16 @@ describe.each(['hono', 'express', 'fastify'] as const)(
       expect((await call(nexus, 'GET', '/graph')).status).toBe(404);
     });
 
+    test.for(['/mission', '/log/stream'])(
+      'GET %s answers an empty 404, as the demo routes are ship routes only',
+      async (path, { nexus }) => {
+        expect(await call(nexus, 'GET', path)).toEqual({
+          status: 404,
+          body: undefined,
+        });
+      },
+    );
+
     test('POST /sim/advance answers 404 on a live ship', async () => {
       // A faked setInterval keeps the live driver's timer out of the event loop.
       vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });

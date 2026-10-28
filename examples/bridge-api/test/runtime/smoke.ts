@@ -1,6 +1,7 @@
 import { Nexus } from '@nexusdi/core';
 
 import { cases, type Leg } from '../../e2e/cases';
+import { honoMissionRoutes } from '../../e2e/fixtures/mission-routes';
 import { createBridge } from '../../src/hono';
 import { OfflineMeridian } from '../../src/ship/meridian';
 import { serve } from './serve';
@@ -12,7 +13,10 @@ const failures: string[] = [];
 for (const each of cases) {
   const leg: Leg = {
     framework: 'hono',
-    start: (ship, scopes) => serve(createBridge(ship, { scopes }).fetch),
+    start: (ship, scopes) =>
+      serve(
+        createBridge(ship, { scopes, mount: honoMissionRoutes(scopes) }).fetch,
+      ),
     ship: (plugins = []) => Nexus.create(OfflineMeridian, { plugins }),
     check(what, actual, expected) {
       if (JSON.stringify(actual) !== JSON.stringify(expected))

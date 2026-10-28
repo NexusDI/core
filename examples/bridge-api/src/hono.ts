@@ -1,4 +1,9 @@
-import { nexus, type ContainerSource, type NexusEnv } from '@nexusdi/hono';
+import {
+  nexus,
+  type ContainerSource,
+  type NexusEnv,
+  type NexusHono,
+} from '@nexusdi/hono';
 import {
   COMMAND_DESK,
   DECK_PLAN,
@@ -12,7 +17,6 @@ import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
-import { streamSSE } from 'hono/streaming';
 
 import { answerAtmosphere } from './bridge/atmosphere';
 import { answerCommand } from './bridge/commands';
@@ -23,12 +27,18 @@ import { MISSION_HEADER, requestOf } from './bridge/mission';
 import type { BridgeOptions } from './bridge/options';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { SSE_HEADERS, telemetryStream } from './bridge/telemetry-stream';
-import { UNCHARTED } from './bridge/uncharted';
-import { FLIGHT_LOG, MISSION, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
+import { FLIGHT_LOG, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
+
+/**
+ * A hook for the e2e and runtime-test routes: it adds routes right after the
+ * adapter middleware, so they run in a request scope. Ship routes belong in
+ * this entry.
+ */
+export type HonoMount = (bridge: Hono<NexusEnv>, di: NexusHono) => void;
 
 export function createBridge(
   ship: ContainerSource,
-  options: BridgeOptions = {},
+  options: BridgeOptions & { mount?: HonoMount } = {},
 ) {
   const di = nexus(ship, {
     // c.req.path decodes percent escapes, and Express and Fastify read the
@@ -77,41 +87,15 @@ export function createBridge(
     options.graph ? c.json(options.graph()) : c.notFound(),
   );
   bridge.use(di.middleware);
+  options.mount?.(bridge, di);
 
   bridge.get(
     '/course/:to',
-    di.inject(
-      { charts: NAV_CHARTS, log: FLIGHT_LOG },
-      async ({ charts, log }, c) => {
-        if (c.req.header(MISSION_HEADER) === 'missing-provider') {
-          (await di.scope(c)).get(UNCHARTED);
-        }
-        const to = c.req.param('to') ?? '';
-        log.record(`plotting ${to}`);
-        return c.json({ course: charts.plot(to), entries: log.entries() });
-      },
-    ),
-  );
-  bridge.get(
-    '/mission',
-    di.inject({}, async (_deps, c) => {
-      await Promise.resolve(); // read across an await, as a service call would
-      return c.json({
-        id: options.scopes?.current?.()?.get(MISSION).id ?? null,
-      });
+    di.inject({ charts: NAV_CHARTS, log: FLIGHT_LOG }, ({ charts, log }, c) => {
+      const to = c.req.param('to') ?? '';
+      log.record(`plotting ${to}`);
+      return c.json({ course: charts.plot(to), entries: log.entries() });
     }),
-  );
-  bridge.get(
-    '/log/stream',
-    di.inject({ log: FLIGHT_LOG }, ({ log }, c) =>
-      streamSSE(c, async (stream) => {
-        for (let tick = 1; tick <= 3; tick += 1) {
-          await stream.sleep(50);
-          log.record(`tick ${tick}`);
-          await stream.writeSSE({ data: log.entries().at(-1) ?? '' });
-        }
-      }),
-    ),
   );
   bridge.get(
     '/sim',

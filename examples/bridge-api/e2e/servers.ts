@@ -9,6 +9,11 @@ import type { NodeScopes } from '@nexusdi/node';
 import { createBridge as expressBridge } from '../src/express';
 import { createBridge as fastifyBridge } from '../src/fastify';
 import { createBridge as honoBridge } from '../src/hono';
+import {
+  expressMissionRoutes,
+  fastifyMissionRoutes,
+  honoMissionRoutes,
+} from './fixtures/mission-routes';
 
 export interface RunningBridge {
   readonly url: string;
@@ -48,17 +53,25 @@ export const servers: Readonly<
 > = {
   async hono(ship, scopes) {
     const server = serve({
-      fetch: honoBridge(ship, { scopes }).fetch,
+      fetch: honoBridge(ship, { scopes, mount: honoMissionRoutes(scopes) })
+        .fetch,
       port: 0,
       hostname: '127.0.0.1',
     }) as Server;
     return listening(server);
   },
   async express(ship, scopes) {
-    return listening(expressBridge(ship, { scopes }).listen(0, '127.0.0.1'));
+    const bridge = expressBridge(ship, {
+      scopes,
+      mount: expressMissionRoutes(scopes),
+    });
+    return listening(bridge.listen(0, '127.0.0.1'));
   },
   async fastify(ship, scopes) {
-    const bridge = await fastifyBridge(ship, { scopes });
+    const bridge = await fastifyBridge(ship, {
+      scopes,
+      mount: fastifyMissionRoutes(scopes),
+    });
     await bridge.listen({ port: 0, host: '127.0.0.1' });
     return {
       url: urlOf(bridge.server.address()),

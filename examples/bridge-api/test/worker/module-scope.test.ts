@@ -3,6 +3,7 @@ import { nodeScopes } from '@nexusdi/node';
 import { SELF } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 
+import { honoMissionRoutes } from '../../e2e/fixtures/mission-routes';
 import { createBridge } from '../../src/hono';
 import { OfflineMeridian } from '../../src/ship/meridian';
 import offlineWorker from '../../src/worker.offline';
@@ -12,7 +13,8 @@ import { recorder } from './harness';
 // so the test counts scopes.
 const seen = recorder();
 const ship = await Nexus.create(OfflineMeridian, { plugins: [seen.plugin] });
-const app = createBridge(ship, { scopes: nodeScopes() });
+const scopes = nodeScopes();
+const app = createBridge(ship, { scopes, mount: honoMissionRoutes(scopes) });
 
 describe('the bridge API on workerd, built at module scope', () => {
   it('answers a course with a scope per request', async () => {
@@ -60,10 +62,23 @@ describe('the bridge API on workerd, built at module scope', () => {
   });
 
   it('serves the module-scope entry, src/worker.offline.ts', async () => {
-    const res = await offlineWorker.request('/mission', {
-      headers: { 'x-mission-id': 'survey-3' },
+    // The entry runs requests in nodeScopes(), so the flight recorder finds
+    // the request's log and the door command answers its entry.
+    const res = await offlineWorker.request('/commands', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-mission-id': 'survey-3',
+      },
+      body: JSON.stringify({
+        system: 'safety',
+        action: 'open',
+        door: 'bridge-habitat',
+      }),
     });
-    expect(await res.json()).toEqual({ id: 'survey-3' });
+    expect(await res.json()).toMatchObject({
+      flightLog: ['survey-3: opened bridge-habitat'],
+    });
   });
 
   it('serves the configured entry, src/worker.ts, through the function form', async () => {

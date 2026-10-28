@@ -6,6 +6,7 @@ import {
 } from 'cloudflare:test';
 import { describe, expect, it, vi } from 'vitest';
 
+import { honoMissionRoutes } from '../../e2e/fixtures/mission-routes';
 import { createBridge } from '../../src/hono';
 import { OfflineMeridian } from '../../src/ship/meridian';
 import { recorder, until } from './harness';
@@ -49,6 +50,7 @@ describe('scope disposal on workerd', () => {
     const seen = recorder();
     const app = createBridge(
       await Nexus.create(OfflineMeridian, { plugins: [seen.plugin] }),
+      { mount: honoMissionRoutes() },
     );
     const controller = new AbortController();
     const ctx = createExecutionContext();
