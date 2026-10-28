@@ -51,7 +51,7 @@
     "react-router": "^7.9.0 || ^8.0.0"
   },
   "devDependencies": {
-    "@react-router/dev": "^8.4.0",
+    "@react-router/dev": "^8.5.0",
     "@react-router/node": "^8.4.0",
     "isbot": "^5.2.2",
     "react": "19.3.1",
