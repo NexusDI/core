@@ -75,7 +75,9 @@ To prevent your app from starting with invalid configuration, you can attach a `
 
 If the options provided to `forRoot` fail the schema check, `Nexus.create` rejects with `NEXUS_PROVIDER_FAILED`, whose `cause` is `NEXUS_INVALID_MODULE_OPTIONS`. The module's providers are never built with the bad value. The cause carries the schema's issues. See [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) and [NEXUS_INVALID_MODULE_OPTIONS](/errors/NEXUS_INVALID_MODULE_OPTIONS/).
 
-**Try it:** Install valibot with `npm install valibot@1.5.0`, save the region as `schema.ts` and run it. It prints the codes and `Invalid value: Expected >=1 but received -5`. Change `-5` to `1420` and run it again. `Nexus.create` resolves, so the first two lines print `null` and the third prints `[]`.
+**Schema defaults** allow you to simplify the configuration required by the importer. `CommsSchema` gives `transport` the default `'relay'`, so `Comms.forRoot({ frequency: 1420 })` leaves the field out. `forRoot()` and the `forRootAsync()` factory take the schema's input type, while `COMMS_OPTIONS` resolves to the schema's output, the value with all defaults filled in. `SubspaceRelay` reads `transport` from that output, and the last line of the region prints `relay on 1420`. A module without a schema types `forRoot()` with its options token, and so does a module whose schema declares its input as `unknown` or `any`.
+
+**Try it:** Install valibot with `npm install valibot@1.5.0`, save the region as `schema.ts` and run it. It prints the codes, `Invalid value: Expected >=1 but received -5` and `relay on 1420`. Change `-5` to `1420` and run it again. `Nexus.create` resolves, so the first two lines print `null` and the third prints `[]`. Add `transport: 'beam'` to the second `forRoot()` call, and `tsc` reports that `"beam"` is not assignable to the schema's input type on that line.
 
 ## Sharing Configured Modules
 
