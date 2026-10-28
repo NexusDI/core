@@ -278,3 +278,113 @@ console.log(systems);
 ```
 
 <!-- #endregion unexported -->
+
+<!-- #region lazy-all -->
+
+```ts @import.meta.vitest
+import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
+import { lazy, provide } from '@nexusdi/core';
+
+interface IBulletin {
+  readonly text: string;
+}
+interface IHandler {
+  handle(bulletin: IBulletin): void;
+}
+interface IEventBus {
+  publish(bulletin: IBulletin): void;
+}
+const HANDLERS = new MultiToken<IHandler>('Handlers');
+const EVENT_BUS = new Token<IEventBus>('EventBus');
+
+// The bus owns the cycle: it takes the handlers lazily, once.
+class SubspaceBus implements IEventBus {
+  static deps = [lazy(all(HANDLERS))] as const;
+  constructor(private readonly handlers: () => IHandler[]) {}
+  publish(bulletin: IBulletin) {
+    for (const each of this.handlers()) each.handle(bulletin);
+  }
+}
+// The handlers publish, so they depend on the bus. None of them writes lazy().
+class AlertHandler implements IHandler {
+  static deps = [EVENT_BUS] as const;
+  constructor(private readonly bus: IEventBus) {}
+  handle(bulletin: IBulletin) {
+    if (bulletin.text === 'hull breach')
+      this.bus.publish({ text: 'all hands' });
+  }
+}
+const heard: string[] = [];
+class LogHandler implements IHandler {
+  handle(bulletin: IBulletin) {
+    heard.push(bulletin.text);
+  }
+}
+
+await using ship = await Nexus.create(
+  defineModule({
+    name: 'Meridian',
+    providers: [
+      provide(EVENT_BUS, { useClass: SubspaceBus }),
+      provide(HANDLERS, { useClass: AlertHandler }),
+      provide(HANDLERS, { useClass: LogHandler }),
+    ],
+  }),
+);
+ship.get(EVENT_BUS).publish({ text: 'hull breach' });
+const log = [...heard]; // -> ['all hands', 'hull breach']
+console.log(log);
+```
+
+<!-- #endregion lazy-all -->
+
+<!-- #region lazy-all-cycle -->
+
+```ts @import.meta.vitest
+import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
+import { isNexusError, provide } from '@nexusdi/core';
+
+interface IHandler {
+  handle(): void;
+}
+interface IEventBus {
+  publish(): void;
+}
+const HANDLERS = new MultiToken<IHandler>('Handlers');
+const EVENT_BUS = new Token<IEventBus>('EventBus');
+
+// The bus takes all() without lazy(), so the bus and its handler form a cycle.
+class SubspaceBus implements IEventBus {
+  static deps = [all(HANDLERS)] as const;
+  constructor(private readonly handlers: IHandler[]) {}
+  publish() {
+    for (const each of this.handlers) each.handle();
+  }
+}
+class AlertHandler implements IHandler {
+  static deps = [EVENT_BUS] as const;
+  constructor(private readonly bus: IEventBus) {}
+  handle() {
+    this.bus.publish();
+  }
+}
+
+const error = await Nexus.create(
+  defineModule({
+    name: 'Meridian',
+    providers: [
+      provide(EVENT_BUS, { useClass: SubspaceBus }),
+      provide(HANDLERS, { useClass: AlertHandler }),
+    ],
+  }),
+).catch((caught: unknown) => caught);
+const code = isNexusError(error) ? error.code : null; // -> 'NEXUS_BLUEPRINT_INVALID'
+console.log(code);
+const inner = isNexusError(error, 'NEXUS_BLUEPRINT_INVALID')
+  ? error.errors[0]
+  : undefined;
+const cycle = isNexusError(inner) ? inner.code : null; // -> 'NEXUS_CIRCULAR_DEPENDENCY'
+console.log(cycle);
+```
+
+<!-- #endregion lazy-all-cycle -->

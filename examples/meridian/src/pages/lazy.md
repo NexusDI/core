@@ -266,3 +266,182 @@ console.log(reason);
 ```
 
 <!-- #endregion not-ready -->
+
+<!-- #region collector -->
+
+```ts @import.meta.vitest
+import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
+import { lazy, provide } from '@nexusdi/core';
+
+interface IPowerConsumer {
+  readonly name: string;
+  divert(): number;
+}
+interface IPowerRouter {
+  consumers(): IPowerConsumer[];
+  divertAll(): number;
+}
+const POWER_CONSUMERS = new MultiToken<IPowerConsumer>('PowerConsumers');
+const POWER_ROUTER = new Token<IPowerRouter>('PowerRouter');
+
+// The router calls the thunk later, so it breaks the cycle once for every consumer.
+class PlasmaRouter implements IPowerRouter {
+  static deps = [lazy(all(POWER_CONSUMERS))] as const;
+  constructor(readonly consumers: () => IPowerConsumer[]) {}
+  divertAll() {
+    return this.consumers().reduce((sum, each) => sum + each.divert(), 0);
+  }
+}
+class ShieldGrid implements IPowerConsumer {
+  static deps = [POWER_ROUTER] as const;
+  readonly name = 'shields';
+  constructor(private readonly router: IPowerRouter) {}
+  divert() {
+    return 0.4;
+  }
+}
+class Deflector implements IPowerConsumer {
+  static deps = [POWER_ROUTER] as const;
+  readonly name = 'deflector';
+  constructor(private readonly router: IPowerRouter) {}
+  divert() {
+    return 0.2;
+  }
+}
+
+await using ship = await Nexus.create(
+  defineModule({
+    name: 'Engineering',
+    providers: [
+      provide(POWER_ROUTER, { useClass: PlasmaRouter }),
+      provide(POWER_CONSUMERS, { useClass: ShieldGrid }),
+      provide(POWER_CONSUMERS, { useClass: Deflector }),
+    ],
+  }),
+);
+const router = ship.get(POWER_ROUTER);
+const names = router.consumers().map((each) => each.name); // -> ['shields', 'deflector']
+console.log(names);
+const first = router.consumers();
+const second = router.consumers();
+const sameArray = first === second; // -> false
+console.log(sameArray);
+const sameInstance = first[0] === second[0]; // -> true
+console.log(sameInstance);
+```
+
+<!-- #endregion collector -->
+
+<!-- #region collector-not-ready -->
+
+```ts @import.meta.vitest
+import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
+import { isNexusError, lazy, provide } from '@nexusdi/core';
+
+interface IPowerConsumer {
+  readonly name: string;
+}
+interface IPowerRouter {
+  readonly online: boolean;
+}
+const POWER_CONSUMERS = new MultiToken<IPowerConsumer>('PowerConsumers');
+const POWER_ROUTER = new Token<IPowerRouter>('PowerRouter');
+
+let cellsBuilt = 0;
+
+class PlasmaRouter implements IPowerRouter {
+  static deps = [lazy(all(POWER_CONSUMERS))] as const;
+  readonly online: boolean;
+  constructor(consumers: () => IPowerConsumer[]) {
+    // The thunk runs during construction, before the shield grid exists.
+    this.online = consumers().length > 0;
+  }
+}
+class ReserveCell implements IPowerConsumer {
+  readonly name = 'reserve';
+  constructor() {
+    cellsBuilt += 1;
+  }
+}
+class ShieldGrid implements IPowerConsumer {
+  static deps = [POWER_ROUTER] as const;
+  readonly name = 'shields';
+  constructor(private readonly router: IPowerRouter) {}
+}
+
+const error = await Nexus.create(
+  defineModule({
+    name: 'Engineering',
+    providers: [
+      provide(POWER_ROUTER, { useClass: PlasmaRouter }),
+      provide(POWER_CONSUMERS, {
+        useClass: ReserveCell,
+        lifetime: 'transient',
+      }),
+      provide(POWER_CONSUMERS, { useClass: ShieldGrid }),
+    ],
+  }),
+).catch((caught: unknown) => caught);
+const cause = isNexusError(error) ? error.cause : undefined;
+const reason = isNexusError(cause) ? cause.code : null; // -> 'NEXUS_NOT_READY'
+console.log(reason);
+const target = isNexusError(cause, 'NEXUS_NOT_READY') ? cause.target : null; // -> 'PowerConsumers'
+console.log(target);
+const built = cellsBuilt; // -> 0
+console.log(built);
+```
+
+<!-- #endregion collector-not-ready -->
+
+<!-- #region collector-dispose -->
+
+```ts @import.meta.vitest
+import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
+import { isNexusError, lazy, provide } from '@nexusdi/core';
+
+interface IPowerConsumer {
+  readonly name: string;
+}
+interface IPowerRouter {
+  readonly refusal: string | null;
+}
+const POWER_CONSUMERS = new MultiToken<IPowerConsumer>('PowerConsumers');
+const POWER_ROUTER = new Token<IPowerRouter>('PowerRouter');
+
+class PlasmaRouter implements IPowerRouter {
+  static deps = [lazy(all(POWER_CONSUMERS))] as const;
+  refusal: string | null = null;
+  constructor(private readonly consumers: () => IPowerConsumer[]) {}
+  // The router is created first, so it is disposed last. By then its consumers are gone.
+  [Symbol.asyncDispose](): Promise<void> {
+    try {
+      this.consumers();
+    } catch (error) {
+      this.refusal = isNexusError(error) ? error.code : null;
+    }
+    return Promise.resolve();
+  }
+}
+class ShieldGrid implements IPowerConsumer {
+  static deps = [POWER_ROUTER] as const;
+  readonly name = 'shields';
+  constructor(private readonly router: IPowerRouter) {}
+  [Symbol.dispose]() {}
+}
+
+const ship = await Nexus.create(
+  defineModule({
+    name: 'Engineering',
+    providers: [
+      provide(POWER_ROUTER, { useClass: PlasmaRouter }),
+      provide(POWER_CONSUMERS, { useClass: ShieldGrid }),
+    ],
+  }),
+);
+const router = ship.get(POWER_ROUTER);
+await ship[Symbol.asyncDispose]();
+const refusal = router.refusal; // -> 'NEXUS_DISPOSED'
+console.log(refusal);
+```
+
+<!-- #endregion collector-dispose -->
