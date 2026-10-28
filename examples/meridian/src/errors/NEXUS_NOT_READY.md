@@ -68,6 +68,64 @@ console.log(text);
 
 <!-- #endregion reproduce -->
 
+<!-- #region reproduce-collector -->
+
+```ts @import.meta.vitest
+import {
+  MultiToken,
+  Nexus,
+  Token,
+  all,
+  defineModule,
+  isNexusError,
+  lazy,
+  provide,
+} from '@nexusdi/core';
+import { errors } from '@nexusdi/errors';
+
+interface IPowerRouter {
+  readonly online: boolean;
+}
+interface IPowerConsumer {
+  readonly name: string;
+}
+const POWER_ROUTER = new Token<IPowerRouter>('PowerRouter');
+const POWER_CONSUMERS = new MultiToken<IPowerConsumer>('PowerConsumers');
+
+class PlasmaRouter implements IPowerRouter {
+  static deps = [lazy(all(POWER_CONSUMERS))] as const;
+  readonly online: boolean;
+  constructor(consumers: () => IPowerConsumer[]) {
+    // The thunk runs inside the constructor, before ShieldGrid exists.
+    this.online = consumers().length > 0;
+  }
+}
+class ShieldGrid implements IPowerConsumer {
+  static deps = [POWER_ROUTER] as const;
+  readonly name = 'shields';
+  constructor(readonly router: IPowerRouter) {}
+}
+
+const error = await Nexus.create(
+  defineModule({
+    name: 'Engineering',
+    providers: [
+      provide(POWER_ROUTER, { useClass: PlasmaRouter }),
+      provide(POWER_CONSUMERS, { useClass: ShieldGrid }),
+    ],
+  }),
+  { plugins: [errors()] },
+).catch((caught: unknown) => caught);
+if (!isNexusError(error, 'NEXUS_PROVIDER_FAILED')) throw error;
+const cause = error.cause;
+const who = isNexusError(cause, 'NEXUS_NOT_READY') ? cause.contributor : null; // -> 'ShieldGrid (module Engineering)'
+console.log(who);
+const text = isNexusError(cause) ? cause.message.split('\n')[0] : null; // -> '[NEXUS_NOT_READY] PowerRouter called its lazy(all(PowerConsumers)) thunk before the contribution ShieldGrid (module Engineering) was ready.'
+console.log(text);
+```
+
+<!-- #endregion reproduce-collector -->
+
 <!-- #region fix -->
 
 ```ts @import.meta.vitest

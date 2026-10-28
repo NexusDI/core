@@ -133,15 +133,15 @@ flowchart LR
 
 ### All or Nothing
 
-**To ensure consistency, the thunk validates all contributions before building any of them.** It traverses the contributions in record order; if it encounters a contribution that is not yet ready, it throws `NEXUS_NOT_READY`. This error names the multi token as its `target`. Because the thunk builds nothing until all contributions are verified, a call never returns a partial list. The first refusal is `NEXUS_DISPOSED` when the first contribution the thunk refuses is a disposed one, so record order decides which of the two codes a call throws.
+**To ensure consistency, the thunk validates all contributions before building any of them.** It traverses the contributions in record order; if it encounters a contribution that is not yet ready, it throws `NEXUS_NOT_READY`. This error identifies the multi-token as the `target` and the unready contribution as the `contributor`. Because the thunk builds nothing until all contributions are verified, a call never returns a partial list. The first refusal is `NEXUS_DISPOSED` when the first contribution the thunk refuses is a disposed one, so record order decides which of the two codes a call throws.
 
 ```ts file=examples/meridian/src/pages/lazy.md region=collector-not-ready
 
 ```
 
-**In this example, `PlasmaRouter` calls the thunk in its constructor.** Because `ShieldGrid` depends on the router, the router must be built first, meaning `ShieldGrid` is not yet ready. Although `ReserveCell` is transient and appears first in record order, the thunk still builds nothing. Since the contributions share the token's name, the `target` reads `PowerConsumers`.
+**In this example, `PlasmaRouter` calls the thunk in its constructor.** Because `ShieldGrid` depends on the router, the router must be built first, meaning `ShieldGrid` is not yet ready. Although `ReserveCell` is transient and appears first in record order, the thunk still builds nothing. Since the contributions share the token's name, the `target` reads `PowerConsumers` and the `contributor` reads `ShieldGrid (module Engineering)`.
 
-**Try it:** Save the region as `collector-not-ready.ts` and run it. It prints `NEXUS_NOT_READY`, `PowerConsumers` and `0`. Remove the `ShieldGrid` provider and run it again: the thunk finds only `ReserveCell`, so `Nexus.create` succeeds and the region prints `null`, `null` and `1`. Put the provider back when you are done.
+**Try it:** Save the region as `collector-not-ready.ts` and run it. It prints `NEXUS_NOT_READY`, `PowerConsumers`, `ShieldGrid (module Engineering)` and `0`. Remove the `ShieldGrid` provider and run it again: the thunk finds only `ReserveCell`, so `Nexus.create` succeeds and the region prints `null`, `null`, `null` and `1`. Put the provider back when you are done.
 
 ### Calling the Thunk While Disposing
 

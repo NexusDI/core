@@ -75,22 +75,22 @@ For a `MultiToken` and a module, the container applies two rules. A module publi
 
 What a reader of `all()` sees:
 
-- Only same-module privacy remains. A contribution that its module does not export is read inside that module, and by root `get()` when the module is the root.
+- Private contributions stay private. If a module does not export a contribution, it remains visible only within that module (or by a root `get()` if that module is the root). For a non-root module to keep such a contribution, it must provide its own reader via `all()` or `lazy(all())`. Otherwise, NexusDI detects a contribution that no provider reads and rejects with `NEXUS_UNREAD_CONTRIBUTION`.
 - Two collectors of one token in two modules see one list, apart from each one's own private contributions. A plugin module's exported contributions (`NexusPlugin.modules`) are in that list, as any other module's are.
 
 `exports: [DIAGNOSTICS]` in a module with no contribution of its own is legal and does nothing. The contributions of its imports reach every collector without it, and the export raises no `NEXUS_INVALID_EXPORT`.
 
-**Try it:** Save the region as `health.ts` and run it. It prints `reactor green, hull red` and then `2`. Delete `exports: [HEALTH_CHECKS],` from `Tactical` and run it again: it prints `reactor green` and then `1`. Both collectors lose the hull check, and nothing throws. Put the line back and it prints `reactor green, hull red` and `2` again.
+**Try it:** Save the region as `health.ts` and run it. It prints `reactor green, hull red` and then `2`. Delete `exports: [HEALTH_CHECKS],` from `Tactical` and run it again: `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and its `errors` list holds `NEXUS_UNREAD_CONTRIBUTION` for `HullCheck` in `Tactical`, because no provider in `Tactical` reads `HEALTH_CHECKS`. Put the line back and it prints `reactor green, hull red` and `2` again.
 
-The next region contributes to a token without exporting it, and the contribution stays private.
+The next region contributes to a token without exporting it, and no provider in the module reads the token.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=unexported
 
 ```
 
-`Tactical` contributes the hull check and has no `exports`, so the panel, which sits in `Meridian`, sees only the reactor. Only a reader inside `Tactical` would see the hull check.
+`Tactical` contributes the hull check, has no `exports` and has no provider of its own, so nothing can read the contribution. The panel in `Meridian` sees only what `Engineering` exports. `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and the first entry of its `errors` list is `NEXUS_UNREAD_CONTRIBUTION`. There are three fixes, in this order: collect the contribution in `Tactical` with a provider that takes `all(DIAGNOSTICS)`, add `DIAGNOSTICS` to the `exports` of `Tactical` to publish it to every collector, or remove the contribution. [NEXUS_UNREAD_CONTRIBUTION](/errors/NEXUS_UNREAD_CONTRIBUTION/) lists the conditions and the lookups that do not count as readers.
 
-**Try it:** Save the region as `private.ts` and run it. It prints `[ 'reactor' ]`. Add `exports: [DIAGNOSTICS]` to `Tactical` and run it again: it prints `[ 'reactor', 'hull' ]`. Remove `exports` from `Tactical` and it prints `[ 'reactor' ]` again, with no error either way.
+**Try it:** Save the region as `private.ts` and run it. It prints `NEXUS_BLUEPRINT_INVALID` and then `NEXUS_UNREAD_CONTRIBUTION`. Add `exports: [DIAGNOSTICS]` to `Tactical` and run it again: `Nexus.create` succeeds, and the region prints `null` twice because there is no error to read. Remove `exports` from `Tactical` and the error returns.
 
 ### The Order of the List
 

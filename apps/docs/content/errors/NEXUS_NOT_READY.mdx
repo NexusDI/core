@@ -20,6 +20,14 @@ The region calls the `lazy(SHIELD_GRID)` thunk inside the `PlasmaRouter` constru
 
 Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text as an array of two strings. The `owner` and `target` fields name the provider that called the thunk and the one it asked for. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `0.4`.
 
+A thunk from `lazy(all(TOKEN))` raises the same error when the first contribution it checks is not ready. Its `target` names the multi token, and its `contributor` field identifies the specific contribution causing the block, formatted as `<label> (module <name>)`. The full text reads `PowerRouter called its lazy(all(PowerConsumers)) thunk before the contribution ShieldGrid (module Engineering) was ready.` The label is a class name, a factory's own function name, or the form and position of the contribution, such as `useValue #2`. The region below puts the thunk in the `PlasmaRouter` constructor while `ShieldGrid` contributes to `POWER_CONSUMERS` and waits for the router.
+
+```ts file=examples/meridian/src/errors/NEXUS_NOT_READY.md region=reproduce-collector
+
+```
+
+Try it: save the region as `collector.ts` and run `npx tsx collector.ts`. It prints `ShieldGrid (module Engineering)`, then the first line of the full text. [Collectors Their Contributors Call](/lazy/#collectors-their-contributors-call) describes the thunk.
+
 ## Fix `NEXUS_NOT_READY`
 
 `NEXUS_NOT_READY` is fixed by calling the thunk from a method that runs after startup. A constructor runs too early, because the container has not built the target yet.
@@ -32,8 +40,9 @@ Try it: in `fixed.ts`, change the `PlasmaRouter` constructor to `constructor(pri
 
 ## Fields of `NotReadyError`
 
-`NotReadyError` carries these fields:
+`NotReadyError` carries these four fields:
 
 - `owner`: the provider whose thunk ran.
-- `target`: the provider the thunk resolves.
-- `path`: empty unless the target is in the middle of its own build. Then it lists the providers being built, from the first frame of the target to the provider that called the thunk, and ends with the target's name. The rule is the same at startup and at `get()`. At startup the error sits inside a `ProviderError` whose own `path` holds only the failing provider. At `get()` it is thrown bare. The full text from `errors()` adds a `Runtime cycle` line when `path` is not empty.
+- `target`: for a `lazy(all())` thunk, the multi token. For a `lazy()` thunk, the provider the thunk refused, after alias hops.
+- `path`: empty unless the provider the thunk refused is in the middle of its own build. Then it lists the providers being built, from that provider's first frame to the provider that called the thunk, and ends with the provider the thunk refused. The rule is the same at startup and at `get()`. At startup the error sits inside a `ProviderError` whose own `path` holds only the failing provider. At `get()` it is thrown bare. The full text from `errors()` adds a `Runtime cycle` line when `path` is not empty.
+- `contributor`: `null` for a plain `lazy()` thunk. For a `lazy(all())` thunk it names the unready contribution as `<label> (module <name>)`.

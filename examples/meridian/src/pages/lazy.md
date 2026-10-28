@@ -418,6 +418,8 @@ const reason = isNexusError(cause) ? cause.code : null; // -> 'NEXUS_NOT_READY'
 console.log(reason);
 const target = isNexusError(cause, 'NEXUS_NOT_READY') ? cause.target : null; // -> 'PowerConsumers'
 console.log(target);
+const who = isNexusError(cause, 'NEXUS_NOT_READY') ? cause.contributor : null; // -> 'ShieldGrid (module Engineering)'
+console.log(who);
 const built = cellsBuilt; // -> 0
 console.log(built);
 ```
