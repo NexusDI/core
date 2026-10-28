@@ -26,6 +26,11 @@
       "import": "./src/systems/tactical/star-charts.ts",
       "default": "./src/systems/tactical/star-charts.ts"
     },
+    "./geometry": {
+      "types": "./src/geometry/ship-geometry.ts",
+      "import": "./src/geometry/ship-geometry.ts",
+      "default": "./src/geometry/ship-geometry.ts"
+    },
     "./package.json": "./package.json"
   },
   "dependencies": {

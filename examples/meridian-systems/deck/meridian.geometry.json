@@ -1,0 +1,836 @@
+{
+  "units": "m",
+  "axes": {
+    "x": "aft of the bow",
+    "y": "starboard of the centreline",
+    "z": "above the ventral skin"
+  },
+  "hull": {
+    "length": 72,
+    "beam": 16,
+    "height": 13,
+    "skin": 0.3,
+    "stations": [
+      {
+        "x": 0,
+        "halfBeam": 4.8,
+        "bottom": 1.6,
+        "top": 10.0,
+        "chamferBottom": [1.2, 1.2],
+        "chamferTop": [1.0, 0.6]
+      },
+      {
+        "x": 12,
+        "halfBeam": 8.0,
+        "bottom": 0.0,
+        "top": 11.8,
+        "chamferBottom": [3.0, 2.0],
+        "chamferTop": [1.8, 1.0]
+      },
+      {
+        "x": 41,
+        "halfBeam": 8.0,
+        "bottom": 0.0,
+        "top": 11.8,
+        "chamferBottom": [3.0, 2.0],
+        "chamferTop": [1.8, 1.0]
+      },
+      {
+        "x": 42.5,
+        "halfBeam": 8.0,
+        "bottom": 0.4,
+        "top": 12.4,
+        "chamferBottom": [1.6, 1.6],
+        "chamferTop": [1.0, 0.8]
+      },
+      {
+        "x": 55.5,
+        "halfBeam": 8.0,
+        "bottom": 0.4,
+        "top": 12.4,
+        "chamferBottom": [1.6, 1.6],
+        "chamferTop": [1.0, 0.8]
+      },
+      {
+        "x": 56.5,
+        "halfBeam": 6.4,
+        "bottom": 2.4,
+        "top": 10.4,
+        "chamferBottom": [1.4, 1.2],
+        "chamferTop": [1.2, 1.0]
+      },
+      {
+        "x": 65.5,
+        "halfBeam": 5.2,
+        "bottom": 3.4,
+        "top": 9.4,
+        "chamferBottom": [1.0, 1.0],
+        "chamferTop": [1.0, 0.8]
+      },
+      {
+        "x": 67,
+        "halfBeam": 5.2,
+        "bottom": 3.4,
+        "top": 9.4,
+        "chamferBottom": [1.0, 1.0],
+        "chamferTop": [1.0, 0.8]
+      }
+    ]
+  },
+  "decks": [
+    { "id": "lower", "floor": 1.6, "height": 3.2, "clearHeight": 2.6 },
+    { "id": "main", "floor": 4.8, "height": 3.2, "clearHeight": 2.6 },
+    { "id": "upper", "floor": 8.0, "height": 3.2, "clearHeight": 2.6 }
+  ],
+  "compartments": [
+    {
+      "id": "bridge",
+      "hullSection": "bridge",
+      "role": "command",
+      "decks": ["main"],
+      "pressurised": true,
+      "boxes": [{ "x": [2, 10], "y": [-4.5, 4.5], "z": [4.8, 8.0] }]
+    },
+    {
+      "id": "habitat",
+      "hullSection": "habitat",
+      "role": "crew",
+      "decks": ["main"],
+      "pressurised": true,
+      "boxes": [
+        { "x": [10, 14], "y": [-3.5, 0.5], "z": [4.8, 8.0] },
+        { "x": [14, 28], "y": [-2, 7], "z": [4.8, 8.0] },
+        { "x": [14, 24], "y": [-7, -2], "z": [4.8, 8.0] }
+      ]
+    },
+    {
+      "id": "reactor-bay",
+      "hullSection": "reactor-bay",
+      "role": "machinery",
+      "decks": ["main", "upper"],
+      "pressurised": true,
+      "boxes": [{ "x": [43, 55], "y": [-6, 6], "z": [4.8, 11.2] }]
+    },
+    {
+      "id": "airlock",
+      "hullSection": "airlock",
+      "role": "airlock",
+      "decks": ["main"],
+      "pressurised": true,
+      "boxes": [{ "x": [24, 27], "y": [-7.5, -2], "z": [4.8, 8.0] }]
+    },
+    {
+      "id": "chart-room",
+      "hullSection": "chart-room",
+      "role": "command",
+      "decks": ["main"],
+      "pressurised": true,
+      "boxes": [{ "x": [10, 14], "y": [0.5, 6.5], "z": [4.8, 8.0] }]
+    },
+    {
+      "id": "computer-core",
+      "hullSection": "computer-core",
+      "role": "systems",
+      "decks": ["lower"],
+      "pressurised": true,
+      "boxes": [{ "x": [3, 9], "y": [-2.5, 2.5], "z": [1.6, 4.8] }]
+    },
+    {
+      "id": "quarters",
+      "hullSection": "habitat",
+      "role": "crew",
+      "decks": ["upper"],
+      "pressurised": true,
+      "boxes": [{ "x": [17, 27], "y": [0.75, 6.5], "z": [8.0, 11.2] }]
+    },
+    {
+      "id": "comms-relay",
+      "hullSection": "comms",
+      "role": "systems",
+      "decks": ["upper"],
+      "pressurised": true,
+      "boxes": [{ "x": [12, 16], "y": [0.75, 6.5], "z": [8.0, 11.2] }]
+    },
+    {
+      "id": "shuttle-bay",
+      "hullSection": "shuttle-bay",
+      "role": "bay",
+      "decks": ["lower"],
+      "pressurised": false,
+      "boxes": [{ "x": [15, 31], "y": [-4, 4], "z": [0.4, 4.8] }]
+    },
+    {
+      "id": "drone-bay",
+      "hullSection": "drone-bay",
+      "role": "bay",
+      "decks": ["lower"],
+      "pressurised": false,
+      "boxes": [{ "x": [31, 38], "y": [-2.5, 2.5], "z": [0.4, 4.8] }]
+    },
+    {
+      "id": "capacitor-room",
+      "hullSection": "weapons",
+      "role": "machinery",
+      "decks": ["upper"],
+      "pressurised": true,
+      "boxes": [{ "x": [30, 38], "y": [-3.5, 3.5], "z": [8.0, 11.2] }]
+    },
+    {
+      "id": "engineering",
+      "hullSection": "engineering",
+      "role": "machinery",
+      "decks": ["main"],
+      "pressurised": true,
+      "boxes": [{ "x": [28, 43], "y": [-5, 5], "z": [4.8, 8.0] }]
+    },
+    {
+      "id": "ftl-core",
+      "hullSection": "ftl-core",
+      "role": "machinery",
+      "decks": ["lower"],
+      "pressurised": true,
+      "boxes": [{ "x": [38, 46], "y": [-3, 3], "z": [1.6, 4.8] }]
+    },
+    {
+      "id": "main-drive",
+      "hullSection": "main-drive",
+      "role": "machinery",
+      "decks": ["main"],
+      "pressurised": true,
+      "boxes": [{ "x": [55, 65], "y": [-3.5, 3.5], "z": [4.8, 8.0] }]
+    }
+  ],
+  "doors": [
+    {
+      "id": "bridge-habitat",
+      "between": ["bridge", "habitat"],
+      "kind": "hatch",
+      "x": [10, 10],
+      "y": [-2.25, -0.75],
+      "z": [4.8, 6.8]
+    },
+    {
+      "id": "habitat-airlock",
+      "between": ["habitat", "airlock"],
+      "kind": "hatch",
+      "x": [24.75, 26.25],
+      "y": [-2, -2],
+      "z": [4.8, 6.8]
+    },
+    {
+      "id": "airlock-outer",
+      "between": ["airlock", "space"],
+      "kind": "hatch",
+      "x": [24.25, 25.75],
+      "y": [-7.5, -7.5],
+      "z": [4.8, 6.8]
+    },
+    {
+      "id": "bridge-chart-room",
+      "between": ["bridge", "chart-room"],
+      "kind": "hatch",
+      "x": [10, 10],
+      "y": [2.25, 3.75],
+      "z": [4.8, 6.8]
+    },
+    {
+      "id": "bridge-computer-core",
+      "between": ["bridge", "computer-core"],
+      "kind": "hatch",
+      "x": [5, 7],
+      "y": [0.5, 2.0],
+      "z": [4.8, 4.8]
+    },
+    {
+      "id": "habitat-quarters",
+      "between": ["habitat", "quarters"],
+      "kind": "hatch",
+      "x": [18, 20],
+      "y": [4, 5.5],
+      "z": [8.0, 8.0]
+    },
+    {
+      "id": "habitat-comms-relay",
+      "between": ["habitat", "comms-relay"],
+      "kind": "hatch",
+      "x": [14.25, 15.75],
+      "y": [2.5, 4.5],
+      "z": [8.0, 8.0]
+    },
+    {
+      "id": "airlock-shuttle-bay",
+      "between": ["airlock", "shuttle-bay"],
+      "kind": "hatch",
+      "x": [24.5, 26.5],
+      "y": [-3.5, -2],
+      "z": [4.8, 4.8]
+    },
+    {
+      "id": "shuttle-bay-outer",
+      "between": ["shuttle-bay", "space"],
+      "kind": "bay-door",
+      "x": [18, 28],
+      "y": [-2.5, 2.5],
+      "z": [0.4, 0.4]
+    },
+    {
+      "id": "shuttle-bay-drone-bay",
+      "between": ["shuttle-bay", "drone-bay"],
+      "kind": "hatch",
+      "x": [31, 31],
+      "y": [-0.75, 0.75],
+      "z": [1.6, 3.6]
+    },
+    {
+      "id": "drone-bay-outer",
+      "between": ["drone-bay", "space"],
+      "kind": "bay-door",
+      "x": [33, 36],
+      "y": [-1, 1],
+      "z": [0.4, 0.4]
+    },
+    {
+      "id": "habitat-engineering",
+      "between": ["habitat", "engineering"],
+      "kind": "hatch",
+      "x": [28, 28],
+      "y": [-0.75, 0.75],
+      "z": [4.8, 6.8]
+    },
+    {
+      "id": "engineering-capacitor-room",
+      "between": ["engineering", "capacitor-room"],
+      "kind": "hatch",
+      "x": [32, 34],
+      "y": [-0.75, 0.75],
+      "z": [8.0, 8.0]
+    },
+    {
+      "id": "engineering-ftl-core",
+      "between": ["engineering", "ftl-core"],
+      "kind": "hatch",
+      "x": [40, 42],
+      "y": [-0.75, 0.75],
+      "z": [4.8, 4.8]
+    },
+    {
+      "id": "engineering-reactor-bay",
+      "between": ["engineering", "reactor-bay"],
+      "kind": "hatch",
+      "x": [43, 43],
+      "y": [-0.75, 0.75],
+      "z": [4.8, 6.8]
+    },
+    {
+      "id": "reactor-bay-main-drive",
+      "between": ["reactor-bay", "main-drive"],
+      "kind": "hatch",
+      "x": [55, 55],
+      "y": [-0.75, 0.75],
+      "z": [4.8, 6.8]
+    }
+  ],
+  "conduits": [
+    {
+      "id": "power.life-support.forward",
+      "kind": "power",
+      "load": "life-support",
+      "path": [
+        [35, 0, 7.7],
+        [28, 0, 7.7],
+        [16, 0, 7.7],
+        [16, -1.5, 7.7],
+        [10, -1.5, 7.7],
+        [6, -1.5, 7.7],
+        [6, 0, 7.7]
+      ]
+    },
+    {
+      "id": "power.life-support.chart-room",
+      "kind": "power",
+      "load": "life-support",
+      "path": [
+        [12, -1.5, 7.7],
+        [12, 0.5, 7.7],
+        [12, 3.5, 7.7]
+      ]
+    },
+    {
+      "id": "power.life-support.computer-core",
+      "kind": "power",
+      "load": "life-support",
+      "path": [
+        [6, 0, 7.7],
+        [6, 1.25, 7.7],
+        [6, 1.25, 4.8],
+        [6, 1.25, 3.0]
+      ]
+    },
+    {
+      "id": "power.life-support.quarters",
+      "kind": "power",
+      "load": "life-support",
+      "path": [
+        [19, 0, 7.7],
+        [19, 4.75, 7.7],
+        [19, 4.75, 8.0],
+        [19, 4.75, 10.9],
+        [22, 4.75, 10.9]
+      ]
+    },
+    {
+      "id": "power.life-support.comms-relay",
+      "kind": "power",
+      "load": "life-support",
+      "path": [
+        [16, 0, 7.7],
+        [16, 3.5, 7.7],
+        [15, 3.5, 7.7],
+        [15, 3.5, 8.0],
+        [15, 3.5, 10.9],
+        [13, 3.5, 10.9]
+      ]
+    },
+    {
+      "id": "power.life-support.airlock",
+      "kind": "power",
+      "load": "life-support",
+      "path": [
+        [25.5, 0, 7.7],
+        [25.5, -2, 7.7],
+        [25.5, -4.5, 7.7]
+      ]
+    },
+    {
+      "id": "power.life-support.capacitor-room",
+      "kind": "power",
+      "load": "life-support",
+      "path": [
+        [35, 0, 7.7],
+        [33, 0, 7.7],
+        [33, 0, 8.0],
+        [33, 0, 10.9],
+        [35, 0, 10.9]
+      ]
+    },
+    {
+      "id": "power.life-support.ftl-core",
+      "kind": "power",
+      "load": "life-support",
+      "path": [
+        [35, 0, 7.7],
+        [41, 0, 7.7],
+        [41, 0, 4.8],
+        [41, 0, 3.2]
+      ]
+    },
+    {
+      "id": "power.life-support.reactor-bay",
+      "kind": "power",
+      "load": "life-support",
+      "path": [
+        [35, 0, 7.7],
+        [43, 0, 7.7],
+        [46, 0, 7.7]
+      ]
+    },
+    {
+      "id": "power.life-support.main-drive",
+      "kind": "power",
+      "load": "life-support",
+      "path": [
+        [43, 0, 7.7],
+        [55, 0, 7.7],
+        [58, 0, 7.7]
+      ]
+    },
+    {
+      "id": "power.shields.bow-port",
+      "kind": "power",
+      "load": "shields",
+      "path": [
+        [35, 0, 7.7],
+        [28, 0, 7.7],
+        [16, 0, 7.7],
+        [16, -1.5, 7.7],
+        [10, -1.5, 7.7],
+        [6, -1.5, 7.7],
+        [6, 0, 7.7],
+        [2.5, 0, 7.7],
+        [2.5, -4, 7.7],
+        [2, -5.4, 6.4]
+      ]
+    },
+    {
+      "id": "power.shields.bow-starboard",
+      "kind": "power",
+      "load": "shields",
+      "path": [
+        [2.5, 0, 7.7],
+        [2.5, 4, 7.7],
+        [2, 5.4, 6.4]
+      ]
+    },
+    {
+      "id": "power.shields.stern-port",
+      "kind": "power",
+      "load": "shields",
+      "path": [
+        [35, 0, 7.7],
+        [43, 0, 7.7],
+        [55, 0, 7.7],
+        [63, 0, 7.7],
+        [63, -3.5, 7.7],
+        [64, -5.6, 6.4]
+      ]
+    },
+    {
+      "id": "power.shields.stern-starboard",
+      "kind": "power",
+      "load": "shields",
+      "path": [
+        [63, 0, 7.7],
+        [63, 3.5, 7.7],
+        [64, 5.6, 6.4]
+      ]
+    },
+    {
+      "id": "power.shields.dorsal",
+      "kind": "power",
+      "load": "shields",
+      "path": [
+        [35, 0, 7.7],
+        [30, 0, 7.7],
+        [30, 0, 8.0],
+        [30, 0, 11.2],
+        [30, 0, 13.0]
+      ]
+    },
+    {
+      "id": "power.shields.ventral",
+      "kind": "power",
+      "load": "shields",
+      "path": [
+        [30, 0, 7.7],
+        [30, 0, 4.8],
+        [30, 0, 0.4],
+        [30, 0, -0.2]
+      ]
+    },
+    {
+      "id": "power.comms",
+      "kind": "power",
+      "load": "comms",
+      "path": [
+        [35, 0, 7.7],
+        [28, 0, 7.7],
+        [16, 0, 7.7],
+        [16, 3.5, 7.7],
+        [15, 3.5, 7.7],
+        [15, 3.5, 8.0],
+        [15, 3.5, 11.2],
+        [14, 3.6, 11.9]
+      ]
+    },
+    {
+      "id": "power.thrusters.bow-port",
+      "kind": "power",
+      "load": "thrusters",
+      "path": [
+        [35, 0, 7.7],
+        [28, 0, 7.7],
+        [16, 0, 7.7],
+        [16, -1.5, 7.7],
+        [10, -1.5, 7.7],
+        [6, -1.5, 7.7],
+        [6, 0, 7.7],
+        [4, 0, 7.7],
+        [4, -4, 7.7],
+        [4, -6.0, 9.4]
+      ]
+    },
+    {
+      "id": "power.thrusters.bow-starboard",
+      "kind": "power",
+      "load": "thrusters",
+      "path": [
+        [4, 0, 7.7],
+        [4, 4, 7.7],
+        [4, 6.0, 9.4]
+      ]
+    },
+    {
+      "id": "power.thrusters.stern-port",
+      "kind": "power",
+      "load": "thrusters",
+      "path": [
+        [35, 0, 7.7],
+        [43, 0, 7.7],
+        [55, 0, 7.7],
+        [63, 0, 7.7],
+        [63, -3.5, 7.7],
+        [64, -5.6, 8.6]
+      ]
+    },
+    {
+      "id": "power.thrusters.stern-starboard",
+      "kind": "power",
+      "load": "thrusters",
+      "path": [
+        [63, 0, 7.7],
+        [63, 3.5, 7.7],
+        [64, 5.6, 8.6]
+      ]
+    },
+    {
+      "id": "power.main-drive",
+      "kind": "power",
+      "load": "main-drive",
+      "path": [
+        [35, 0, 7.7],
+        [43, 0, 7.7],
+        [55, 0, 7.7],
+        [65, 0, 7.7],
+        [67, 0, 6.4]
+      ]
+    },
+    {
+      "id": "power.railgun",
+      "kind": "power",
+      "load": "railgun",
+      "path": [
+        [35, 0, 7.7],
+        [33, 0, 7.7],
+        [33, 0, 8.0],
+        [33, 0, 10.9],
+        [30, 0, 10.9],
+        [30, 0, 9.6]
+      ]
+    },
+    {
+      "id": "power.ftl-spool",
+      "kind": "power",
+      "load": "ftl-spool",
+      "path": [
+        [35, 0, 7.7],
+        [41, 0, 7.7],
+        [41, 0, 4.8],
+        [41, 0, 3.2]
+      ]
+    },
+    {
+      "id": "coolant.supply.port",
+      "kind": "coolant",
+      "path": [
+        [49, 0, 9.6],
+        [47, 0, 9.6],
+        [47, 0, 7.2],
+        [47, -6, 7.2],
+        [47, -8.2, 7.2]
+      ]
+    },
+    {
+      "id": "coolant.return.port",
+      "kind": "coolant",
+      "path": [
+        [52, -8.2, 7.2],
+        [52, -6, 7.2],
+        [52, 0, 7.2],
+        [52, 0, 9.6],
+        [49, 0, 9.6]
+      ]
+    },
+    {
+      "id": "coolant.supply.starboard",
+      "kind": "coolant",
+      "path": [
+        [47, 0, 7.2],
+        [47, 6, 7.2],
+        [47, 8.2, 7.2]
+      ]
+    },
+    {
+      "id": "coolant.return.starboard",
+      "kind": "coolant",
+      "path": [
+        [52, 8.2, 7.2],
+        [52, 6, 7.2],
+        [52, 0, 7.2]
+      ]
+    },
+    {
+      "id": "coolant.branch.main-drive",
+      "kind": "coolant",
+      "path": [
+        [52, 0, 6.0],
+        [55, 0, 6.0],
+        [60, 0, 6.0]
+      ]
+    },
+    {
+      "id": "coolant.branch.emitters",
+      "kind": "coolant",
+      "path": [
+        [44, 2, 6.0],
+        [43, 2, 6.0],
+        [36, 2, 6.0]
+      ]
+    },
+    {
+      "id": "coolant.branch.ftl-core",
+      "kind": "coolant",
+      "path": [
+        [44.5, 0, 6.0],
+        [44.5, 0, 4.8],
+        [44.5, 0, 3.2]
+      ]
+    },
+    {
+      "id": "coolant.branch.capacitor-room",
+      "kind": "coolant",
+      "path": [
+        [44, -1.5, 7.4],
+        [43, -1.5, 7.4],
+        [34, -1.5, 7.4],
+        [34, -1.5, 8.0],
+        [34, -1.5, 9.6]
+      ]
+    },
+    {
+      "id": "atmosphere.pump",
+      "kind": "atmosphere",
+      "path": [
+        [26, -4.5, 5.4],
+        [26, -2, 5.4],
+        [26, 1, 5.4]
+      ]
+    },
+    {
+      "id": "atmosphere.vent",
+      "kind": "atmosphere",
+      "path": [
+        [26.5, -5, 5.4],
+        [26.5, -7.5, 5.4],
+        [26.5, -8.2, 5.4]
+      ]
+    }
+  ],
+  "tanks": [
+    {
+      "id": "tanks.breech",
+      "contents": "coolant and propellant",
+      "x": [38.5, 42.5],
+      "y": [-5, 5],
+      "z": [8.2, 11.0]
+    },
+    {
+      "id": "tanks.reactor-keel",
+      "contents": "coolant",
+      "x": [46.5, 54.5],
+      "y": [-5, 5],
+      "z": [1.2, 4.6]
+    },
+    {
+      "id": "tanks.storm-shelter",
+      "contents": "water",
+      "x": [12, 27],
+      "y": [-6.5, -1],
+      "z": [8.2, 11.0]
+    }
+  ],
+  "exterior": {
+    "windowBand": { "x": [0, 3], "y": [-3.4, 3.4], "z": [6.0, 7.3] },
+    "railgun": {
+      "axis": { "y": 0, "z": 9.6 },
+      "x": [0, 30],
+      "boreRadius": 0.45,
+      "shroud": { "x": [1, 30], "halfWidth": 1.3, "top": 12.6 },
+      "breechHump": { "x": [28, 39], "halfWidth": 3.0, "top": 13.0 }
+    },
+    "masts": [
+      {
+        "id": "comms-mast",
+        "x": [12, 16],
+        "y": 3.6,
+        "base": 11.8,
+        "height": 4.0,
+        "array": { "width": 8, "height": 4 }
+      },
+      {
+        "id": "sensor-mast",
+        "x": [7.6, 8.4],
+        "y": 3.0,
+        "base": 11.4,
+        "height": 6.0
+      }
+    ],
+    "radiatorWings": [
+      {
+        "side": "port",
+        "root": { "x": [43, 55], "y": -8.0 },
+        "tip": { "x": [71, 77], "y": -48.0 },
+        "z": 7.2,
+        "thickness": 0.35,
+        "sweepDeg": 35
+      },
+      {
+        "side": "starboard",
+        "root": { "x": [43, 55], "y": 8.0 },
+        "tip": { "x": [71, 77], "y": 48.0 },
+        "z": 7.2,
+        "thickness": 0.35,
+        "sweepDeg": 35
+      }
+    ],
+    "emitters": [
+      { "id": "emitter.bow-port", "at": [2, -5.4, 6.4], "normal": [0, -1, 0] },
+      {
+        "id": "emitter.bow-starboard",
+        "at": [2, 5.4, 6.4],
+        "normal": [0, 1, 0]
+      },
+      { "id": "emitter.dorsal", "at": [30, 0, 13.0], "normal": [0, 0, 1] },
+      { "id": "emitter.ventral", "at": [30, 0, -0.2], "normal": [0, 0, -1] },
+      {
+        "id": "emitter.stern-port",
+        "at": [64, -5.6, 6.4],
+        "normal": [0, -1, 0]
+      },
+      {
+        "id": "emitter.stern-starboard",
+        "at": [64, 5.6, 6.4],
+        "normal": [0, 1, 0]
+      }
+    ],
+    "rcsQuads": [
+      { "id": "rcs.bow-port", "at": [4, -6.0, 9.4] },
+      { "id": "rcs.bow-starboard", "at": [4, 6.0, 9.4] },
+      { "id": "rcs.stern-port", "at": [64, -5.6, 8.6] },
+      { "id": "rcs.stern-starboard", "at": [64, 5.6, 8.6] }
+    ],
+    "engineBells": [
+      {
+        "id": "bell.port",
+        "axis": { "y": -2.6, "z": 6.4 },
+        "x": [66.5, 72],
+        "throatRadius": 1.0,
+        "exitRadius": 2.2
+      },
+      {
+        "id": "bell.starboard",
+        "axis": { "y": 2.6, "z": 6.4 },
+        "x": [66.5, 72],
+        "throatRadius": 1.0,
+        "exitRadius": 2.2
+      }
+    ],
+    "markings": [
+      { "text": "MERIDIAN", "face": "port", "x": [5, 15], "z": 8.6 },
+      { "text": "MERIDIAN", "face": "starboard", "x": [5, 15], "z": 8.6 },
+      { "text": "MERIDIAN", "face": "dorsal", "x": [44, 54], "y": 0 },
+      { "text": "SV-01", "face": "port", "x": [44, 50], "z": 9.4 },
+      { "text": "SV-01", "face": "starboard", "x": [44, 50], "z": 9.4 },
+      { "text": "SV-01", "face": "ventral", "x": [6, 12], "y": 0 }
+    ]
+  }
+}

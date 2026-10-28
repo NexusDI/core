@@ -781,7 +781,9 @@ FtlRecord`; the `pressurised` deck flag with the empty-room unit tests of sectio
   the bridge-api growth frames, the console's doors page with `airlock.spec.tsx`,
   `safety.spec.tsx` and `tests/doubles.ts`. The safety action text in
   `systems/safety/contracts.ts` lists the 16 doors and the 14 compartments, which changes a
-  refusal a user sees.
+  refusal a user sees. `src/geometry/ship-geometry.test.ts` changes in the flip commit too:
+  it compares the deck's compartment ids and the geometry's for equality, and each room's
+  `pressurised` flag with the geometry's, as section 16.7 of the ship systems spec asks.
 - Docs that change, from section 16.7: `meridian-systems/README.md` names the new door,
   and the ship systems spec updates the figures of sections 5.2 to 5.11 and the vocabulary
   rows of 10.2.
