@@ -7,7 +7,7 @@ package: '@nexusdi/fastify'
 
 # `@nexusdi/fastify`
 
-A request-scoped service needs one scope per request, disposed when the reply is finished or the client is gone. Fastify's `onResponse` hook fires on `finish` or `error`, and a client that disconnects mid-reply emits neither, so a scope disposed there leaks. `const di = nexus(ship)` gives a `NexusFastify`: registering `di.plugin` adds an `onRequest` hook that attaches a scope handle to each request, and `di.encapsulatedPlugin` does the same for one encapsulated context. The first `di.inject` handler creates the scope and resolves its typed deps from it, or the hook creates it at once with the `scopes` option. The raw response's `close` event disposes the scope once. A NexusDI error from creating the scope or resolving a handler's deps reaches Fastify as a `NexusHttpError` with a 500 or 503 status. Each export has one entry below, with what the package's tests state about it.
+A request-scoped service needs one scope per request, disposed when the reply is finished or the client is gone. Fastify's `onResponse` hook fires on `finish` or `error`, and a client that disconnects mid-reply emits neither, so a scope disposed there leaks. `const di = nexus(ship)` gives a `NexusFastify`: registering `di.plugin` adds an `onRequest` hook that attaches a scope handle to each request, and `di.encapsulatedPlugin` does the same for one encapsulated context. The first `di.inject` handler creates the scope and resolves its typed deps from it, or the hook creates it at once with the `scopes` option. `di.injectHook` resolves typed deps the same way for a guard hook. The raw response's `close` event disposes the scope once. A NexusDI error from creating the scope or resolving a handler's deps reaches Fastify as a `NexusHttpError` with a 500 or 503 status. Each export has one entry below, with what the package's tests state about it.
 
 <ApiFilter />
 
@@ -26,6 +26,10 @@ A request-scoped service needs one scope per request, disposed when the reply is
 ## `FastifyHandler`
 
 <!-- reference @nexusdi/fastify#FastifyHandler -->
+
+## `FastifyHook`
+
+<!-- reference @nexusdi/fastify#FastifyHook -->
 
 ## `SectionHook`
 

@@ -9,7 +9,7 @@ A request-scoped service needs a scope per request, disposed when the response i
 
 ## How the scope follows the request
 
-`di.middleware` in the root route's `middleware` export puts a scope handle on the router context. The first `di.inject` loader creates the scope, and loaders that run in parallel share it. The scope is disposed once, when the streamed body ends, errors or is cancelled, or when the request's signal aborts.
+`di.middleware` in the root route's `middleware` export puts a scope handle on the router context. The first `di.inject` loader creates the scope, and loaders that run in parallel share it. `di.injectMiddleware` does the same for a route middleware that ends the request before the loaders run. The scope is disposed once, when the streamed body ends, errors or is cancelled, or when the request's signal aborts.
 
 ## Installation
 

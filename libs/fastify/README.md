@@ -9,7 +9,7 @@ A request-scoped service needs a scope per request, disposed when the reply is f
 
 ## How the scope follows the request
 
-`di.plugin` registers an `onRequest` hook that attaches a scope handle to the request. The first `di.inject` handler creates the scope and resolves its typed deps from it. The raw response's `close` event disposes it, once, for a finished reply and for an aborted one. Register `di.encapsulatedPlugin` instead to scope only one encapsulated context.
+`di.plugin` registers an `onRequest` hook that attaches a scope handle to the request. The first `di.inject` handler creates the scope and resolves its typed deps from it. `di.injectHook` does the same for a guard hook that ends the request before the route runs. The raw response's `close` event disposes it, once, for a finished reply and for an aborted one. Register `di.encapsulatedPlugin` instead to scope only one encapsulated context.
 
 ## Installation
 

@@ -50,6 +50,26 @@ A handler that `inject` wraps reads `c.req.param('to')` as `string | undefined`.
 
 The thrown error is a `BlueprintError` holding [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/). With a live container, a wrong token fails when the app starts. With the function form, `nexus(() => Nexus.create(Meridian))` ([Running on Edge Runtimes](/edge/)), the check runs on the first request, which gets a 500. Code that is not a route handler reads the scope with `await di.scope(c)`, which rejects when `di.middleware` has not run on the request.
 
+## Guarding Routes with Injected Middleware
+
+To protect a route, you often need a guard that utilizes request-scoped services, such as an access-control service, to determine if a request should proceed. Because `di.inject` wraps a route handler, which lacks a `next` function, it cannot be used to build middleware that conditionally halts a request.
+
+**`di.injectMiddleware(deps, fn)`** resolves dependencies from the request's scope and runs the provided function as a Hono `MiddlewareHandler`. The guard can either return a `Response` to end the request immediately or call `await next()` or `return next()` to pass control to the next handler in the chain. A throw reaches Hono's `onError`.
+
+```ts file=examples/meridian/src/pages/hono.md region=guard
+
+```
+
+In this example, the guard declares `ACCESS` in its dependency record. A request from `guest` receives a `403 Forbidden` response, preventing the route from executing. A request from `helm` passes through, allowing the route to return `helm: main drive fired`. Because the guard resolves from the same scope as the routes that follow it, both the guard and the route share the same scoped service instances.
+
+### Type Safety and Context
+
+You can maintain type safety for your Hono environment by annotating the context. Annotating `c: Context<OperatorEnv>` allows TypeScript to infer the `Env` generic `E` for `injectMiddleware`. `OperatorEnv` must extend `NexusEnv`. This enables the guard to call `c.set('operator', ...)` and ensures that any subsequent route reading `c.var.operator` is correctly typed. To maintain this inference in the route handler, annotate `c` as shown in the example; otherwise, `E` defaults to `NexusEnv`. The `inject` function accepts the same optional `E` generic. For standalone type definitions, use the exported `HonoMiddleware` type.
+
+### Validation
+
+With a live container, `injectMiddleware` validates the dependency record when it is defined, similar to `inject`, and a token that no module provides fails at startup. With the function form the check runs on the first request. The section form, `di.load(module).injectMiddleware`, validates after the section's first load.
+
 ## When the Scope Is Disposed
 
 The middleware disposes the request's scope once, at the first of four signals: the response body ends, the body errors, the consumer cancels the body, or `c.req.raw.signal` aborts. A response with no body, a `HEAD` request and a 204 or 304 dispose as soon as the handler returns. A request that resolves nothing creates no scope, so it disposes nothing.
