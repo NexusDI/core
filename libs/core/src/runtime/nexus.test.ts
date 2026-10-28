@@ -242,6 +242,89 @@ describe('Nexus', () => {
       expect(ship.get(NAV_CHARTS).plot('x')).toBe('2');
     });
 
+    describe('a MultiToken collector', () => {
+      interface IRegistry {
+        names(): readonly string[];
+      }
+      const PANELS = new MultiToken<string>('Panels');
+      const collector = (token: Token<IRegistry>) =>
+        provide(token, {
+          useFactory: (panels) => ({ names: () => panels }),
+          deps: [all(PANELS)],
+        });
+
+      it('sees a contribution of a module downstream of its library', async () => {
+        const REGISTRY = new Token<IRegistry>('Registry');
+        const Library = defineModule({
+          name: 'Library',
+          providers: [collector(REGISTRY)],
+          exports: [REGISTRY],
+        });
+        const Feature = defineModule({
+          name: 'Feature',
+          imports: [Library],
+          providers: [provide(PANELS, { useValue: 'feature' })],
+          exports: [PANELS],
+        });
+        const ship = await Nexus.create(
+          defineModule({ name: 'Root', imports: [Library, Feature] }),
+        );
+        expect(ship.get(REGISTRY).names()).toEqual(['feature']);
+      });
+
+      it('sees the exported contribution of a plugin module', async () => {
+        const REGISTRY = new Token<IRegistry>('Registry');
+        const Library = defineModule({
+          name: 'Library',
+          providers: [collector(REGISTRY)],
+          exports: [REGISTRY],
+        });
+        const Extra = defineModule({
+          name: 'Extra',
+          providers: [provide(PANELS, { useValue: 'plugin' })],
+          exports: [PANELS],
+        });
+        const ship = await Nexus.create(
+          defineModule({ name: 'Root', imports: [Library] }),
+          { plugins: [{ name: 'extra', apiVersion: 1, modules: [Extra] }] },
+        );
+        expect(ship.get(REGISTRY).names()).toEqual(['plugin']);
+      });
+
+      it('sees the same list as a collector of the token in another module', async () => {
+        const LEFT = new Token<IRegistry>('Left');
+        const RIGHT = new Token<IRegistry>('Right');
+        const Port = defineModule({
+          name: 'Port',
+          providers: [collector(LEFT)],
+          exports: [LEFT],
+        });
+        const Starboard = defineModule({
+          name: 'Starboard',
+          providers: [collector(RIGHT)],
+          exports: [RIGHT],
+        });
+        const Hull = defineModule({
+          name: 'Hull',
+          providers: [
+            provide(PANELS, { useValue: 'hull' }),
+            provide(PANELS, { useValue: 'deck' }),
+          ],
+          exports: [PANELS],
+        });
+        const ship = await Nexus.create(
+          defineModule({
+            name: 'Root',
+            imports: [Port, Hull, Starboard],
+            providers: [provide(PANELS, { useValue: 'root' })],
+            exports: [PANELS],
+          }),
+        );
+        expect(ship.get(LEFT).names()).toEqual(['root', 'hull', 'deck']);
+        expect(ship.get(RIGHT).names()).toEqual(ship.get(LEFT).names());
+      });
+    });
+
     it('returns an empty array for a MultiToken nothing contributes to', async () => {
       const EMPTY = new MultiToken<string>('Empty');
       const ship = await Nexus.create(defineModule({ name: 'Root' }));

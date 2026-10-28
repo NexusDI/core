@@ -34,10 +34,16 @@ interface Visibility {
 }
 
 /**
- * Pass 2. For each module: its own providers, its imports' exports (following
- * re-exports), and every global module's exports. A module's own provider of
- * a plain token shadows imported ones; two different imported providers of a
- * plain token are ambiguous; MultiToken contributions merge.
+ * Pass 2. For a plain token, each module sees its own providers, its imports'
+ * exports (following re-exports), and every global module's exports. A
+ * module's own provider shadows imported ones; two different imported
+ * providers are ambiguous.
+ *
+ * For a MultiToken T that no hook pins, module M publishes its own records of
+ * T when its `exports` names T, and nothing otherwise. A module re-export
+ * publishes nothing of T. M sees its own records of T plus every module's
+ * published records, sorted by record index. `exports: [T]` never raises
+ * NEXUS_INVALID_EXPORT.
  */
 export function computeVisibilityOracle(
   input: VisibilityInput,
@@ -85,14 +91,27 @@ export function computeVisibilityOracle(
   const ownOf = (i: number, token: TokenKey): readonly string[] =>
     own.get(input.modules[i]?.id ?? '')?.get(token) ?? [];
 
-  // Each (module, token) pair is two nodes: 2i is what module i sees of the
-  // token (its lookup), 2i + 1 is what module i exports of it. Import cycles
-  // are rejected by walk, but a global module is a source of every module, so
-  // a global that re-exports its own importers closes a cycle through them.
-  // Tarjan's algorithm condenses each token's graph into strongly connected
-  // components and settles them callees first, so every node is computed once
-  // from complete inputs: O(V + E) per token. The search is iterative, so a
-  // 1,000-module chain does not grow the call stack.
+  // A MultiToken is collected container-wide: no graph to solve.
+  const collected = (token: TokenKey): boolean =>
+    token instanceof MultiToken && !input.pinned.has(token);
+  const publishedOf = (i: number, token: TokenKey): readonly string[] =>
+    exportsToken[i]?.has(token) ? ownOf(i, token) : [];
+  const viewOf = (i: number, token: TokenKey): readonly string[] => {
+    const ids = new Set(ownOf(i, token));
+    for (let m = 0; m < input.modules.length; m++)
+      for (const id of publishedOf(m, token)) ids.add(id);
+    return [...ids].sort(byRank);
+  };
+
+  // Each (module, plain token) pair is two nodes: 2i is what module i sees of
+  // the token (its lookup), 2i + 1 is what module i exports of it. Import
+  // cycles are rejected by walk, but a global module is a source of every
+  // module, so a global that re-exports its own importers closes a cycle
+  // through them. Tarjan's algorithm condenses each token's graph into
+  // strongly connected components and settles them callees first, so every
+  // node is computed once from complete inputs: O(V + E) per token. The
+  // search is iterative, so a 1,000-module chain does not grow the call
+  // stack.
   const successors = (token: TokenKey, node: number): readonly number[] => {
     const i = node >> 1;
     if (node % 2 === 1) {
@@ -100,7 +119,7 @@ export function computeVisibilityOracle(
       return exportsToken[i]?.has(token) ? [2 * i, ...next] : next;
     }
     if (input.pinned.has(token)) return [];
-    if (!(token instanceof MultiToken) && ownOf(i, token).length > 0) return [];
+    if (ownOf(i, token).length > 0) return [];
     return sourceIndex[i]?.map((s) => 2 * s + 1) ?? [];
   };
 
@@ -130,12 +149,6 @@ export function computeVisibilityOracle(
     if (node === undefined) return [];
     const mine = ownOf(i, token);
     const sourceList = sourceIndex[i] ?? [];
-    if (token instanceof MultiToken) {
-      const ids = new Set(mine);
-      for (const s of sourceList)
-        for (const id of valueOf(values, 2 * s + 1)) ids.add(id);
-      return [...ids].sort(byRank);
-    }
     if (mine.length > 0) return mine;
     const offers = new Map<string, string[]>();
     for (const s of sourceList) {
@@ -163,11 +176,9 @@ export function computeVisibilityOracle(
   };
 
   // Settles one component once its callee components are settled. In a
-  // cycle every node reaches every other. For a MultiToken every node takes
-  // a union, so the least fixpoint gives each node the same set: every
-  // provider a member provides or a callee component hands in. For a plain
-  // token no lookup in a cycle has its own provider (one that does has no
-  // successors), so the same set is what enters the cycle. Exports take that
+  // cycle every node reaches every other. No lookup in a cycle has its own
+  // provider (one that does has no successors), so the set that enters the
+  // cycle is every provider a callee component hands in. Exports take that
   // set, then lookups run as usual over it: one provider resolves everywhere
   // in the cycle, two make every lookup in the cycle ambiguous.
   const settle = (
@@ -223,9 +234,9 @@ export function computeVisibilityOracle(
   };
 
   const lookup = (i: number, token: TokenKey): readonly string[] =>
-    solve(token, 2 * i);
+    collected(token) ? viewOf(i, token) : solve(token, 2 * i);
   const exported = (i: number, token: TokenKey): readonly string[] =>
-    solve(token, 2 * i + 1);
+    collected(token) ? publishedOf(i, token) : solve(token, 2 * i + 1);
 
   const visibility = new Map<string, Map<TokenKey, readonly string[]>>();
   for (const [i, node] of input.modules.entries()) {
@@ -242,6 +253,7 @@ export function computeVisibilityOracle(
   for (const [i, node] of input.modules.entries()) {
     for (const token of node.exportTokens) {
       if (
+        !(token instanceof MultiToken) &&
         lookup(i, token).length === 0 &&
         !ambiguous.get(node.id)?.has(token)
       ) {
@@ -255,7 +267,9 @@ export function computeVisibilityOracle(
     }
     moduleExports.set(node.id, [
       ...new Set([
-        ...node.exportTokens.flatMap((t) => lookup(i, t)),
+        ...node.exportTokens.flatMap((t) =>
+          collected(t) ? publishedOf(i, t) : lookup(i, t),
+        ),
         ...node.exportModules,
       ]),
     ]);

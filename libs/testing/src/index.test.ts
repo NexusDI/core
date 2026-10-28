@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  all,
   BlueprintError,
   defineModule,
   isNexusError,
@@ -130,6 +131,39 @@ describe('createTestingContainer', () => {
     expect(ship.get(DIAGNOSTICS, { module: Tactical })).toEqual(['passing']);
   });
 
+  it('resolves a pinned MultiToken override to its one contribution in a collector far from the contributors', async () => {
+    interface IReport {
+      checks(): readonly string[];
+    }
+    const DIAGNOSTICS = new MultiToken<string>('Diagnostics');
+    const REPORT = new Token<IReport>('Report');
+    const Reporting = defineModule({
+      name: 'Reporting',
+      providers: [
+        provide(REPORT, {
+          useFactory: (checks) => ({ checks: () => checks }),
+          deps: [all(DIAGNOSTICS)],
+        }),
+      ],
+      exports: [REPORT],
+    });
+    const Engineering = defineModule({
+      name: 'Engineering',
+      providers: [
+        provide(DIAGNOSTICS, { useValue: 'reactor' }),
+        provide(DIAGNOSTICS, { useValue: 'hull' }),
+      ],
+      exports: [DIAGNOSTICS],
+    });
+    const ship = await createTestingContainer(
+      defineModule({ name: 'Root', imports: [Reporting, Engineering] }),
+    )
+      .override(DIAGNOSTICS, { useValue: 'passing' })
+      .create();
+    expect(ship.get(REPORT).checks()).toEqual(['passing']);
+    expect(ship.get(DIAGNOSTICS, { module: Engineering })).toEqual(['passing']);
+  });
+
   it('replaces a module wherever the walk meets it', async () => {
     const Comms = defineModule({
       name: 'Comms',
@@ -194,6 +228,25 @@ describe('createTestingContainer', () => {
         },
       ],
     });
+  });
+
+  it('accepts a stub with no contribution that exports a MultiToken the module it replaces exports', async () => {
+    const DIAGNOSTICS = new MultiToken<string>('Diagnostics');
+    const Sensors = defineModule({
+      name: 'Sensors',
+      providers: [provide(DIAGNOSTICS, { useValue: 'sensors' })],
+      exports: [DIAGNOSTICS],
+    });
+    const SensorsStub = defineModule({
+      name: 'SensorsStub',
+      exports: [DIAGNOSTICS],
+    });
+    const ship = await createTestingContainer(
+      defineModule({ name: 'Root', imports: [Sensors] }),
+    )
+      .overrideModule(Sensors, SensorsStub)
+      .create();
+    expect(ship.get(DIAGNOSTICS)).toEqual([]);
   });
 
   it('rejects NEXUS_OVERRIDE_UNUSED for an override that matches nothing', async () => {
