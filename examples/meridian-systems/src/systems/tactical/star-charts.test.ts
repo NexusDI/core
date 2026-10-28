@@ -21,6 +21,19 @@ describe('StarCharts', () => {
     });
   });
 
+  it('lists the stars of the bundled table in the table order', () => {
+    expect(charts.stars()).toEqual(['Kepler-442b', 'Proxima-b', 'TRAPPIST-1e']);
+  });
+
+  it('leaves out an entry that is not a finite heading', () => {
+    const relayed = new StarCharts({
+      'Kepler-442b': 42,
+      Vega: Number.NaN,
+      'Proxima-b': 117,
+    });
+    expect(relayed.stars()).toEqual(['Kepler-442b', 'Proxima-b']);
+  });
+
   it.each(UNCHARTED)('does not hold %s and plots it heading 0', (to) => {
     expect(charts.has(to)).toBe(false);
     expect(charts.plot(to)).toEqual({ to, heading: 0 });

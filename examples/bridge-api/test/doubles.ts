@@ -33,6 +33,9 @@ export class FixedCharts implements INavCharts {
   plot(to: string) {
     return { to, heading: 42 };
   }
+  stars() {
+    return ['Kepler-442b'];
+  }
 }
 
 export class FakeFlightLog implements IFlightLog {
