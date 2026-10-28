@@ -9,7 +9,7 @@ at version 2.4.0, and three tokens:
 
 - `NAV_CHARTS = meridian.token<INavCharts>('NavCharts')`, described `meridian/NavCharts`:
   the star charts.
-- `TELEMETRY_FEED = meridian.token<IStationTelemetry>('StationTelemetry')`, described
+- `STATION_TELEMETRY = meridian.token<IStationTelemetry>('StationTelemetry')`, described
   `meridian/StationTelemetry`: the ship's telemetry, shaped for `useSyncExternalStore`.
 - `COMMAND_LINK = meridian.token<ICommandLink>('CommandLink')`, described
   `meridian/CommandLink`: sends a crew command to bridge-api's `POST /commands`.
@@ -56,10 +56,20 @@ nothing from `./shared`, so a remote that bundles the contract bundles no build 
 `@nexusdi/federation-contracts/rspack` exports `meridianRemote({ name, port, decorators })`
 and `meridianShell({ name, port })`, the rspack config of a station remote and of the shell.
 A remote's `rspack.config.ts` is one call. The remote emits `remoteEntry.js` and the chunks
-of `./section` and no page, since the shell is the only page that loads it. `out`, `shared`
-and `contractAliases` select the drift and unshared builds of `federation-cartography`.
-`@nexusdi/federation-contracts/swc` exports the swc decorator settings the factory and
-a vitest config share.
+of `./section`, which is the remote's `src/index.ts`, and no page, since the shell is the
+only page that loads it. `out`, `shared` and `contractAliases` select the drift and
+unshared builds of `federation-cartography`. `@nexusdi/federation-contracts/swc` exports
+the swc decorator settings the factory and a vitest config share.
+
+## The test doubles
+
+`@nexusdi/federation-contracts/testing` exports `FakeTactical`, a global module named
+`Tactical` that provides the three contract tokens over doubles: `FixedNavCharts`,
+`RecordingCommandLink` and `FakeStationTelemetry`. `stationRoot(station)` returns a root
+that imports `FakeTactical` and the station. A station test builds its container with
+`nexusTest(test, stationRoot(Station))`, and the fixture builds a new container per test,
+so `nexus.get(RECORDING_LINK).sent` starts empty and `nexus.get(FAKE_TELEMETRY).show(state)`
+drives the feed.
 
 ## Commands
 

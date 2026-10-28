@@ -30,14 +30,8 @@ export const meridian = defineContract({
 
 /** The star charts, described `meridian/NavCharts` in every copy. */
 export const NAV_CHARTS = meridian.token<INavCharts>('NavCharts');
-/**
- * The ship's telemetry, described `meridian/StationTelemetry` in every copy.
- * The constant is TELEMETRY_FEED and the description keeps StationTelemetry
- * because meridian-systems describes its TELEMETRY token `TelemetryFeed`, and
- * `federation-shell/e2e/bundle.spec.ts` fails any station bundle that contains
- * that string.
- */
-export const TELEMETRY_FEED =
+/** The ship's telemetry, described `meridian/StationTelemetry` in every copy. */
+export const STATION_TELEMETRY =
   meridian.token<IStationTelemetry>('StationTelemetry');
 /** The crew command link, described `meridian/CommandLink` in every copy. */
 export const COMMAND_LINK = meridian.token<ICommandLink>('CommandLink');

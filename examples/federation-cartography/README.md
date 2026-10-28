@@ -1,10 +1,10 @@
 # @nexusdi/federation-cartography
 
 A remote of the federation demo: the `cartography` station. It exposes `./section` with
-the module `Cartography` and the component `StarMap`. `Cartography` binds `NAV_ROUTES`
-to `SectorRoutes`, which reads this bundle's own copy of the contract's `NAV_CHARTS`.
-`federation()` in the shell binds that copy to the shell's by its key,
-`meridian/NavCharts`, and `StarMap` shows `Kepler-442b: heading 42`.
+the module `CartographyStation` and the component `CartographyPanel`. `CartographyStation`
+binds `NAV_ROUTES` to `SectorRoutes`, which reads this bundle's own copy of the contract's
+`NAV_CHARTS`. `federation()` in the shell binds that copy to the shell's by its key,
+`meridian/NavCharts`, and `CartographyPanel` shows `Kepler-442b: heading 42`.
 
 It serves on port 4301, and the shell (`examples/federation-shell`) loads it on
 `/charts`.

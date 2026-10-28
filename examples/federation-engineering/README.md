@@ -2,7 +2,7 @@
 
 A remote of the federation demo: the `engineering` station. It exposes `./section` with the
 module `EngineeringStation` and the component `EngineeringPanel`. The station reads the
-contract's `TELEMETRY_FEED` and shows the reactor and coolant gauges and the power budget.
+contract's `STATION_TELEMETRY` and shows the reactor and coolant gauges and the power budget.
 It sends no command.
 
 It serves on port 4305, and the shell (`examples/federation-shell`) loads it on

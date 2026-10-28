@@ -1,7 +1,7 @@
 import { Token, defineModule, provide } from '@nexusdi/core';
 import {
   COMMAND_LINK,
-  TELEMETRY_FEED,
+  STATION_TELEMETRY,
   type CommandReceipt,
   type ICommandLink,
   type IStationTelemetry,
@@ -30,12 +30,12 @@ export const ATMOSPHERE_DESK = new Token<IAtmosphereDesk>('AtmosphereDesk');
 const KILO = 1000;
 
 /**
- * Reads this remote's copies of the contract's TELEMETRY_FEED and
+ * Reads this remote's copies of the contract's STATION_TELEMETRY and
  * COMMAND_LINK. federation() binds them to the ones the shell's Tactical
  * provides, by their keys `meridian/StationTelemetry` and `meridian/CommandLink`.
  */
 class AtmosphereDesk implements IAtmosphereDesk {
-  static deps = [TELEMETRY_FEED, COMMAND_LINK] as const;
+  static deps = [STATION_TELEMETRY, COMMAND_LINK] as const;
 
   readonly subscribe: IStationTelemetry['subscribe'];
   readonly state: IStationTelemetry['state'];
@@ -44,8 +44,8 @@ class AtmosphereDesk implements IAtmosphereDesk {
     feed: IStationTelemetry,
     private readonly link: ICommandLink,
   ) {
-    this.subscribe = (listener) => feed.subscribe(listener);
-    this.state = () => feed.state();
+    this.subscribe = feed.subscribe;
+    this.state = feed.state;
   }
 
   compartments({

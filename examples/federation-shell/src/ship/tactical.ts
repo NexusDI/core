@@ -2,7 +2,7 @@ import { defineModule, provide } from '@nexusdi/core';
 import {
   COMMAND_LINK,
   NAV_CHARTS,
-  TELEMETRY_FEED,
+  STATION_TELEMETRY,
 } from '@nexusdi/federation-contracts';
 
 import { BridgeCommandLink } from './bridge-command-link';
@@ -21,9 +21,9 @@ export const Tactical = defineModule({
   providers: [
     provide(NAV_CHARTS, { useClass: StarCharts }),
     provide(BRIDGE_ENDPOINT, { useClass: RuntimeBridgeEndpoint }),
-    provide(TELEMETRY_FEED, { useClass: BridgeTelemetry }),
+    provide(STATION_TELEMETRY, { useClass: BridgeTelemetry }),
     provide(COMMAND_LINK, { useClass: BridgeCommandLink }),
   ],
-  exports: [NAV_CHARTS, TELEMETRY_FEED, COMMAND_LINK],
+  exports: [NAV_CHARTS, STATION_TELEMETRY, COMMAND_LINK],
   global: true,
 });

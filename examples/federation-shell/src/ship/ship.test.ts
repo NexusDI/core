@@ -3,7 +3,7 @@ import { federation } from '@nexusdi/federation';
 import {
   COMMAND_LINK,
   NAV_CHARTS,
-  TELEMETRY_FEED,
+  STATION_TELEMETRY,
   type TelemetryReading,
 } from '@nexusdi/federation-contracts';
 import type { ShipReading } from '@nexusdi/meridian-systems';
@@ -28,8 +28,8 @@ describe('the shell', () => {
     expect(Tactical.exports).toContain(NAV_CHARTS);
   });
 
-  it("exports the contract's TELEMETRY_FEED from Tactical", () => {
-    expect(Tactical.exports).toContain(TELEMETRY_FEED);
+  it("exports the contract's STATION_TELEMETRY from Tactical", () => {
+    expect(Tactical.exports).toContain(STATION_TELEMETRY);
   });
 
   it("exports the contract's COMMAND_LINK from Tactical", () => {

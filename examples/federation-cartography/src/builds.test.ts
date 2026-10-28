@@ -85,7 +85,7 @@ describe('the main build', () => {
     const exposes = render(main).plugins.find(
       (plugin) => plugin._options?.exposes,
     )?._options?.exposes;
-    expect(exposes).toEqual({ './section': './src/section.ts' });
+    expect(exposes).toEqual({ './section': './src/index.ts' });
   });
 });
 

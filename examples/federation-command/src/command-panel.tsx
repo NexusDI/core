@@ -1,22 +1,21 @@
 import { useService } from '@nexusdi/react';
 import { useState } from 'react';
 
-import { BRIDGE } from './bridge';
-import { HELM_ORDERS } from './helm-orders';
+import { COURSE_PLOTTER, HELM_ORDERS } from './command-station.module';
 
 /**
- * The course the decorated Bridge plots, read from the shell's container,
- * and two helm orders sent over the shell's command link. The status line
- * shows the receipt text the shell words.
+ * The course the decorated CoursePlotter plots, read from the shell's
+ * container, and two helm orders sent over the shell's command link. The
+ * status line shows the receipt text the shell words.
  */
-export function CommandDeck() {
-  const bridge = useService(BRIDGE);
+export function CommandPanel() {
+  const plotter = useService(COURSE_PLOTTER);
   const helm = useService(HELM_ORDERS);
   const [receipt, setReceipt] = useState('');
   return (
     <section aria-label="command deck">
       <h2>Command deck</h2>
-      <p>{bridge.course('Kepler-442b')}</p>
+      <p>{plotter.course('Kepler-442b')}</p>
       <button
         type="button"
         onClick={() =>
