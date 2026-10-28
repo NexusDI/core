@@ -5,8 +5,13 @@ Regions for `apps/docs/content/errors/NEXUS_LOAD_GRANT.mdx`. Every block runs as
 <!-- #region reproduce -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, isNexusError } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 
 interface ICommsOptions {
@@ -75,8 +80,7 @@ console.log(text);
 <!-- #region fix -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule } from '@nexusdi/core';
-import { provide } from '@nexusdi/core';
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
 
 interface ICommsOptions {
   readonly frequency: number;
