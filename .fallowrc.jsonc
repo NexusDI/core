@@ -505,7 +505,11 @@
     // The figure on 2026-10-24 is 1.91%. The ceiling is a ratchet. It fails
     // the run that adds the next copy, and each consolidated clone group
     // lowers it.
-    "threshold": 1.95,
+    //
+    // Raised from 1.95 on 2026-10-28: fallow 3.34 measures the same code at
+    // 2.06%. Lower it again after the demo refactor
+    // (specs/plans/2026-10-28-demo-refactor.md).
+    "threshold": 2.1,
 
     "ignore": [
       "**/vite.config.*",
