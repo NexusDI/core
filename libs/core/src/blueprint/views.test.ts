@@ -36,6 +36,27 @@ describe('viewOfBlueprint', () => {
   });
 });
 
+describe('grants on the view', () => {
+  it('lists the module ids a load grant gave a module, and none for the others', () => {
+    const Wrapper = defineModule({ name: 'Wrapper', imports: [Helm] });
+    const Host = defineModule({ name: 'Host', imports: [Wrapper] });
+    const Science = defineModule({ name: 'Science' });
+    const first = compile({ root: Host });
+    const bp = compile({
+      root: Host,
+      extraImports: [{ module: Science, imports: [Helm] }],
+      previous: first,
+    });
+    const view = viewOfBlueprint(bp, sameToken);
+    const byName = new Map(view.modules.map((m) => [m.name, m]));
+    const helm = byName.get('Helm')?.id;
+    expect(byName.get('Science')?.grants).toEqual([helm]);
+    expect(byName.get('Science')?.imports).toContain(helm);
+    expect(byName.get('Host')?.grants).toEqual([]);
+    expect(byName.get('Helm')?.grants).toEqual([]);
+  });
+});
+
 describe('buildView', () => {
   it('keys the token of visible() through the canonicalizer', () => {
     const bp = compile({ root: Helm });

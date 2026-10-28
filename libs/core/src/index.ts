@@ -19,6 +19,7 @@ export {
   LoadContributionError,
   LoadedAfterScopeError,
   LoadError,
+  LoadGrantError,
   MissingDepsError,
   MissingProviderError,
   ModuleImportCycleError,
@@ -37,6 +38,7 @@ export type {
   ErrorText,
   InvalidProviderReason,
   InvalidTokenReason,
+  LoadGrantReason,
   NearMiss,
   NexusErrorByCode,
   NexusErrorCode,
@@ -106,6 +108,8 @@ export { Nexus } from './runtime/nexus.js';
 export type {
   CheckOptions,
   CreateOptions,
+  LoadEntry,
+  LoadOptions,
   LookupOptions,
 } from './runtime/options.js';
 export type {

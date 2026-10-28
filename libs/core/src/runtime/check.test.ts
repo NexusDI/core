@@ -255,4 +255,65 @@ describe('Nexus.check', () => {
     expect(views[0]?.complete).toBe(true);
     expect(views[0]?.modules.map((m) => m.name)).toEqual(['Root']);
   });
+
+  describe('load entries with a grant', () => {
+    const CHARTS = new Token<string>('Charts');
+    const Navigation = defineModule({
+      name: 'Navigation',
+      providers: [provide(CHARTS, { useValue: 'sector 7' })],
+      exports: [CHARTS],
+    });
+    class Plotter {
+      static deps = [CHARTS] as const;
+      constructor(readonly charts: string) {}
+    }
+    const Wrapper = defineModule({ name: 'Wrapper', imports: [Navigation] });
+    const Root = defineModule({ name: 'Root', imports: [Wrapper] });
+    const Science = defineModule({ name: 'Science', providers: [Plotter] });
+
+    it('accepts a module with imports and compiles the grant', () => {
+      expect(
+        Nexus.check(Root, {
+          load: [{ module: Science, imports: [Navigation] }],
+        }),
+      ).toBeUndefined();
+    });
+
+    it('reports a missing provider when the entry has no grant', () => {
+      expect(
+        thrown(() => Nexus.check(Root, { load: [Science] })),
+      ).toMatchObject({
+        code: 'NEXUS_BLUEPRINT_INVALID',
+        errors: [{ code: 'NEXUS_MISSING_PROVIDER' }],
+      });
+    });
+
+    it.each([
+      ['not-in-graph', defineModule({ name: 'Hangar' }), 'Hangar'],
+      ['root', Root, 'Root'],
+    ] as const)('reports %s inside a BlueprintError', (reason, grant, name) => {
+      expect(
+        thrown(() =>
+          Nexus.check(Root, { load: [{ module: Science, imports: [grant] }] }),
+        ),
+      ).toMatchObject({
+        code: 'NEXUS_BLUEPRINT_INVALID',
+        errors: [
+          { code: 'NEXUS_LOAD_GRANT', module: 'Science', grant: name, reason },
+        ],
+      });
+    });
+
+    it('reports already-loaded for a grant on a module the root imports', () => {
+      expect(
+        thrown(() =>
+          Nexus.check(Root, {
+            load: [{ module: Wrapper, imports: [Navigation] }],
+          }),
+        ),
+      ).toMatchObject({
+        errors: [{ code: 'NEXUS_LOAD_GRANT', reason: 'already-loaded' }],
+      });
+    });
+  });
 });

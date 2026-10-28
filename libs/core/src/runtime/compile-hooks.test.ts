@@ -164,6 +164,113 @@ describe('compile.module', () => {
     expect(ship.get(DIAGNOSTICS)).toEqual(['stub']);
   });
 
+  describe('with a load grant', () => {
+    const READING = new Token<IReactorCore>('Reading');
+    const Stub = defineModule({
+      name: 'EngineeringStub',
+      providers: [provide(REACTOR, { useClass: FakeReactor })],
+      exports: [REACTOR],
+    });
+    const Lab = defineModule({
+      name: 'Lab',
+      providers: [
+        provide(READING, {
+          useFactory: (reactor: IReactorCore) => reactor,
+          deps: [REACTOR],
+          lifetime: 'scoped',
+        }),
+      ],
+      exports: [READING],
+    });
+    const Root = defineModule({ name: 'Root', imports: [Engineering] });
+
+    it('grants the module a hook replaced when the grant names the original', async () => {
+      const ship = await Nexus.create(Root, {
+        plugins: [
+          {
+            name: 'stub',
+            apiVersion: 1,
+            compile: { module: (m) => (m === Engineering ? Stub : undefined) },
+          },
+        ],
+      });
+      await ship.load(Lab, { imports: [Engineering] });
+      const scope = await ship.createScope();
+      expect(scope.get(READING)).toBeInstanceOf(FakeReactor);
+    });
+
+    it('never asks the hook about a granted module the walk already met', async () => {
+      const asked: string[] = [];
+      const ship = await Nexus.create(Root, {
+        plugins: [
+          {
+            name: 'stub',
+            apiVersion: 1,
+            compile: {
+              module: (m) => {
+                asked.push(m.name);
+                return m === Engineering ? Stub : undefined;
+              },
+            },
+          },
+        ],
+      });
+      asked.length = 0;
+      await ship.load(Lab, { imports: [Stub] });
+      expect(asked).not.toContain('EngineeringStub');
+      const scope = await ship.createScope();
+      expect(scope.get(READING)).toBeInstanceOf(FakeReactor);
+    });
+
+    it('keeps the grant when the hook would build a new module on every call', async () => {
+      const ship = await Nexus.create(Root, {
+        plugins: [
+          {
+            name: 'fresh',
+            apiVersion: 1,
+            compile: {
+              module: (m) =>
+                m === Engineering
+                  ? Stub
+                  : m === Stub
+                    ? defineModule({ name: 'Fresh' })
+                    : undefined,
+            },
+          },
+        ],
+      });
+      await ship.load(Lab, { imports: [Stub] });
+      const scope = await ship.createScope();
+      expect(scope.get(READING)).toBeInstanceOf(FakeReactor);
+    });
+
+    it('grants a loaded module that a hook replaced', async () => {
+      const LabStub = defineModule({
+        name: 'LabStub',
+        providers: [
+          provide(READING, {
+            useFactory: (reactor: IReactorCore) => reactor,
+            deps: [REACTOR],
+            lifetime: 'scoped',
+          }),
+        ],
+        exports: [READING],
+      });
+      const ship = await Nexus.create(Root, {
+        plugins: [
+          {
+            name: 'stub',
+            apiVersion: 1,
+            compile: { module: (m) => (m === Lab ? LabStub : undefined) },
+          },
+        ],
+      });
+      await ship.load(Lab, { imports: [Engineering] });
+      const scope = await ship.createScope();
+      expect(scope.get(READING)).toBeInstanceOf(FusionReactor);
+    });
+  });
+
   it('rejects a load whose replacement reaches a new global module', async () => {
     const Relay = defineModule({ name: 'Relay', global: true });
     const Outpost = defineModule({ name: 'Outpost' });

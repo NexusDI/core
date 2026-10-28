@@ -55,7 +55,10 @@ export interface ModuleView {
   readonly id: string;
   readonly name: string;
   readonly global: boolean;
+  /** The ids of the imported modules, then the ids a load grant added. */
   readonly imports: readonly string[];
+  /** The module ids a load grant added to `imports` beyond the module's own imports, in grant order. A granted module the module already imports stays out of it. */
+  readonly grants: readonly string[];
   /** Provider ids and module ids. */
   readonly exports: readonly string[];
   readonly definition: ModuleDefinition;
@@ -183,6 +186,7 @@ export function buildView(
         name: m.name,
         global: m.global,
         imports: Object.freeze([...m.imports]),
+        grants: Object.freeze([...m.grants]),
         exports: Object.freeze([...(parts.moduleExports.get(m.id) ?? [])]),
         definition: m.definition,
         replaced: parts.replaced.get(m.definition) ?? null,

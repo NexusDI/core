@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import type { BlueprintView, ErrorTextKit, NearMiss } from '../index.js';
-import { CoreNotSharedError, MissingProviderError, Token } from '../index.js';
+import {
+  CoreNotSharedError,
+  LoadGrantError,
+  MissingProviderError,
+  Token,
+} from '../index.js';
 import { coreText } from '../text/index.js';
 
 interface INavCharts {
@@ -101,6 +106,22 @@ describe('coreText', () => {
     expect(text.fix).toBe(
       'load one copy of @nexusdi/core. Check that npm installed it once (npm ls @nexusdi/core), that no test calls vi.resetModules() between the module and the container that reads it, and that no bundler resolves the @nexusdi/source condition for one import and dist for another. In Module Federation, share @nexusdi/core with singleton: true.',
     );
+  });
+
+  it('words already-loaded so it holds for a module with no recorded grant and for a subset', () => {
+    const text = coreText.NEXUS_LOAD_GRANT(
+      new LoadGrantError({
+        module: 'Science',
+        grant: 'Reactors',
+        reason: 'already-loaded',
+      }),
+    );
+    expect(text.message).toContain(
+      'Science is already in the graph with its grant fixed',
+    );
+    expect(text.message).toContain('another set of grants');
+    expect(text.message).toContain('Reactors');
+    expect(text.message).not.toContain('differs from the grant');
   });
 
   it('leaves the place out of the message when core met the value at none', () => {

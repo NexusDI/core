@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import { thrown } from '../../test-support/catch.js';
 import { compileErrors } from '../../test-support/compile.js';
+import { LoadGrantError } from '../errors/index.js';
+import type { Blueprint } from './blueprint.js';
 import {
   declareModuleClass,
   defineModule,
@@ -222,5 +225,166 @@ describe('compile', () => {
         .filter((p) => p.id !== 'request')
         .map((p) => p.name),
     ).toEqual(['Probe', 'Probe']);
+  });
+});
+
+describe('compile with a grant', () => {
+  const Engineering = defineModule({
+    name: 'Engineering',
+    providers: [ReactorCore],
+    exports: [ReactorCore],
+  });
+  const Navigation = defineModule({ name: 'Navigation' });
+  const Hold = defineModule({ name: 'Hold' });
+  const Host = defineModule({
+    name: 'Host',
+    imports: [
+      defineModule({
+        name: 'Wrapper',
+        imports: [Engineering, Navigation, Hold],
+      }),
+    ],
+  });
+  const first = compile({ root: Host });
+  const idOf = (bp: Blueprint, name: string): string => {
+    const node = [...bp.modules.values()].find((m) => m.name === name);
+    if (node === undefined) throw new Error(`no module ${name}`);
+    return node.id;
+  };
+
+  it('records the grant on each new module of the entry and adds it to the imports', () => {
+    const Deep = defineModule({ name: 'Deep', providers: [Sensors] });
+    const Science = defineModule({
+      name: 'Science',
+      imports: [Deep],
+      providers: [ShieldGrid],
+    });
+    const bp = compile({
+      root: Host,
+      extraImports: [{ module: Science, imports: [Engineering] }],
+      previous: first,
+    });
+    const engineering = idOf(bp, 'Engineering');
+    for (const name of ['Science', 'Deep']) {
+      const node = bp.modules.get(idOf(bp, name));
+      expect(node?.grants).toEqual([engineering]);
+      expect(node?.imports).toContain(engineering);
+    }
+    expect(bp.modules.get(idOf(bp, 'Host'))?.grants).toEqual([]);
+    expect(bp.modules.get(idOf(bp, 'Host'))?.imports).not.toContain(
+      engineering,
+    );
+    expect(idOf(bp, 'Engineering')).toBe(idOf(first, 'Engineering'));
+  });
+
+  it('gives a module the graph held no grant, and keeps an earlier grant as it is', () => {
+    const Science = defineModule({ name: 'Science' });
+    const second = compile({
+      root: Host,
+      extraImports: [{ module: Science, imports: [Engineering] }],
+      previous: first,
+    });
+    const Lab = defineModule({ name: 'Lab', imports: [Science, Hold] });
+    const third = compile({
+      root: Host,
+      extraImports: [
+        { module: Science, imports: [Engineering] },
+        { module: Lab, imports: [Navigation] },
+      ],
+      previous: second,
+    });
+    expect(third.modules.get(idOf(third, 'Science'))?.grants).toEqual([
+      idOf(third, 'Engineering'),
+    ]);
+    expect(third.modules.get(idOf(third, 'Hold'))?.grants).toEqual([]);
+    expect(third.modules.get(idOf(third, 'Lab'))?.grants).toEqual([
+      idOf(third, 'Navigation'),
+    ]);
+  });
+
+  describe('a module that already imports a granted module', () => {
+    const Deep = defineModule({ name: 'Deep' });
+    const Science = defineModule({
+      name: 'Science',
+      imports: [Engineering, Deep],
+    });
+    const granted = compile({
+      root: Host,
+      extraImports: [{ module: Science, imports: [Engineering, Navigation] }],
+      previous: first,
+    });
+
+    it('lists in grants only the ids the grant added, and keeps the declared import in imports', () => {
+      const engineering = idOf(granted, 'Engineering');
+      const navigation = idOf(granted, 'Navigation');
+      const science = granted.modules.get(idOf(granted, 'Science'));
+      expect(science?.imports.filter((id) => id === engineering)).toHaveLength(
+        1,
+      );
+      expect(science?.grants).toEqual([navigation]);
+      expect(granted.modules.get(idOf(granted, 'Deep'))?.grants).toEqual([
+        engineering,
+        navigation,
+      ]);
+    });
+
+    it('still reads the whole granted set as the recorded one', () => {
+      const repeat = (imports: unknown[]) =>
+        compile({
+          root: Host,
+          extraImports: [
+            { module: Science, imports: [Engineering, Navigation] },
+            { module: Science, imports: imports as never },
+          ],
+          previous: granted,
+        });
+      expect(() => repeat([Navigation, Engineering])).not.toThrow();
+      expect(thrown(() => repeat([Engineering]))).toMatchObject({
+        code: 'NEXUS_LOAD_GRANT',
+        reason: 'already-loaded',
+      });
+    });
+
+    it('names the first requested module the record lacks, or the first requested one for a subset', () => {
+      const repeat = (module: typeof Science, imports: unknown[]) =>
+        thrown(() =>
+          compile({
+            root: Host,
+            extraImports: [
+              { module: Science, imports: [Engineering, Navigation] },
+              { module, imports: imports as never },
+            ],
+            previous: granted,
+          }),
+        );
+      expect(repeat(Science, [Engineering, Hold])).toMatchObject({
+        reason: 'already-loaded',
+        grant: 'Hold',
+      });
+      expect(repeat(Science, [Navigation])).toMatchObject({
+        reason: 'already-loaded',
+        grant: 'Navigation',
+      });
+    });
+  });
+
+  it('throws LoadGrantError alone, ahead of the walk, for each reason', () => {
+    const Science = defineModule({ name: 'Science' });
+    const grantTo = (imports: unknown[], module = Science): unknown =>
+      thrown(() =>
+        compile({
+          root: Host,
+          extraImports: [{ module, imports: imports as never }],
+          previous: first,
+        }),
+      );
+    expect(grantTo([defineModule({ name: 'Hangar' })])).toMatchObject({
+      code: 'NEXUS_LOAD_GRANT',
+      module: 'Science',
+      grant: 'Hangar',
+      reason: 'not-in-graph',
+    });
+    expect(grantTo([Host])).toBeInstanceOf(LoadGrantError);
+    expect(grantTo([Host])).toMatchObject({ reason: 'root', grant: 'Host' });
   });
 });
