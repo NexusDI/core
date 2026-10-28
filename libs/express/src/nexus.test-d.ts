@@ -1,4 +1,8 @@
-import type { Request, RequestHandler } from 'express';
+import express, {
+  type NextFunction,
+  type Request,
+  type RequestHandler,
+} from 'express';
 import { expectTypeOf, test } from 'vitest';
 
 import { all, lazy, MultiToken, Nexus, optional, Token } from '@nexusdi/core';
@@ -50,4 +54,17 @@ test('nexus also takes a function that builds the container', () => {
 
 test('the handle is AsyncDisposable', () => {
   expectTypeOf(nexus(ship)).toExtend<AsyncDisposable>();
+});
+
+test('inject with next fits app.use as a guard', () => {
+  const di = nexus(ship);
+  const guard = di.inject({ charts: NAV_CHARTS }, (deps, req, res, next) => {
+    expectTypeOf(next).toEqualTypeOf<NextFunction>();
+    if (req.get('x-operator') !== 'helm') {
+      res.status(403).end();
+      return;
+    }
+    next();
+  });
+  express().use(guard).use('/drive', guard);
 });
