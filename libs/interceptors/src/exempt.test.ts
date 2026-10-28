@@ -228,6 +228,53 @@ describe('exempt', () => {
     expect(ship).toBeDefined();
   });
 
+  it.each([
+    ['all', all],
+    ['lazy(all)', (token: MultiToken<IUsers>) => lazy(all(token))],
+  ] as const)(
+    'follows the contributors of a %s dep to what they reach, and exempts them as one root',
+    async (_kind, wrap) => {
+      const HOOKS = new MultiToken<IUsers>('Hooks');
+      const Hooks = defineModule({
+        name: 'Hooks',
+        imports: [UsersModule],
+        providers: [
+          provide(HOOKS, {
+            useFactory: (db) => ({ find: db.query }),
+            deps: [DB],
+          }),
+          provide(HOOKS, {
+            useFactory: (db) => ({ find: db.query }),
+            deps: [DB],
+          }),
+        ],
+        exports: [HOOKS],
+      });
+      const hooked = (extra: Partial<InterceptorsOptions>) =>
+        interceptors({
+          imports: [Hooks],
+          register: [authWith([wrap(HOOKS)], [])],
+          global: [AUTH],
+          ...extra,
+        });
+      const error = await rejected(
+        Nexus.create(defineModule({ name: 'App' }), { plugins: [hooked({})] }),
+      );
+      expect(reasons(error)).toEqual([
+        {
+          reason: 'unexempted-dep',
+          token: 'Auth',
+          target: 'Hooks',
+          detail: ['Hooks', 'Hooks', 'Db'],
+        },
+      ]);
+      await using ship = await Nexus.create(defineModule({ name: 'App' }), {
+        plugins: [hooked({ exempt: [HOOKS] })],
+      });
+      expect(ship).toBeDefined();
+    },
+  );
+
   it('matches exempt through a tokenKey plugin', async () => {
     const written = new Token<IUsers>('bank/Users');
     const listed = new Token<IUsers>('bank/Users');

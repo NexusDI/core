@@ -1,7 +1,14 @@
-import { defineModule, Nexus, provide, Token } from '@nexusdi/core';
+import {
+  defineModule,
+  Nexus,
+  provide,
+  Token,
+  type BlueprintView,
+} from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
 import { findCode, rejected, thrown } from '../test-support/catch.js';
+import { reach } from './check.js';
 import { interceptor } from './options.js';
 import { interceptors } from './plugin.js';
 import type { CallContext, Interceptor, Next } from './types.js';
@@ -24,6 +31,43 @@ const app = (cls: new () => object) =>
 
 const errorsOf = (error: unknown): string[] =>
   ((error as { errors?: { code: string }[] }).errors ?? []).map((e) => e.code);
+
+describe('reach', () => {
+  const view = (edges: [string, string, string][]): BlueprintView =>
+    ({
+      edges: edges.map(([from, to, kind]) => ({ from, to, kind })),
+    }) as unknown as BlueprintView;
+
+  it('follows the all edges of a collector to its contributions and what they reach', () => {
+    const graph = view([
+      ['collector', 'one', 'all'],
+      ['collector', 'two', 'all'],
+      ['two', 'store', 'required'],
+      ['other', 'lonely', 'required'],
+    ]);
+    expect([...reach(graph, ['collector'])]).toEqual([
+      'collector',
+      'one',
+      'two',
+      'store',
+    ]);
+  });
+
+  it('follows the lazy edges that lazy(all()) records for each contribution', () => {
+    const graph = view([
+      ['collector', 'one', 'lazy'],
+      ['collector', 'two', 'lazy'],
+      ['one', 'collector', 'required'],
+      ['two', 'store', 'optional'],
+    ]);
+    expect([...reach(graph, ['collector'])]).toEqual([
+      'collector',
+      'one',
+      'two',
+      'store',
+    ]);
+  });
+});
 
 describe('compile.check', () => {
   it('reports a declared interceptor that is not registered, with target and method', async () => {

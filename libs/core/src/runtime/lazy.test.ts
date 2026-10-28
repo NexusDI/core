@@ -4,10 +4,10 @@ import { rejected, thrown } from '../../test-support/catch.js';
 import { deferred, flush } from '../../test-support/deferred.js';
 import { compile } from '../blueprint/compile.js';
 import { defineModule } from '../definitions/define-module.js';
-import { lazy } from '../definitions/modifiers.js';
+import { all, lazy } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
-import { Token } from '../definitions/token.js';
-import { makeThunk, type ResolveId } from './lazy.js';
+import { MultiToken, Token } from '../definitions/token.js';
+import { makeListThunk, makeThunk, type ResolveId } from './lazy.js';
 import { Nexus } from './nexus.js';
 import { rootState } from '../../test-support/root-state.js';
 import type { TransientOwner } from './state.js';
@@ -199,6 +199,328 @@ describe('lazy', () => {
     });
     const ship = await Nexus.create(Root);
     expect(ship.get(Reader).link()).toBe('end');
+  });
+});
+
+describe('lazy(all())', () => {
+  interface IHandler {
+    readonly name: string;
+  }
+  interface IBus {
+    handlers(): readonly IHandler[];
+  }
+  const HANDLERS = new MultiToken<IHandler>('Handlers');
+  const BUS = new Token<IBus>('Bus');
+  const handler = (name: string, built?: string[]) =>
+    provide(HANDLERS, {
+      useFactory: (_bus: IBus): IHandler => {
+        built?.push(name);
+        return { name };
+      },
+      deps: [BUS],
+    });
+
+  it('fails a cycle through all() with NEXUS_CIRCULAR_DEPENDENCY', async () => {
+    const error = await rejected(
+      Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [
+            provide(BUS, {
+              useFactory: (handlers): IBus => ({ handlers: () => handlers }),
+              deps: [all(HANDLERS)],
+            }),
+            handler('a'),
+          ],
+        }),
+      ),
+    );
+    expect(error).toMatchObject({
+      errors: [
+        { code: 'NEXUS_CIRCULAR_DEPENDENCY', path: ['Bus', 'Handlers', 'Bus'] },
+      ],
+    });
+  });
+
+  it('builds the same cycle through lazy(all()) and returns the contributions in record order, as a new array per call', async () => {
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(BUS, {
+            useFactory: (handlers): IBus => ({ handlers }),
+            deps: [lazy(all(HANDLERS))],
+          }),
+          handler('a'),
+          handler('b'),
+        ],
+      }),
+    );
+    const bus = ship.get(BUS);
+    const first = bus.handlers();
+    expect(first.map((h) => h.name)).toEqual(['a', 'b']);
+    expect(bus.handlers()).not.toBe(first);
+    expect(bus.handlers()).toEqual(first);
+    expect(bus.handlers()[0]).toBe(ship.get(HANDLERS)[0]);
+  });
+
+  it('builds a transient contribution on every call', async () => {
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(BUS, {
+            useFactory: (handlers): IBus => ({ handlers }),
+            deps: [lazy(all(HANDLERS))],
+          }),
+          provide(HANDLERS, {
+            useFactory: (): IHandler => ({ name: 'fresh' }),
+            deps: [],
+            lifetime: 'transient',
+          }),
+          handler('kept'),
+        ],
+      }),
+    );
+    const bus = ship.get(BUS);
+    const [a, b] = [bus.handlers(), bus.handlers()];
+    expect(a[0]).not.toBe(b[0]);
+    expect(a[1]).toBe(b[1]);
+  });
+
+  it('throws NEXUS_NOT_READY from a constructor, naming the first unready contribution and building none', async () => {
+    const built: string[] = [];
+    const error = await rejected(
+      Nexus.create(
+        defineModule({
+          name: 'Root',
+          providers: [
+            provide(HANDLERS, {
+              useFactory: (): IHandler => {
+                built.push('early');
+                return { name: 'early' };
+              },
+              deps: [],
+              lifetime: 'transient',
+            }),
+            provide(BUS, {
+              useFactory: (handlers): IBus => {
+                handlers();
+                return { handlers };
+              },
+              deps: [lazy(all(HANDLERS))],
+            }),
+            handler('late', built),
+          ],
+        }),
+      ),
+    );
+    expect(error).toMatchObject({
+      code: 'NEXUS_PROVIDER_FAILED',
+      token: 'Bus',
+      cause: { code: 'NEXUS_NOT_READY', owner: 'Bus', target: 'Handlers' },
+    });
+    expect(built).toEqual([]);
+  });
+
+  it('meets NEXUS_DISPOSED in a collector disposer that calls the thunk, since the contributions go first', async () => {
+    let met: unknown;
+    class Bus implements IBus {
+      static deps = [lazy(all(HANDLERS))] as const;
+      constructor(readonly handlers: () => readonly IHandler[]) {}
+      [Symbol.asyncDispose](): Promise<void> {
+        try {
+          this.handlers();
+        } catch (error) {
+          met = error;
+        }
+        return Promise.resolve();
+      }
+    }
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(BUS, { useClass: Bus }),
+          provide(HANDLERS, {
+            useFactory: (_bus: IBus) => ({
+              name: 'a',
+              [Symbol.dispose]() {},
+            }),
+            deps: [BUS],
+          }),
+        ],
+      }),
+    );
+    expect(ship.get(BUS).handlers()).toHaveLength(1);
+    await ship[Symbol.asyncDispose]();
+    expect(met).toMatchObject({ code: 'NEXUS_DISPOSED' });
+  });
+
+  it('throws NEXUS_NOT_READY when a collector calls the thunk while an async singleton contribution is pending, and builds none', async () => {
+    const built: string[] = [];
+    const gateBus = deferred();
+    const gateHandler = deferred<IHandler>();
+    const creating = Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(BUS, {
+            useFactory: async (handlers): Promise<IBus> => {
+              await gateBus.promise;
+              handlers();
+              return { handlers };
+            },
+            deps: [lazy(all(HANDLERS))],
+          }),
+          provide(HANDLERS, {
+            useFactory: (): IHandler => {
+              built.push('transient');
+              return { name: 'transient' };
+            },
+            deps: [],
+            lifetime: 'transient',
+          }),
+          provide(HANDLERS, {
+            useFactory: () => gateHandler.promise,
+            deps: [],
+          }),
+        ],
+      }),
+    );
+    gateBus.resolve();
+    await flush();
+    gateHandler.resolve({ name: 'late' });
+    expect(await rejected(creating)).toMatchObject({
+      token: 'Bus',
+      cause: { code: 'NEXUS_NOT_READY', owner: 'Bus', target: 'Handlers' },
+    });
+    expect(built).toEqual([]);
+  });
+
+  it('throws NEXUS_LAZY_ASYNC for an eager: false async contribution, after building the transient contribution before it', async () => {
+    const built: string[] = [];
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(BUS, {
+            useFactory: (handlers): IBus => ({ handlers }),
+            deps: [lazy(all(HANDLERS))],
+          }),
+          provide(HANDLERS, {
+            useFactory: (): IHandler => {
+              built.push('transient');
+              return { name: 'transient' };
+            },
+            deps: [],
+            lifetime: 'transient',
+          }),
+          provide(HANDLERS, {
+            useFactory: async (): Promise<IHandler> => ({ name: 'async' }),
+            deps: [],
+            eager: false,
+          } as never),
+        ],
+      }),
+    );
+    expect(thrown(() => ship.get(BUS).handlers())).toMatchObject({
+      code: 'NEXUS_LAZY_ASYNC',
+      token: 'Handlers',
+    });
+    expect(built).toEqual(['transient']);
+  });
+
+  it('throws NEXUS_NOT_READY for an unsettled scoped async contribution', async () => {
+    const gateBus = deferred();
+    const gateHandler = deferred<IHandler>();
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(BUS, {
+            useFactory: async (handlers): Promise<IBus> => {
+              await gateBus.promise;
+              handlers();
+              return { handlers };
+            },
+            deps: [lazy(all(HANDLERS))],
+            lifetime: 'scoped',
+          }),
+          provide(HANDLERS, {
+            useFactory: () => gateHandler.promise,
+            deps: [],
+            lifetime: 'scoped',
+          }),
+        ],
+      }),
+    );
+    const creating = ship.createScope();
+    gateBus.resolve();
+    await flush();
+    gateHandler.resolve({ name: 'late' });
+    expect(await rejected(creating)).toMatchObject({
+      cause: { code: 'NEXUS_NOT_READY', owner: 'Bus', target: 'Handlers' },
+    });
+  });
+});
+
+describe('makeListThunk', () => {
+  class Disposed {}
+  class Pending {}
+  const setup = () => {
+    const bp = compile({
+      root: defineModule({
+        name: 'Root',
+        providers: [
+          provide(Disposed, { deps: [] }),
+          provide(Pending, { deps: [] }),
+        ],
+      }),
+    });
+    const root = rootState({
+      blueprint: bp,
+      rootRef: {},
+      tracer: new Tracer(),
+      initEnabled: true,
+    });
+    const idOf = (name: string) => {
+      const record = [...bp.providers.values()].find((r) => r.name === name);
+      if (record === undefined) throw new Error(`internal: no ${name}`);
+      return record.id;
+    };
+    const disposed = idOf('Disposed');
+    const instance = {};
+    root.slots.settle(disposed, instance);
+    root.slots.markReady(disposed);
+    root.ownership.markDisposed(instance);
+    const pending = idOf('Pending');
+    root.slots.begin(pending, new Promise(() => undefined));
+    const thunk = (ids: string[]) =>
+      makeListThunk(
+        ids,
+        { name: 'Bus', lifetime: 'singleton' },
+        { bp, container: root, owner: root },
+        () => {
+          throw new Error('internal: nothing may build');
+        },
+      );
+    return { thunk, disposed, pending };
+  };
+
+  it('throws the first refusal in record order: NEXUS_DISPOSED before an unready id', () => {
+    const { thunk, disposed, pending } = setup();
+    expect(thrown(thunk([disposed, pending]))).toMatchObject({
+      code: 'NEXUS_DISPOSED',
+    });
+  });
+
+  it('throws the first refusal in record order: NEXUS_NOT_READY before a disposed id', () => {
+    const { thunk, disposed, pending } = setup();
+    expect(thrown(thunk([pending, disposed]))).toMatchObject({
+      code: 'NEXUS_NOT_READY',
+      target: 'Pending',
+    });
   });
 });
 

@@ -15,7 +15,7 @@ import {
   type NexusError,
 } from '../errors/index.js';
 import { resolveId } from './build.js';
-import { makeThunk } from './lazy.js';
+import { makeListThunk, makeThunk } from './lazy.js';
 import { lookupModule, notFound } from './lookup.js';
 import type { LookupOptions } from './options.js';
 import type { ContainerState, TransientOwner } from './state.js';
@@ -122,8 +122,10 @@ function atEntry(where: string, build: () => unknown): unknown {
  * Whether resolving `id` from the root throws NEXUS_SCOPE_REQUIRED before
  * building anything: `id` is REQUEST, or an alias chain that ends at a
  * scoped provider. A lazy entry to such a target throws at resolve() time
- * instead of deferring to the thunk (spec §3.9); any other lazy entry still
- * defers, since resolving it here would build it early.
+ * instead of deferring to the thunk (spec §3.9). A lazy(all()) entry does the
+ * same when any one of its ids needs a scope, and resolves the whole list at
+ * once. Any other lazy entry still defers, since resolving it here would
+ * build it early.
  */
 function needsScopeAtRoot(bp: Blueprint, id: string): boolean {
   let current = id;
@@ -170,13 +172,13 @@ export function resolveDeps(
     let resolved: unknown;
     if (dep.kind === 'all')
       resolved = atEntry(where, () => ids.map((each) => resolveId(each, ctx)));
-    else if (dep.kind === 'lazy-all') {
-      // Stub: K3.2 replaces this with the all-or-nothing thunk.
-      const thunks = ids.map((each) =>
-        makeThunk(each, thunkOwner(container), ctx, resolveId),
-      );
-      resolved = () => thunks.map((thunk) => thunk());
-    } else if (id === undefined) {
+    else if (dep.kind === 'lazy-all')
+      resolved =
+        container.kind === 'root' &&
+        ids.some((each) => needsScopeAtRoot(bp, each))
+          ? atEntry(where, () => ids.map((each) => resolveId(each, ctx)))
+          : makeListThunk(ids, thunkOwner(container), ctx, resolveId);
+    else if (id === undefined) {
       if (dep.kind !== 'optional')
         throw notFound(container, bp, token, moduleId, where);
       resolved = undefined;

@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import { compileErrors } from '../../test-support/compile.js';
 import { defineModule } from '../definitions/define-module.js';
-import { lazy } from '../definitions/modifiers.js';
+import { all, lazy } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
 import { REQUEST } from '../definitions/request.js';
-import { Token } from '../definitions/token.js';
+import { MultiToken, Token } from '../definitions/token.js';
 import { LifetimeError } from '../errors/index.js';
 import { compile } from './compile.js';
 
@@ -54,6 +54,28 @@ describe('compile', () => {
         code: 'NEXUS_LIFETIME_VIOLATION',
         path: ['ShipComputer', 'Drone', 'MissionAlias', 'Mission'],
         lifetimes: ['singleton', 'transient', null, 'scoped'],
+      },
+    ]);
+  });
+
+  it('follows the lazy edges of lazy(all()) to a scoped contribution', () => {
+    const PANELS = new MultiToken<string>('Panels');
+    const Root = defineModule({
+      name: 'Root',
+      providers: [
+        provide(PANELS, {
+          useFactory: () => 'helm',
+          deps: [],
+          lifetime: 'scoped',
+        }),
+        provide(ShipComputer, { deps: [lazy(all(PANELS))] }),
+      ],
+    });
+    expect(compileErrors(Root)).toMatchObject([
+      {
+        code: 'NEXUS_LIFETIME_VIOLATION',
+        path: ['ShipComputer', 'Panels'],
+        lifetimes: ['singleton', 'scoped'],
       },
     ]);
   });
