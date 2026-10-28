@@ -15,6 +15,7 @@ import {
   LoadedAfterScopeError,
   LoadContributionError,
   LoadGrantError,
+  UnreadContributionError,
   LoadError,
   MissingDepsError,
   MissingProviderError,
@@ -443,6 +444,16 @@ export const errorCases: readonly ErrorCase[] = [
     }),
     code: 'NEXUS_LOAD_GRANT',
     fields: { module: 'Science', grant: 'Reactors', reason: 'already-loaded' },
+  },
+  {
+    name: 'UnreadContributionError',
+    error: new UnreadContributionError({
+      token: 'Log',
+      module: 'Science',
+      provider: 'useValue #1',
+    }),
+    code: 'NEXUS_UNREAD_CONTRIBUTION',
+    fields: { token: 'Log', module: 'Science', provider: 'useValue #1' },
   },
   {
     name: 'ProviderError (path, also failed, disposal errors)',

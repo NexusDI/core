@@ -45,3 +45,4 @@ export { PluginError, type PluginInvalidReason } from './plugin-error.js';
 export { ProviderError, type ProviderFailure } from './provider-error.js';
 export { RequestMissingError } from './request-missing-error.js';
 export { ScopeRequiredError } from './scope-required-error.js';
+export { UnreadContributionError } from './unread-contribution-error.js';

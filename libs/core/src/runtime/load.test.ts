@@ -156,6 +156,26 @@ describe('Nexus', () => {
         expect(ship.get(LOG)).toEqual([]);
       });
 
+      it('rejects NEXUS_UNREAD_CONTRIBUTION inside a BlueprintError for a loaded module whose private contribution no provider reads', async () => {
+        const Silent = defineModule({
+          name: 'Silent',
+          providers: [provide(LOG, { useValue: 'own' })],
+        });
+        const ship = await Nexus.create(Meridian);
+        expect(await rejected(ship.load(Silent))).toMatchObject({
+          code: 'NEXUS_BLUEPRINT_INVALID',
+          errors: [
+            {
+              code: 'NEXUS_UNREAD_CONTRIBUTION',
+              token: 'Log',
+              module: 'Silent',
+              provider: 'useValue #1',
+            },
+          ],
+        });
+        expect(ship.get(LOG)).toEqual([]);
+      });
+
       it('lets the load through when a compile.provider hook removes the record', async () => {
         const ship = await Nexus.create(Meridian, {
           plugins: [

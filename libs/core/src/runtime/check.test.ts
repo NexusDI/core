@@ -135,6 +135,28 @@ describe('Nexus.check', () => {
     });
   });
 
+  it('reports a loaded module whose private contribution no provider reads as an UnreadContributionError inside the BlueprintError', () => {
+    const LOG = new MultiToken<string>('Log');
+    const Silent = defineModule({
+      name: 'Silent',
+      providers: [provide(LOG, { useValue: 'own' })],
+    });
+    const error = thrown(() =>
+      Nexus.check(defineModule({ name: 'Root' }), { load: [Silent] }),
+    );
+    expect(error).toMatchObject({
+      code: 'NEXUS_BLUEPRINT_INVALID',
+      errors: [
+        {
+          code: 'NEXUS_UNREAD_CONTRIBUTION',
+          token: 'Log',
+          module: 'Silent',
+          provider: 'useValue #1',
+        },
+      ],
+    });
+  });
+
   it('accepts a load of a global module the root already reaches', () => {
     const Telemetry = defineModule({ name: 'Telemetry', global: true });
     const Wrapper = defineModule({ name: 'Wrapper', imports: [Telemetry] });

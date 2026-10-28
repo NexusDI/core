@@ -13,6 +13,7 @@ import {
   Token,
   type NexusPlugin,
   type PluginContext,
+  type ProviderEntry,
   type TraceEvent,
 } from '@nexusdi/core';
 
@@ -162,6 +163,44 @@ describe('createTestingContainer', () => {
       .create();
     expect(ship.get(REPORT).checks()).toEqual(['passing']);
     expect(ship.get(DIAGNOSTICS, { module: Engineering })).toEqual(['passing']);
+  });
+
+  describe('private contributions and the unread check', () => {
+    const CHECKS = new MultiToken<string>('Checks');
+    const HEALTH = new Token<readonly string[]>('Health');
+    const feature = (...extra: ProviderEntry[]) =>
+      defineModule({
+        name: 'Feature',
+        providers: [
+          provide(CHECKS, { useValue: 'reactor' }),
+          provide(CHECKS, { useValue: 'hull' }),
+          ...extra,
+        ],
+      });
+    const collector = provide(HEALTH, {
+      useFactory: (checks) => checks,
+      deps: [all(CHECKS)],
+    });
+
+    it('creates when override() replaces a collector that read private contributions', async () => {
+      const Feature = feature(collector);
+      const ship = await createTestingContainer(
+        defineModule({ name: 'Root', imports: [Feature] }),
+      )
+        .override(HEALTH, { useValue: ['stub'] })
+        .create();
+      expect(ship.get(HEALTH, { module: Feature })).toEqual(['stub']);
+    });
+
+    it('creates when override() replaces a private MultiToken that no provider reads', async () => {
+      const Feature = feature();
+      const ship = await createTestingContainer(
+        defineModule({ name: 'Root', imports: [Feature] }),
+      )
+        .override(CHECKS, { useValue: 'passing' })
+        .create();
+      expect(ship.get(CHECKS, { module: Feature })).toEqual(['passing']);
+    });
   });
 
   it('replaces a module wherever the walk meets it', async () => {

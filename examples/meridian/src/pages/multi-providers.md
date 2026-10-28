@@ -245,6 +245,7 @@ import {
   Token,
   all,
   defineModule,
+  isNexusError,
   provide,
 } from '@nexusdi/core';
 
@@ -277,7 +278,7 @@ const Engineering = defineModule({
   providers: [provide(DIAGNOSTICS, { useClass: ReactorDiagnostic })],
   exports: [DIAGNOSTICS],
 });
-// Tactical contributes to DIAGNOSTICS and does not export it.
+// Tactical contributes to DIAGNOSTICS, does not export it, and reads nothing.
 const Tactical = defineModule({
   name: 'Tactical',
   providers: [
@@ -285,15 +286,20 @@ const Tactical = defineModule({
   ],
 });
 
-await using ship = await Nexus.create(
+const error = await Nexus.create(
   defineModule({
     name: 'Meridian',
     imports: [Engineering, Tactical],
     providers: [provide(DIAGNOSTICS_PANEL, { useClass: StatusBoard })],
   }),
-);
-const systems = ship.get(DIAGNOSTICS_PANEL).systems(); // -> ['reactor']
-console.log(systems);
+).catch((caught: unknown) => caught);
+const code = isNexusError(error) ? error.code : null; // -> 'NEXUS_BLUEPRINT_INVALID'
+console.log(code);
+const inner = isNexusError(error, 'NEXUS_BLUEPRINT_INVALID')
+  ? error.errors[0]
+  : undefined;
+const unread = isNexusError(inner) ? inner.code : null; // -> 'NEXUS_UNREAD_CONTRIBUTION'
+console.log(unread);
 ```
 
 <!-- #endregion unexported -->
