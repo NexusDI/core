@@ -178,7 +178,7 @@ import * as v from 'valibot';
 
 const CommsSchema = v.object({
   frequency: v.pipe(v.number(), v.integer(), v.minValue(1)),
-  transport: v.picklist(['relay', 'laser']),
+  transport: v.optional(v.picklist(['relay', 'laser']), 'relay'),
 });
 type CommsOptions = v.InferOutput<typeof CommsSchema>;
 interface ISubspaceLink {
@@ -191,7 +191,7 @@ class SubspaceRelay implements ISubspaceLink {
   static deps = [COMMS_OPTIONS] as const;
   constructor(private readonly options: CommsOptions) {}
   hail() {
-    return `relay on ${this.options.frequency}`;
+    return `${this.options.transport} on ${this.options.frequency}`;
   }
 }
 
@@ -206,7 +206,7 @@ const Comms = defineModule({
 const error = await Nexus.create(
   defineModule({
     name: 'Meridian',
-    imports: [Comms.forRoot({ frequency: -5, transport: 'relay' })],
+    imports: [Comms.forRoot({ frequency: -5 })],
   }),
 ).catch((caught: unknown) => caught);
 const code = isNexusError(error) ? error.code : null; // -> 'NEXUS_PROVIDER_FAILED'
@@ -219,6 +219,15 @@ const issues = isNexusError(cause, 'NEXUS_INVALID_MODULE_OPTIONS')
   : [];
 const messages = issues.map((issue) => issue.message); // -> ['Invalid value: Expected >=1 but received -5']
 console.log(messages);
+
+const ship = await Nexus.create(
+  defineModule({
+    name: 'Meridian',
+    imports: [Comms.forRoot({ frequency: 1420 })],
+  }),
+);
+const hail = ship.get(SUBSPACE_LINK).hail(); // -> 'relay on 1420'
+console.log(hail);
 ```
 
 <!-- #endregion schema -->
