@@ -1,4 +1,5 @@
 import { MultiToken, Token } from '@nexusdi/core';
+
 import type { LifeSupportRecord, RoomPlan } from '../physics/atmosphere';
 import type { CommsRecord } from '../physics/comms';
 import type { DoorPlan } from '../physics/doors';
@@ -10,6 +11,7 @@ import type { PowerRecord } from '../physics/power';
 import type { SafetyRecord } from '../physics/safety';
 import type { CoolantRecord, ReactorRecord } from '../physics/thermal';
 import type { WeaponsRecord } from '../physics/weapons';
+
 import type {
   LoggedChange,
   QueuedCommand,
@@ -111,8 +113,11 @@ export interface DeckPlan {
   };
 }
 
-/** The order a tick runs the systems in, from engineering (1) to comms (6). */
-export type Phase = 1 | 2 | 3 | 4 | 5 | 6;
+/** The phases of a tick, in the order it runs the systems: engineering (1) to comms (6). */
+export const PHASES = [1, 2, 3, 4, 5, 6] as const;
+
+/** One phase of a tick. */
+export type Phase = (typeof PHASES)[number];
 
 export interface IRandomSource {
   /** The next number in [0, 1). */

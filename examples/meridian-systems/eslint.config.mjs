@@ -1,3 +1,5 @@
+import importPlugin from 'eslint-plugin-import';
+
 import baseConfig from '../../eslint.config.mjs';
 
 const REPLAY =
@@ -95,6 +97,21 @@ export default [
   ...baseConfig,
   {
     ignores: ['**/out-tsc'],
+  },
+  {
+    // Packages first, then parent paths, then sibling paths, one blank line
+    // between the groups.
+    files: ['**/*.ts'],
+    plugins: { import: importPlugin },
+    rules: {
+      'import/order': [
+        'error',
+        {
+          groups: [['builtin', 'external'], 'parent', ['sibling', 'index']],
+          'newlines-between': 'always',
+        },
+      ],
+    },
   },
   {
     // The replay rules, enforced on the syntax tree. The repo-check in

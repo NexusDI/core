@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import deck from '../../../deck/meridian.deck.json';
 import type { DeckPlan, ShipSnapshot } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import { CommsPower } from './comms-power';
 import type { ICommsArray } from './contracts';
 

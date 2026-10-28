@@ -5,6 +5,7 @@ import type {
   ShipSnapshot,
   TickContext,
 } from '../../simulation/contracts';
+
 import { type IThrusters, THRUSTERS } from './contracts';
 
 /** Steps the helm in phase 2 of each tick. */

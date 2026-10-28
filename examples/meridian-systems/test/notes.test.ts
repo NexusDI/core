@@ -4,9 +4,17 @@ import { describe, expect, it } from 'vitest';
 
 import { meridianSystems } from '../src/meridian-systems.module';
 import { shipNotes } from '../src/notes';
+import {
+  type IShipSystem,
+  SHIP_SYSTEMS,
+  type ShipSnapshot,
+  TICK_LOOP,
+} from '../src/simulation/contracts';
+import { FixedStepLoop } from '../src/simulation/fixed-step-loop';
 import { Simulation } from '../src/simulation/simulation.module';
 import { FTL_DRIVE, type IFtlDrive } from '../src/systems/ftl/contracts';
 import { FtlDrive } from '../src/systems/ftl/ftl-drive.module';
+
 import { ShipUnderTest } from './ship-under-test';
 
 interface IHelm {
@@ -88,6 +96,38 @@ describe('shipNotes', () => {
     expect(byModule.ProbeSystems.flat()).not.toContainEqual(
       expect.stringMatching(/^phase: /),
     );
+  });
+
+  it.each([
+    ['a phase of 3', 3, ['system: Phased', 'phase: 3']],
+    ['a phase of 7', 7, ['system: Phased']],
+    ['a phase of 1.5', 1.5, ['system: Phased']],
+  ])('labels a ship system class with %s', (_name, phase, notes) => {
+    /** A ship system whose class declares `phase`, which only 1 to 6 may. */
+    class Stepper implements IShipSystem {
+      static readonly phase: number = phase;
+      readonly name = 'Stepper';
+      readonly phase = 1;
+      step(ship: ShipSnapshot): ShipSnapshot {
+        return ship;
+      }
+    }
+    const Phased = defineModule({
+      name: 'Phased',
+      providers: [provide(SHIP_SYSTEMS, { useClass: Stepper })],
+      exports: [SHIP_SYSTEMS],
+    });
+    const Loop = defineModule({
+      name: 'Loop',
+      global: true,
+      imports: [Simulation.forRoot({ seed: 7, dt: 0.5 }), Phased],
+      providers: [provide(TICK_LOOP, { useClass: FixedStepLoop })],
+      exports: [TICK_LOOP],
+    });
+    const graph = inspect(Loop, { annotate: [shipNotes] });
+    expect(
+      graph.providers.find((p) => p.implementation === 'Stepper')?.notes,
+    ).toEqual(notes);
   });
 
   it('labels the loaded FTL drive, and a module that stands in for it, with no phase note', () => {

@@ -6,6 +6,7 @@ import type {
   ShipSnapshot,
   TickContext,
 } from '../../simulation/contracts';
+
 import {
   COOLANT_LOOP,
   type ICoolantLoop,
@@ -18,6 +19,7 @@ import {
 /** Steps the reactor, the power router and the coolant loop in phase 1 of each tick. */
 export class EngineeringPhysics implements IShipSystem {
   static deps = [REACTOR, COOLANT_LOOP, POWER_ROUTER] as const;
+
   /** The graph reads the phase without building the class. */
   static readonly phase: Phase = 1;
 

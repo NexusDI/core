@@ -5,8 +5,12 @@ import { describe, expect, it } from 'vitest';
 import { BadCommandError } from '../../errors';
 import type { ShipCommand } from '../../simulation/commands';
 import { shipText } from '../../text';
+
 import { type IAtmosphereControl, LIFE_SUPPORT_ACTIONS } from './contracts';
-import { LifeSupportCommands } from './life-support-commands';
+import {
+  LifeSupportCommands,
+  refuseLifeSupport,
+} from './life-support-commands';
 
 /** A panel that records each call and answers tick 2. */
 function build() {
@@ -19,6 +23,7 @@ function build() {
     };
   const control: IAtmosphereControl = {
     online: record('online'),
+    offline: record('offline'),
     heater: record('heater'),
     scrubber: record('scrubber'),
     oxygen: record('oxygen'),
@@ -45,6 +50,7 @@ describe('LifeSupportCommands', () => {
 
   it.each([
     [{ action: 'online' }, ['online']],
+    [{ action: 'offline' }, ['offline']],
     [
       { action: 'heater', compartment: 'habitat', target: 295 },
       ['heater', 'habitat', { on: undefined, target: 295 }],
@@ -82,46 +88,74 @@ describe('LifeSupportCommands', () => {
   });
 
   it.each([
-    ['a heater with no setting', { action: 'heater', compartment: 'habitat' }],
-    ['a heater with no compartment', { action: 'heater', on: true }],
-    ['a numeric compartment', { action: 'heater', compartment: 4, on: true }],
+    [
+      'a heater with no setting',
+      'on or target',
+      { action: 'heater', compartment: 'habitat' },
+    ],
+    [
+      'a heater with no compartment',
+      'compartment',
+      { action: 'heater', on: true },
+    ],
+    [
+      'a numeric compartment',
+      'compartment',
+      { action: 'heater', compartment: 4, on: true },
+    ],
     [
       'a target under 283 K',
+      'target',
       { action: 'heater', compartment: 'habitat', target: 282.9 },
     ],
     [
       'a target over 303 K',
+      'target',
       { action: 'heater', compartment: 'habitat', target: 303.1 },
     ],
     [
       'a NaN target',
+      'target',
       { action: 'heater', compartment: 'habitat', target: Number.NaN },
     ],
     [
       'a string target',
+      'target',
       { action: 'heater', compartment: 'habitat', target: '295' },
     ],
     [
       'a string on beside a good target',
+      'on',
       { action: 'heater', compartment: 'habitat', on: 'yes', target: 295 },
     ],
-    ['a scrubber with no on', { action: 'scrubber', compartment: 'habitat' }],
+    [
+      'a scrubber with no on',
+      'on',
+      { action: 'scrubber', compartment: 'habitat' },
+    ],
     [
       'a string scrubber on',
+      'on',
       { action: 'scrubber', compartment: 'habitat', on: 'true' },
     ],
-    ['an oxygen with no compartment', { action: 'oxygen', on: true }],
-    ['a vent with no open', { action: 'vent', compartment: 'airlock' }],
+    [
+      'an oxygen with no compartment',
+      'compartment',
+      { action: 'oxygen', on: true },
+    ],
+    ['a vent with no open', 'open', { action: 'vent', compartment: 'airlock' }],
     [
       'a vent with on in place of open',
+      'open',
       { action: 'vent', compartment: 'airlock', on: true },
     ],
-    ['a pump with no mode', { action: 'pump', compartment: 'airlock' }],
+    ['a pump with no mode', 'mode', { action: 'pump', compartment: 'airlock' }],
     [
       'a pump mode of drain',
+      'mode',
       { action: 'pump', compartment: 'airlock', mode: 'drain' },
     ],
-  ])('refuses %s as a bad argument', (_name, args) => {
+  ])('refuses %s as a bad %s argument', (_name, argument, args) => {
     const { calls, commands } = build();
     const error = refusal(commands, { system: 'life-support', ...args });
     expect(error).toBeInstanceOf(BadCommandError);
@@ -130,12 +164,13 @@ describe('LifeSupportCommands', () => {
       reason: 'argument',
       system: 'life-support',
       action: args.action,
+      argument,
       expected: LIFE_SUPPORT_ACTIONS,
     });
     expect(calls).toEqual([]);
   });
 
-  it.each(['offline', 'constructor', 'toString'])(
+  it.each(['shutdown', 'constructor', 'toString'])(
     'refuses the unknown action %s',
     (action) => {
       const error = refusal(build().commands, {
@@ -147,13 +182,49 @@ describe('LifeSupportCommands', () => {
     },
   );
 
-  it('words the refusal in a sentence of shipText', () => {
+  it.each([
+    [
+      { action: 'heater', compartment: 'habitat' },
+      'life-support heater needs the on or target argument.',
+    ],
+    [
+      { action: 'pump', compartment: 'habitat' },
+      'life-support pump needs the mode argument.',
+    ],
+    [
+      { action: 'heater', compartment: 'habitat', target: 400 },
+      'life-support heater cannot use the target argument.',
+    ],
+  ])('words the refusal of %o as %s', (args, sentence) => {
     const error = refusal(build().commands, {
       system: 'life-support',
-      action: 'offline',
+      ...args,
+    });
+    expect(
+      explain(error as NexusError, { text: [shipText] })?.message,
+    ).toContain(sentence);
+  });
+
+  it('names the argument a pump refusal is about', () => {
+    const error = refusal(build().commands, {
+      system: 'life-support',
+      action: 'pump',
+      compartment: 'habitat',
+      mode: 'drain',
     });
     expect(explain(error as NexusError, { text: [shipText] })?.message).toBe(
-      "life-support has no action 'offline'. It takes online with no arguments, heater with a compartment and on true or false or a target from 283 to 303 K, scrubber and oxygen with a compartment and on true or false, vent with a compartment and open true or false, and pump with a compartment and mode off, evacuate or fill.",
+      `life-support pump cannot use the mode argument. It takes ${LIFE_SUPPORT_ACTIONS}.`,
+    );
+  });
+});
+
+describe('refuseLifeSupport', () => {
+  it('words an unknown action', () => {
+    expect(
+      explain(refuseLifeSupport('shutdown', 'action'), { text: [shipText] })
+        ?.message,
+    ).toBe(
+      "life-support has no action 'shutdown'. It takes online and offline with no arguments, heater with a compartment and on true or false or a target from 283 to 303 K, scrubber and oxygen with a compartment and on true or false, vent with a compartment and open true or false, and pump with a compartment and mode off, evacuate or fill.",
     );
   });
 });

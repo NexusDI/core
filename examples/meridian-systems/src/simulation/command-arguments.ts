@@ -1,10 +1,16 @@
 import { BadCommandError } from '../errors';
+
 import type { ShipCommand } from './commands';
 
-/** Builds the error one system throws for `action`, for a bad argument unless `reason` says otherwise. */
-type CommandRefusal = (
+/**
+ * Builds the error one system throws for `action`. `'action'` refuses an
+ * action the system does not take. `{ argument }` refuses the argument of
+ * that name as unusable, or as missing when `missing` is true. The name may
+ * be two names joined by "or" when the action needs one of them.
+ */
+export type CommandRefusal = (
   action: string,
-  reason?: 'action' | 'argument',
+  reason: 'action' | { readonly argument: string; readonly missing?: true },
 ) => BadCommandError;
 
 /** The refusal of `system`. Each error lists `expected`, the system's actions in words. */
@@ -12,8 +18,28 @@ export function commandRefusal(
   system: string,
   expected: string,
 ): CommandRefusal {
-  return (action, reason = 'argument') =>
-    new BadCommandError({ reason, system, action, expected });
+  return (action, reason) =>
+    reason === 'action'
+      ? new BadCommandError({ reason, system, action, expected })
+      : new BadCommandError({
+          reason: 'argument',
+          system,
+          action,
+          argument: reason.argument,
+          problem: reason.missing ? 'missing' : 'invalid',
+          expected,
+        });
+}
+
+/** The argument refusal for `name`: missing when `command` has no such field. */
+function refusedArgument(
+  command: ShipCommand,
+  name: string,
+  refuse: CommandRefusal,
+): BadCommandError {
+  return command[name] === undefined
+    ? refuse(command.action, { argument: name, missing: true })
+    : refuse(command.action, { argument: name });
 }
 
 /** The string argument `name` of `command`. Throws the argument refusal for any other type. */
@@ -23,7 +49,7 @@ export function textArgument(
   refuse: CommandRefusal,
 ): string {
   const value = command[name];
-  if (typeof value !== 'string') throw refuse(command.action);
+  if (typeof value !== 'string') throw refusedArgument(command, name, refuse);
   return value;
 }
 
@@ -34,7 +60,7 @@ export function flagArgument(
   refuse: CommandRefusal,
 ): boolean {
   const value = command[name];
-  if (typeof value !== 'boolean') throw refuse(command.action);
+  if (typeof value !== 'boolean') throw refusedArgument(command, name, refuse);
   return value;
 }
 
@@ -51,7 +77,7 @@ export function numberArgument(
 ): number {
   const value = command[name];
   if (typeof value !== 'number' || !(value >= low && value <= high)) {
-    throw refuse(command.action);
+    throw refusedArgument(command, name, refuse);
   }
   return value;
 }
@@ -106,14 +132,18 @@ export function choiceArgument<const T extends string>(
 ): T {
   const value = command[name];
   const choice = choices.find((candidate) => candidate === value);
-  if (choice === undefined) throw refuse(command.action);
+  if (choice === undefined) throw refusedArgument(command, name, refuse);
   return choice;
 }
 
 /**
- * True when `record` holds `key` itself. A name that `Object.prototype` holds,
- * such as `toString` or `__proto__`, is no key of a record that came off the wire.
+ * True when `record` holds `key` itself, and then `key` is one of the keys
+ * of its type. A name that `Object.prototype` holds, such as `toString` or
+ * `__proto__`, is no key of a record that came off the wire.
  */
-export function ownKey(record: object, key: string): boolean {
+export function ownKey<T extends object>(
+  record: T,
+  key: string,
+): key is Extract<keyof T, string> {
   return Object.hasOwn(record, key);
 }

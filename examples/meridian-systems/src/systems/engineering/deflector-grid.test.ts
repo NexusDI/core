@@ -5,6 +5,7 @@ import { PowerBudgetError } from '../../errors';
 import type { PowerLoad } from '../../physics/power';
 import type { DeckPlan } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import type { IPowerRouter } from './contracts';
 import { DeflectorGrid } from './deflector-grid';
 

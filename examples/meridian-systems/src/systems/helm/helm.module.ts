@@ -3,6 +3,7 @@ import { defineModule, provide } from '@nexusdi/core';
 import { COMMAND_HANDLERS } from '../../simulation/commands';
 import { SHIP_SYSTEMS } from '../../simulation/contracts';
 import { POWER_CONSUMERS } from '../engineering/contracts';
+
 import { HELM, THRUSTERS } from './contracts';
 import { HelmCommands } from './helm-commands';
 import { HelmControl } from './helm-control';

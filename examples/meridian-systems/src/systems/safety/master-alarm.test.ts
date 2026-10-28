@@ -8,6 +8,7 @@ import type {
   TickListener,
 } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import type { IAlarmSink } from './contracts';
 import { MasterAlarm } from './master-alarm';
 

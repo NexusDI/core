@@ -9,6 +9,7 @@ import type {
 } from '../../simulation/contracts';
 import { SeededRandom } from '../../simulation/seeded-random';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import { CommsPhysics } from './comms-physics';
 import type { ICommsArray } from './contracts';
 

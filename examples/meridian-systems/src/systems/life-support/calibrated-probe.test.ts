@@ -6,6 +6,7 @@ import { LIFE_SUPPORT_RATINGS, readAtmosphere } from '../../physics/atmosphere';
 import type { CompartmentId, DeckPlan } from '../../simulation/contracts';
 import { SeededRandom } from '../../simulation/seeded-random';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import { CalibratedProbe } from './calibrated-probe';
 import type { LifeSupportOptions } from './contracts';
 

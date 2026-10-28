@@ -13,6 +13,7 @@ import {
 } from '../src/simulation/contracts';
 import { roundNumber, roundSnapshot } from '../src/simulation/round-snapshot';
 import { TELEMETRY } from '../src/telemetry/contracts';
+
 import { test } from './fixtures';
 import { LOOP_WATCH, PROBE_LOG } from './probes';
 

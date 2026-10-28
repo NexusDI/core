@@ -376,7 +376,7 @@ describe('the burn button', () => {
           status: 400,
           code: 'MERIDIAN_BAD_COMMAND',
           message:
-            'helm burn got an argument it cannot use. It takes course with a charted star to steer for and burn with a level from 0 to 1.',
+            'helm burn cannot use the level argument. It takes course with a charted star to steer for and burn with a level from 0 to 1.',
           fix: 'send the arguments in the ranges above.',
         };
       }
@@ -385,7 +385,7 @@ describe('the burn button', () => {
     await renderPage(scope);
     fireEvent.click(screen.getByRole('button', { name: 'Burn' }));
     expect((await screen.findByRole('alert')).textContent).toBe(
-      'helm burn got an argument it cannot use. It takes course with a charted star to steer for and burn with a level from 0 to 1.Fix: send the arguments in the ranges above.',
+      'helm burn cannot use the level argument. It takes course with a charted star to steer for and burn with a level from 0 to 1.Fix: send the arguments in the ranges above.',
     );
   });
 });

@@ -7,6 +7,7 @@ import {
   type ShipSnapshot,
   type TickContext,
 } from '../../simulation/contracts';
+
 import { LIFE_SUPPORT_OPTIONS, type LifeSupportOptions } from './contracts';
 
 /** Steps the air of every compartment in phase 4 of each tick. */

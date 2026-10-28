@@ -35,12 +35,13 @@ export class PressureInterlock implements Interceptor {
       plan,
     );
     const difference = Math.round(Math.abs(a - b));
-    if (difference > PRESSURE_INTERLOCK.limit)
+    if (difference > PRESSURE_INTERLOCK.limit) {
       throw new InterlockError({
         door: plan.id,
         difference,
         limit: PRESSURE_INTERLOCK.limit,
       });
+    }
     return next();
   }
 }

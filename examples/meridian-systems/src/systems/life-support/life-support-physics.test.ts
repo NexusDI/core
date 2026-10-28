@@ -10,6 +10,7 @@ import type {
 } from '../../simulation/contracts';
 import { SeededRandom } from '../../simulation/seeded-random';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import { LifeSupportPhysics } from './life-support-physics';
 
 const plan = deck satisfies DeckPlan;

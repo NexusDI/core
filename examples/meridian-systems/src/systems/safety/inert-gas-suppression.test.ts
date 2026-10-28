@@ -4,6 +4,7 @@ import deck from '../../../deck/meridian.deck.json';
 import { BadCommandError } from '../../errors';
 import type { DeckPlan } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import { SAFETY_ACTIONS } from './contracts';
 import { InertGasSuppression } from './inert-gas-suppression';
 
@@ -50,6 +51,7 @@ describe('InertGasSuppression', () => {
           reason: 'argument',
           system: 'safety',
           action,
+          argument: 'compartment',
           expected: SAFETY_ACTIONS,
         }),
       );

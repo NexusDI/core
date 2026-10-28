@@ -5,6 +5,7 @@ import type {
   ShipSnapshot,
   TickContext,
 } from '../../simulation/contracts';
+
 import { COMMS_ARRAY, type ICommsArray } from './contracts';
 
 /** Steps the phased array in phase 6 of each tick. */

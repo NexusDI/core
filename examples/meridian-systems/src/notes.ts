@@ -1,6 +1,7 @@
 import type { BlueprintView } from '@nexusdi/core';
 
 import {
+  PHASES,
   SHIP_SYSTEMS,
   type ShipSystemClass,
   TICK_LOOP,
@@ -57,14 +58,11 @@ export function shipNotes(
     });
 }
 
-/** True when `impl` is a class with a static integer `phase` from 1 to 6. */
+/** True when `impl` is a class with a static `phase` that is one of `PHASES`. */
 function isShipSystemClass(impl: unknown): impl is ShipSystemClass {
-  if (typeof impl !== 'function') return false;
-  const phase: unknown = (impl as { phase?: unknown }).phase;
   return (
-    typeof phase === 'number' &&
-    Number.isInteger(phase) &&
-    phase >= 1 &&
-    phase <= 6
+    typeof impl === 'function' &&
+    'phase' in impl &&
+    PHASES.some((phase) => phase === impl.phase)
   );
 }

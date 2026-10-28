@@ -1,10 +1,9 @@
+import { ownKey } from '../../simulation/command-arguments';
 import type { QueuedCommand } from '../../simulation/commands';
-import {
-  type CompartmentId,
-  type IShipState,
-  SHIP_STATE,
-} from '../../simulation/contracts';
-import { type IFireSuppression, refuseSafety } from './contracts';
+import { type IShipState, SHIP_STATE } from '../../simulation/contracts';
+
+import type { IFireSuppression } from './contracts';
+import { refuseSafety } from './safety-commands';
 
 /** The setpoint record each action writes. */
 const RECORDS = { flood: 'floods', drill: 'drills' } as const;
@@ -34,10 +33,11 @@ export class InertGasSuppression implements IFireSuppression {
   ): QueuedCommand {
     const record = RECORDS[action];
     const rooms = this.state.snapshot().setpoints.safety[record];
-    if (!Object.hasOwn(rooms, compartment)) throw refuseSafety(action);
-    // The record's keys are the deck's ids, so an own key is a CompartmentId.
+    if (!ownKey(rooms, compartment)) {
+      throw refuseSafety(action, { argument: 'compartment' });
+    }
     return this.state.queue({
-      safety: { [record]: { [compartment as CompartmentId]: true } },
+      safety: { [record]: { [compartment]: true } },
     });
   }
 }

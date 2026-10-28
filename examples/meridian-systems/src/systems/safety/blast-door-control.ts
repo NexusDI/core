@@ -1,10 +1,9 @@
+import { ownKey } from '../../simulation/command-arguments';
 import type { QueuedCommand } from '../../simulation/commands';
-import {
-  type DoorId,
-  type IShipState,
-  SHIP_STATE,
-} from '../../simulation/contracts';
-import { type IBlastDoors, refuseSafety } from './contracts';
+import { type IShipState, SHIP_STATE } from '../../simulation/contracts';
+
+import type { IBlastDoors } from './contracts';
+import { refuseSafety } from './safety-commands';
 
 /** The blast-door panel. It queues each door's setpoint on `SHIP_STATE` for the next tick. */
 export class BlastDoorControl implements IBlastDoors {
@@ -30,8 +29,9 @@ export class BlastDoorControl implements IBlastDoors {
     open: boolean,
   ): QueuedCommand {
     const doors = this.state.snapshot().setpoints.safety.doors;
-    if (!Object.hasOwn(doors, door)) throw refuseSafety(action);
-    // The record's keys are the deck's ids, so an own key is a DoorId.
-    return this.state.queue({ safety: { doors: { [door as DoorId]: open } } });
+    if (!ownKey(doors, door)) {
+      throw refuseSafety(action, { argument: 'door' });
+    }
+    return this.state.queue({ safety: { doors: { [door]: open } } });
   }
 }

@@ -3,6 +3,9 @@ import { Token } from '@nexusdi/core';
 import type { RailgunRating } from '../../physics/weapons';
 import type { QueuedCommand } from '../../simulation/commands';
 
+/** The name weapons answers to on the command desk. */
+export const WEAPONS_SYSTEM = 'weapons';
+
 /** What the railgun takes, in words. shipText reads it after "It takes". */
 export const WEAPONS_ACTIONS = 'fire with a range from 0 to 100,000 m';
 

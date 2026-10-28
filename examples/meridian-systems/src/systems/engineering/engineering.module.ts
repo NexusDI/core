@@ -2,6 +2,7 @@ import { defineModule, provide } from '@nexusdi/core';
 
 import { COMMAND_HANDLERS } from '../../simulation/commands';
 import { SHIP_SYSTEMS } from '../../simulation/contracts';
+
 import { COOLANT_LOOP, POWER_ROUTER, REACTOR, SHIELD_GRID } from './contracts';
 import { DeflectorGrid } from './deflector-grid';
 import { EngineeringCommands } from './engineering-commands';

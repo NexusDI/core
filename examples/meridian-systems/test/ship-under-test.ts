@@ -4,6 +4,7 @@ import { SHIP_SYSTEMS, TICK_LOOP } from '../src/simulation/contracts';
 import { FixedStepLoop } from '../src/simulation/fixed-step-loop';
 import { Simulation } from '../src/simulation/simulation.module';
 import { Telemetry } from '../src/telemetry/telemetry.module';
+
 import {
   LOOP_WATCH,
   LoopWatch,

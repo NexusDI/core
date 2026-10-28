@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import deck from '../../deck/meridian.deck.json';
+
 import { burns, FIRE, FLOOD, stepFire } from './fire';
 import { AIR, molesAt, pressure, totalMoles, type Air } from './gas';
 

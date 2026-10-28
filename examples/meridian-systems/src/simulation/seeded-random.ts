@@ -1,4 +1,5 @@
 import { fnv1a32, splitmix32 } from '../physics/rng';
+
 import { type IRandomSource, SIM_OPTIONS, type SimOptions } from './contracts';
 
 /**

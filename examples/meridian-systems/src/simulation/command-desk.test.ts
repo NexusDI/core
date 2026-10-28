@@ -2,6 +2,7 @@ import { isNexusError } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
 import { BadCommandError } from '../errors';
+
 import { CommandDesk } from './command-desk';
 import type { ICommandHandler, ShipCommand } from './commands';
 

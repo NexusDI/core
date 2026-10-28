@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import deck from '../../deck/meridian.deck.json';
 import type {
   DeckPlan,
@@ -9,6 +10,7 @@ import type {
 } from '../simulation/contracts';
 import { readShip } from '../simulation/read-ship';
 import { ShipStateStore } from '../simulation/ship-state-store';
+
 import type { TelemetrySink } from './contracts';
 import { SnapshotFeed } from './snapshot-feed';
 

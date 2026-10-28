@@ -3,6 +3,9 @@ import { Token } from '@nexusdi/core';
 import type { ThrusterRating } from '../../physics/motion';
 import type { QueuedCommand } from '../../simulation/commands';
 
+/** The name the helm answers to on the command desk. */
+export const HELM_SYSTEM = 'helm';
+
 /** The actions the helm takes and their ranges, in words. shipText reads it after "It takes". */
 export const HELM_ACTIONS =
   'course with a charted star to steer for and burn with a level from 0 to 1';

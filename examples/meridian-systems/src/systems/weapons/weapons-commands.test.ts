@@ -6,8 +6,9 @@ import { BadCommandError } from '../../errors';
 import { RAILGUN } from '../../physics/weapons';
 import type { ShipCommand } from '../../simulation/commands';
 import { shipText } from '../../text';
+
 import { type IWeaponMount, WEAPONS_ACTIONS } from './contracts';
-import { WeaponsCommands } from './weapons-commands';
+import { refuseWeapons, WeaponsCommands } from './weapons-commands';
 
 /** A mount that records each fire and answers tick 2. */
 function build() {
@@ -72,6 +73,7 @@ describe('WeaponsCommands', () => {
         reason: 'argument',
         system: 'weapons',
         action: 'fire',
+        argument: 'range',
         expected: WEAPONS_ACTIONS,
       });
       expect(calls).toEqual([]);
@@ -89,7 +91,20 @@ describe('WeaponsCommands', () => {
       "weapons has no action 'reload'. It takes fire with a range from 0 to 100,000 m.",
     );
     expect(explained({ system: 'weapons', action: 'fire', range: -1 })).toBe(
-      'weapons fire got an argument it cannot use. It takes fire with a range from 0 to 100,000 m.',
+      'weapons fire cannot use the range argument. It takes fire with a range from 0 to 100,000 m.',
+    );
+  });
+});
+
+describe('refuseWeapons', () => {
+  it('words an unknown action and a bad argument', () => {
+    const words = (error: NexusError) =>
+      explain(error, { text: [shipText] })?.message;
+    expect(words(refuseWeapons('reload', 'action'))).toBe(
+      "weapons has no action 'reload'. It takes fire with a range from 0 to 100,000 m.",
+    );
+    expect(words(refuseWeapons('fire', { argument: 'range' }))).toBe(
+      'weapons fire cannot use the range argument. It takes fire with a range from 0 to 100,000 m.',
     );
   });
 });

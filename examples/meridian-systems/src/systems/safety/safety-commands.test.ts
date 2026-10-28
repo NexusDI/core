@@ -7,12 +7,13 @@ import { BadCommandError } from '../../errors';
 import type { ShipCommand } from '../../simulation/commands';
 import { DOOR_IDS } from '../../simulation/contracts';
 import { shipText } from '../../text';
+
 import {
   type IBlastDoors,
   type IFireSuppression,
   SAFETY_ACTIONS,
 } from './contracts';
-import { SafetyCommands } from './safety-commands';
+import { refuseSafety, SafetyCommands } from './safety-commands';
 
 /** Panels that record each call and answer tick 2. */
 function build() {
@@ -62,34 +63,41 @@ describe('SafetyCommands', () => {
   });
 
   it.each([
-    ['an open with no door', { action: 'open' }],
-    ['a close with a numeric door', { action: 'close', door: 3 }],
+    ['an open with no door', 'door', { action: 'open' }],
+    ['a close with a numeric door', 'door', { action: 'close', door: 3 }],
     [
       'an open with compartment in place of door',
+      'door',
       { action: 'open', compartment: 'habitat' },
     ],
-    ['a flood with no compartment', { action: 'flood' }],
+    ['a flood with no compartment', 'compartment', { action: 'flood' }],
     [
       'a drill with an array compartment',
+      'compartment',
       { action: 'drill', compartment: ['habitat'] },
     ],
     [
       'a flood with door in place of compartment',
+      'compartment',
       { action: 'flood', door: 'habitat-airlock' },
     ],
-  ])('refuses %s as a bad argument before the panel runs', (_name, args) => {
-    const { calls, commands } = build();
-    const error = refusal(commands, { system: 'safety', ...args });
-    expect(error).toBeInstanceOf(BadCommandError);
-    expect(error).toMatchObject({
-      code: 'MERIDIAN_BAD_COMMAND',
-      reason: 'argument',
-      system: 'safety',
-      action: args.action,
-      expected: SAFETY_ACTIONS,
-    });
-    expect(calls).toEqual([]);
-  });
+  ])(
+    'refuses %s as a bad %s argument before the panel runs',
+    (_name, argument, args) => {
+      const { calls, commands } = build();
+      const error = refusal(commands, { system: 'safety', ...args });
+      expect(error).toBeInstanceOf(BadCommandError);
+      expect(error).toMatchObject({
+        code: 'MERIDIAN_BAD_COMMAND',
+        reason: 'argument',
+        system: 'safety',
+        action: args.action,
+        argument,
+        expected: SAFETY_ACTIONS,
+      });
+      expect(calls).toEqual([]);
+    },
+  );
 
   it.each(['vent', 'constructor', 'toString'])(
     'refuses the unknown action %s',
@@ -125,6 +133,19 @@ describe('SafetyCommands', () => {
     });
     expect(explain(error as NexusError, { text: [shipText] })?.message).toBe(
       "safety has no action 'vent'. It takes open and close with a door of bridge-habitat, habitat-reactor-bay, habitat-airlock or airlock-outer, and flood and drill with a compartment of bridge, habitat or reactor-bay.",
+    );
+  });
+});
+
+describe('refuseSafety', () => {
+  it('words an unknown action and a bad argument', () => {
+    const words = (error: NexusError) =>
+      explain(error, { text: [shipText] })?.message;
+    expect(words(refuseSafety('vent', 'action'))).toBe(
+      `safety has no action 'vent'. It takes ${SAFETY_ACTIONS}.`,
+    );
+    expect(words(refuseSafety('open', { argument: 'door' }))).toBe(
+      `safety open cannot use the door argument. It takes ${SAFETY_ACTIONS}.`,
     );
   });
 });

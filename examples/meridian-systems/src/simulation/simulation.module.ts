@@ -1,6 +1,7 @@
 import { defineModule, provide, REQUEST } from '@nexusdi/core';
 
 import deck from '../../deck/meridian.deck.json' with { type: 'json' };
+
 import { compartmentOfRequest } from './compartment-of-request';
 import {
   COMPARTMENT,

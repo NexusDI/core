@@ -91,7 +91,7 @@ describe('SubspaceRelay', () => {
     stubFetch(() => new Response(null, { status: 503 }));
     const relay = new SubspaceRelay(options('https://relay.test'));
     await expect(relay.receive('charts')).rejects.toThrow(
-      'relay answered 503 for charts',
+      new Error('The relay answered 503 for charts.'),
     );
   });
 });

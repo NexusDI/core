@@ -1,6 +1,7 @@
 import type { StandardSchemaV1 } from '@nexusdi/core';
 
 import { optionsSchema, shown } from '../../options-schema';
+
 import type { CommsOptions } from './contracts';
 
 /** The longest delay, in ms, a Node timer holds: 2 ** 31 - 1. */

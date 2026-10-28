@@ -61,7 +61,7 @@ const BAD_COMMAND: Readonly<
     fix: 'send one of the actions above with its arguments.',
   }),
   argument: (e) => ({
-    message: `${e.system} ${e.action} got an argument it cannot use. It takes ${e.expected}.`,
+    message: `${e.system} ${e.action} ${e.problem === 'missing' ? 'needs' : 'cannot use'} the ${e.argument} argument. It takes ${e.expected}.`,
     fix: 'send the arguments in the ranges above.',
   }),
 };

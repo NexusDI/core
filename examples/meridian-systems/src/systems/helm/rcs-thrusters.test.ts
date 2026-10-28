@@ -4,6 +4,7 @@ import deck from '../../../deck/meridian.deck.json';
 import { RCS_THRUSTERS } from '../../physics/motion';
 import type { DeckPlan } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import { RcsThrusters } from './rcs-thrusters';
 
 describe('RcsThrusters', () => {

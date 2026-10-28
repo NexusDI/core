@@ -6,6 +6,7 @@ import {
   type SimOptions,
 } from '../../simulation/contracts';
 import type { IPowerConsumer } from '../engineering/contracts';
+
 import { type IWeaponMount, WEAPON_MOUNT } from './contracts';
 
 /**

@@ -8,6 +8,7 @@ import type {
   DeckPlan,
 } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import type { IAtmosphereProbe } from './contracts';
 import { GasAnalyzer } from './gas-analyzer';
 

@@ -8,6 +8,7 @@ import {
 } from '../../physics/weapons';
 import type { DeckPlan, ShipSnapshot } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import type { IWeaponMount } from './contracts';
 import { WeaponsPower } from './weapons-power';
 

@@ -4,6 +4,7 @@ import deck from '../../../deck/meridian.deck.json';
 import { BadCommandError } from '../../errors';
 import type { DeckPlan } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
+
 import { BlastDoorControl } from './blast-door-control';
 import { SAFETY_ACTIONS } from './contracts';
 
@@ -58,6 +59,7 @@ describe('BlastDoorControl', () => {
         reason: 'argument',
         system: 'safety',
         action,
+        argument: 'door',
         expected: SAFETY_ACTIONS,
       }),
     );

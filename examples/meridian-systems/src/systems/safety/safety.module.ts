@@ -2,6 +2,7 @@ import { defineModule, provide } from '@nexusdi/core';
 
 import { COMMAND_HANDLERS } from '../../simulation/commands';
 import { SHIP_SYSTEMS } from '../../simulation/contracts';
+
 import { BlastDoorControl } from './blast-door-control';
 import { BLAST_DOORS, FIRE_SUPPRESSION, MASTER_ALARM } from './contracts';
 import { InertGasSuppression } from './inert-gas-suppression';

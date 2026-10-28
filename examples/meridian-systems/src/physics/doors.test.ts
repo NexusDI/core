@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+
 import deck from '../../deck/meridian.deck.json';
+
 import { doorFractions, doorPressures, PRESSURE_INTERLOCK } from './doors';
 import {
   AIR,

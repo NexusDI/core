@@ -1,16 +1,24 @@
-import { textArgument } from '../../simulation/command-arguments';
+import {
+  commandRefusal,
+  textArgument,
+} from '../../simulation/command-arguments';
 import type {
   ICommandHandler,
   QueuedCommand,
   ShipCommand,
 } from '../../simulation/commands';
+
 import {
   BLAST_DOORS,
   FIRE_SUPPRESSION,
   type IBlastDoors,
   type IFireSuppression,
-  refuseSafety,
+  SAFETY_ACTIONS,
+  SAFETY_SYSTEM,
 } from './contracts';
+
+/** The `BadCommandError` safety throws for an action or an argument it cannot read. */
+export const refuseSafety = commandRefusal(SAFETY_SYSTEM, SAFETY_ACTIONS);
 
 /**
  * Reads the crew's safety commands and hands each to its panel. A command
@@ -20,7 +28,7 @@ import {
 export class SafetyCommands implements ICommandHandler {
   static deps = [BLAST_DOORS, FIRE_SUPPRESSION] as const;
 
-  readonly system = 'safety';
+  readonly system = SAFETY_SYSTEM;
 
   constructor(
     private readonly doors: IBlastDoors,

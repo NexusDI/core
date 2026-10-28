@@ -8,27 +8,27 @@ import type {
   QueuedCommand,
   ShipCommand,
 } from '../../simulation/commands';
+
 import {
+  ENGINEERING_ACTIONS,
+  ENGINEERING_SYSTEM,
   type IReactorCore,
   type IShieldGrid,
   REACTOR,
   SHIELD_GRID,
 } from './contracts';
 
-/**
- * The actions engineering takes and their ranges, in words. shipText reads
- * it after "It takes".
- */
-export const ENGINEERING_ACTIONS =
-  'throttle with a level from 0 to 1 and shields with raised true or false';
+/** The `BadCommandError` engineering throws for an action or an argument it cannot read. */
+export const refuseEngineering = commandRefusal(
+  ENGINEERING_SYSTEM,
+  ENGINEERING_ACTIONS,
+);
 
 /** Reads the crew's engineering commands and hands each to the reactor or the shield grid. */
 export class EngineeringCommands implements ICommandHandler {
   static deps = [REACTOR, SHIELD_GRID] as const;
 
-  readonly system = 'engineering';
-
-  private readonly refuse = commandRefusal(this.system, ENGINEERING_ACTIONS);
+  readonly system = ENGINEERING_SYSTEM;
 
   constructor(
     private readonly reactor: IReactorCore,
@@ -39,14 +39,14 @@ export class EngineeringCommands implements ICommandHandler {
     switch (command.action) {
       case 'throttle':
         return this.reactor.throttle(
-          levelArgument(command, 'level', this.refuse),
+          levelArgument(command, 'level', refuseEngineering),
         );
       case 'shields':
-        return flagArgument(command, 'raised', this.refuse)
+        return flagArgument(command, 'raised', refuseEngineering)
           ? this.shields.raise()
           : this.shields.lower();
       default:
-        throw this.refuse(command.action, 'action');
+        throw refuseEngineering(command.action, 'action');
     }
   }
 }
