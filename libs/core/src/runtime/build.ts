@@ -20,7 +20,7 @@ import {
 import { constructionStack } from './construction-stack.js';
 import { fromUserCode } from './format.js';
 import { hasDisposer } from './dispose.js';
-import { makeThunk } from './lazy.js';
+import { makeListThunk, makeThunk } from './lazy.js';
 import { isObject } from './ownership.js';
 import type {
   ContainerState,
@@ -177,13 +177,8 @@ function resolveBinding(
       if (id === undefined) return unreachable();
       return makeThunk(id, owner, ctx, resolveId);
     }
-    case 'lazy-all': {
-      // Stub: K3.2 replaces this with the all-or-nothing thunk.
-      const thunks = binding.ids.map((id) =>
-        makeThunk(id, owner, ctx, resolveId),
-      );
-      return () => thunks.map((thunk) => thunk());
-    }
+    case 'lazy-all':
+      return makeListThunk(binding.ids, owner, ctx, resolveId);
   }
 }
 

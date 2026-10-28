@@ -95,6 +95,46 @@ describe('compile', () => {
     ]);
   });
 
+  it('binds lazy(all()) to every contribution with one lazy edge each, written as the multi token', () => {
+    const bp = compile({
+      root: defineModule({
+        name: 'Root',
+        providers: [
+          provide(DIAGNOSTICS, { useValue: 'a' }),
+          provide(DIAGNOSTICS, { useValue: 'b' }),
+          provide(NAV_CHARTS, {
+            useFactory: () => charts,
+            deps: [lazy(all(DIAGNOSTICS))],
+          }),
+        ],
+      }),
+    });
+    const from = idOf(bp, NAV_CHARTS);
+    const args = bp.bindings.get(from)?.args;
+    expect(args).toMatchObject([{ kind: 'lazy-all', token: DIAGNOSTICS }]);
+    const ids = args?.[0]?.ids ?? [];
+    expect(ids).toHaveLength(2);
+    expect(bp.edges).toEqual(
+      ids.map((to) => ({ from, to, kind: 'lazy', written: DIAGNOSTICS })),
+    );
+
+    const empty = compile({
+      root: defineModule({
+        name: 'Root',
+        providers: [
+          provide(NAV_CHARTS, {
+            useFactory: () => charts,
+            deps: [lazy(all(DIAGNOSTICS))],
+          }),
+        ],
+      }),
+    });
+    expect(empty.bindings.get(idOf(empty, NAV_CHARTS))?.args).toEqual([
+      { kind: 'lazy-all', token: DIAGNOSTICS, ids: [] },
+    ]);
+    expect(empty.edges).toEqual([]);
+  });
+
   it('records alias and lazy edges', () => {
     const COMPUTER = new Token<ShipComputer>('Computer');
     const bp = compile({

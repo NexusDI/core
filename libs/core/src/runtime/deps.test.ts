@@ -123,6 +123,72 @@ describe('Scope', () => {
       const { x } = shuttle.resolve({ x: lazy(MISSION) });
       expect(x()).toBe('x');
     });
+
+    describe('lazy(all())', () => {
+      const PANELS = new MultiToken<string>('Panels');
+      const Bridge = defineModule({
+        name: 'Bridge',
+        providers: [
+          provide(PANELS, { useValue: 'helm' }),
+          provide(PANELS, { useFactory: () => 'tactical', deps: [] }),
+        ],
+      });
+
+      it('returns a thunk at the root that gives the contributions in record order', async () => {
+        const ship = await Nexus.create(Bridge);
+        const { panels } = ship.resolve({ panels: lazy(all(PANELS)) });
+        expect(panels()).toEqual(['helm', 'tactical']);
+        expect(panels()).not.toBe(panels());
+      });
+
+      it('returns an empty list for a multi token nothing contributes to', async () => {
+        const NOTHING = new MultiToken<string>('Nothing');
+        const ship = await Nexus.create(Tactical);
+        expect(ship.resolve({ none: lazy(all(NOTHING)) }).none()).toEqual([]);
+      });
+
+      it('resolves the list at once at the root when a contribution is scoped, so it throws NEXUS_SCOPE_REQUIRED', async () => {
+        const ship = await Nexus.create(
+          defineModule({
+            name: 'Bridge',
+            providers: [
+              provide(PANELS, { useValue: 'helm' }),
+              provide(PANELS, {
+                useFactory: () => 'scoped',
+                deps: [],
+                lifetime: 'scoped',
+              }),
+            ],
+          }),
+        );
+        expect(
+          thrown(() => ship.resolve({ panels: lazy(all(PANELS)) })),
+        ).toMatchObject({
+          code: 'NEXUS_SCOPE_REQUIRED',
+          token: 'Panels',
+          entry: 'deps.panels',
+        });
+      });
+
+      it('still returns a thunk from a scope when a contribution is scoped', async () => {
+        const ship = await Nexus.create(
+          defineModule({
+            name: 'Bridge',
+            providers: [
+              provide(PANELS, { useValue: 'helm' }),
+              provide(PANELS, {
+                useFactory: () => 'scoped',
+                deps: [],
+                lifetime: 'scoped',
+              }),
+            ],
+          }),
+        );
+        await using shuttle = await ship.createScope();
+        const { panels } = shuttle.resolve({ panels: lazy(all(PANELS)) });
+        expect(panels()).toEqual(['helm', 'scoped']);
+      });
+    });
   });
 });
 
@@ -275,6 +341,24 @@ describe('Nexus', () => {
         }),
       ).toBeUndefined();
       expect(factory).not.toHaveBeenCalled();
+    });
+
+    it('accepts an empty lazy(all()) entry and builds nothing', async () => {
+      const EMPTY = new MultiToken<string>('Empty');
+      const built = vi.fn(() => new Drone());
+      const Quiet = defineModule({
+        name: 'Quiet',
+        providers: [
+          provide(Drone, {
+            useFactory: built,
+            deps: [],
+            lifetime: 'transient',
+          }),
+        ],
+      });
+      const ship = await Nexus.create(Quiet);
+      expect(() => ship.validate({ none: lazy(all(EMPTY)) })).not.toThrow();
+      expect(built).not.toHaveBeenCalled();
     });
 
     it('accepts a scoped entry, since every lifetime resolves from a scope', async () => {

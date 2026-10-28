@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import { defineModule } from '../definitions/define-module.js';
 import type { AnyToken } from '../definitions/guards.js';
-import { lazy } from '../definitions/modifiers.js';
+import { all, lazy } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
-import { Token } from '../definitions/token.js';
+import { MultiToken, Token } from '../definitions/token.js';
 import { compile } from './compile.js';
 import { buildView, sameToken, viewOfBlueprint } from './views.js';
 
@@ -105,6 +105,39 @@ describe('build order on the view', () => {
     ).toEqual([['Console', 'ReactorCore', 'lazy']]);
     expect(view.edges.every((e) => e.ordersBuild === (e.kind !== 'lazy'))).toBe(
       true,
+    );
+  });
+
+  it('shows one unordered lazy edge per contribution of a lazy(all()) dep, written as the multi token', () => {
+    const PANELS = new MultiToken<string>('Panels');
+    const DESK = new Token<object>('Desk');
+    const view = viewOfBlueprint(
+      compile({
+        root: defineModule({
+          name: 'Bridge',
+          providers: [
+            provide(PANELS, { useValue: 'helm' }),
+            provide(PANELS, { useValue: 'tactical' }),
+            provide(DESK, {
+              useFactory: () => ({}),
+              deps: [lazy(all(PANELS))],
+            }),
+          ],
+        }),
+      }),
+      sameToken,
+    );
+    const desk = view.providers.find((p) => p.name === 'Desk');
+    const panels = view.providers.filter((p) => p.name === 'Panels');
+    expect(panels).toHaveLength(2);
+    expect(view.edges).toEqual(
+      panels.map((p) => ({
+        from: desk?.id,
+        to: p.id,
+        kind: 'lazy',
+        written: PANELS,
+        ordersBuild: false,
+      })),
     );
   });
 });
