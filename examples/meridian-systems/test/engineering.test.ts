@@ -1,20 +1,28 @@
-import { Nexus } from '@nexusdi/core';
+import { defineModule, Nexus, provide } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
 import * as packageRoot from '../src/index';
 import { meridianSystems } from '../src/meridian-systems.module';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
 import {
+  type IShipState,
   SHIP_STATE,
   type ShipSnapshot,
   TICK_LOOP,
 } from '../src/simulation/contracts';
+import { Simulation } from '../src/simulation/simulation.module';
 import {
   COOLANT_LOOP,
+  type IPowerRouter,
+  type IShieldGrid,
+  POWER_CONSUMERS,
   POWER_ROUTER,
+  type PowerLoad,
   REACTOR,
   SHIELD_GRID,
 } from '../src/systems/engineering/contracts';
+import { ShieldPower } from '../src/systems/engineering/engineering-power';
+import { PlasmaRouter } from '../src/systems/engineering/plasma-router';
 
 const options = { seed: 7, dt: 0.5 };
 
@@ -39,6 +47,51 @@ describe('Engineering', () => {
     expect(ship.get(POWER_ROUTER)).toBeDefined();
     expect(ship.get(REACTOR).output).toBe(0);
     expect(ship.get(SHIELD_GRID)).toBeDefined();
+  });
+
+  it('fails the check when the grid reads the router without lazy()', () => {
+    class EagerGrid implements IShieldGrid {
+      static deps = [SHIP_STATE, POWER_ROUTER] as const;
+      constructor(
+        private readonly state: IShipState,
+        private readonly router: IPowerRouter,
+      ) {}
+      draw(): PowerLoad {
+        return { id: 'shields', priority: 2, demand: 0, heatShare: 0.25 };
+      }
+      raise() {
+        this.router.divert(this.draw());
+        return this.state.queue({ shields: { raised: true } });
+      }
+      lower() {
+        return this.state.queue({ shields: { raised: false } });
+      }
+    }
+    const Eager = defineModule({
+      name: 'EagerEngineering',
+      imports: [Simulation.forRoot(options)],
+      providers: [
+        provide(POWER_ROUTER, { useClass: PlasmaRouter }),
+        provide(SHIELD_GRID, { useClass: EagerGrid }),
+        provide(POWER_CONSUMERS, { useClass: ShieldPower }),
+      ],
+    });
+    expect(() => Nexus.check(Eager)).toThrow(
+      expect.objectContaining({
+        code: 'NEXUS_BLUEPRINT_INVALID',
+        errors: [
+          expect.objectContaining({
+            code: 'NEXUS_CIRCULAR_DEPENDENCY',
+            path: [
+              'PowerRouter',
+              'PowerConsumers',
+              'ShieldGrid',
+              'PowerRouter',
+            ],
+          }),
+        ],
+      }),
+    );
   });
 
   it('leaves the coolant loop out of the package root', () => {

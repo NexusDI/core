@@ -1,4 +1,4 @@
-import { all, lazy } from '@nexusdi/core';
+import { all } from '@nexusdi/core';
 
 import { PowerBudgetError } from '../../errors';
 import {
@@ -11,24 +11,22 @@ import { Subscribers } from '../../simulation/subscribers';
 import {
   type IPowerConsumer,
   type IPowerRouter,
-  type IShieldGrid,
   POWER_CONSUMERS,
   type PowerLoad,
-  SHIELD_GRID,
 } from './contracts';
 import { allocatePower } from './engineering-model';
 
 /**
  * Lists the loads of a tick and checks a new load against the reactor's
- * output. It reads the shield grid through a thunk, since the grid reads the
- * router to check its own raised load, and the loads of other
- * systems through `POWER_CONSUMERS`.
+ * output. Every system's consumer, Engineering's `ShieldPower` among them,
+ * reaches it through `all(POWER_CONSUMERS)`.
  */
 export class PlasmaRouter implements IPowerRouter {
-  // all(POWER_CONSUMERS) reads Engineering's own providers plus the exports of
-  // the global modules. LifeSupport's consumer reaches the router through the
-  // global MeridianSystems, which re-exports LifeSupport.
-  static deps = [SHIP_STATE, lazy(SHIELD_GRID), all(POWER_CONSUMERS)] as const;
+  // all(POWER_CONSUMERS) reads Engineering's own providers plus the
+  // contributions of every module that names POWER_CONSUMERS in its exports.
+  // LifeSupport's consumer reaches the router because LifeSupport exports
+  // POWER_CONSUMERS.
+  static deps = [SHIP_STATE, all(POWER_CONSUMERS)] as const;
 
   /**
    * The consumers `attach` added, in the order it added them. Each attach
@@ -36,11 +34,8 @@ export class PlasmaRouter implements IPowerRouter {
    */
   private readonly attached = new Subscribers<IPowerConsumer>();
 
-  // The container builds the grid after the router, so the constructor never
-  // calls the thunk.
   constructor(
     private readonly state: IShipState,
-    private readonly shields: () => IShieldGrid,
     private readonly consumers: readonly IPowerConsumer[],
   ) {}
 
@@ -49,12 +44,11 @@ export class PlasmaRouter implements IPowerRouter {
   }
 
   /**
-   * The shields load, then each consumer's draw in registration order, then
-   * the draws of the attached consumers.
+   * Each consumer's draw in registration order, then the draws of the
+   * attached consumers.
    */
   loads(ship: ShipSnapshot): readonly PowerLoad[] {
     return [
-      this.shields().draw(ship),
       ...this.consumers.map((consumer) => consumer.draw(ship)),
       ...[...this.attached].map((consumer) => consumer.draw(ship)),
     ];

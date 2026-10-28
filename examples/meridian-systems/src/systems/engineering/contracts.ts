@@ -94,7 +94,7 @@ export interface PowerRecord {
 }
 
 export interface IReactorCore {
-  /** Electric output now, in GW. */
+  /** Electric output now, in W. */
   readonly output: number;
   /** The reactor's fixed figures, in W and per second. */
   readonly rating: ReactorRating;

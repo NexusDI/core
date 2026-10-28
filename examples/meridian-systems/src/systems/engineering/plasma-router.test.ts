@@ -6,6 +6,7 @@ import type { DeckPlan, ShipSnapshot } from '../../simulation/contracts';
 import { ShipStateStore } from '../../simulation/ship-state-store';
 
 import type { IPowerConsumer, IShieldGrid, PowerLoad } from './contracts';
+import { ShieldPower } from './engineering-power';
 import { PlasmaRouter } from './plasma-router';
 
 const RAISED: PowerLoad = {
@@ -40,7 +41,6 @@ function build(
   const ship = state.snapshot();
   state.commit({ ...ship, reactor: { ...ship.reactor, electric } });
   const seen: ShipSnapshot[] = [];
-  let calls = 0;
   const grid: IShieldGrid = {
     draw(at) {
       seen.push(at);
@@ -49,15 +49,8 @@ function build(
     raise: () => ({ tick: 1 }),
     lower: () => ({ tick: 1 }),
   };
-  const router = new PlasmaRouter(
-    state,
-    () => {
-      calls += 1;
-      return grid;
-    },
-    consumers,
-  );
-  return { state, router, seen, calls: () => calls };
+  const router = new PlasmaRouter(state, [new ShieldPower(grid), ...consumers]);
+  return { state, router, seen };
 }
 
 /** What `router.divert(load)` threw. */
@@ -71,16 +64,14 @@ function refusal(router: PlasmaRouter, load: PowerLoad): unknown {
 }
 
 describe('PlasmaRouter', () => {
-  it('reads the shield grid only when it lists the loads', () => {
-    const { state, router, seen, calls } = build(0);
-    expect(calls()).toBe(0);
+  it('lists the shield load from the consumers of POWER_CONSUMERS', () => {
+    const { state, router, seen } = build(0);
     const ship = state.snapshot();
     expect(router.loads(ship)).toEqual([{ ...RAISED, demand: 0 }]);
-    expect(calls()).toBe(1);
     expect(seen).toEqual([ship]);
   });
 
-  it('lists the shields load, then the draw of each consumer in order', () => {
+  it('lists the draw of each consumer in order', () => {
     const pump = consumer({
       id: 'pump',
       priority: 1,
