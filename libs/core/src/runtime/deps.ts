@@ -170,7 +170,13 @@ export function resolveDeps(
     let resolved: unknown;
     if (dep.kind === 'all')
       resolved = atEntry(where, () => ids.map((each) => resolveId(each, ctx)));
-    else if (id === undefined) {
+    else if (dep.kind === 'lazy-all') {
+      // Stub: K3.2 replaces this with the all-or-nothing thunk.
+      const thunks = ids.map((each) =>
+        makeThunk(each, thunkOwner(container), ctx, resolveId),
+      );
+      resolved = () => thunks.map((thunk) => thunk());
+    } else if (id === undefined) {
       if (dep.kind !== 'optional')
         throw notFound(container, bp, token, moduleId, where);
       resolved = undefined;
@@ -213,7 +219,12 @@ export function validateDeps(
       errors.push(invalidEntry('validate()', where, value, dep));
       continue;
     }
-    if (dep.kind === 'optional' || dep.kind === 'all') continue;
+    if (
+      dep.kind === 'optional' ||
+      dep.kind === 'all' ||
+      dep.kind === 'lazy-all'
+    )
+      continue;
     const token = HOOK_SITES ? container.root.canon(dep.token) : dep.token;
     if ((visible?.get(token)?.length ?? 0) === 0)
       errors.push(notFound(container, bp, token, moduleId, where));

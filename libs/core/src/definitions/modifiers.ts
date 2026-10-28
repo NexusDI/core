@@ -19,11 +19,26 @@ export interface All<out T> {
   readonly token: MultiToken<T>;
 }
 
-export type Modifier = Optional<unknown> | Lazy<unknown> | All<unknown>;
+/**
+ * Resolves to a thunk that returns every visible contribution of a
+ * MultiToken. A collector uses it to break the provider cycle once. Without
+ * it, each contributor writes lazy() for the collector.
+ */
+export interface LazyAll<out T> {
+  readonly kind: 'lazy-all';
+  readonly token: MultiToken<T>;
+}
+
+export type Modifier =
+  Optional<unknown> | Lazy<unknown> | All<unknown> | LazyAll<unknown>;
 
 /** One entry of a deps tuple. A bare MultiToken is not one: wrap it in all(). */
 export type Dep =
-  InjectionToken<unknown> | Optional<unknown> | Lazy<unknown> | All<unknown>;
+  | InjectionToken<unknown>
+  | Optional<unknown>
+  | Lazy<unknown>
+  | All<unknown>
+  | LazyAll<unknown>;
 
 /** What a deps entry resolves to. */
 export type Resolve<D> =
@@ -33,11 +48,13 @@ export type Resolve<D> =
       ? () => T
       : D extends All<infer T>
         ? T[]
-        : D extends Token<infer T>
-          ? T
-          : D extends Class<infer T>
+        : D extends LazyAll<infer T>
+          ? () => T[]
+          : D extends Token<infer T>
             ? T
-            : never;
+            : D extends Class<infer T>
+              ? T
+              : never;
 
 /** A deps tuple mapped to the arguments a factory receives. */
 export type ResolveAll<D extends readonly unknown[]> = {
@@ -49,6 +66,7 @@ export type DepFor<P> =
   | InjectionToken<P>
   | (undefined extends P ? Optional<Exclude<P, undefined>> : never)
   | (P extends () => infer R ? Lazy<R> : never)
+  | (P extends () => readonly (infer E)[] ? LazyAll<E> : never)
   | (P extends readonly (infer E)[] ? All<E> : never);
 
 /** Constructor parameters mapped to the deps entries that can supply them. */
@@ -70,8 +88,15 @@ export function optional<T>(token: InjectionToken<T>): Optional<T> {
 }
 
 /** Marks a dep as lazy: it resolves to a thunk, which is how a provider declares one edge of a cycle. */
-export function lazy<T>(token: InjectionToken<T>): Lazy<T> {
-  return mark({ kind: 'lazy', token });
+export function lazy<T>(token: InjectionToken<T>): Lazy<T>;
+/** Marks an all() dep as lazy: it resolves to a thunk that returns every visible contribution. */
+export function lazy<T>(dep: All<T>): LazyAll<T>;
+export function lazy(
+  dep: InjectionToken<unknown> | All<unknown>,
+): Lazy<unknown> | LazyAll<unknown> {
+  if (isModifier(dep) && dep.kind === 'all')
+    return mark({ kind: 'lazy-all', token: dep.token });
+  return mark({ kind: 'lazy', token: dep as InjectionToken<unknown> });
 }
 
 /** Collects a MultiToken: the dep resolves to every contribution visible to the provider. */

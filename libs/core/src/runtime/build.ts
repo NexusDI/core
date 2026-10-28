@@ -177,6 +177,13 @@ function resolveBinding(
       if (id === undefined) return unreachable();
       return makeThunk(id, owner, ctx, resolveId);
     }
+    case 'lazy-all': {
+      // Stub: K3.2 replaces this with the all-or-nothing thunk.
+      const thunks = binding.ids.map((id) =>
+        makeThunk(id, owner, ctx, resolveId),
+      );
+      return () => thunks.map((thunk) => thunk());
+    }
   }
 }
 

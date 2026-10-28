@@ -7,6 +7,7 @@ import {
   type All,
   type Dep,
   type Lazy,
+  type LazyAll,
   type Optional,
   type Resolve,
   type ResolveAll,
@@ -88,5 +89,36 @@ describe('Dep', () => {
   it('excludes a bare MultiToken, which must be wrapped in all()', () => {
     expectTypeOf<MultiToken<Diagnostic>>().not.toExtend<Dep>();
     expectTypeOf(all(DIAGNOSTICS)).toExtend<Dep>();
+  });
+});
+
+interface PowerConsumer {
+  draw(): number;
+}
+const POWER_CONSUMERS = new MultiToken<PowerConsumer>('PowerConsumers');
+
+describe('LazyAll', () => {
+  it('resolves to a thunk of the contributions', () => {
+    expectTypeOf<Resolve<LazyAll<PowerConsumer>>>().toEqualTypeOf<
+      () => PowerConsumer[]
+    >();
+    expectTypeOf(lazy(all(POWER_CONSUMERS))).toEqualTypeOf<
+      LazyAll<PowerConsumer>
+    >();
+    expectTypeOf(lazy(all(POWER_CONSUMERS))).toExtend<Dep>();
+  });
+
+  it('feeds a () => T[] parameter and not a T[] parameter', () => {
+    const thunk: Tokens<[() => PowerConsumer[]]> = [lazy(all(POWER_CONSUMERS))];
+    // @ts-expect-error a PowerConsumer[] parameter takes all(); lazy(all()) is a type error
+    const list: Tokens<[PowerConsumer[]]> = [lazy(all(POWER_CONSUMERS))];
+    void [thunk, list];
+  });
+
+  it('rejects lazy() of a bare MultiToken and optional() of all()', () => {
+    // @ts-expect-error wrap the MultiToken in all() first
+    lazy(POWER_CONSUMERS);
+    // @ts-expect-error optional() accepts a token only
+    optional(all(POWER_CONSUMERS));
   });
 });

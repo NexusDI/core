@@ -20,6 +20,20 @@ describe('lazy', () => {
   });
 });
 
+describe('lazy of all', () => {
+  it('wraps an all() modifier in a frozen lazy-all modifier that carries the MultiToken', () => {
+    const dep = lazy(all(DIAGNOSTICS));
+    expect(dep).toEqual({ kind: 'lazy-all', token: DIAGNOSTICS });
+    expect(Object.isFrozen(dep)).toBe(true);
+    expect(isModifier(dep)).toBe(true);
+  });
+
+  it('keeps wrapping a plain value as a lazy modifier', () => {
+    const value = { not: 'a token' } as never;
+    expect(lazy(value)).toEqual({ kind: 'lazy', token: value });
+  });
+});
+
 describe('all', () => {
   it('wraps a MultiToken in a frozen all modifier', () => {
     expect(all(DIAGNOSTICS)).toEqual({ kind: 'all', token: DIAGNOSTICS });

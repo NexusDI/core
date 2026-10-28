@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  all,
   defineModule,
+  lazy,
   MultiToken,
   Nexus,
   optional,
@@ -147,6 +149,14 @@ describe('errors', () => {
         'a bare MultiToken dep',
         rawProvide(NAV_CHARTS, { useFactory: () => 1, deps: [DIAGNOSTICS] }),
         'deps[0] is the MultiToken Diagnostics; wrap it in all()',
+      ],
+      [
+        'a lazy(all()) dep on a plain Token',
+        rawProvide(NAV_CHARTS, {
+          useFactory: () => 1,
+          deps: [lazy(all(NAV_CHARTS as never))],
+        }),
+        'deps[0] is lazy(all(the Token NavCharts)); lazy(all()) takes a MultiToken',
       ],
       [
         'a dep that is not a token',
@@ -609,6 +619,18 @@ describe('errors', () => {
       ) as NexusError;
       expect(bare.message).toBe(
         '[NEXUS_INVALID_TOKEN] deps.checks: the MultiToken Diagnostics collects many providers; wrap it in all().',
+      );
+    });
+
+    it('throws NEXUS_INVALID_TOKEN for lazy(all()) of a plain Token', async () => {
+      const ship = await Nexus.create(defineModule({ name: 'Tactical' }), {
+        plugins: [errors()],
+      });
+      const bad = thrown(() =>
+        rawResolve(ship, { checks: lazy(all(NAV_CHARTS as never)) }),
+      ) as NexusError;
+      expect(bad.message).toBe(
+        '[NEXUS_INVALID_TOKEN] deps.checks: an object is lazy(all(the Token NavCharts)); lazy(all()) takes a MultiToken.',
       );
     });
   });

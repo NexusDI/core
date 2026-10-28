@@ -14,8 +14,9 @@ export const NO_ENTRIES: ReadonlyMap<never, never> = new Map<never, never>();
 
 export type TokenKey = AnyToken;
 export type ProviderKind = 'class' | 'value' | 'factory' | 'alias';
-export type DepKind = 'required' | 'optional' | 'lazy' | 'all';
-export type EdgeKind = DepKind | 'alias';
+/** `lazy-all` is internal: bind records its edges as `lazy`. */
+export type DepKind = 'required' | 'optional' | 'lazy' | 'all' | 'lazy-all';
+export type EdgeKind = 'required' | 'optional' | 'lazy' | 'all' | 'alias';
 
 export interface DepEntry {
   readonly kind: DepKind;

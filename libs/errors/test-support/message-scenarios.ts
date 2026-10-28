@@ -4,6 +4,7 @@ import {
   Token,
   all,
   defineModule,
+  lazy,
   optional,
   provide,
   REQUEST,
@@ -112,6 +113,12 @@ export const messageScenarios: readonly MessageScenario[] = [
     name: 'resolve() with a bad modifier entry',
     run: throwFromResolve((ship) =>
       ship.resolve({ checks: all(NAV_CHARTS as never) }),
+    ),
+  },
+  {
+    name: 'resolve() with a lazy(all()) of a plain Token',
+    run: throwFromResolve((ship) =>
+      ship.resolve({ checks: lazy(all(NAV_CHARTS as never)) as never }),
     ),
   },
   {
@@ -271,6 +278,15 @@ export const messageScenarios: readonly MessageScenario[] = [
       provide(NAV_CHARTS, {
         useFactory: () => ({ plot: () => 'x' }),
         deps: [optional(DIAGNOSTICS as never)],
+      }),
+    ),
+  },
+  {
+    name: 'a providers deps entry with lazy(all()) of a plain Token',
+    run: rejectEngineering(
+      provide(NAV_CHARTS, {
+        useFactory: () => ({ plot: () => 'x' }),
+        deps: [lazy(all(NAV_CHARTS as never))] as never,
       }),
     ),
   },

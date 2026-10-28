@@ -195,6 +195,39 @@ describe('normalizeProvider', () => {
     });
   });
 
+  it('reads lazy(all(T)) as a lazy-all dep on the MultiToken', () => {
+    expect(
+      normalize(
+        provide(NAV_CHARTS, {
+          useFactory: () => ({ plot: () => 'x' }),
+          deps: [lazy(all(DIAGNOSTICS))],
+        }),
+      ).shape,
+    ).toMatchObject({
+      kind: 'factory',
+      deps: [{ kind: 'lazy-all', token: DIAGNOSTICS }],
+    });
+  });
+
+  it.each([
+    ['lazy() of a bare MultiToken', lazy(DIAGNOSTICS as never)],
+    ['optional() of all()', optional(all(DIAGNOSTICS) as never)],
+    ['lazy() of a plain value', lazy({ not: 'a token' } as never)],
+    ['lazy(all()) of a plain Token', lazy(all(NAV_CHARTS as never))],
+  ])('rejects %s as a bad-modifier dep', (_label, dep) => {
+    const { shape, errors } = normalize(
+      rawProvide(NAV_CHARTS, { useFactory: () => 1, deps: [dep] }),
+    );
+    expect(shape).toBeNull();
+    expect(errors).toMatchObject([
+      {
+        code: 'NEXUS_INVALID_PROVIDER',
+        reason: 'bad-dep',
+        detail: expect.arrayContaining(['deps[0]', 'bad-modifier']),
+      },
+    ]);
+  });
+
   it('reads useExisting as an alias', () => {
     const COMPUTER = new Token<ShipComputer>('Computer');
     expect(

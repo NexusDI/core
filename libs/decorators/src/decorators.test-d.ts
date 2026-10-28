@@ -1,6 +1,6 @@
 import { describe, it } from 'vitest';
 
-import { Token, optional } from '@nexusdi/core';
+import { MultiToken, Token, all, lazy, optional } from '@nexusdi/core';
 
 import { Inject, Injectable, Module } from './index.js';
 
@@ -15,6 +15,10 @@ interface NavCharts {
 }
 const NAV_CHARTS = new Token<NavCharts>('NavCharts');
 const OPTIONS = new Token<number>('Options');
+interface PowerConsumer {
+  draw(): number;
+}
+const POWER_CONSUMERS = new MultiToken<PowerConsumer>('PowerConsumers');
 
 describe('Injectable', () => {
   it('checks deps against the constructor of the class it decorates', () => {
@@ -45,6 +49,16 @@ describe('Inject', () => {
       }
     }
     void Bridge;
+  });
+
+  it('accepts lazy(all(T)) for a () => T[] accessor', () => {
+    class Router {
+      @Inject(lazy(all(POWER_CONSUMERS)))
+      accessor consumers!: () => PowerConsumer[];
+      // @ts-expect-error a PowerConsumer[] accessor takes all(); lazy(all()) is a type error
+      @Inject(lazy(all(POWER_CONSUMERS))) accessor list!: PowerConsumer[];
+    }
+    void Router;
   });
 
   it('rejects a static accessor, public or private', () => {
