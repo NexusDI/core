@@ -34,6 +34,14 @@ The `request` option reads `x-mission-id` into the scope's `MISSION`, and the lo
 
 In the dev server, `nexus.server.ts` also disposes the container when Vite replaces the module, with `import.meta.hot?.dispose(() => ship[Symbol.asyncDispose]())`. Without it, each edit leaks a container. To see the scope's source, call `loader({ params, context })` without the middleware: it throws `[@nexusdi/react-router] no scope on this request: register di.middleware before this route`.
 
+When using the function form `nexus(() => Nexus.create(Meridian))`, the module holds no container, so `nexus.server.ts` disposes `di` when Vite replaces the module:
+
+```ts no-run
+import.meta.hot?.dispose(() => di[Symbol.asyncDispose]());
+```
+
+`di[Symbol.asyncDispose]()` disposes the container the adapter built.
+
 ## Hand the Scope to the Server Render
 
 `app/entry.server.tsx` reads the scope from the router context with `loadContext.get(NEXUS_SCOPE)?.scope()` and passes it to `NexusProvider` as `scope`, so a component that calls `useService` during the server render reads the request's scoped services. In React Router's `handleRequest(request, status, headers, routerContext, loadContext)`, with `ship` from `nexus.server.ts`, `NEXUS_SCOPE` from `@nexusdi/react-router`, `renderToPipeableStream` from `react-dom/server`, `ServerRouter` from `react-router`, and `options` the stream options of React Router's default `entry.server.tsx`:
