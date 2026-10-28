@@ -25,7 +25,7 @@ Any number of modules can call `provide(DIAGNOSTICS, ...)` to add their own cont
 
 ## Consuming Contributions with `all()`
 
-Because a `MultiToken` represents a collection, you cannot use it as a standard dependency. Instead, you must use the `all()` modifier in your `static deps` list. `all()` is the only modifier a multi-token takes: `lazy()` and `optional()` each make `Nexus.create` reject with `NEXUS_BLUEPRINT_INVALID`, wrapping `NEXUS_INVALID_PROVIDER`, and so does a bare `MultiToken`.
+Because a `MultiToken` represents a collection, you cannot use it as a standard dependency. Instead, you must use the `all()` modifier in your `static deps` list. `lazy(all(TOKEN))` composes `all()` with `lazy()`, and it is the one other form a multi-token takes (see [Contributors That Call the Collector](#contributors-that-call-the-collector)). `lazy(TOKEN)`, `optional(TOKEN)`, `optional(all(TOKEN))` and the bare `MultiToken` are invalid: each makes `Nexus.create` reject with `NEXUS_BLUEPRINT_INVALID`, wrapping `NEXUS_INVALID_PROVIDER`.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=panel
 
@@ -40,6 +40,26 @@ flowchart LR
 ```
 
 **Try it:** Save the region as `panel.ts` and run it. It prints `reactor green, hull green`. Add a `Comms` module that provides and exports `SUBSPACE_LINK` with a `useValue` whose `send(report)` returns `'sent: ' + report`, import it into `Meridian`, and run it again: the panel prints `sent: reactor green, hull green`. Take `Comms` out of `Meridian`'s imports and the panel prints `reactor green, hull green` again.
+
+### Contributors That Call the Collector
+
+Cyclic dependencies often occur when a collector, such as an event bus, interacts with contributors that must call back into that same collector. For example, a handler might react to a bulletin by publishing a new one. In this scenario, the handler depends on the bus, while the bus depends on every handler via `all()`. This creates a provider cycle that causes `Nexus.create` to reject the configuration with `NEXUS_BLUEPRINT_INVALID`, whose `errors` list holds `NEXUS_CIRCULAR_DEPENDENCY`. To avoid this without requiring every third-party handler to manually use `lazy(EVENT_BUS)`, the bus itself can resolve the cycle.
+
+`lazy(all(HANDLERS))` allows the bus to break the cycle. The bus receives a thunk that returns the handlers, while each handler maintains a standard dependency on the bus.
+
+```ts file=examples/meridian/src/pages/multi-providers.md region=lazy-all
+
+```
+
+**SubspaceBus** accepts `lazy(all(HANDLERS))` and executes the thunk inside the `publish()` method after `Nexus.create` has completed. **AlertHandler** depends on `EVENT_BUS` and publishes a second bulletin upon hearing `hull breach`. Consequently, `LogHandler` processes the nested `all hands` bulletin before the `hull breach` bulletin. [Collectors Their Contributors Call](/lazy/#collectors-their-contributors-call) describes the thunk and the errors it throws.
+
+**Try it:** Save the region as `bus.ts` and run it. It prints `[ 'all hands', 'hull breach' ]`. Change `SubspaceBus`'s deps to `[all(HANDLERS)] as const`, its parameter to `IHandler[]` and the loop to `for (const each of this.handlers)`, and run it again: `Nexus.create` rejects, and the region below shows what you see. Change them back when you are done.
+
+```ts file=examples/meridian/src/pages/multi-providers.md region=lazy-all-cycle
+
+```
+
+Save this region as `bus-cycle.ts` and run it. It prints `NEXUS_BLUEPRINT_INVALID` and then `NEXUS_CIRCULAR_DEPENDENCY`.
 
 ## Publishing Contributions
 

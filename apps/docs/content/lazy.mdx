@@ -108,3 +108,49 @@ NexusDI calls `onInit` level by level, dependencies first, and a lazy edge does 
 **The Rule:** Always call lazy thunks within regular methods that are executed _after_ `Nexus.create` has fully resolved.
 
 **Try it:** Save the region as `not-ready.ts` and run it. It prints `NEXUS_PROVIDER_FAILED` and then `NEXUS_NOT_READY`. Now move the call out of the constructor. Keep the thunk in a field with `constructor(private readonly shields: () => IShieldGrid) {}`, and replace `reserve` in `IPowerRouter` and `PlasmaRouter` with a `divert(): number` method that returns `this.shields().draw()`. Replace the `Nexus.create(...).catch(...)` block and the prints with `await using ship = await Nexus.create(...)` and `console.log(ship.get(POWER_ROUTER).divert());`. It prints `0.4`. Put the call back in the constructor and the two codes return.
+
+## Collectors Their Contributors Call
+
+**Cyclic dependencies often emerge when a central coordinator must track the very components that depend on it.** Consider a power router that lists every power consumer: the router depends on each consumer to manage them, while each consumer depends on the router to receive power. This creates a dependency cycle. While wrapping the router in `lazy(POWER_ROUTER)` within every consumer breaks the cycle, it forces every contributor (including those written by third parties) to know and follow this rule. A contributor who forgets this rule encounters `NEXUS_CIRCULAR_DEPENDENCY` from a router they did not write.
+
+**Lazy collectors solve this by moving the resolution logic into the coordinator.** By using `lazy(all(TOKEN))`, the collector receives a thunk that resolves the contributions on demand. This allows consumers to maintain a plain dependency on the router without triggering a cycle.
+
+```mermaid caption="PlasmaRouter reaches POWER_CONSUMERS through one lazy edge per contribution, and each consumer depends on POWER_ROUTER."
+flowchart LR
+  PlasmaRouter:::accent -.->|lazy| ShieldGrid
+  PlasmaRouter -.->|lazy| Deflector
+  ShieldGrid -->|required| PlasmaRouter
+  Deflector -->|required| PlasmaRouter
+```
+
+```ts file=examples/meridian/src/pages/lazy.md region=collector
+
+```
+
+**The `PlasmaRouter` implementation declares `lazy(all(POWER_CONSUMERS))`** and accepts a `() => IPowerConsumer[]` parameter. Each call to this thunk returns a new array containing the contributions in record order. A singleton contribution returns the same instance on every call, whereas a transient contribution is rebuilt every time the thunk is invoked.
+
+**Try it:** Save the region as `collector.ts` and run it. It prints `[ 'shields', 'deflector' ]`, then `false` for two calls returning the same array, then `true` for the first consumer being the same instance in both. Add `lifetime: 'transient'` to the `Deflector` provider and change the last check to compare `first[1] === second[1]`: it prints `false`.
+
+### All or Nothing
+
+**To ensure consistency, the thunk validates all contributions before building any of them.** It traverses the contributions in record order; if it encounters a contribution that is not yet ready, it throws `NEXUS_NOT_READY`. This error names the multi token as its `target`. Because the thunk builds nothing until all contributions are verified, a call never returns a partial list. The first refusal is `NEXUS_DISPOSED` when the first contribution the thunk refuses is a disposed one, so record order decides which of the two codes a call throws.
+
+```ts file=examples/meridian/src/pages/lazy.md region=collector-not-ready
+
+```
+
+**In this example, `PlasmaRouter` calls the thunk in its constructor.** Because `ShieldGrid` depends on the router, the router must be built first, meaning `ShieldGrid` is not yet ready. Although `ReserveCell` is transient and appears first in record order, the thunk still builds nothing. Since the contributions share the token's name, the `target` reads `PowerConsumers`.
+
+**Try it:** Save the region as `collector-not-ready.ts` and run it. It prints `NEXUS_NOT_READY`, `PowerConsumers` and `0`. Remove the `ShieldGrid` provider and run it again: the thunk finds only `ReserveCell`, so `Nexus.create` succeeds and the region prints `null`, `null` and `1`. Put the provider back when you are done.
+
+### Calling the Thunk While Disposing
+
+**Resource disposal follows the reverse order of creation** (see [Lifecycle and Disposal](/lifecycle/)). Since a consumer depends on the router, the router is created first and disposed last. Consequently, by the time the router's `[Symbol.asyncDispose]()` or `[Symbol.dispose]()` method runs, its consumers have already been disposed. Any attempt to call the thunk during this phase throws `NEXUS_DISPOSED` once it meets a contribution NexusDI has already disposed. A `useValue` or transient contribution never counts as disposed.
+
+```ts file=examples/meridian/src/pages/lazy.md region=collector-dispose
+
+```
+
+**`PlasmaRouter` catches this error in its dispose method**, and the region prints `NEXUS_DISPOSED`. Avoid calling the thunk from a collector's dispose method.
+
+**Try it:** Save the region as `collector-dispose.ts` and run it. It prints `NEXUS_DISPOSED`.
