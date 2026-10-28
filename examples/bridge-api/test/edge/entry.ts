@@ -1,5 +1,6 @@
 import { Nexus } from '@nexusdi/core';
 
+import { honoMissionRoutes } from '../../e2e/fixtures/mission-routes';
 import { createBridge } from '../../src/hono';
 import { OfflineMeridian } from '../../src/ship/meridian';
 import { bridgePlugins } from '../../src/ship/plugins';
@@ -24,7 +25,7 @@ const ready = Nexus.create(OfflineMeridian, {
       if (event.type === 'scope:dispose') counts.dispose += 1;
     },
   }),
-}).then((ship) => createBridge(ship));
+}).then((ship) => createBridge(ship, { mount: honoMissionRoutes() }));
 
 addEventListener('fetch', (event) => {
   const fetchEvent = event as FetchEvent;

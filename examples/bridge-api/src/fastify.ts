@@ -2,9 +2,11 @@
 // caller imports the one it serves (./hono, ./express, ./fastify).
 // fallow-ignore-file duplicate-export
 
-import { Readable } from 'node:stream';
-
-import { nexus, type ContainerSource } from '@nexusdi/fastify';
+import {
+  nexus,
+  type ContainerSource,
+  type NexusFastify,
+} from '@nexusdi/fastify';
 import {
   COMMAND_DESK,
   DECK_PLAN,
@@ -14,7 +16,7 @@ import {
   SHIP_STATE,
   TELEMETRY,
 } from '@nexusdi/meridian-systems';
-import Fastify, { type FastifyRequest } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 
 import { answerAtmosphere } from './bridge/atmosphere';
 import { answerCommand } from './bridge/commands';
@@ -26,12 +28,18 @@ import type { BridgeOptions } from './bridge/options';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { telemetryReadable } from './bridge/telemetry-readable';
 import { SSE_HEADERS } from './bridge/telemetry-stream';
-import { UNCHARTED } from './bridge/uncharted';
-import { FLIGHT_LOG, MISSION, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
+import { FLIGHT_LOG, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
+
+/**
+ * A hook for the e2e and runtime-test routes: it adds routes to the
+ * encapsulated context right after the adapter plugin, so they run in a
+ * request scope. Ship routes belong in this entry.
+ */
+export type FastifyMount = (scoped: FastifyInstance, di: NexusFastify) => void;
 
 export async function createBridge(
   ship: ContainerSource,
-  options: BridgeOptions = {},
+  options: BridgeOptions & { mount?: FastifyMount } = {},
 ) {
   const di = nexus(ship, {
     request: (req) =>
@@ -71,37 +79,16 @@ export async function createBridge(
     );
     const body = (req: FastifyRequest) =>
       readJson(req.headers['content-type'], req.body as string | undefined);
+    options.mount?.(scoped, di);
     scoped.get<{ Params: { to: string } }>(
       '/course/:to',
       di.inject(
         { charts: NAV_CHARTS, log: FLIGHT_LOG },
         async ({ charts, log }, req) => {
-          if (req.headers[MISSION_HEADER] === 'missing-provider')
-            (await di.scope(req)).get(UNCHARTED);
           log.record(`plotting ${req.params.to}`);
           return { course: charts.plot(req.params.to), entries: log.entries() };
         },
       ),
-    );
-    scoped.get(
-      '/mission',
-      di.inject({}, async () => {
-        await Promise.resolve();
-        return { id: options.scopes?.current?.()?.get(MISSION).id ?? null };
-      }),
-    );
-    scoped.get(
-      '/log/stream',
-      di.inject({ log: FLIGHT_LOG }, async ({ log }, _req, reply) => {
-        async function* ticks() {
-          for (let tick = 1; tick <= 3; tick += 1) {
-            await new Promise((resolve) => setTimeout(resolve, 50));
-            log.record(`tick ${tick}`);
-            yield `data: ${log.entries().at(-1)}\n\n`;
-          }
-        }
-        return reply.type('text/event-stream').send(Readable.from(ticks()));
-      }),
     );
     scoped.get(
       '/sim',

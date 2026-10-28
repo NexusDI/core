@@ -4,7 +4,11 @@
 
 import { pipeline } from 'node:stream';
 
-import { nexus, type ContainerSource } from '@nexusdi/express';
+import {
+  nexus,
+  type ContainerSource,
+  type NexusExpress,
+} from '@nexusdi/express';
 import {
   COMMAND_DESK,
   DECK_PLAN,
@@ -14,7 +18,11 @@ import {
   SHIP_STATE,
   TELEMETRY,
 } from '@nexusdi/meridian-systems';
-import express, { type ErrorRequestHandler, type Request } from 'express';
+import express, {
+  type Application,
+  type ErrorRequestHandler,
+  type Request,
+} from 'express';
 
 import { answerAtmosphere } from './bridge/atmosphere';
 import { answerCommand } from './bridge/commands';
@@ -26,12 +34,18 @@ import type { BridgeOptions } from './bridge/options';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from './bridge/sim-ticks';
 import { telemetryReadable } from './bridge/telemetry-readable';
 import { SSE_HEADERS } from './bridge/telemetry-stream';
-import { UNCHARTED } from './bridge/uncharted';
-import { FLIGHT_LOG, MISSION, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
+import { FLIGHT_LOG, NAV_CHARTS, SIM_DRIVER } from './ship/contracts';
+
+/**
+ * A hook for the e2e and runtime-test routes: it adds routes right after the
+ * adapter middleware, so they run in a request scope. Ship routes belong in
+ * this entry.
+ */
+export type ExpressMount = (bridge: Application, di: NexusExpress) => void;
 
 export function createBridge(
   ship: ContainerSource,
-  options: BridgeOptions = {},
+  options: BridgeOptions & { mount?: ExpressMount } = {},
 ) {
   const di = nexus(ship, {
     request: (req) =>
@@ -61,13 +75,12 @@ export function createBridge(
     else next();
   });
   bridge.use(di.middleware);
+  options.mount?.(bridge, di);
   bridge.get(
     '/course/:to',
     di.inject(
       { charts: NAV_CHARTS, log: FLIGHT_LOG },
-      async ({ charts, log }, req, res) => {
-        if (req.get(MISSION_HEADER) === 'missing-provider')
-          (await di.scope(req)).get(UNCHARTED);
+      ({ charts, log }, req, res) => {
         const to = String(req.params.to);
         log.record(`plotting ${to}`);
         res.json({
@@ -76,25 +89,6 @@ export function createBridge(
         });
       },
     ),
-  );
-  bridge.get(
-    '/mission',
-    di.inject({}, async (_deps, _req, res) => {
-      await Promise.resolve();
-      res.json({ id: options.scopes?.current?.()?.get(MISSION).id ?? null });
-    }),
-  );
-  bridge.get(
-    '/log/stream',
-    di.inject({ log: FLIGHT_LOG }, async ({ log }, _req, res) => {
-      res.setHeader('content-type', 'text/event-stream');
-      for (let tick = 1; tick <= 3; tick += 1) {
-        await new Promise((resolve) => setTimeout(resolve, 50));
-        log.record(`tick ${tick}`);
-        res.write(`data: ${log.entries().at(-1)}\n\n`);
-      }
-      res.end();
-    }),
   );
   bridge.get(
     '/sim',
