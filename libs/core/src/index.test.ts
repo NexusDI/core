@@ -58,6 +58,7 @@ const RUNTIME_EXPORTS: string[] = [
   'splitLoadEntry',
   'SUPPORTED_PLUGIN_APIS',
   'Token',
+  'UnreadContributionError',
 ];
 
 describe('@nexusdi/core', () => {

@@ -44,6 +44,7 @@ import {
   sameToken,
   type Canonicalizer,
 } from './views.js';
+import { unreadContributions } from './unread.js';
 import { computeVisibility } from './visibility.js';
 import { rejectDuplicates, walk, type WalkResult } from './walk.js';
 
@@ -326,6 +327,9 @@ export function compile(input: CompileInput): Blueprint {
       broken: walked.broken,
     },
     errors,
+  );
+  errors.push(
+    ...unreadContributions(walked.modules, records, pinned, walked.records),
   );
 
   // Pass 4: cycles, ignoring lazy edges.

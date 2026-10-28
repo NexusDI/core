@@ -29,7 +29,10 @@ export interface BlueprintView {
   readonly modules: readonly ModuleView[];
   readonly providers: readonly ProviderView[];
   readonly edges: readonly EdgeView[];
-  /** Provider ids of `token` visible in the module, in lookup order. The token is keyed through the tokenKey hooks, as get() keys it. */
+  /**
+   * Provider ids of `token` visible in the module, in lookup order. The token is keyed through the tokenKey hooks, as get() keys it.
+   * visible() does not count as a reader of a private contribution, so a contribution only it can see fails NEXUS_UNREAD_CONTRIBUTION.
+   */
   visible(moduleId: string, token: AnyToken): readonly string[];
   /** The key's canonical token for `token`: the one ProviderView.token holds. `token` itself without a tokenKey plugin. */
   canonical(token: AnyToken): AnyToken;

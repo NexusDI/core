@@ -17,6 +17,14 @@ class SubspaceLink {}
 const LOGGER = new Token<string>('Logger');
 const DIAGNOSTICS = new MultiToken<string>('Diagnostics');
 
+/** A provider that collects DIAGNOSTICS, so a private contribution in its module has a reader. */
+function collector() {
+  return provide(new Token<readonly string[]>('Collector'), {
+    useFactory: (checks) => checks,
+    deps: [all(DIAGNOSTICS)],
+  });
+}
+
 describe('compile', () => {
   it('shows a module its own providers and the exports of its imports', () => {
     const Engineering = defineModule({
@@ -153,7 +161,7 @@ describe('compile', () => {
     const Bridge = defineModule({
       name: 'Bridge',
       imports: [Weapons, Sensors],
-      providers: [provide(DIAGNOSTICS, { useValue: 'bridge' })],
+      providers: [provide(DIAGNOSTICS, { useValue: 'bridge' }), collector()],
     });
     const bp = compile({
       root: defineModule({ name: 'Root', imports: [Sensors, Bridge] }),
@@ -172,7 +180,7 @@ describe('compile', () => {
   it('keeps a MultiToken contribution its module does not export inside that module', () => {
     const Sensors = defineModule({
       name: 'Sensors',
-      providers: [provide(DIAGNOSTICS, { useValue: 'sensors' })],
+      providers: [provide(DIAGNOSTICS, { useValue: 'sensors' }), collector()],
     });
     const bp = compile({
       root: defineModule({ name: 'Root', imports: [Sensors] }),
@@ -201,7 +209,7 @@ describe('compile', () => {
   it('accepts exports: [T] for a MultiToken the module has no record of, and publishes nothing', () => {
     const Sensors = defineModule({
       name: 'Sensors',
-      providers: [provide(DIAGNOSTICS, { useValue: 'sensors' })],
+      providers: [provide(DIAGNOSTICS, { useValue: 'sensors' }), collector()],
     });
     const Relay = defineModule({
       name: 'Relay',
@@ -223,7 +231,7 @@ describe('compile', () => {
   it('publishes nothing of a MultiToken through a module re-export', () => {
     const Sensors = defineModule({
       name: 'Sensors',
-      providers: [provide(DIAGNOSTICS, { useValue: 'sensors' })],
+      providers: [provide(DIAGNOSTICS, { useValue: 'sensors' }), collector()],
     });
     const Relay = defineModule({
       name: 'Relay',
@@ -412,7 +420,7 @@ describe('compile', () => {
     const K2 = defineModule({
       name: 'K2',
       imports: [A],
-      providers: [provide(DIAGNOSTICS, { useValue: 'k2' })],
+      providers: [provide(DIAGNOSTICS, { useValue: 'k2' }), collector()],
       exports: [A],
     });
     const Global = defineModule({

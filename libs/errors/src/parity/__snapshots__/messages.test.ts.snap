@@ -268,6 +268,11 @@ exports[`NexusError > keeps the message of ScopeRequiredError 1`] = `
   Fix: resolve it from a scope: const scope = await ship.createScope(); scope.get(Mission)."
 `;
 
+exports[`NexusError > keeps the message of UnreadContributionError 1`] = `
+"[NEXUS_UNREAD_CONTRIBUTION] useValue #1 contributes to Log in Science, and no provider can read it.
+  Fix: collect it in Science with all(Log). Or add Log to the exports of Science to publish it to every collector. Or remove the contribution."
+`;
+
 exports[`NexusError > keeps the message of a bare class that declares deps in both… 1`] = `
 "[NEXUS_BLUEPRINT_INVALID] the module graph has 1 error; nothing was built.
   [NEXUS_INVALID_PROVIDER] Engineering.providers[0] declares deps in both @Injectable and static deps; keep one."

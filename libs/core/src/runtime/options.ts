@@ -10,7 +10,11 @@ export interface CreateOptions {
 
 /** The options `get()`, `has()`, `resolve()` and `validate()` take. */
 export interface LookupOptions {
-  /** Resolve as if called from inside this module. */
+  /**
+   * Resolve as if called from inside this module. The option does not count as
+   * a reader of a private contribution, so a contribution only it can see
+   * fails NEXUS_UNREAD_CONTRIBUTION.
+   */
   readonly module?: ModuleRef;
 }
 

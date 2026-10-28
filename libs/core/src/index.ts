@@ -31,6 +31,7 @@ export {
   ProviderError,
   RequestMissingError,
   ScopeRequiredError,
+  UnreadContributionError,
 } from './errors/index.js';
 export type {
   ErrorFields,

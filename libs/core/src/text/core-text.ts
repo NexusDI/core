@@ -35,6 +35,7 @@ import type {
   ProviderError,
   RequestMissingError,
   ScopeRequiredError,
+  UnreadContributionError,
 } from '../errors/index.js';
 import type { MissingLookup } from '../errors/missing-provider-error.js';
 import { PROVIDER_REASONS, tokenReason } from './reasons.js';
@@ -266,6 +267,12 @@ const LOAD_GRANT_TEXT: Readonly<
 const loadGrant: Builder<LoadGrantError> = (error) =>
   text(LOAD_GRANT_TEXT[error.reason](error));
 
+const unreadContribution: Builder<UnreadContributionError> = (error) =>
+  text(
+    `${error.provider} contributes to ${error.token} in ${error.module}, and no provider can read it.\n` +
+      `  Fix: collect it in ${error.module} with all(${error.token}). Or add ${error.token} to the exports of ${error.module} to publish it to every collector. Or remove the contribution.`,
+  );
+
 const provider: Builder<ProviderError> = (error) => {
   const lines = [
     `${error.token} (module ${error.module}) failed: ${causeText(error.cause)}`,
@@ -407,6 +414,7 @@ export const coreText = {
   NEXUS_LOAD_GLOBAL_MODULE: load,
   NEXUS_LOAD_CONTRIBUTION: loadContribution,
   NEXUS_LOAD_GRANT: loadGrant,
+  NEXUS_UNREAD_CONTRIBUTION: unreadContribution,
   NEXUS_INVALID_MODULE_OPTIONS: moduleOptions,
   NEXUS_PROVIDER_FAILED: provider,
   NEXUS_NOT_READY: notReady,
