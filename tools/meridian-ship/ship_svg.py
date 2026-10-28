@@ -43,6 +43,7 @@ ROOM_COLOURS = {
 SILHOUETTE = "#c9ced4"
 HULL_FILL = "#2a3038"
 DOOR = "#ffcc33"
+FIXTURE = "#5d636b"
 
 
 def lerp(a, b, t):
@@ -300,11 +301,23 @@ def top_svg(geometry, hull):
     return svg((-2, -12, 76, 24), body, "SV-01 Meridian, top")
 
 
-def label(x, y, text, size, fill="#0e1013", rotate=None):
-    rot = f' transform="rotate({rotate} {x:.2f} {y:.2f})"' if rotate else ""
+def fixture_shape(f, a, b, flip):
+    """A fixture's outline in the (a, b) plane; seen from above, a cylinder is an ellipse."""
+    a0, a1 = f[a]
+    b0, b1 = f[b]
+    tag = f'fill="{FIXTURE}" data-fixture="{f["id"]}"'
+    if f["shape"] == "cylinder" and (a, b) == ("x", "y"):
+        cx, cy = (a0 + a1) / 2, flip((b0 + b1) / 2)
+        rx, ry = (a1 - a0) / 2, (b1 - b0) / 2
+        return f'<ellipse cx="{cx:.2f}" cy="{cy:.2f}" rx="{rx:.2f}" ry="{ry:.2f}" {tag}/>'
+    w, h = a1 - a0, b1 - b0
+    return f'<rect x="{a0:.2f}" y="{flip(b1):.2f}" width="{w:.2f}" height="{h:.2f}" {tag}/>'
+
+
+def label(x, y, text, size, fill="#0e1013", anchor="middle"):
     return (
         f'<text x="{x:.2f}" y="{y:.2f}" font-size="{size}" fill="{fill}" '
-        f'text-anchor="middle" dominant-baseline="middle"{rot}>{text}</text>'
+        f'text-anchor="{anchor}" dominant-baseline="middle">{text}</text>'
     )
 
 
@@ -325,6 +338,11 @@ def cutaway_svg(geometry, hull):
             )
         big = max(room["boxes"], key=lambda b: (b["x"][1] - b["x"][0]) * (b["z"][1] - b["z"][0]))
         body.append(label(sum(big["x"]) / 2, flip(big["z"][1] - 1.0), room["id"], 0.7))
+    body += [
+        fixture_shape(f, "x", "z", flip)
+        for room in geometry["compartments"]
+        for f in room["fixtures"]
+    ]
     for door in geometry["doors"]:
         flat = [a for a in "xyz" if door[a][0] == door[a][1]][0]
         x0, x1 = door["x"]
@@ -349,6 +367,7 @@ def deck_svg(geometry, hull, deck):
     edge = [(x, hull.half_width_at(x, zc)) for x in xs if hull.half_width_at(x, zc) > 0]
     outline = edge + [(x, -w) for x, w in reversed(edge)]
     body = [path(outline, flip, HULL_FILL)]
+    labels = []
     for room in geometry["compartments"]:
         if deck["id"] not in room["decks"]:
             continue
@@ -360,8 +379,15 @@ def deck_svg(geometry, hull, deck):
                 f'<rect x="{x0 + 0.05:.2f}" y="{flip(y1) + 0.05:.2f}" width="{x1 - x0 - 0.1:.2f}" '
                 f'height="{y1 - y0 - 0.1:.2f}" fill="{colour}" data-room="{room["id"]}"/>'
             )
+        for f in room["fixtures"]:
+            if f["z"][1] <= floor or f["z"][0] >= floor + deck["height"]:
+                continue
+            body.append(fixture_shape(f, "x", "y", flip))
+        # The label sits in the room's starboard forward corner, clear of the doors on
+        # the centreline, and draws last so nothing covers it.
         big = max(room["boxes"], key=lambda b: (b["x"][1] - b["x"][0]) * (b["y"][1] - b["y"][0]))
-        body.append(label(sum(big["x"]) / 2, flip(sum(big["y"]) / 2), room["id"], 0.8))
+        at = (big["x"][0] + 0.3, flip(big["y"][1]) + 0.8)
+        labels.append(label(*at, room["id"], 0.8, anchor="start"))
     for door in geometry["doors"]:
         flat = [a for a in "xyz" if door[a][0] == door[a][1]][0]
         if flat == "z":
@@ -380,7 +406,7 @@ def deck_svg(geometry, hull, deck):
             f'<rect x="{x0:.2f}" y="{flip(y1):.2f}" width="{x1 - x0:.2f}" height="{y1 - y0:.2f}" '
             f'fill="{DOOR}" data-door="{door["id"]}"/>'
         )
-    return svg((-2, -10, 76, 20), body, f"SV-01 Meridian, {deck['id']} deck")
+    return svg((-2, -10, 76, 20), body + labels, f"SV-01 Meridian, {deck['id']} deck")
 
 
 def export_svgs(geometry, out):

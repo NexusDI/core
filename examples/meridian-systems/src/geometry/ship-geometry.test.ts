@@ -5,6 +5,8 @@ import { COMPARTMENT_IDS } from '../simulation/contracts';
 import {
   SHIP_GEOMETRY,
   type Box,
+  type CompartmentShape,
+  type DoorShape,
   type HullStation,
   type Point,
 } from './ship-geometry';
@@ -145,6 +147,71 @@ const overlapVolume = (a: Box, b: Box) =>
 
 const boxesOf = (id: string) =>
   compartments.find((c) => c.id === id)?.boxes ?? [];
+
+const flatAxis = (door: DoorShape) =>
+  AXES.find((axis) => door[axis][0] === door[axis][1])!;
+
+/**
+ * The space a fixture must leave free at a door: 1.0 m either side of a wall
+ * door, and the hatch's footprint with a 0.2 m margin through the decks above
+ * and below a floor hatch.
+ */
+function doorZone(door: DoorShape): Box {
+  const flat = flatAxis(door);
+  const at = door[flat][0];
+  if (flat === 'z')
+    return {
+      x: [door.x[0] - 0.2, door.x[1] + 0.2],
+      y: [door.y[0] - 0.2, door.y[1] + 0.2],
+      z: [at - 3.2, at + 3.2],
+    };
+  return { ...door, [flat]: [at - 1.0, at + 1.0] } as Box;
+}
+
+const snap = (v: number) => Math.round(v * 10) / 10;
+
+/** Where a crew member stands to use a door: 0.6 m inside a wall door, under or over a hatch. */
+function accessPoint(room: CompartmentShape, door: DoorShape) {
+  const flat = flatAxis(door);
+  const centre = AXES.map((axis) => (door[axis][0] + door[axis][1]) / 2);
+  if (flat === 'z') {
+    const at = door.z[0];
+    const box =
+      room.boxes.find((b) => Math.abs(b.z[0] - at) < EPS) ??
+      room.boxes.find((b) => Math.abs(b.z[1] - at) < EPS)!;
+    return { x: centre[0], y: centre[1], floor: box.z[0] };
+  }
+  const k = AXES.indexOf(flat);
+  const step = (d: number) => centre.map((v, j) => (j === k ? v + d : v));
+  const sign = room.boxes.some((b) => contains(b, step(0.1))) ? 1 : -1;
+  const p = step(sign * 0.6);
+  // A bay's floor lies below the sill of its raised hatch.
+  const box = room.boxes.find((b) => contains(b, p))!;
+  return { x: p[0], y: p[1], floor: box.z[0] };
+}
+
+/** True when the room's floor is free at (x, y): inside the room and under no fixture. */
+function freeAt(room: CompartmentShape, floor: number, x: number, y: number) {
+  const p: Point = [x, y, floor + 0.05];
+  if (!room.boxes.some((b) => contains(b, p))) return false;
+  return !room.fixtures.some(
+    (f) =>
+      f.x[0] < x &&
+      x < f.x[1] &&
+      f.y[0] < y &&
+      y < f.y[1] &&
+      f.z[0] < floor + 2.0 &&
+      floor < f.z[1],
+  );
+}
+
+/** True when a 1.0 m square of free floor is centred on (x, y). */
+function wideAt(room: CompartmentShape, floor: number, x: number, y: number) {
+  for (let i = -2; i <= 2; i++)
+    for (let j = -2; j <= 2; j++)
+      if (!freeAt(room, floor, x + i * 0.25, y + j * 0.25)) return false;
+  return true;
+}
 
 const inRooms = (p: Point) =>
   compartments
@@ -366,6 +433,79 @@ describe('the ship geometry', () => {
       'shields',
       'thrusters',
     ]);
+  });
+
+  it('gives each room two to five fixtures, about forty in all', () => {
+    for (const room of compartments) {
+      expect(room.fixtures.length, room.id).toBeGreaterThanOrEqual(2);
+      expect(room.fixtures.length, room.id).toBeLessThanOrEqual(5);
+    }
+    const total = compartments.reduce((n, c) => n + c.fixtures.length, 0);
+    expect(total).toBeGreaterThanOrEqual(35);
+    expect(total).toBeLessThanOrEqual(45);
+  });
+
+  it('keeps every fixture inside its room, clear of every other fixture', () => {
+    const all = compartments.flatMap((c) => c.fixtures);
+    for (const room of compartments)
+      for (const f of room.fixtures) {
+        expect(f.id.startsWith(`${room.id}.`), f.id).toBe(true);
+        const inside = room.boxes.some((box) =>
+          corners(f).every((p) => contains(box, p)),
+        );
+        expect(inside, f.id).toBe(true);
+      }
+    for (let i = 0; i < all.length; i++)
+      for (let j = i + 1; j < all.length; j++)
+        expect(
+          overlapVolume(all[i], all[j]),
+          `${all[i].id} and ${all[j].id}`,
+        ).toBe(0);
+  });
+
+  it('keeps every fixture out of the space in front of each door', () => {
+    for (const door of doors.filter((d) => d.kind !== 'bay-door')) {
+      const zone = doorZone(door);
+      for (const f of compartments.flatMap((c) => c.fixtures))
+        expect(overlapVolume(zone, f), `${f.id} at ${door.id}`).toBe(0);
+    }
+  });
+
+  it('joins every door of a room to the others through free floor at least 1.0 m wide', () => {
+    for (const room of compartments) {
+      const access = doors
+        .filter((d) => d.kind !== 'bay-door' && d.between.includes(room.id))
+        .map((d) => accessPoint(room, d));
+      if (access.length === 0) continue;
+      const floor = access[0].floor;
+      for (const a of access) expect(a.floor, room.id).toBe(floor);
+      const wide = (x: number, y: number) => wideAt(room, floor, x, y);
+      const key = (x: number, y: number) =>
+        `${Math.round(x * 10)},${Math.round(y * 10)}`;
+      const [start, ...rest] = access.map(
+        (a) => [snap(a.x), snap(a.y)] as const,
+      );
+      for (const [x, y] of [start, ...rest])
+        expect(wide(x, y), `${room.id} at ${x}, ${y}`).toBe(true);
+      const seen = new Set([key(...start)]);
+      const queue = [start];
+      while (queue.length > 0) {
+        const [x, y] = queue.pop()!;
+        for (const [nx, ny] of [
+          [x + 0.1, y],
+          [x - 0.1, y],
+          [x, y + 0.1],
+          [x, y - 0.1],
+        ]) {
+          const k = key(nx, ny);
+          if (seen.has(k) || !wide(nx, ny)) continue;
+          seen.add(k);
+          queue.push([snap(nx), snap(ny)]);
+        }
+      }
+      for (const [x, y] of rest)
+        expect(seen.has(key(x, y)), `${room.id} to ${x}, ${y}`).toBe(true);
+    }
   });
 
   it('keeps the radiator vanes on the nacelles and the louvres on the reactor block', () => {

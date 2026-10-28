@@ -64,6 +64,18 @@ export interface CompartmentShape {
   readonly pressurised: boolean;
   /** The room's space, floor to floor. Most rooms are one box. */
   readonly boxes: readonly Box[];
+  /** The room's large items, drawn in the cutaway and the deck plans. */
+  readonly fixtures: readonly FixtureShape[];
+}
+
+/**
+ * A blockout item inside a room, such as a console or the reactor vessel.
+ * A `cylinder` stands upright in its box's footprint.
+ */
+export interface FixtureShape extends Box {
+  readonly id: string;
+  readonly kind: string;
+  readonly shape: string;
 }
 
 /**
