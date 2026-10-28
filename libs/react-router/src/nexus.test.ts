@@ -12,7 +12,11 @@ import {
 } from '@nexusdi/core';
 import { trace } from '@nexusdi/devtools';
 import { nodeScopes } from '@nexusdi/node';
-import { RouterContextProvider, type MiddlewareFunction } from 'react-router';
+import {
+  createStaticHandler,
+  RouterContextProvider,
+  type MiddlewareFunction,
+} from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { existingScope, NEXUS_SCOPE, nexus, type LogContext } from './index.js';
@@ -542,6 +546,35 @@ describe('nexus', () => {
       );
     });
 
+    it('throws a 503 Response from injectMiddleware and a section injectMiddleware after dispose, and never runs them', async () => {
+      const source = vi.fn(() => ship());
+      const di = nexus(source, { request, log: () => {} });
+      const guard = vi.fn(async () => {});
+      const sectionGuard = vi.fn(async () => {});
+      type Args = { context: Readonly<RouterContextProvider> };
+      const guards = [
+        di.injectMiddleware({ log: FLIGHT_LOG }, (_d, _a: Args) => guard()),
+        di
+          .load(Navigation)
+          .injectMiddleware({ routes: NAV_ROUTES }, (_d, _a: Args) =>
+            sectionGuard(),
+          ),
+      ];
+      const statusThrough = async () => {
+        const settled = await run(di.middleware, async (context) => {
+          for (const g of guards)
+            await g({ context }, async () => new Response('x'));
+          return new Response('ok');
+        }).catch((thrown: unknown) => ({ response: thrown as Response }));
+        return settled.response.status;
+      };
+      expect(await statusThrough()).toBe(200);
+      await di[Symbol.asyncDispose]();
+      expect(await statusThrough()).toBe(503);
+      expect(guard).toHaveBeenCalledOnce();
+      expect(sectionGuard).toHaveBeenCalledOnce();
+    });
+
     it('throws a 503 Response at phase load for a section after dispose', async () => {
       const log = vi.fn();
       const di = nexus(await ship(), { request, log });
@@ -652,5 +685,233 @@ describe('nexus', () => {
       expect(di[Symbol.asyncDispose]()).toBe(first);
       await expect(first).rejects.toBe(cause);
     });
+  });
+});
+
+describe('injectMiddleware', () => {
+  interface IAccessControl {
+    mayFire(operator: string | null): boolean;
+  }
+  const ACCESS = new Token<IAccessControl>('AccessControl');
+  async function guarded(events: TraceEvent[] = []) {
+    const built = await Nexus.create(
+      defineModule({
+        name: 'Guarded',
+        providers: [
+          provide(MISSION, {
+            useFactory: (r: NexusRequest) => r.mission,
+            deps: [REQUEST],
+            lifetime: 'scoped',
+          }),
+          provide(FLIGHT_LOG, {
+            useClass: ShuttleFlightLog,
+            lifetime: 'scoped',
+          }),
+          provide(ACCESS, {
+            useValue: { mayFire: (operator) => operator === 'helm' },
+          }),
+        ],
+      }),
+      { plugins: [trace((e) => events.push(e))] },
+    );
+    ships.push(built);
+    return built;
+  }
+  type Args = {
+    request: Request;
+    context: Readonly<RouterContextProvider>;
+  };
+  const argsOf = (request: Request, context: RouterContextProvider): Args => ({
+    request,
+    context,
+  });
+
+  it('ends the request from a route middleware, and the loader never runs', async () => {
+    const events: TraceEvent[] = [];
+    const di = nexus(await guarded(events), { request, log: () => {} });
+    const guard = di.injectMiddleware(
+      { access: ACCESS },
+      async ({ access }, { request: r }: Args, next) => {
+        if (!access.mayFire(r.headers.get('x-operator')))
+          return new Response('Forbidden', { status: 403 });
+        return next();
+      },
+    );
+    const loader = vi.fn(() => new Response('fired'));
+    const { response } = await run(
+      di.middleware,
+      async (context) =>
+        (await guard(
+          argsOf(new Request('http://bridge/drive'), context),
+          async () => loader(),
+        )) as Response,
+    );
+    expect(response.status).toBe(403);
+    expect(await response.text()).toBe('Forbidden');
+    expect(loader).not.toHaveBeenCalled();
+    await settle();
+    expect(count(events, 'scope:dispose')).toBe(1);
+  });
+
+  it('calls next, and the loader sees the scoped instance the middleware saw', async () => {
+    const di = nexus(await guarded(), { request, log: () => {} });
+    let seen: IFlightLog | undefined;
+    const guard = di.injectMiddleware(
+      { log: FLIGHT_LOG },
+      async ({ log }, _args: Args, next) => {
+        seen = log;
+        log.record('cleared');
+        return next();
+      },
+    );
+    const loader = di.inject({ log: FLIGHT_LOG }, ({ log }, _args: Args) => {
+      expect(log).toBe(seen);
+      return log.entries();
+    });
+    const { response } = await run(di.middleware, async (context) => {
+      const args = argsOf(new Request('http://bridge/log'), context);
+      return (await guard(args, async () =>
+        Response.json(await loader(args)),
+      )) as Response;
+    });
+    expect(await response.json()).toEqual(['survey-7: cleared']);
+  });
+
+  it('throws a 500 Response with no core text when the resolve fails', async () => {
+    const di = nexus(await guarded(), {
+      request: () => undefined as unknown as NexusRequest,
+      log: () => {},
+    });
+    const guard = di.injectMiddleware(
+      { log: FLIGHT_LOG },
+      async (_deps, _args: Args, next) => next(),
+    );
+    const loader = vi.fn(() => new Response('fired'));
+    const thrown = await run(
+      di.middleware,
+      async (context) =>
+        (await guard(
+          argsOf(new Request('http://bridge/log'), context),
+          async () => loader(),
+        )) as Response,
+    ).catch((e: unknown) => e);
+    expect(thrown).toBeInstanceOf(Response);
+    expect((thrown as Response).status).toBe(500);
+    expect(await (thrown as Response).text()).not.toContain('NEXUS_');
+    expect(loader).not.toHaveBeenCalled();
+  });
+
+  it("runs in React Router's middleware chain: a 403 ends the request, and a void return goes on", async () => {
+    const events: TraceEvent[] = [];
+    const di = nexus(await guarded(events), { request, log: () => {} });
+    const guard = di.injectMiddleware(
+      { access: ACCESS },
+      // Returns nothing for an allowed operator, so React Router calls next.
+      async ({ access }, { request: r }: Args) =>
+        access.mayFire(r.headers.get('x-operator'))
+          ? undefined
+          : new Response('Forbidden', { status: 403 }),
+    );
+    const loader = vi.fn(
+      di.inject({ log: FLIGHT_LOG }, ({ log }, _args: Args) => {
+        log.record('fired');
+        return Response.json(log.entries());
+      }),
+    );
+    // Data-mode route objects type middleware as MiddlewareFunction<unknown>[].
+    const handler = createStaticHandler([
+      {
+        id: 'root',
+        path: '/',
+        middleware: [di.middleware, guard] as never,
+        children: [{ id: 'drive', path: 'drive', loader }],
+      },
+    ]);
+    const query = (operator: string) => {
+      const r = new Request('http://bridge/drive', {
+        headers: { 'x-operator': operator },
+      });
+      return handler.queryRoute(r, {
+        requestContext: new RouterContextProvider(),
+        generateMiddlewareResponse: (next) => next(r),
+      }) as Promise<Response>;
+    };
+    const denied = await query('guest');
+    expect(denied.status).toBe(403);
+    expect(await denied.text()).toBe('Forbidden');
+    expect(loader).not.toHaveBeenCalled();
+    const allowed = await query('helm');
+    expect(await allowed.json()).toEqual(['survey-7: fired']);
+    await settle();
+    expect(count(events, 'scope:dispose')).toBe(2);
+  });
+
+  it('passes a Response the middleware throws to React Router unchanged', async () => {
+    const di = nexus(await guarded(), { request, log: () => {} });
+    const badge = new Response('no badge', { status: 401 });
+    const guard = di.injectMiddleware(
+      { access: ACCESS },
+      async (_deps, _args: Args) => {
+        throw badge;
+      },
+    );
+    const downstream = vi.fn(async () => new Response('fired'));
+    const thrown = await run(
+      di.middleware,
+      async (context) =>
+        (await guard(
+          argsOf(new Request('http://bridge/drive'), context),
+          downstream,
+        )) as Response,
+    ).catch((e: unknown) => e);
+    expect(thrown).toBe(badge);
+    expect(downstream).not.toHaveBeenCalled();
+  });
+
+  it('checks a section middleware at its first request, and throws a 500 for a token no module provides', async () => {
+    const di = nexus(await guarded(), { request, log: () => {} });
+    const absent = new Token<string>('Absent');
+    const guard = di
+      .load(Navigation)
+      .injectMiddleware({ absent }, async (_deps, _args: Args) => {});
+    const thrown = await run(
+      di.middleware,
+      async (context) =>
+        (await guard(
+          argsOf(new Request('http://bridge/nav'), context),
+          async () => new Response('x'),
+        )) as Response,
+    ).catch((e: unknown) => e);
+    expect((thrown as Response).status).toBe(500);
+  });
+
+  it('throws at definition for a token with no provider', async () => {
+    const di = nexus(await guarded(), { request, log: () => {} });
+    expect(() =>
+      di.injectMiddleware(
+        { routes: NAV_ROUTES },
+        async (_deps, _args: Args, next) => next(),
+      ),
+    ).toThrow(/NEXUS_BLUEPRINT_INVALID/);
+  });
+
+  it('validates a section middleware after the section loads, and resolves its exports', async () => {
+    const di = nexus(await guarded(), { request, log: () => {} });
+    const navigation = di.load(Navigation);
+    const guard = navigation.injectMiddleware(
+      { routes: NAV_ROUTES },
+      async ({ routes }, _args: Args) =>
+        new Response(routes.find('home'), { status: 400 }),
+    );
+    const { response } = await run(di.middleware, async (context) => {
+      const args = argsOf(new Request('http://bridge/nav'), context);
+      return (await navigation(
+        { ...args, params: {}, unstable_pattern: '/nav' } as never,
+        async () =>
+          (await guard(args, async () => new Response('x'))) as Response,
+      )) as Response;
+    });
+    expect(response.status).toBe(400);
+    expect(await response.text()).toBe('route to home');
   });
 });
