@@ -1,7 +1,8 @@
 # Meridian map runtime, MeridianOS and the Academy: UX
 
-Status: proposed, 2026-10-29. Section 13 lists the points the owner rules on. The architect
-and the tech lead settle the rest.
+Status: proposed, 2026-10-29. The open questions are decided: section 13 records each
+decision, which the architect proposed and the tech lead ruled on 2026-10-30 under the
+owner's delegation of these PRs.
 
 Packages: no published package changes. New private package: `internal/meridian-deck`
 (`@nexusdi/meridian-deck`), the map runtime, beside `internal/meridian-ui`. The bridge
@@ -27,7 +28,10 @@ Depends on:
   playground runtime and its sandbox), 12 (the graph and trace views), 13 (the Academy),
   14.4 (the mission guard) and 16 (accessibility and budgets).
 - `examples/meridian-systems/deck/meridian.geometry.json` at `9418d8a4`: 3 decks, 14
-  compartments with 42 fixtures, 16 doors and 37 conduits.
+  compartments with 42 fixtures, 16 doors and 37 conduits. Section 7 replaces
+  `bridge.station-bank` with four fixtures (Q2), which brings the geometry to 45 fixtures.
+- `specs/2026-10-29-site-ux.md`, in its own PR: U2, U4, section 9 (the `Schematic`
+  component) and section 11 (the service worker).
 
 ## 1. Problem
 
@@ -43,9 +47,9 @@ are a test case for the container, so every UX choice shows a container concept.
 This spec holds to two constraints:
 
 1. Every number stays in the DOM. The canvas is art, and a reader with a screen reader, a keyboard, forced colours or no WebGL gets every reading and every control from the DOM layer.
-2. The runtime is one package that four surfaces mount: the bridge console, the federation
-   shell, the front page's scenes and the Academy. A surface differs from another only in
-   its maps and the source of its events.
+2. The runtime is one package. The demo apps (the bridge console and the federation shell)
+   and the Academy mount it, and front-page scenes may mount it after 0.4 (site UX U4). A
+   surface differs from another only in its maps and the source of its events.
 
 ## 2. Decisions
 
@@ -70,16 +74,16 @@ them in the repo for the first time.
 
 ### 2.2 Decisions of this spec
 
-| #   | Decision                                                                                                                                                                                                              | Section   |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| M1  | The map runtime is a NexusDI graph in the browser. Its parts are interface-first providers, so the runtime itself shows modules, exports, scopes, `load()` and multi-token contributions.                             | 4.1       |
-| M2  | The DOM layer renders from the deck state before Pixi loads. Pixi loads as a section after the panels, and the DOM layer and every control work without it.                                                           | 4.1, 4.11 |
-| M3  | A map file is data alone: decks, camera, starting states, declarative triggers and an optional scene module named by id. No map holds code or a position.                                                             | 4.5       |
-| M4  | Each ship system contributes a deck binding to the multi token `DECK_BINDINGS`, which turns a telemetry frame into fixture states, room light, door states and alarms. A new system adds a binding and edits nothing. | 4.7       |
-| M5  | A provider sits at a fixture. `shipNotes` and the docs ship's annotator add a `fixture:` note, so the overlay and the provider card place each provider on the deck from the real graph.                              | 4.7       |
-| M6  | The bridge console is one station whose panels are contributions. The federation shell is the whole bridge, and each remote is a station.                                                                             | 5.2, 5.3  |
-| M7  | The demo desktop's one orchestrated motion is the FTL section load. The Academy's is the rank-up, as the design system names it.                                                                                      | 5.6, 6.8  |
-| M8  | Recommended, for the owner's ruling in Q9: the Academy hub is a cold ship, and each passed mission powers its hull section for good, so the reader's progress is the lit ship.                                        | 6.1       |
+| #   | Decision                                                                                                                                                                                                                             | Section   |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
+| M1  | The map runtime is a NexusDI graph in the browser. Its parts are interface-first providers, so the runtime itself shows modules, exports, scopes, `load()` and multi-token contributions.                                            | 4.1       |
+| M2  | The DOM layer renders from the deck state before Pixi loads. Pixi loads as a section after the panels, and the DOM layer and every control work without it.                                                                          | 4.1, 4.11 |
+| M3  | A map file is data alone: decks, camera, starting states, declarative triggers and an optional scene module named by id. No map holds code or a position.                                                                            | 4.5       |
+| M4  | Each ship system contributes a deck binding to the multi token `DECK_BINDINGS`, which turns a telemetry frame into fixture states, room light, door states and alarms. A new system adds a binding and edits nothing.                | 4.7       |
+| M5  | A provider sits at a fixture. `shipNotes` and the docs ship's annotator add a `fixture:` note, so the overlay and the provider card place each provider on the deck from the real graph.                                             | 4.7       |
+| M6  | The bridge console is one station whose panels are contributions. The federation shell is the whole bridge, and each remote is a station.                                                                                            | 5.2, 5.3  |
+| M7  | The demo desktop's one orchestrated motion is the FTL section load. The Academy's is the rank-up, as the design system names it.                                                                                                     | 5.6, 6.8  |
+| M8  | The Academy hub is a cold ship, and each passed mission powers its hull section for good, package sets included, so the reader's progress is the lit ship. The tech lead settled it on 2026-10-30 under the owner's delegation (Q9). | 4.6, 6.1  |
 
 ## 3. The look in one paragraph
 
@@ -110,7 +114,7 @@ The tokens, all interface-first:
 | Token             | Interface         | Bound to                                                         | Module              | Lifetime           |
 | ----------------- | ----------------- | ---------------------------------------------------------------- | ------------------- | ------------------ |
 | `DECK_OPTIONS`    | `DeckOptions`     | the `forRoot()` value: asset base URL, `reducedMotion`           | `DeckState`         | value              |
-| `DECK_SOURCE`     | `IDeckSource`     | `TelemetryDeckSource`, `RunDeckSource` or `ScriptedDeckSource`   | the app             | singleton          |
+| `DECK_SOURCE`     | `IDeckSource`     | one source class of 4.8, such as `TelemetryDeckSource`           | the app             | singleton          |
 | `DECK_BINDINGS`   | `IDeckBinding`    | one class per ship system, multi token                           | each binding module | singleton          |
 | `DECK_STATE`      | `IDeckState`      | `DeckStateStore` over `DECK_SOURCE` and `all(DECK_BINDINGS)`     | `DeckState`         | singleton          |
 | `MAP`             | `MapDefinition`   | `mapOfRequest`, a factory over `REQUEST`                         | `DeckState`         | scoped             |
@@ -214,10 +218,10 @@ or the section level.
 A camera move that answers the reader (a focus from the DOM layer, a deck tab, a trigger the reader's run fired, a route change) animates on the console tier, 200 ms. Under reduced motion it
 cuts. The camera never moves on its own.
 
-The design system places the origin "at pixel (64, 640)" (8.3). The geometry's frame runs
-from y = −10 m to 10 m with the centreline at y = 0, so the bow at the centreline sits at
-pixel (64, 320) at 32 pixels per metre. The runtime places every image by its sidecar
-alone, so it reads (64, 320) from the sidecar. The owner rules on correcting the design system's figure in Q8.
+Design system 8.3 places the origin at pixel (64, 320) on a 76 by 20 m frame at 32 pixels
+per metre. `ship_svg.py` writes the deck viewBox (−2, −10, 76, 20), so the frame runs from
+y = −10 m to 10 m with the centreline at y = 0. The runtime places every image by its
+sidecar alone, so it reads (64, 320) from the sidecar.
 
 ### 4.4 Input
 
@@ -325,6 +329,7 @@ The conditions:
 | `{ "provider": "<fixture id>", "event": "construct" }`, or `"init"`, `"dispose:instance"`, `"missing"` | the provider at the fixture (4.7) has the trace event, or a check names it missing                  | run, telemetry graph |
 | `{ "objective": "<id>", "status": "pass" }`, or `"fail"`                                               | an Academy objective reports                                                                        | run                  |
 | `{ "loaded": "<module name>" }`                                                                        | a section joins the graph, such as `FtlDrive`                                                       | run, telemetry graph |
+| `{ "passed": "<mission id>" }`                                                                         | the progress stores hold a pass of any version of the mission; valid on `academy-hub` alone         | progress             |
 
 Record paths and codes belong to `meridian-systems`, and the maps live in its `deck/`
 folder, so the owner of the vocabulary owns the files that name it (P1). The map schema
@@ -349,8 +354,10 @@ once per crossing: a record that stays above its value fires no second time unti
 drops below and crosses again.
 
 On a `scene` or `academy` map, an effect that lights, darkens or alarms a room, a fixture
-or a conduit fires only from a container condition: `provider`, `loaded`, `objective`, or
-a `refused` whose code an interceptor raised. An `enter` or `select` trigger may move the
+or a conduit fires only from a container condition: `provider`, `loaded`, `objective`,
+`passed`, or a `refused` whose code an interceptor raised. A `passed` condition counts as a
+container condition, since a pass comes from a real run, and the guard refuses it on any
+map but `academy-hub`. An `enter` or `select` trigger may move the
 camera, open a callout or announce, and lights nothing. The guard refuses a map that
 breaks the rule, so no ship effect on those surfaces stands without a container outcome.
 A `demo` map keeps its telemetry triggers, since the simulation's records are the ship's
@@ -371,8 +378,7 @@ export interface ISceneHook {
 ```
 
 `SceneContext` gives a hook `state` (holds, releases and the camera target, as the effects set them), `camera`,
-`callout` and `announce`. `SceneContext` holds no Pixi type. The front page's three faults and its cut
-conduit are scene hooks on `surface: "scene"` maps. The demo maps need none at 0.4. An
+`callout` and `announce`. `SceneContext` holds no Pixi type. A front-page scene that the site UX spec assigns to a deck map runs as a scene hook on a `surface: "scene"` map; 0.4 assigns none. The demo maps need none at 0.4. An
 Academy mission uses a hook only for a step its triggers cannot express, and the mission
 guard runs the hook headless (6.9).
 
@@ -388,7 +394,10 @@ The layers and the DOM layer read it. Four kinds of state reach the art:
   since the life-support conduit ends at each room's devices (ship-systems 16.4).
   Engineering, where the router sits, is `on` while the reactor's electric output is above
   zero. A room that goes `off` keeps its emissive glow where a powered screen sits.
-  The owner rules on the two vacuum bays in Q7.
+  The shuttle bay and the drone bay are `pressurised: false` in the geometry, and the
+  life-support conduit reaches neither. On demo maps both bays stay dark apart from their
+  emissive mask, and their DOM rows read "Unpressurised, no lighting load" with the standby
+  status. An Academy map lights them only from a container condition (4.6).
 - An alarm in `safety.alarms` sets the light of its subject room to `alarm`, which adds the
   1 Hz `alarm` light sprite of design system 9.2 over the room's other light. An alarm
   whose subject is a load, such as `LOAD_SHED`, marks that load's conduit `shed` and lights
@@ -429,14 +438,18 @@ the computer core (ship-systems 16.5). `@nexusdi/meridian-systems/geometry` expo
 
 ### 4.8 Sources
 
-`DECK_SOURCE` turns what a surface knows into `DeckEvent`s. One interface, four classes:
+`DECK_SOURCE` turns what a surface knows into `DeckEvent`s. One interface, five classes:
 
-| Class                 | Surface                         | Reads                                                                                         |
-| --------------------- | ------------------------------- | --------------------------------------------------------------------------------------------- |
-| `TelemetryDeckSource` | console, federation shell       | `useShipReading()` frames over `TELEMETRY_CLIENT`, command answers, `GET /graph` after a load |
-| `RunDeckSource`       | Academy, front-page explorables | the runner messages of docs-site 11.5: `graph`, `trace`, `test`, `error`, `done`              |
-| `ScriptedDeckSource`  | front-page scenes, tests        | a fixed list of events, stepped by a scene hook or a test                                     |
-| `FakeDeckSource`      | unit and route tests            | events a test pushes, from `@nexusdi/meridian-deck/testing`                                   |
+| Class                 | Surface                            | Reads                                                                                         |
+| --------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------- |
+| `TelemetryDeckSource` | console, federation shell          | `useShipReading()` frames over `TELEMETRY_CLIENT`, command answers, `GET /graph` after a load |
+| `RunDeckSource`       | Academy missions                   | the runner messages of docs-site 11.5: `graph`, `trace`, `test`, `error`, `done`              |
+| `ProgressDeckSource`  | Academy hub                        | the progress stores: one `passed` event per mission with a pass of any version                |
+| `ScriptedDeckSource`  | front-page scenes after 0.4, tests | a fixed list of events, stepped by a scene hook or a test                                     |
+| `FakeDeckSource`      | unit and route tests               | events a test pushes, from `@nexusdi/meridian-deck/testing`                                   |
+
+Front-page explorables bundle core and their scenes as ordinary client chunks (site UX
+U2), so they use no `RunDeckSource`. Front-page scenes come after 0.4.
 
 A route test overrides `DECK_SOURCE` with `FakeDeckSource` and asserts the DOM layer, so
 the tests never need WebGL.
@@ -498,8 +511,10 @@ Each fixture row names the provider that sits at it when the graph is loaded. Wh
 
 The vector schematic is the fallback for every case where the deck view cannot run. It is
 the deck SVG that `tools/meridian-ship` projects from the geometry, with `data-room`,
-`data-door` and `data-fixture` on each shape, and the app sets a state class on each shape
-from the deck state.
+`data-door` and `data-fixture` on each shape. The `Schematic` component of
+`@nexusdi/meridian-ui` (site UX section 9) renders it: the app passes the SVG markup and an
+id-to-state table from the deck state, and the component's generated style block styles
+each shape by its data attribute.
 
 | Case                                 | What the reader gets                                                                                                                                               |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -626,7 +641,7 @@ A station's state follows its section:
 
 The drift build of cartography fails with `NEXUS_CONTRACT_VERSION`, so the reader sees a contract break as a dead station with its fix.
 
-Four of the bridge's six stations are remotes: cartography, command, engineering and life support (ship-systems 7.3). The helm and comms stations have no remote, and their rows read standby with "No remote. The bridge console runs this station." and a link to the console's panel. The bridge geometry lists the helm, the forward console, the station bank and the command chair, so the four remote stations need fixtures of their own, and the owner rules on splitting the station bank in Q2.
+Four of the bridge's six stations are remotes: cartography, command, engineering and life support (ship-systems 7.3). The helm and comms stations have no remote, and their rows read standby with "No remote. The bridge console runs this station." and a link to the console's panel. Four fixtures replace `bridge.station-bank` along its footprint (Q2): `bridge.cartography`, `bridge.engineering`, `bridge.life-support` and `bridge.comms`. `bridge.helm`, `bridge.command-chair` and `bridge.forward-console` stay, so each of the six stations has a fixture to light and fail at.
 
 The shell's own panels (diagnostics, the station list) follow 5.4. The engineering and
 life-support stations show their gauges through `STATION_TELEMETRY`, and the command
@@ -917,14 +932,16 @@ cold: emissive glow alone, no lamp light. Each mission sits at the hull section 
 | `08-power-loop`        | the shields' power conduits from engineering                              |
 | `09-diagnostics-sweep` | computer core's racks                                                     |
 
-The hub derives the lit state from the progress stores when it renders, so it stores no
-field (docs-site 13.6). The next recommended mission glows at its hull section, and the
+The hub derives the lit state from the progress stores when it renders, through
+`ProgressDeckSource` (4.8) and the map's `passed` triggers (4.6), so it stores no field
+(docs-site 13.6). The next recommended mission glows at its hull section, and the
 board's primary button continues it. Every mission stays unlocked: a click on any hull
 section or board row opens its mission.
 
 Package sets (2026-10-11) appear as tabs on the board. A set's missions sit at the hull
 sections their concepts belong to, so an interceptors mission sits at the airlock and a
-federation mission on the bridge stations. Each set has a badge.
+federation mission on the bridge stations. Each passed set mission lights its hull section
+for good, as a core mission does. Each set has a badge.
 
 ### 6.2 The cadet avatar
 
@@ -936,10 +953,24 @@ the hero's style, and it appears in two places:
   engraved plates in `hull-paint` and `hull-shadow`.
 - A crew pin on the deck map during a mission: a round holo marker with the portrait, set
   at the mission's room. The pin is UI on layer 7. It is no ship art, since the runtime art
-  draws only what the geometry lists (design system 8.3). The owner rules in Q3 on whether the cadet walks the deck as a sprite.
+  draws only what the geometry lists (design system 8.3). A walking sprite would need an amendment to design system 8.3 and goes to the owner as its own item if anyone proposes one.
 
 Cosmetic unlocks change the avatar alone: the portrait's frame and background, the insignia's mount and the suit patch. Each unlock uses the neutral steel roles and the art colours, never a
-meaning hue, so a cosmetic never reads as a meaning colour. The owner rules on the rank ladder and the unlock set in Q4, and on the choice of portrait in Q5.
+meaning hue, so a cosmetic never reads as a meaning colour.
+
+The ranks are six: Cadet, third class at the start; Cadet, second class after three core
+missions; Cadet, first class after six; Ensign after nine; Lieutenant, junior grade after
+two finished package sets; Lieutenant after five finished sets. A set rank also needs
+Ensign. Each package set declares in its manifest the pass count that finishes it, and that
+figure never rises. A pass of any version of a mission counts. A new mission or a version
+bump never lowers a rank. It never takes back a badge or darkens a hull section either, and a guard test
+asserts this on a progress-event fixture. Each finished set gives its badge and one
+cosmetic unlock: a portrait frame, a portrait background, an insignia mount or a suit
+patch.
+
+The first visit offers four painted portraits that differ in face and skin tone. The first
+is preselected, so Start needs no choice. The reader can change the portrait on the
+progress page, and the Academy asks for no name.
 
 ### 6.3 Mission structure
 
@@ -984,7 +1015,11 @@ a callout on the deck at the step's fixture, so each step points at the part of 
 it changes.
 
 From 960 to 1279 CSS pixels the deck and the console share the right column as tabs. Below
-960 the view is one column with tabs for Briefing, Editor, Ship and Console. The owner rules in Q6 on whether phones are a target for missions.
+960 the view is one column with tabs for Briefing, Editor, Ship and Console. A mission runs
+in full from 640 CSS pixels, in that one-column layout. Below 640 a mission opens on
+Briefing and Ship with the editor read-only, and shows "Continue on a larger screen" and an
+"Edit here anyway" button that loads the editor and its TypeScript worker. The reader's
+code stays saved either way, and the read-only view loads no TypeScript worker.
 
 ### 6.5 The run on the deck
 
@@ -1065,10 +1100,10 @@ The shell saves the reader's work this way:
 - A browser without IndexedDB runs every mission in memory with the notice of docs-site
   13.7, and the hub shows the ship cold with "Progress is not saved in this browser".
 
-The shell registers a service worker scoped to `/academy/` that caches the shell, the
-runtime copies, the TypeScript worker and each map's art on first use (2026-10-12). After
-one visit the Academy runs offline, and a new deploy's hashed URLs replace the cached
-copies on the next online visit.
+The Academy joins the one service worker per base path of site UX section 11, which
+caches the shell, the runtime copies, the TypeScript worker and each map's art on first
+use (2026-10-12), with network-first HTML. After one visit the Academy runs offline, and a
+new deploy's hashed URLs replace the cached copies on the next online visit.
 
 ### 6.11 How the missions use the shared runtime
 
@@ -1124,7 +1159,8 @@ Academy, and the mission guard's replay of 6.9 asserts the new code.
 
 The map format and the library:
 
-- `deck/meridian.geometry.json` gains `states` and `emissive` on each of the 42 fixtures, and
+- `deck/meridian.geometry.json` replaces `bridge.station-bank` with the four station
+  fixtures of 5.3, and gains `states` and `emissive` on each of the 45 fixtures, and
   `src/geometry/ship-geometry.ts` types them. The geometry test checks every map in
   `deck/maps/` against `map.schema.json` and the geometry's ids and states.
 - `src/notes.ts` adds the `fixture:` notes, and the geometry subpath exports `fixtureOf`.
@@ -1144,6 +1180,8 @@ The runtime and the apps:
   guard's map checks.
 - `tools/meridian-ship`: the sidecar origin of 4.3 and the deck SVG with the state hooks
   the fallback needs.
+- `examples/bridge-api`: `SHIP_INTROSPECTION` (Q1), read by every entry, the Worker
+  included, which gates `GET /graph` and `GET /profile`.
 
 Tests: a unit test per binding, the store's patch rules, the trigger engine on scripted
 events, the DOM layer against `FakeDeckSource` in each route test, and one Playwright case
@@ -1154,15 +1192,15 @@ per flow of 5.6 on the seeded ship that asserts the DOM layer and a screenshot o
 The demo apps' MeridianOS follows the growth-track rule of ship-systems 7.4: it merges when
 green and never blocks a release. The suggested order:
 
-| Step | Brings                                                                              | Needs                                       |
-| ---- | ----------------------------------------------------------------------------------- | ------------------------------------------- |
-| D1   | the geometry fields, the map schema and its test, `fixture:` notes                  | none                                        |
-| D2   | `internal/meridian-deck`: deck state, bindings, DOM layer, schematic fallback       | D1                                          |
-| D3   | the station shell and the console panels as contributions, on the schematic         | D2, the demo refactor's seam                |
-| D4   | the Pixi deck view with the base and props layers, then light, conduits and overlay | D3, the painted deck bases and prop sprites |
-| D5   | the flows of 5.6 with their e2e cases                                               | D4                                          |
-| D6   | the federation bridge                                                               | D4, Q2                                      |
-| D7   | the Academy, after the 0.4 launch                                                   | D4, the playground runtime                  |
+| Step | Brings                                                                                   | Needs                                       |
+| ---- | ---------------------------------------------------------------------------------------- | ------------------------------------------- |
+| D1   | the geometry fields, the station fixtures, the map schema and its test, `fixture:` notes | none                                        |
+| D2   | `internal/meridian-deck`: deck state, bindings, DOM layer, schematic fallback            | D1                                          |
+| D3   | the station shell and the console panels as contributions, on the schematic              | D2, the demo refactor's seam                |
+| D4   | the Pixi deck view with the base and props layers, then light, conduits and overlay      | D3, the painted deck bases and prop sprites |
+| D5   | the flows of 5.6 with their e2e cases                                                    | D4                                          |
+| D6   | the federation bridge                                                                    | D4                                          |
+| D7   | the Academy, after the 0.4 launch                                                        | D4, the playground runtime                  |
 
 After D3 the reader has a working, accessible station before any painted art exists, so the painter never holds back the panels.
 
@@ -1191,8 +1229,8 @@ After D3 the reader has a working, accessible station before any painted art exi
 
 ## 11. Out of scope
 
-- The front page's layout and the assignment of its scenes, which the front-page UX spec
-  makes on this runtime.
+- The front page's layout and the assignment of its scenes, which the site UX spec makes
+  (none at 0.4, U4).
 - Sound.
 - The painting of the deck bases, the props, the bridge backdrop and the avatar.
 - New simulation physics. Every state the art shows comes from a record the snapshot holds
@@ -1200,99 +1238,78 @@ After D3 the reader has a working, accessible station before any painted art exi
 
 ## 12. Vocabulary
 
-The Academy needs crew words that docs-site 7.1 lacks: "cadet" for the reader and "crew placard" for its plate, plus the rank names of Q4. The demo apps add "station" (a seat on the bridge with its
+The Academy needs crew words that docs-site 7.1 lacks: "cadet" for the reader and "crew placard" for its plate, plus the six rank names of 6.2, from "Cadet, third class" to "Lieutenant". The demo apps add "station" (a seat on the bridge with its
 screens) and "panel" (one system's plate on a station). "Section" keeps its 7.1 meaning, a
 module added with `load()`, and "hull section" stays a region of the deck.
 
-## 13. Open questions for the owner
+## 13. Decisions on the open questions
 
-Q1. The network overlay outside development.
+The architect proposed each decision below, and the tech lead ruled on 2026-10-30 under
+the owner's delegation of these PRs.
 
-- What it does: the overlay, the module plates and the provider cards read `GET /graph`,
-  which bridge-api answers in development alone (ship-systems 16.5).
-- The case: a hosted demo, or a reader who runs the production build, sees the overlay
-  disabled and the module plates reduced to a name, so the demos lose most of what 5.5
-  shows.
-- For users: a flag exposes the ship's wiring to anyone who can reach the backend. The
-  graph holds token names and module structure and no data.
-- Recommendation: a `SHIP_GRAPH=on` environment flag that the demo scripts and any hosted
-  demo set, with production builds off by default.
+Q1. The network overlay outside development: a `SHIP_INTROSPECTION` flag.
 
-Q2. One geometry fixture per bridge station.
+bridge-api reads `SHIP_INTROSPECTION`, `on` or `off`. When it is on, every entry passes the
+`graph` option and serves `GET /profile`, the Worker entries `worker.ts` and
+`worker.offline.ts` included, which pass no `graph` option today. On the Node entries an unset flag follows `isDev(process.env)`. On
+the Worker entries an unset binding means off, since a Worker has no `NODE_ENV`. The demo scripts
+and every hosted demo set it on. The flag covers `GET /profile` as well, which the startup
+chart in diagnostics reads (F4, F9).
 
-- What it does: gives each of the six bridge stations a fixture: `bridge.helm` for the helm and `bridge.command-chair` for command as they are, and four new fixtures for cartography, engineering, life support and comms, split from `bridge.station-bank`.
-- The case: the federation shell's four remote stations need a fixture each to load, light and fail on the deck, and the bridge backdrop paints six stations that the geometry should place.
-- For users: none in the code. The geometry and the bridge paint-over change, and the
-  station-bank prop splits into four.
-- Recommendation: split it, so the backdrop, the deck and the federation shell agree.
+Q2. One geometry fixture per bridge station: four fixtures replace `bridge.station-bank`.
 
-Q3. The cadet on the deck.
+`bridge.cartography`, `bridge.engineering`, `bridge.life-support` and `bridge.comms` divide
+the station bank's footprint (x 4.2 to 8.0 m, y 3.6 to 4.4 m). `bridge.helm`,
+`bridge.command-chair` and `bridge.forward-console` stay. The geometry goes from 42
+fixtures to 45, and design system 11.1 lists the new fixtures.
 
-- What it does: shows the cadet during a mission as a portrait pin on the UI layer (6.2).
-  The other choice is a top-down sprite that walks to the mission's room.
-- The case: a sprite needs new runtime art outside the geometry, and design system 8.3
-  says the runtime art draws every room, door and fixture the geometry lists "and nothing
-  else".
-- For users: a sprite reads more like a game. It reverses an approved rule and adds
-  character art and animation frames to the paint-over.
-- Recommendation: the pin for the first Academy release, and a sprite later if the owner
-  wants one, with an amendment to design system 8.3.
+Q3. The cadet on the deck: a portrait pin.
 
-Q4. The rank ladder and the unlocks.
+During a mission the cadet shows as a portrait pin on layer 7 (6.2). A walking sprite would
+need an amendment to design system 8.3 and goes to the owner as its own item if anyone
+proposes one.
 
-- What it does: names the ranks, the threshold of each and the cosmetic unlocks.
-- The case: the owner decided on rank from missions and sets, with badges per set and cosmetic unlocks. Docs-site 7.1 has no crew words yet.
-- For users: the names enter the vocabulary of every Academy page.
-- Recommendation: four ranks: Cadet, third class at the start; Cadet, second class after
-  three core missions; Cadet, first class after six; Ensign when the core set is complete.
-  Each finished package set gives its badge and one unlock: a portrait frame, a portrait background, an insignia mount or a suit patch, in neutral steel.
+Q4. The rank ladder and the unlocks: six ranks.
 
-Q5. The cadet's portrait.
+The ranks run from Cadet, third class to Lieutenant over core missions and finished package
+sets, as 6.2 lists them, and a set rank also needs Ensign. Each package set declares in its
+manifest the pass count that finishes it, and that figure never rises. A pass of any version of a mission counts. A new mission or a
+version bump never lowers a rank. It never takes back a badge or darkens a hull section
+either, and a guard test asserts this on a progress-event fixture. Each finished set gives its badge and one
+neutral-steel cosmetic unlock.
 
-- What it does: decides whether every reader has the same cadet or picks one.
-- The case: the first visit to the Academy, before the first mission.
-- For users: a choice adds one screen and four paintings; one cadet adds none.
-- Recommendation: a choice of four painted portraits on the first visit, changeable on the
-  progress page, with no name entry, since the cadet stays unnamed.
+Q5. The cadet's portrait: a choice of four.
 
-Q6. Missions on phones.
+The first visit offers four painted portraits that differ in face and skin tone. The first
+is preselected, so Start needs no choice. The reader can change the portrait on the
+progress page. The Academy asks for no name.
 
-- What it does: decides whether a mission's editor runs below 960 CSS pixels.
-- The case: a reader on a phone opens a mission. CodeMirror works there, but the editor,
-  the console and the deck share one column with tabs (6.4).
-- For users: a full phone mission reaches more readers and plays poorly. A hub-only phone
-  view keeps the game on larger screens.
-- Recommendation: phones get the hub, the briefings, the deck and the progress page, and a
-  mission there opens read-only with "Continue on a larger screen" and the reader's code
-  kept.
+Q6. Missions on phones: full missions from 640 CSS pixels.
 
-Q7. Light in the vacuum bays.
+A mission runs in full from 640 CSS pixels, in the one-column tab layout 6.4 defines below 960. Below 640 a mission opens on Briefing and Ship with the editor read-only, and shows
+"Continue on a larger screen" and an "Edit here anyway" button that loads the editor and its
+worker. The reader's code stays saved either way, and the read-only view loads no
+TypeScript worker.
 
-- What it does: decides what lights the shuttle bay and the drone bay, which the
-  life-support conduit does not reach (ship-systems 16.4).
-- The case: under 4.7 both bays stay dark on every demo map, and `06-shuttle-launch` and
-  `03-drone-bay` play in them.
-- For users: dark bays read as vacuum and show the simulation's truth. Lit bays read
-  better.
-- Recommendation: the bays stay dark but for their emissive mask on the demo maps, and the
-  Academy maps light them through their own triggers when a mission powers them.
+Q7. Light in the vacuum bays: dark on demo maps.
 
-Q8. The origin pixel in the design system.
+On demo maps both bays stay dark apart from their emissive mask, and their DOM rows read
+"Unpressurised, no lighting load" with the standby status (4.7). Academy maps light the
+bays only from container conditions (4.6). The geometry already marks `shuttle-bay` and
+`drone-bay` `pressurised: false` and needs no change.
 
-- What it does: corrects design system 8.3, which puts the origin at pixel (64, 640). The
-  frame's centreline sits at (64, 320).
-- The case: a painter or a tool that reads the spec's figure and ignores the sidecar would
-  place every deck 10 m off.
-- For users: none. The runtime reads the sidecar.
-- Recommendation: amend 8.3 to (64, 320) in the PR that adds the sidecars.
+Q8. The origin pixel in the design system: (64, 320).
 
-Q9. The hub as a cold ship.
+Design system 8.3 now reads "the origin sits at pixel (64, 320) on a 76 by 20 m frame at 32
+pixels per metre". `ship_svg.py` writes the deck viewBox (−2, −10, 76, 20), which puts the
+bow at the centreline 2 m from the left edge and 10 m from the top. This PR carries the edit
+to `specs/2026-10-29-meridian-design-system.md`.
 
-- What it does: opens the Academy hub on an unpowered Meridian and lights the rooms of each
-  mission the reader passes, for good (M8, 6.1).
-- The case: a first-time reader sees a dark ship with one glowing next mission. A reader
-  who finishes the core set sees the whole ship lit.
-- For users: the lit ship is the progress meter, derived from the event stores, so it adds
-  no stored field. It also sets the look of the hub and of every finished set, which the
-  owner's "full progression" decision leaves open.
-- Recommendation: adopt it, and let each package set light the rooms its missions sit in.
+Q9. The hub as a cold ship: adopted.
+
+The tech lead made this call under the owner's delegation of these PRs. The Academy hub
+starts cold, and each passed mission lights its hull section for good, package sets
+included (M8). Section 4.6 gains `{ "passed": "<mission id>" }`, valid on `academy-hub`
+alone and counted as a container condition, since a pass comes from a real run.
+`ProgressDeckSource` emits one `passed` event per mission with a pass of any version in the
+stores, and 4.8 lists it as a fifth source.

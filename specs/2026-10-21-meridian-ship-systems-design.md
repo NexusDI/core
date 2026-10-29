@@ -2139,7 +2139,7 @@ they do today.
 | `GET /commands`                                         | the command log, oldest first: one `{ tick, change }` per tick for the newest 1,000 ticks that applied a change                                                                                                                                                                                                                                                                                                                 | G1      |
 | `GET /compartments/:id/atmosphere`                      | one transient sensor read in a compartment scope: 200 with the `AtmosphereReading`, 404 with the refusal for `MERIDIAN_UNKNOWN_COMPARTMENT`, an empty 500 for any other throw                                                                                                                                                                                                                                                   | G2      |
 | `POST /ftl/spool`, `POST /ftl/jump`                     | through `di.load(FtlDrive)`, which loads the drive on the first FTL request; the spool takes no body and answers 202 with `{ tick }` or 409 `MERIDIAN_POWER_BUDGET`; the jump reads `{ to }` and answers 202 with `{ tick }`, 400 `MERIDIAN_BAD_COMMAND` for no string `to` or an uncharted star, or 409 `MERIDIAN_FTL_NOT_SPOOLED`; each refusal carries `{ code, message, fix? }`; the Worker entries serve both through Hono | G7      |
-| `GET /graph`                                            | `graph(ship)` with the ship notes, in development; 404 otherwise                                                                                                                                                                                                                                                                                                                                                                | G0b     |
+| `GET /graph`                                            | `graph(ship)` with the ship notes while `SHIP_INTROSPECTION` is on; 404 otherwise                                                                                                                                                                                                                                                                                                                                               | G0b     |
 
 `/sim/advance` answers 404 in live mode. The entries read every JSON body through one
 reader, so a body not sent as `application/json` answers 400 on all three frameworks, and
@@ -2161,9 +2161,12 @@ the web stream with `c.body`. Express and Fastify send `telemetryReadable(feed)`
 Node-only `Readable.fromWeb` of the stream with a high-water mark of 0.
 
 `GET /graph` sits outside the DI middleware, as `/health` does, so it opens no request
-scope. It answers the `graph` option's JSON, or 404 when the option is absent. The Node
-entries pass the option when `isDev(process.env)` holds, that is unless `NODE_ENV` is
-`production`, and the Worker entry passes none.
+scope. It answers the `graph` option's JSON, or 404 when the option is absent. Every
+entry, the Worker included, passes the option while `SHIP_INTROSPECTION` is `on`. On the
+Node entries an unset flag follows `isDev(process.env)`, that is on unless `NODE_ENV` is
+`production`. On the Worker an unset binding means off, since a Worker has no `NODE_ENV`.
+The demo scripts and every hosted demo set the flag on, and `GET /profile` follows the
+same flag (map runtime UX, Q1).
 
 `bridge-api`'s `e2e-growth` target runs the runtime smoke after its Vitest suite, with
 `parallel: false`: the cases of `test/runtime/growth-cases.ts` on workerd
@@ -4161,9 +4164,10 @@ closes shows shut in the alarm's colour.
 
 The network overlay is a toggle in the MeridianOS chrome that draws the DI graph over the
 deck. Every edge comes from the real graph. MeridianOS reads `GET /graph`, which answers
-`graph(ship)` with `shipNotes` in development (section 7.1), when the overlay opens and
-again after a command that loads a section, a spool or a jump. Outside development the
-route answers 404, and the toggle stays disabled. The docs front page and the Academy run
+`graph(ship)` with `shipNotes` while `SHIP_INTROSPECTION` is on (section 7.1), when the
+overlay opens and again after a command that loads a section, a spool or a jump. With the
+flag off the route answers 404, and the toggle stays disabled. The flag is off by default
+on the Worker entries. The docs front page and the Academy run
 the real core in the browser and draw the overlay from `inspect()` of the ship's root.
 
 - A node is a provider, placed in the hull section of its module by section 16.3. The

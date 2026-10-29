@@ -347,7 +347,7 @@ Each gap gets a home in the ship story. "Waits" marks the part that needs Meridi
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ----------------------------------------- |
 | type-level wiring errors     | `meridian-systems/test/wiring.test-d.ts`: `PlasmaRouter` deps out of order, `ATMOSPHERE_SENSOR` bound to `FusionReactor`, `Simulation.forRoot({ seed: '7', dt: 0.5 })`, each under `@ts-expect-error`               | T21  | none                                      |
 | an authored plugin           | bridge-api `ship/black-box.plugin.ts`, the ship's black box: `observe` keeps the trace, `construct` stamps each system, `compile.check` refuses a `SHIP_SYSTEMS` class without `phase` with `MERIDIAN_SYSTEM_PHASE` | T22  | the console's black-box panel             |
-| the profiler                 | bridge-api `profile` target runs `nexusdi profile src/ship/meridian.ts#Meridian --json profile.json`; a dev-only `GET /profile` answers `profileTable` and `criticalPath`                                           | T23  | the startup chart on the diagnostics view |
+| the profiler                 | bridge-api `profile` target runs `nexusdi profile src/ship/meridian.ts#Meridian --json profile.json`; a `GET /profile` behind `SHIP_INTROSPECTION` answers `profileTable` and `criticalPath`                        | T23  | the startup chart on the diagnostics view |
 | async `onInit` and dispose   | `SubspaceRelay`: an async `onInit` handshake with the relay, and `[Symbol.asyncDispose]` that sends a sign-off before the reactor scrams                                                                            | T24  | none                                      |
 | the `react()` plugin         | the console registers `react()` in development on both graphs; a contract case shows `TransientInRenderError` with its fix                                                                                          | T27  | the FTL panel as a `lazySection`          |
 | interceptor extras           | `tap()` on `COMMS_ARRAY.hail` writes the comms log; an async retry interceptor on `SUBSPACE_LINK` calls; `@UseInterceptors` on federation's decorated `HelmOrders`; `GET /audit`                                    | T25  | the audit panel                           |
@@ -827,11 +827,12 @@ T22. The black-box plugin (M, after T10 and T20, lane A)
 
 T23. The profiler (S, after T17, lane A)
 
-- Scope: the `profile` target of section 5 and the dev-only `GET /profile`.
-- Files: `bridge-api/project.json`, `src/bridge/profile.ts` (new), the three entries,
-  `test/profile.test.ts`.
-- Tests first: the route answers 404 outside development and a table with
-  `LifeSupportOptions` and `NavCharts` in development.
+- Scope: the `profile` target of section 5 and `GET /profile`, which follows the
+  `SHIP_INTROSPECTION` flag of the map runtime UX spec (Q1), the Worker entries included.
+- Files: `bridge-api/project.json`, `src/bridge/profile.ts` (new), `src/env/env.ts`, the
+  three entries, `worker.ts`, `worker.offline.ts`, `test/profile.test.ts`.
+- Tests first: the route answers 404 when the flag is off and a table with
+  `LifeSupportOptions` and `NavCharts` when it is on.
 - Verify: `checks(api)` and `npx nx run @nexusdi/bridge-api:profile`.
 
 T24. Async lifecycle (S, after T17 and T20, lane M)
