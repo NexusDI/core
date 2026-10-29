@@ -122,11 +122,12 @@ export async function createBridge(
         // A live ship advances on its own timer, so the route exists only in
         // manual mode. The check runs in onRequest, before Fastify parses
         // the body, and callNotFound() answers as Fastify's 404 does.
-        // A hook cannot be a di.inject handler, whose return type is unknown.
-        onRequest: async (req, reply) => {
-          const driver = (await di.scope(req)).get(SIM_DRIVER);
-          if (driver.mode === 'live') return reply.callNotFound();
-        },
+        onRequest: di.injectHook(
+          { driver: SIM_DRIVER },
+          async ({ driver }, _req, reply) => {
+            if (driver.mode === 'live') reply.callNotFound();
+          },
+        ),
       },
       di.inject(
         { driver: SIM_DRIVER, deck: DECK_PLAN },

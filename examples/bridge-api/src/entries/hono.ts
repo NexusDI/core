@@ -120,15 +120,12 @@ export function createBridge(
   bridge.post(
     '/sim/advance',
     // A live ship advances on its own timer, so the route exists only in
-    // manual mode. The check runs before bodyLimit reads the body. A handler
-    // made by di.inject cannot pass the request on, so this middleware reads
-    // the scope itself.
-    async (c, next) => {
-      const driver = (await di.scope(c)).get(SIM_DRIVER);
+    // manual mode. The check runs before bodyLimit reads the body.
+    di.injectMiddleware({ driver: SIM_DRIVER }, async ({ driver }, c, next) => {
       if (driver.mode === 'live') return c.notFound();
       await next();
       return undefined;
-    },
+    }),
     limit,
     di.inject(
       { driver: SIM_DRIVER, deck: DECK_PLAN },
