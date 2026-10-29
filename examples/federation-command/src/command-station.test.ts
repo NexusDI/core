@@ -6,7 +6,9 @@ import {
   FixedNavCharts,
   RECORDED_TICK,
   RECORDING_LINK,
-  stationRoot,
+  FakeShell,
+  grantedLoad,
+  STATION_GRANT,
 } from '@nexusdi/federation-contracts/testing';
 import { nexusTest } from '@nexusdi/vitest';
 import { describe, expect, test as base } from 'vitest';
@@ -19,8 +21,13 @@ import {
   HelmOrders,
 } from './command-station.module';
 
-const root = stationRoot(CommandStation);
-const test = nexusTest(base, root);
+/** A fresh shell per test with CommandStation loaded under the grant, as the shell loads it. */
+const test = nexusTest(base, FakeShell).extend<{ station: Nexus }>({
+  station: async ({ nexus }, serve) => {
+    await nexus.load(CommandStation, STATION_GRANT);
+    await serve(nexus);
+  },
+});
 
 /** The error `fn` throws. */
 function caught(fn: () => unknown): unknown {
@@ -34,7 +41,7 @@ function caught(fn: () => unknown): unknown {
 
 describe('CommandStation', () => {
   test('builds CoursePlotter, whose @Inject accessor reads the contract charts', ({
-    nexus,
+    station: nexus,
   }) => {
     const plotter = nexus.get(COURSE_PLOTTER);
     expect(plotter).toBeInstanceOf(CoursePlotter);
@@ -44,11 +51,16 @@ describe('CommandStation', () => {
   });
 
   test('passes Nexus.check with federation()', () => {
-    expect(() => Nexus.check(root, { plugins: [federation()] })).not.toThrow();
+    expect(() =>
+      Nexus.check(FakeShell, {
+        plugins: [federation()],
+        load: [grantedLoad(CommandStation)],
+      }),
+    ).not.toThrow();
   });
 
   test('builds HelmOrders through @Injectable and sends helm orders over COMMAND_LINK', async ({
-    nexus,
+    station: nexus,
   }) => {
     const helm = nexus.get(HELM_ORDERS);
     expect(helm).toBeInstanceOf(HelmOrders);
@@ -69,14 +81,16 @@ describe('CommandStation', () => {
       name: 'Tactical',
       providers: [provide(NAV_CHARTS, { useClass: FixedNavCharts })],
       exports: [NAV_CHARTS],
-      global: true,
     });
     const withoutLink = defineModule({
       name: 'Meridian',
-      imports: [ChartsOnly, CommandStation],
+      imports: [ChartsOnly],
     });
     const error = caught(() =>
-      Nexus.check(withoutLink, { plugins: [federation()] }),
+      Nexus.check(withoutLink, {
+        plugins: [federation()],
+        load: [{ module: CommandStation, imports: [ChartsOnly] }],
+      }),
     );
     if (!isNexusError(error, 'NEXUS_BLUEPRINT_INVALID'))
       throw new Error('Expected NEXUS_BLUEPRINT_INVALID.');

@@ -1,9 +1,11 @@
 # @nexusdi/federation-shell
 
 The host of the federation demo: the Meridian shell. It holds the container `ship`, whose
-root `Meridian` imports `Tactical`, the global module that provides the contract's
-`NAV_CHARTS`, `STATION_TELEMETRY` and `COMMAND_LINK`. Four stations join the ship at runtime
-as sections, each a remote built and served on its own:
+root `Meridian` imports `Tactical`, the module that provides the contract's `NAV_CHARTS`,
+`STATION_TELEMETRY` and `COMMAND_LINK`. Four stations join the ship at runtime as sections,
+each a remote built and served on its own. A remote cannot import `Tactical`, so each
+section loads with `{ imports: [Tactical] }`, a grant that lets the station see the
+module's exports:
 
 - `/charts` loads `cartography` (`examples/federation-cartography`) and renders its
   `CartographyPanel`.

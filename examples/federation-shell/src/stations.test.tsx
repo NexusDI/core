@@ -15,6 +15,8 @@ const { STATIONS, remoteEntry, stationAt, stationById } =
   await import('./stations');
 const { Nav } = await import('./nav');
 const { startRemotes } = await import('./mf');
+const { SECTIONS } = await import('./sections');
+const { Tactical } = await import('./ship/tactical');
 
 const examples = resolve(import.meta.dirname, '../..');
 
@@ -131,4 +133,13 @@ describe('the remotes', () => {
       expect(config.devServer.port).toBe(station.port);
     },
   );
+});
+
+describe('the station sections', () => {
+  it("grant the shell's Tactical to every station they load", () => {
+    expect([...SECTIONS.keys()]).toEqual(STATIONS.map(({ id }) => id));
+    for (const { section } of SECTIONS.values()) {
+      expect(section.options?.imports).toEqual([Tactical]);
+    }
+  });
 });

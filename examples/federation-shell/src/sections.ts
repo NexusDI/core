@@ -4,6 +4,7 @@ import { lazySection, type LazySection } from '@nexusdi/react';
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 
 import { stations } from './mf';
+import { Tactical } from './ship/tactical';
 import { STATIONS, type Station, type StationRow } from './stations';
 
 /** What a station exposes at ./section: its module and its component. */
@@ -44,8 +45,16 @@ export const SECTIONS: ReadonlyMap<string, StationSection> = new Map(
   STATIONS.map((station) => [
     station.id,
     {
-      section: lazySection(station.id, async () =>
-        exportOf<ModuleRef>(await sectionOf(station), station, station.module),
+      // A remote cannot import the shell's Tactical, so each load grants it.
+      section: lazySection(
+        station.id,
+        async () =>
+          exportOf<ModuleRef>(
+            await sectionOf(station),
+            station,
+            station.module,
+          ),
+        { imports: [Tactical] },
       ),
       Panel: lazy(async () => ({
         default: exportOf<ComponentType>(
