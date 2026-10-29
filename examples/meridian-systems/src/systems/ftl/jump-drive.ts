@@ -28,12 +28,14 @@ import {
 } from './contracts';
 import { refuseFtl } from './ftl-commands';
 import { FTL_SPOOL, FTL_SPOOL_LOAD } from './ftl-model';
+import { FTL_RECORD } from './ftl-record';
 
 /**
  * The Meridian's jump drive. A module that `load()` adds cannot contribute to
- * a multi token, so `onInit` registers the drive's step with the loop, its
- * load with the router and its commands with the desk, and the dispose
- * unregisters them. A container whose plugin sets `onInit: false` gives a
+ * a multi token, so `onInit` registers the drive's record with the ship
+ * state, its step with the loop, its load with the router and its commands
+ * with the desk, and the dispose unregisters them. The record joins first,
+ * so the step and the load read it from their first tick. A container whose plugin sets `onInit: false` gives a
  * drive that never charges and that the desk does not serve. A ship loads
  * the drive after startup, when every consumer of the router is built, so the
  * router's register reads a ready list.
@@ -71,6 +73,7 @@ export class JumpDrive implements IFtlDrive, Disposable {
    * parts registered before it, so a later load can register them again.
    */
   onInit(): void {
+    this.unregisters.push(this.state.register(FTL_RECORD));
     this.unregisters.push(this.loop.register(this.physics));
     this.unregisters.push(this.router.register(this.power));
     this.unregisters.push(this.desk.register(this.commands));

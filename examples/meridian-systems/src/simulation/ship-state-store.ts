@@ -39,6 +39,7 @@ import {
   type IShipState,
   type ShipSetpoints,
   type ShipSnapshot,
+  type SystemRecord,
 } from './contracts';
 import { checkDeckPlan } from './deck-plan-check';
 
@@ -62,6 +63,11 @@ export class ShipStateStore implements IShipState {
   private current: ShipSnapshot;
   private pending: SetpointChange | undefined;
   private entries: LoggedChange[] = [];
+  /** The record keys and the setpoint keys each register holds. */
+  private readonly held = {
+    records: new Set<string>(),
+    setpoints: new Set<string>(),
+  };
 
   constructor(deck: DeckPlan) {
     this.current = initialSnapshot(deck);
@@ -99,6 +105,53 @@ export class ShipStateStore implements IShipState {
   log(): readonly LoggedChange[] {
     return Object.freeze([...this.entries]);
   }
+
+  register(record: SystemRecord): () => void {
+    const records = Object.keys(record.records);
+    const setpoints = Object.keys(record.setpoints);
+    for (const [keys, held] of [
+      [records, this.held.records],
+      [setpoints, this.held.setpoints],
+    ] as const) {
+      const taken = keys.find((key) => held.has(key));
+      if (taken !== undefined) {
+        throw new Error(`Two ship records hold the key '${taken}'.`);
+      }
+    }
+    for (const key of records) this.held.records.add(key);
+    for (const key of setpoints) this.held.setpoints.add(key);
+    this.current = Object.freeze({
+      ...this.current,
+      ...mergeFrozen(record.records, {}),
+      setpoints: Object.freeze({
+        ...this.current.setpoints,
+        ...mergeFrozen(record.setpoints, {}),
+      }),
+    });
+    let registered = true;
+    return () => {
+      if (!registered) return;
+      registered = false;
+      for (const key of records) this.held.records.delete(key);
+      for (const key of setpoints) this.held.setpoints.delete(key);
+      this.current = Object.freeze({
+        ...without(this.current, records),
+        setpoints: Object.freeze(without(this.current.setpoints, setpoints)),
+      });
+      const pending = this.pending && without(this.pending, setpoints);
+      this.pending =
+        pending && Object.keys(pending).length > 0
+          ? Object.freeze(pending)
+          : undefined;
+    };
+  }
+}
+
+/** A copy of `value` without `keys`. */
+function without<T extends object>(value: T, keys: readonly string[]): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(([key]) => !keys.includes(key)),
+  ) as T;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
