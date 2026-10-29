@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
 import type { DeckPlan, ShipSnapshot } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import { CommsPower } from './comms-power';
 import type { ICommsArray } from './contracts';
 
-const idle = new ShipStateStore(deck satisfies DeckPlan).snapshot();
+const idle = shipState(deck satisfies DeckPlan).snapshot();
 
 /** An array that reads `linked` and never queues. */
 function array(linked: boolean): ICommsArray {

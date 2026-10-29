@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
 import type { DeckPlan } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import type { ISubspaceLink } from './contracts';
 import { PhasedArray } from './phased-array';
@@ -12,7 +12,7 @@ const link: ISubspaceLink = {
 };
 
 function store() {
-  return new ShipStateStore(deck satisfies DeckPlan);
+  return shipState(deck satisfies DeckPlan);
 }
 
 describe('PhasedArray', () => {

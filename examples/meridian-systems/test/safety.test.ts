@@ -10,6 +10,7 @@ import {
   type CompartmentId,
   DECK_PLAN,
   type DeckPlan,
+  DOOR_IDS,
   type ITickLoop,
   SHIP_STATE,
   type ShipSnapshot,
@@ -127,12 +128,9 @@ describe('the interlock on the blast doors', () => {
         limit: 5_000,
       }),
     );
-    expect(ship.get(TICK_LOOP).advance(1).setpoints.safety.doors).toEqual({
-      'bridge-habitat': false,
-      'habitat-reactor-bay': false,
-      'habitat-airlock': false,
-      'airlock-outer': false,
-    });
+    expect(ship.get(TICK_LOOP).advance(1).setpoints.safety.doors).toEqual(
+      Object.fromEntries(DOOR_IDS.map((id) => [id, false])),
+    );
   });
 
   test('opens a door with equal pressures on both sides', ({ nexus: ship }) => {
@@ -154,24 +152,22 @@ describe('a decompression through both airlock doors', () => {
 
     const first = loop.advance(1);
     expect(roomPressure(first, deck, 'habitat')).toBeCloseTo(101_300, 0);
-    expect(roomPressure(first, deck, 'airlock')).toBeCloseTo(8_315.2, 0);
+    expect(roomPressure(first, deck, 'airlock')).toBeCloseTo(195.6, 0);
     expect(first.safety.alarms).toEqual([]);
 
     const second = loop.advance(1);
-    expect(roomPressure(second, deck, 'habitat')).toBeCloseTo(99_581.5, 0);
+    expect(roomPressure(second, deck, 'habitat')).toBeCloseTo(97_316.1, 0);
     expect(second.safety.alarms).toEqual([
       { code: 'DECOMPRESSION', subject: 'habitat' },
     ]);
     expect(ship.get(MASTER_ALARM).active()).toEqual(second.safety.alarms);
     expect(second.setpoints.safety.doors).toEqual({
-      'bridge-habitat': false,
-      'habitat-reactor-bay': false,
-      'habitat-airlock': false,
+      ...Object.fromEntries(DOOR_IDS.map((id) => [id, false])),
       'airlock-outer': true,
     });
 
     const third = loop.advance(1);
-    expect(roomPressure(third, deck, 'airlock')).toBeCloseTo(171.8, 1);
+    expect(roomPressure(third, deck, 'airlock')).toBeCloseTo(0.15, 1);
     expect(third.safety.alarms).toEqual([]);
     // The airlock cycles by design, so it raises no atmosphere alarm.
     expect(sink.calls).toEqual([
@@ -246,8 +242,8 @@ describe('a fire in the habitat', () => {
 
     const full = loop.advance(39);
     expect(full.safety.fires.habitat).toBe(1);
-    expect(full.compartments.habitat.temperature).toBeCloseTo(293.501, 3);
-    expect(roomPressure(full, deck, 'habitat')).toBeCloseTo(101_495.1, 1);
+    expect(full.compartments.habitat.temperature).toBeCloseTo(293.5, 3);
+    expect(roomPressure(full, deck, 'habitat')).toBeCloseTo(101_493.7, 1);
 
     loop.advance(20);
     flood(desk, 'habitat');

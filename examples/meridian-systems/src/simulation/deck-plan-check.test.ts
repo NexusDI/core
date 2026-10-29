@@ -120,7 +120,7 @@ describe('checkDeckPlan', () => {
     ],
     [
       'a door twice',
-      { ...plan, doors: [...plan.doors, plan.doors[2]] },
+      { ...plan, doors: [...plan.doors, plan.doors[1]] },
       "The deck plan names door 'habitat-airlock' twice.",
     ],
     [

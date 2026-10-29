@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
 import type { DeckPlan, ShipSnapshot } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import { FTL_SPOOL, ftlDemand } from './ftl-model';
 import { FtlPower } from './ftl-power';
 
-const start = new ShipStateStore(deck satisfies DeckPlan).snapshot();
+const start = shipState(deck satisfies DeckPlan).snapshot();
 
 /** The ship with the drive's record idle, armed, and the reactor at full. */
 const ready = {

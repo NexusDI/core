@@ -3,13 +3,13 @@ import { describe, expect, it } from 'vitest';
 import deck from '../../../deck/meridian.deck.json';
 import { BadCommandError } from '../../errors';
 import type { DeckPlan } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import { LIFE_SUPPORT_ACTIONS } from './contracts';
 import { EnvironmentalController } from './environmental-controller';
 
 function build() {
-  const state = new ShipStateStore(deck satisfies DeckPlan);
+  const state = shipState(deck satisfies DeckPlan);
   return { state, control: new EnvironmentalController(state) };
 }
 
@@ -39,6 +39,7 @@ describe('EnvironmentalController', () => {
 
   it('queues each device setpoint', () => {
     const { state, control } = build();
+    const before = state.snapshot().setpoints.lifeSupport;
     control.heater('bridge', { on: false });
     control.scrubber('habitat', false);
     control.oxygen('bridge', false);
@@ -47,12 +48,9 @@ describe('EnvironmentalController', () => {
     const lifeSupport = state.applyQueued(1).setpoints.lifeSupport;
     expect(lifeSupport).toEqual({
       online: false,
-      heaters: {
-        bridge: { on: false, target: 293 },
-        habitat: { on: true, target: 293 },
-      },
-      scrubbers: { bridge: true, habitat: false },
-      oxygen: { bridge: false, habitat: true },
+      heaters: { ...before.heaters, bridge: { on: false, target: 293 } },
+      scrubbers: { bridge: true, habitat: false, quarters: true },
+      oxygen: { bridge: false, habitat: true, quarters: true },
       vents: { airlock: true },
       pumps: { airlock: 'evacuate' },
     });

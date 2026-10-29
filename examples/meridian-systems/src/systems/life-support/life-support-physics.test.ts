@@ -8,7 +8,7 @@ import type {
   TickContext,
 } from '../../simulation/contracts';
 import { SeededRandom } from '../../simulation/seeded-random';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import { LIFE_SUPPORT_RATINGS, stepAtmosphere } from './life-support-model';
 import { LifeSupportPhysics } from './life-support-physics';
@@ -19,12 +19,12 @@ const tick: TickContext = {
   tick: 1,
   dt: 0.5,
   rng: new SeededRandom({ seed: 7 }),
-  start: new ShipStateStore(plan).snapshot(),
+  start: shipState(plan).snapshot(),
 };
 
 /** The deck's initial ship, online, with the habitat at 290 K and the loads `shed`. */
 function onlineShip(shed: readonly string[] = []): ShipSnapshot {
-  const idle = new ShipStateStore(plan).snapshot();
+  const idle = shipState(plan).snapshot();
   return {
     ...idle,
     compartments: {
@@ -48,7 +48,7 @@ describe('LifeSupportPhysics', () => {
   });
 
   it('returns the ship unchanged while offline', () => {
-    const ship = new ShipStateStore(plan).snapshot();
+    const ship = shipState(plan).snapshot();
     expect(new LifeSupportPhysics(options, plan).step(ship, tick)).toBe(ship);
   });
 
@@ -66,8 +66,14 @@ describe('LifeSupportPhysics', () => {
     });
     expect(next.compartments).toEqual(expected.compartments);
     expect(next.lifeSupport).toEqual(expected.lifeSupport);
-    // 10 kW/K over the habitat's 3 K below target clamps at the 10 kW rating.
-    expect(next.lifeSupport.heaters).toEqual({ bridge: 0, habitat: 10_000 });
+    // 10 kW/K over the habitat's 3 K below target clamps at the 10 kW rating,
+    // and the nine other heated rooms sit at their target.
+    const heated = Object.keys(ship.setpoints.lifeSupport.heaters);
+    expect(heated).toHaveLength(10);
+    expect(next.lifeSupport.heaters).toEqual({
+      ...Object.fromEntries(heated.map((id) => [id, 0])),
+      habitat: 10_000,
+    });
     expect(next.reactor).toBe(ship.reactor);
     expect(next.setpoints).toBe(ship.setpoints);
     expect(Object.isFrozen(next)).toBe(true);
@@ -78,6 +84,8 @@ describe('LifeSupportPhysics', () => {
       onlineShip(['life-support']),
       tick,
     );
-    expect(next.lifeSupport.heaters).toEqual({ bridge: 0, habitat: 0 });
+    expect(Object.values(next.lifeSupport.heaters)).toEqual(
+      Array.from({ length: 10 }, () => 0),
+    );
   });
 });

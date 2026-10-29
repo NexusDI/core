@@ -11,10 +11,10 @@ import {
   type TickContext,
 } from '../../simulation/contracts';
 import { SeededRandom } from '../../simulation/seeded-random';
-import { ShipStateStore } from '../../simulation/ship-state-store';
 import { CalibratedProbe } from '../life-support/calibrated-probe';
 import type { IAtmosphereProbe } from '../life-support/contracts';
 import { LIFE_SUPPORT_RATINGS } from '../life-support/life-support-model';
+import { shipState } from '../../../test/ship-state';
 
 import { stepSafety } from './safety-model';
 import { SafetyPhysics } from './safety-physics';
@@ -28,7 +28,7 @@ const probe = new CalibratedProbe(
 );
 
 function idle(): ShipSnapshot {
-  return new ShipStateStore(plan).snapshot();
+  return shipState(plan).snapshot();
 }
 
 /** A tick-1 context whose fork answers `draws` in turn. */

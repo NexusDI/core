@@ -1,11 +1,13 @@
 import { REQUEST, type NexusRequest } from '@nexusdi/core';
 import type { NexusGraph } from '@nexusdi/devtools';
-import type {
-  AtmosphereReading,
-  CompartmentId,
-  FtlRating,
-  ShipCommand,
-  ShipReading,
+import {
+  type AtmosphereReading,
+  COMPARTMENT_IDS,
+  type CompartmentId,
+  DOOR_IDS,
+  type FtlRating,
+  type ShipCommand,
+  type ShipReading,
 } from '@nexusdi/meridian-systems';
 
 import type { INavCharts } from '@nexusdi/meridian-systems/charts';
@@ -64,7 +66,58 @@ const air = (moles: number) => ({
   pressure: 101_300,
 });
 
-/** The ship reading at tick 0, as `GET /sim` answers it. */
+/** A bay that holds vacuum, at 293 K with no gas. */
+const vacuum = {
+  moles: { O2: 0, N2: 0, CO2: 0, H2O: 0, volatiles: 0 },
+  temperature: 293,
+  pressure: 0,
+};
+
+/** `value` under each of `ids`. */
+const each = <K extends string, V>(ids: readonly K[], value: V) =>
+  Object.fromEntries(ids.map((id) => [id, value])) as Record<K, V>;
+
+/** The rooms with a heater: all but the reactor bay, the airlock and the two bays. */
+const HEATED = [
+  'bridge',
+  'habitat',
+  'chart-room',
+  'computer-core',
+  'quarters',
+  'comms-relay',
+  'capacitor-room',
+  'engineering',
+  'ftl-core',
+  'main-drive',
+] as const satisfies readonly CompartmentId[];
+
+/** The rooms where crew breathe, each with a scrubber and an oxygen generator. */
+const CREWED = [
+  'bridge',
+  'habitat',
+  'quarters',
+] as const satisfies readonly CompartmentId[];
+
+/** The rooms with a flood charge: every room but the airlock and the two bays. */
+const CHARGED = [
+  'bridge',
+  'habitat',
+  'reactor-bay',
+  'chart-room',
+  'computer-core',
+  'quarters',
+  'comms-relay',
+  'capacitor-room',
+  'engineering',
+  'ftl-core',
+  'main-drive',
+] as const satisfies readonly CompartmentId[];
+
+/**
+ * The ship reading at tick 0, as `GET /sim` answers it: the router lists no
+ * load before tick 1, and the ship holds no FTL record before the drive
+ * loads.
+ */
 export const shipAtStart: ShipReading = {
   tick: 0,
   time: 0,
@@ -73,63 +126,65 @@ export const shipAtStart: ShipReading = {
     habitat: air(5000),
     'reactor-bay': air(3300),
     airlock: air(500),
+    'chart-room': air(1000),
+    'computer-core': air(830),
+    quarters: air(2000),
+    'comms-relay': air(670),
+    'shuttle-bay': vacuum,
+    'drone-bay': vacuum,
+    'capacitor-room': air(1500),
+    engineering: air(3740),
+    'ftl-core': air(2080),
+    'main-drive': air(1660),
   },
-  reactor: { level: 0, thermal: 0, electric: 0, tripped: false },
-  coolant: { temperature: 500 },
-  power: {
-    output: 0,
-    loads: [
-      { id: 'life-support', priority: 1, demand: 0, allocated: 0 },
-      { id: 'shields', priority: 2, demand: 0, allocated: 0 },
-      { id: 'comms', priority: 3, demand: 0, allocated: 0 },
-      { id: 'thrusters', priority: 4, demand: 0, allocated: 0 },
-      { id: 'main-drive', priority: 5, demand: 0, allocated: 0 },
-      { id: 'railgun', priority: 6, demand: 0, allocated: 0 },
-    ],
-    shed: [],
-  },
-  lifeSupport: { heaters: { bridge: 0, habitat: 0 } },
   comms: { status: 'standby', sent: null, messages: [] },
-  weapons: { status: 'idle', charge: 0, shots: 0, hits: 0, lastShot: null },
+  coolant: { temperature: 500 },
   drive: { thrust: 0, massFlow: 0, acceleration: 0, velocity: 0, distance: 0 },
   helm: { attitude: 0, rate: 0, torque: 0 },
-  ftl: { status: 'offline', charge: 0, sector: 'Sol', jumped: null },
+  lifeSupport: { heaters: each(HEATED, 0) },
+  power: { output: 0, loads: [], shed: [] },
+  reactor: { level: 0, thermal: 0, electric: 0, tripped: false },
   safety: {
-    fires: { bridge: 0, habitat: 0, 'reactor-bay': 0, airlock: 0 },
-    flooded: { bridge: 0, habitat: 0, 'reactor-bay': 0 },
+    fires: each(COMPARTMENT_IDS, 0),
+    flooded: each(CHARGED, 0),
     alarms: [],
   },
+  weapons: { status: 'idle', charge: 0, shots: 0, hits: 0, lastShot: null },
   setpoints: {
-    reactor: { throttle: 0 },
-    shields: { raised: false },
+    comms: { hail: false },
+    drive: { throttle: 0 },
+    helm: { heading: 0 },
     lifeSupport: {
       online: false,
-      heaters: {
-        bridge: { on: true, target: 293 },
-        habitat: { on: true, target: 293 },
-      },
-      scrubbers: { bridge: true, habitat: true },
-      oxygen: { bridge: true, habitat: true },
+      heaters: each(HEATED, { on: true, target: 293 }),
+      scrubbers: each(CREWED, true),
+      oxygen: each(CREWED, true),
       vents: { airlock: false },
       pumps: { airlock: 'off' },
     },
-    comms: { hail: false },
-    weapons: { armed: false, range: null },
-    drive: { throttle: 0 },
-    helm: { heading: 0 },
-    ftl: { armed: false, jump: null },
+    reactor: { throttle: 0 },
     safety: {
-      doors: {
-        'bridge-habitat': false,
-        'habitat-reactor-bay': false,
-        'habitat-airlock': false,
-        'airlock-outer': false,
-      },
-      floods: { bridge: false, habitat: false, 'reactor-bay': false },
-      drills: { bridge: false, habitat: false, 'reactor-bay': false },
+      doors: each(DOOR_IDS, false),
+      floods: each(CHARGED, false),
+      drills: each(CHARGED, false),
     },
+    shields: { raised: false },
+    weapons: { armed: false, range: null },
   },
 };
+
+/**
+ * The six loads at 0 W, in the order the router serves them, as an idle
+ * ship lists them from tick 1 on.
+ */
+export const idleLoads: ShipReading['power']['loads'] = [
+  { id: 'life-support', priority: 1, demand: 0, allocated: 0 },
+  { id: 'shields', priority: 2, demand: 0, allocated: 0 },
+  { id: 'comms', priority: 3, demand: 0, allocated: 0 },
+  { id: 'thrusters', priority: 4, demand: 0, allocated: 0 },
+  { id: 'main-drive', priority: 5, demand: 0, allocated: 0 },
+  { id: 'railgun', priority: 6, demand: 0, allocated: 0 },
+];
 
 /**
  * Seed 7's analyzer readings at tick 0, as `GET /compartments/:id/atmosphere`
@@ -166,6 +221,76 @@ export const airAtStart: Readonly<
     temperature: 293.02,
     pressure: 101_310,
     partial: { O2: 21_277, N2: 79_011, CO2: 37, H2O: 913, volatiles: 58 },
+  },
+  'chart-room': {
+    compartment: 'chart-room',
+    tick: 0,
+    temperature: 292.96,
+    pressure: 101_301,
+    partial: { O2: 21_269, N2: 79_010, CO2: 39, H2O: 917, volatiles: 57 },
+  },
+  'computer-core': {
+    compartment: 'computer-core',
+    tick: 0,
+    temperature: 292.98,
+    pressure: 101_317,
+    partial: { O2: 21_274, N2: 79_018, CO2: 37, H2O: 910, volatiles: 60 },
+  },
+  quarters: {
+    compartment: 'quarters',
+    tick: 0,
+    temperature: 293.03,
+    pressure: 101_308,
+    partial: { O2: 21_276, N2: 79_015, CO2: 43, H2O: 913, volatiles: 61 },
+  },
+  'comms-relay': {
+    compartment: 'comms-relay',
+    tick: 0,
+    temperature: 292.97,
+    pressure: 101_299,
+    partial: { O2: 21_277, N2: 79_011, CO2: 41, H2O: 908, volatiles: 59 },
+  },
+  'shuttle-bay': {
+    compartment: 'shuttle-bay',
+    tick: 0,
+    temperature: 293,
+    pressure: 0,
+    partial: { O2: 0, N2: 0, CO2: 0, H2O: 0, volatiles: 0 },
+  },
+  'drone-bay': {
+    compartment: 'drone-bay',
+    tick: 0,
+    temperature: 293.03,
+    pressure: 20,
+    partial: { O2: 0, N2: 0, CO2: 0, H2O: 0, volatiles: 4 },
+  },
+  'capacitor-room': {
+    compartment: 'capacitor-room',
+    tick: 0,
+    temperature: 293.01,
+    pressure: 101_300,
+    partial: { O2: 21_278, N2: 79_013, CO2: 44, H2O: 909, volatiles: 59 },
+  },
+  engineering: {
+    compartment: 'engineering',
+    tick: 0,
+    temperature: 293,
+    pressure: 101_286,
+    partial: { O2: 21_269, N2: 79_014, CO2: 45, H2O: 910, volatiles: 64 },
+  },
+  'ftl-core': {
+    compartment: 'ftl-core',
+    tick: 0,
+    temperature: 293.02,
+    pressure: 101_303,
+    partial: { O2: 21_269, N2: 79_016, CO2: 43, H2O: 913, volatiles: 58 },
+  },
+  'main-drive': {
+    compartment: 'main-drive',
+    tick: 0,
+    temperature: 292.96,
+    pressure: 101_290,
+    partial: { O2: 21_275, N2: 79_009, CO2: 42, H2O: 915, volatiles: 65 },
   },
 };
 

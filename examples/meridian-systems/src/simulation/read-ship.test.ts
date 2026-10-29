@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../deck/meridian.deck.json';
 import { pressure } from '../physics/gas';
+import { shipState } from '../../test/ship-state';
 
 import type { DeckPlan, ShipSnapshot } from './contracts';
 import { readShip } from './read-ship';
 import { roundJson, roundReadingNumber } from './round-snapshot';
-import { ShipStateStore } from './ship-state-store';
 
 const plan: DeckPlan = deck;
-const ship = new ShipStateStore(plan).snapshot();
+const ship = shipState(plan).snapshot();
 
 describe('readShip', () => {
   it('reads 101.3 kPa in the habitat at tick 0 from the deck plan', () => {

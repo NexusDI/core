@@ -1,26 +1,8 @@
-import { AIR, molesAt } from '../physics/gas';
-import { COMMS_LOAD } from '../systems/comms/comms-model';
-import {
-  allocatePower,
-  DEFLECTOR_GRID,
-  LITHIUM_LOOP,
-} from '../systems/engineering/engineering-model';
-import { HOME_SECTOR } from '../systems/ftl/ftl-model';
-import { THRUSTERS_LOAD } from '../systems/helm/helm-model';
-import type {
-  HeaterSetpoint,
-  LifeSupportRecord,
-  LifeSupportSetpoints,
-  PumpMode,
-} from '../systems/life-support/contracts';
-import { LIFE_SUPPORT_LOAD } from '../systems/life-support/life-support-model';
-import { MAIN_DRIVE_LOAD } from '../systems/propulsion/propulsion-model';
-import type {
-  SafetyRecord,
-  SafetySetpoints,
-} from '../systems/safety/contracts';
-import { RAILGUN_LOAD } from '../systems/weapons/weapons-model';
+import { all } from '@nexusdi/core';
 
+import { AIR, molesAt } from '../physics/gas';
+
+import { byCodeUnit } from './by-code-unit';
 import type {
   DeepPartial,
   LoggedChange,
@@ -30,13 +12,11 @@ import type {
 import {
   COMPARTMENT_IDS,
   type CompartmentId,
-  type CompartmentPlan,
   type CompartmentState,
   DECK_PLAN,
   type DeckPlan,
-  DOOR_IDS,
-  type DoorId,
   type IShipState,
+  SHIP_RECORDS,
   type ShipSetpoints,
   type ShipSnapshot,
   type SystemRecord,
@@ -49,36 +29,61 @@ import { checkDeckPlan } from './deck-plan-check';
  */
 const LOG_SIZE = 1_000;
 
+/** The snapshot's own fields, which the store lists before every record. */
+const KERNEL_KEYS = ['tick', 'time', 'compartments'] as const;
+
 /**
- * Holds the current snapshot, which starts at tick 0 with the deck's initial
- * air in each pressurised room, no gas in a room that holds vacuum and every
- * system idle, and one pending change: the merge of every
- * setpoint change the crew queued since the last tick. A client that sends
- * commands in a loop between two ticks replaces fields of that one change,
- * so the store keeps one change however many commands arrive.
+ * Holds the current snapshot and one pending change: the merge of every
+ * setpoint change the crew queued since the last tick. The snapshot starts
+ * at tick 0 with the deck's initial air in each pressurised room, no gas in
+ * a room that holds vacuum, and the records and setpoints of every
+ * `SHIP_RECORDS` contribution, keyed in code-unit order so the order of the
+ * imports never reaches a reading. A client that sends commands in a loop
+ * between two ticks replaces fields of that one change, so the store keeps
+ * one change however many commands arrive. No contribution reads
+ * `SHIP_STATE`, so the store reads them with a plain `all()`.
  */
 export class ShipStateStore implements IShipState {
-  static deps = [DECK_PLAN] as const;
+  static deps = [DECK_PLAN, all(SHIP_RECORDS)] as const;
 
   private current: ShipSnapshot;
   private pending: SetpointChange | undefined;
   private entries: LoggedChange[] = [];
-  /** The record keys and the setpoint keys each register holds. */
+  /** The record keys and the setpoint keys the contributions and each register hold. */
   private readonly held = {
     records: new Set<string>(),
     setpoints: new Set<string>(),
   };
 
-  constructor(deck: DeckPlan) {
-    this.current = initialSnapshot(deck);
+  constructor(deck: DeckPlan, records: readonly SystemRecord[]) {
+    checkDeckPlan(deck);
+    const parts: Record<string, unknown> = {};
+    const setpoints: Record<string, unknown> = {};
+    for (const record of records) {
+      this.hold(record);
+      Object.assign(parts, record.records);
+      Object.assign(setpoints, record.setpoints);
+    }
+    this.current = ordered({
+      ...parts,
+      tick: 0,
+      time: 0,
+      compartments: initialCompartments(deck),
+      setpoints,
+    });
   }
 
   snapshot(): ShipSnapshot {
     return this.current;
   }
 
+  /**
+   * A step that registers or unregisters a record changes the current
+   * snapshot while the loop still holds the snapshot the tick started from,
+   * so the commit keeps the keys the store holds now.
+   */
   commit(next: ShipSnapshot): void {
-    this.current = next;
+    this.current = this.withHeldKeys(next);
   }
 
   queue(change: SetpointChange): QueuedCommand {
@@ -107,26 +112,13 @@ export class ShipStateStore implements IShipState {
   }
 
   register(record: SystemRecord): () => void {
+    this.hold(record);
     const records = Object.keys(record.records);
     const setpoints = Object.keys(record.setpoints);
-    for (const [keys, held] of [
-      [records, this.held.records],
-      [setpoints, this.held.setpoints],
-    ] as const) {
-      const taken = keys.find((key) => held.has(key));
-      if (taken !== undefined) {
-        throw new Error(`Two ship records hold the key '${taken}'.`);
-      }
-    }
-    for (const key of records) this.held.records.add(key);
-    for (const key of setpoints) this.held.setpoints.add(key);
-    this.current = Object.freeze({
+    this.current = ordered({
       ...this.current,
-      ...mergeFrozen(record.records, {}),
-      setpoints: Object.freeze({
-        ...this.current.setpoints,
-        ...mergeFrozen(record.setpoints, {}),
-      }),
+      ...record.records,
+      setpoints: { ...this.current.setpoints, ...record.setpoints },
     });
     let registered = true;
     return () => {
@@ -145,6 +137,70 @@ export class ShipStateStore implements IShipState {
           : undefined;
     };
   }
+
+  /**
+   * `next` with the record keys and the setpoint keys the store holds: a key
+   * no contribution or register holds leaves, and a held key `next` lacks
+   * comes from the current snapshot. A snapshot with the held keys comes
+   * back as it is.
+   */
+  private withHeldKeys(next: ShipSnapshot): ShipSnapshot {
+    const records = recordKeys(next);
+    const setpoints = Object.keys(next.setpoints);
+    if (
+      sameKeys(records, this.held.records) &&
+      sameKeys(setpoints, this.held.setpoints)
+    ) {
+      return next;
+    }
+    const pick = (keys: ReadonlySet<string>, from: object, fallback: object) =>
+      Object.fromEntries(
+        [...keys].map((key) => [
+          key,
+          ownValue(Object.hasOwn(from, key) ? from : fallback, key),
+        ]),
+      );
+    return ordered({
+      ...pick(this.held.records, next, this.current),
+      tick: next.tick,
+      time: next.time,
+      compartments: next.compartments,
+      setpoints: pick(
+        this.held.setpoints,
+        next.setpoints,
+        this.current.setpoints,
+      ),
+    });
+  }
+
+  /**
+   * Takes the keys of `record`, refusing the snapshot's own keys and a key a
+   * contribution or an earlier register holds.
+   */
+  private hold(record: SystemRecord): void {
+    const records = Object.keys(record.records);
+    const setpoints = Object.keys(record.setpoints);
+    const own = records.find(
+      (key) =>
+        key === 'setpoints' || (KERNEL_KEYS as readonly string[]).includes(key),
+    );
+    if (own !== undefined) {
+      throw new Error(
+        `A ship record cannot hold the snapshot's own key '${own}'.`,
+      );
+    }
+    for (const [keys, held] of [
+      [records, this.held.records],
+      [setpoints, this.held.setpoints],
+    ] as const) {
+      const taken = keys.find((key) => held.has(key));
+      if (taken !== undefined) {
+        throw new Error(`Two ship records hold the key '${taken}'.`);
+      }
+    }
+    for (const key of records) this.held.records.add(key);
+    for (const key of setpoints) this.held.setpoints.add(key);
+  }
 }
 
 /** A copy of `value` without `keys`. */
@@ -152,6 +208,67 @@ function without<T extends object>(value: T, keys: readonly string[]): T {
   return Object.fromEntries(
     Object.entries(value).filter(([key]) => !keys.includes(key)),
   ) as T;
+}
+
+/** The value `value` holds under its own key `key`. */
+function ownValue(value: object, key: string): unknown {
+  return Object.getOwnPropertyDescriptor(value, key)?.value;
+}
+
+/** The record keys of `ship`: every key but the kernel's and `setpoints`. */
+function recordKeys(ship: ShipSnapshot): string[] {
+  return Object.keys(ship).filter(
+    (key) =>
+      key !== 'setpoints' && !(KERNEL_KEYS as readonly string[]).includes(key),
+  );
+}
+
+/** True when `keys` lists each key of `held` once and no other. */
+function sameKeys(keys: readonly string[], held: ReadonlySet<string>): boolean {
+  return keys.length === held.size && keys.every((key) => held.has(key));
+}
+
+/**
+ * A frozen snapshot of `ship` with the kernel's fields first, then each
+ * record and, last, the setpoints, each record and setpoint keyed in
+ * code-unit order and frozen at every level.
+ */
+function ordered(ship: Record<string, unknown>): ShipSnapshot {
+  const { setpoints, ...fields } = ship;
+  const records = Object.keys(fields)
+    .filter((key) => !(KERNEL_KEYS as readonly string[]).includes(key))
+    .sort(byCodeUnit);
+  const sorted = (value: object) =>
+    Object.fromEntries(
+      Object.entries(value).sort(([a], [b]) => byCodeUnit(a, b)),
+    );
+  const next: Record<string, unknown> = {};
+  for (const key of [...KERNEL_KEYS, ...records]) next[key] = fields[key];
+  next.setpoints = sorted(isPlainObject(setpoints) ? setpoints : {});
+  return mergeFrozen(next, {}) as unknown as ShipSnapshot;
+}
+
+/**
+ * The deck's initial air in each pressurised room at its initial
+ * temperature, and no gas in a room that holds vacuum.
+ */
+function initialCompartments(
+  deck: DeckPlan,
+): Readonly<Record<CompartmentId, CompartmentState>> {
+  const { temperature, pressure } = deck.initial;
+  const compartments = {} as Record<CompartmentId, CompartmentState>;
+  for (const id of COMPARTMENT_IDS) {
+    const room = deck.compartments.find((plan) => plan.id === id);
+    if (room === undefined) {
+      throw new Error(`The deck plan has no compartment '${id}'.`);
+    }
+    const fill = room.pressurised === false ? 0 : pressure;
+    compartments[id] = {
+      moles: molesAt(fill, temperature, room.volume, AIR),
+      temperature,
+    };
+  }
+  return compartments;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -190,174 +307,4 @@ function mergeFrozen<T extends object>(base: T, change: DeepPartial<T>): T {
       : frozen(value);
   }
   return Object.freeze(merged) as T;
-}
-
-/**
- * Every door shut, and the flood valve and the drill flag of each room with
- * a flood charge off. No room burns and no alarm is active; each charged
- * room's flood count starts at 0.
- */
-function initialSafety(
-  rooms: Readonly<Record<CompartmentId, CompartmentPlan>>,
-): {
-  setpoints: SafetySetpoints<CompartmentId, DoorId>;
-  record: SafetyRecord<CompartmentId>;
-} {
-  const doors = {} as Record<DoorId, boolean>;
-  for (const id of DOOR_IDS) doors[id] = false;
-  const floods: Partial<Record<CompartmentId, boolean>> = {};
-  const drills: Partial<Record<CompartmentId, boolean>> = {};
-  const fires = {} as Record<CompartmentId, number>;
-  const flooded: Partial<Record<CompartmentId, number>> = {};
-  for (const id of COMPARTMENT_IDS) {
-    fires[id] = 0;
-    if (rooms[id].floodCharge === undefined) continue;
-    floods[id] = false;
-    drills[id] = false;
-    flooded[id] = 0;
-  }
-  return {
-    setpoints: Object.freeze({
-      doors: Object.freeze(doors),
-      floods: Object.freeze(floods),
-      drills: Object.freeze(drills),
-    }),
-    record: Object.freeze({
-      fires: Object.freeze(fires),
-      flooded: Object.freeze(flooded),
-      alarms: Object.freeze([]),
-    }),
-  };
-}
-
-/**
- * Life support offline, with one setpoint for each device a room lists:
- * heaters on at the deck's initial temperature, scrubbers and oxygen
- * generators on, vents shut and pumps off. Each heater starts at 0 W.
- */
-function initialLifeSupport(
-  rooms: Readonly<Record<CompartmentId, CompartmentPlan>>,
-  temperature: number,
-): {
-  setpoints: LifeSupportSetpoints<CompartmentId>;
-  record: LifeSupportRecord<CompartmentId>;
-} {
-  const heaters: Partial<Record<CompartmentId, HeaterSetpoint>> = {};
-  const scrubbers: Partial<Record<CompartmentId, boolean>> = {};
-  const oxygen: Partial<Record<CompartmentId, boolean>> = {};
-  const vents: Partial<Record<CompartmentId, boolean>> = {};
-  const pumps: Partial<Record<CompartmentId, PumpMode>> = {};
-  const power: Partial<Record<CompartmentId, number>> = {};
-  for (const id of COMPARTMENT_IDS) {
-    const equipment = rooms[id].equipment ?? [];
-    if (equipment.includes('heater')) {
-      heaters[id] = Object.freeze({ on: true, target: temperature });
-      power[id] = 0;
-    }
-    if (equipment.includes('scrubber')) scrubbers[id] = true;
-    if (equipment.includes('oxygen')) oxygen[id] = true;
-    if (equipment.includes('vent')) vents[id] = false;
-    if (equipment.includes('pump')) pumps[id] = 'off';
-  }
-  return {
-    setpoints: Object.freeze({
-      online: false,
-      heaters: Object.freeze(heaters),
-      scrubbers: Object.freeze(scrubbers),
-      oxygen: Object.freeze(oxygen),
-      vents: Object.freeze(vents),
-      pumps: Object.freeze(pumps),
-    }),
-    record: Object.freeze({ heaters: Object.freeze(power) }),
-  };
-}
-
-function initialSnapshot(deck: DeckPlan): ShipSnapshot {
-  checkDeckPlan(deck);
-  const { temperature, pressure } = deck.initial;
-  const rooms = {} as Record<CompartmentId, CompartmentPlan>;
-  const compartments = {} as Record<CompartmentId, CompartmentState>;
-  for (const room of deck.compartments) {
-    const id = room.id as CompartmentId;
-    rooms[id] = room;
-  }
-  for (const id of COMPARTMENT_IDS) {
-    compartments[id] = Object.freeze({
-      moles: Object.freeze(
-        molesAt(
-          rooms[id].pressurised === false ? 0 : pressure,
-          temperature,
-          rooms[id].volume,
-          AIR,
-        ),
-      ),
-      temperature,
-    });
-  }
-  const lifeSupport = initialLifeSupport(rooms, temperature);
-  const safety = initialSafety(rooms);
-  const power = allocatePower(0, [
-    { ...LIFE_SUPPORT_LOAD, demand: 0 },
-    { ...DEFLECTOR_GRID, demand: 0 },
-    { ...COMMS_LOAD, demand: 0 },
-    { ...THRUSTERS_LOAD, demand: 0 },
-    { ...MAIN_DRIVE_LOAD, demand: 0 },
-    { ...RAILGUN_LOAD, demand: 0 },
-  ]);
-  return Object.freeze({
-    tick: 0,
-    time: 0,
-    compartments: Object.freeze(compartments),
-    reactor: Object.freeze({
-      level: 0,
-      thermal: 0,
-      electric: 0,
-      tripped: false,
-    }),
-    coolant: Object.freeze({ temperature: LITHIUM_LOOP.standby }),
-    power: Object.freeze({
-      ...power,
-      loads: Object.freeze(power.loads.map((entry) => Object.freeze(entry))),
-      shed: Object.freeze(power.shed),
-    }),
-    lifeSupport: lifeSupport.record,
-    comms: Object.freeze({
-      status: 'standby',
-      sent: null,
-      messages: Object.freeze([]),
-    }),
-    weapons: Object.freeze({
-      status: 'idle',
-      charge: 0,
-      shots: 0,
-      hits: 0,
-      lastShot: null,
-    }),
-    drive: Object.freeze({
-      thrust: 0,
-      massFlow: 0,
-      acceleration: 0,
-      velocity: 0,
-      distance: 0,
-    }),
-    helm: Object.freeze({ attitude: 0, rate: 0, torque: 0 }),
-    ftl: Object.freeze({
-      status: 'offline',
-      charge: 0,
-      sector: HOME_SECTOR,
-      jumped: null,
-    }),
-    safety: safety.record,
-    setpoints: Object.freeze({
-      reactor: Object.freeze({ throttle: 0 }),
-      shields: Object.freeze({ raised: false }),
-      lifeSupport: lifeSupport.setpoints,
-      comms: Object.freeze({ hail: false }),
-      weapons: Object.freeze({ armed: false, range: null }),
-      drive: Object.freeze({ throttle: 0 }),
-      helm: Object.freeze({ heading: 0 }),
-      ftl: Object.freeze({ armed: false, jump: null }),
-      safety: safety.setpoints,
-    }),
-  });
 }

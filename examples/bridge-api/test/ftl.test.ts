@@ -56,7 +56,7 @@ describe.each(FRAMEWORKS)('the telemetry stream on %s', (framework) => {
       );
       const first = await frameAt(stream, 0);
       expect(first.tick).toBe(0);
-      expect(first.ftl?.status).toBe('offline');
+      expect(first).not.toHaveProperty('ftl');
       expect(first).not.toHaveProperty('ftlRating');
 
       expect((await post('/sections/ftl')).status).toBe(200);
@@ -123,7 +123,7 @@ describe.each(FRAMEWORKS)('the simulated drive on %s', (framework) => {
         await fetch(`${bridge.url}/telemetry`, { signal: abort.signal }),
       );
       const first = await frameAt(stream, 0);
-      expect(first.ftl?.status).toBe('offline');
+      expect(first).not.toHaveProperty('ftl');
       expect(first).not.toHaveProperty('ftlRating');
       expect(
         (await fetch(`${bridge.url}/sections/ftl`, { method: 'POST' })).status,

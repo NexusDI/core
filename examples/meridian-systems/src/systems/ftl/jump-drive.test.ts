@@ -8,9 +8,10 @@ import {
 } from '../../errors';
 import type { ICommandDesk } from '../../simulation/commands';
 import type { DeckPlan, ITickLoop } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import type { ShipStateStore } from '../../simulation/ship-state-store';
 import type { IPowerRouter, PowerLoad } from '../engineering/contracts';
 import { BUNDLED_CHARTS, StarCharts } from '../tactical/star-charts';
+import { shipState } from '../../../test/ship-state';
 
 import { FTL_ACTIONS } from './contracts';
 import { FtlCommands } from './ftl-commands';
@@ -22,7 +23,7 @@ import { JumpDrive } from './jump-drive';
 
 /** A drive over fakes of the loop, the router and the desk that record what it asks. */
 function build(refuse = false) {
-  const state = new ShipStateStore(deck satisfies DeckPlan);
+  const state = shipState(deck satisfies DeckPlan);
   const registered: string[] = [];
   const unregistered: string[] = [];
   const diverted: PowerLoad[] = [];
@@ -79,8 +80,13 @@ function build(refuse = false) {
   return { state, registered, unregistered, diverted, drive };
 }
 
-/** Commits the store's snapshot with the spool holding `charge` J. */
+/**
+ * Commits the store's snapshot with the spool holding `charge` J. The store
+ * keeps only the keys it holds, so the record joins first when no drive
+ * registered it.
+ */
 function charged(state: ShipStateStore, charge: number): void {
+  if (state.snapshot().ftl === undefined) state.register(FTL_RECORD);
   const ship = state.snapshot();
   state.commit({
     ...ship,
@@ -110,6 +116,8 @@ describe('JumpDrive', () => {
 
   it('diverts the spool load, then queues the armed setpoint', () => {
     const { state, diverted, drive } = build();
+    // onInit registers the drive's setpoints, which the queued change merges into.
+    drive.onInit();
     expect(drive.spool()).toEqual({ tick: 1 });
     expect(diverted).toEqual([
       { id: 'ftl-spool', priority: 7, demand: 900e6, heatShare: 0.1 },
@@ -129,6 +137,7 @@ describe('JumpDrive', () => {
 
   it('asks no divert and queues nothing on an armed drive, and answers the next tick', () => {
     const { state, diverted, drive } = build();
+    drive.onInit();
     const ship = state.snapshot();
     state.commit({
       ...ship,
@@ -177,6 +186,7 @@ describe('JumpDrive', () => {
 
   it('queues the jump on a full charge', () => {
     const { state, drive } = build();
+    drive.onInit();
     charged(state, FTL_SPOOL.energy);
     expect(drive.jump('Kepler-442b')).toEqual({ tick: 1 });
     expect(state.applyQueued(1).setpoints.ftl).toEqual({

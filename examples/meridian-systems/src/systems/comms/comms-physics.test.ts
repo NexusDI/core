@@ -7,13 +7,13 @@ import type {
   TickContext,
 } from '../../simulation/contracts';
 import { SeededRandom } from '../../simulation/seeded-random';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import { stepComms } from './comms-model';
 import { CommsPhysics } from './comms-physics';
 import type { ICommsArray } from './contracts';
 
-const idle = new ShipStateStore(deck satisfies DeckPlan).snapshot();
+const idle = shipState(deck satisfies DeckPlan).snapshot();
 const tick: TickContext = {
   tick: 1,
   dt: 0.5,

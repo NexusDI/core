@@ -67,14 +67,14 @@ const shipAt600: ShipReading = {
     },
     habitat: {
       moles: {
-        O2: 1047.5656141131774,
+        O2: 1047.7478941131674,
         N2: 3892.312075277442,
-        CO2: 2.0581554567409577,
-        H2O: 44.93152867138428,
+        CO2: 1.9098349976845939,
+        H2O: 44.904344114484644,
         volatiles: 2.6425537860014763,
       },
-      temperature: 292.7650957776126,
-      pressure: 101205.93067046259,
+      temperature: 292.75477025046143,
+      pressure: 101202.49865740587,
     },
     'reactor-bay': {
       moles: {
@@ -98,6 +98,116 @@ const shipAt600: ShipReading = {
       temperature: 292.42322343393,
       pressure: 101100.64963292163,
     },
+    'chart-room': {
+      moles: {
+        O2: 209.58603482263152,
+        N2: 778.4624150554885,
+        CO2: 0.39921149490025054,
+        H2O: 8.982258635255636,
+        volatiles: 0.5991172423503613,
+      },
+      temperature: 292.8558848837904,
+      pressure: 101250.2049699556,
+    },
+    'computer-core': {
+      moles: {
+        O2: 174.6550290188596,
+        N2: 648.7186792129071,
+        CO2: 0.33267624575020877,
+        H2O: 7.485215529379697,
+        volatiles: 0.4993143686253303,
+      },
+      temperature: 292.9290077297954,
+      pressure: 101275.4921046519,
+    },
+    quarters: {
+      moles: {
+        O2: 418.98978964527305,
+        N2: 1556.924830110977,
+        CO2: 0.7196268203742741,
+        H2O: 18.005278976874713,
+        volatiles: 0.8764656886785178,
+      },
+      temperature: 292.7961950707259,
+      pressure: 101202.0765664931,
+    },
+    'comms-relay': {
+      moles: {
+        O2: 139.72402321508767,
+        N2: 518.9749433703257,
+        CO2: 0.266140996600167,
+        H2O: 5.988172423503757,
+        volatiles: 0.39951149490026594,
+      },
+      temperature: 292.86947931968456,
+      pressure: 101254.9202454215,
+    },
+    'shuttle-bay': {
+      moles: {
+        O2: 0,
+        N2: 0,
+        CO2: 0,
+        H2O: 0,
+        volatiles: 0.00030000000000000404,
+      },
+      temperature: 292.6961551070905,
+      pressure: 0.0015209223959752394,
+    },
+    'drone-bay': {
+      moles: {
+        O2: 0,
+        N2: 0,
+        CO2: 0,
+        H2O: 0,
+        volatiles: 0.00030000000000000404,
+      },
+      temperature: 292.47619463500115,
+      pressure: 0.014589882493172595,
+    },
+    'capacitor-room': {
+      moles: {
+        O2: 314.3790522339472,
+        N2: 1167.6936225832328,
+        CO2: 0.5988172423503758,
+        H2O: 13.473387952883453,
+        volatiles: 0.8985258635255543,
+      },
+      temperature: 292.875844282533,
+      pressure: 101257.09546486387,
+    },
+    engineering: {
+      moles: {
+        O2: 785.9476305848682,
+        N2: 2919.234056458082,
+        CO2: 1.4970431058759395,
+        H2O: 33.683469882208634,
+        volatiles: 2.2458646588139892,
+      },
+      temperature: 292.81023293998686,
+      pressure: 101234.3992301765,
+    },
+    'ftl-core': {
+      moles: {
+        O2: 436.637572547149,
+        N2: 1621.7966980322678,
+        CO2: 0.8316906143755219,
+        H2O: 18.713038823449242,
+        volatiles: 1.247835921563346,
+      },
+      temperature: 292.8818473124213,
+      pressure: 101259.16523383236,
+    },
+    'main-drive': {
+      moles: {
+        O2: 349.3100580377192,
+        N2: 1297.4373584258142,
+        CO2: 0.6653524915004175,
+        H2O: 14.970431058759393,
+        volatiles: 0.9983287372506187,
+      },
+      temperature: 292.87904925689963,
+      pressure: 101258.20150385174,
+    },
   },
   reactor: {
     level: 0.01,
@@ -112,15 +222,26 @@ const shipAt600: ShipReading = {
       {
         id: 'life-support',
         priority: 1,
-        demand: 6863.260786048409,
-        allocated: 6863.260786048409,
+        demand: 19182.900996577107,
+        allocated: 19182.900996577107,
       },
       { id: 'shields', priority: 2, demand: 0, allocated: 0 },
     ],
     shed: [],
   },
   lifeSupport: {
-    heaters: { bridge: 2116.860228255746, habitat: 2346.4005577926628 },
+    heaters: {
+      bridge: 2116.860228255746,
+      habitat: 2449.5397121705764,
+      'chart-room': 1440.9221697314933,
+      'computer-core': 709.5481143210236,
+      quarters: 2036.8711319258637,
+      'comms-relay': 1305.1281967898376,
+      'capacitor-room': 1240.3494181069163,
+      engineering: 1895.4406631587517,
+      'ftl-core': 1180.0888978780222,
+      'main-drive': 1208.1524642388786,
+    },
   },
   setpoints: {
     ...shipAtStart.setpoints,
@@ -135,28 +256,182 @@ const airAt600: Record<CompartmentId, AtmosphereReading<CompartmentId>> = {
     tick: 600,
     temperature: 292.81,
     pressure: 101_217,
-    partial: { O2: 21_253, N2: 78_958, CO2: 36, H2O: 910, volatiles: 42 },
+    partial: {
+      O2: 21_253,
+      N2: 78_958,
+      CO2: 36,
+      H2O: 910,
+      volatiles: 42,
+    },
   },
   habitat: {
     compartment: 'habitat',
     tick: 600,
-    temperature: 292.76,
-    pressure: 101_192,
-    partial: { O2: 21_244, N2: 78_949, CO2: 39, H2O: 909, volatiles: 56 },
+    temperature: 292.75,
+    pressure: 101_189,
+    partial: {
+      O2: 21_247,
+      N2: 78_946,
+      CO2: 36,
+      H2O: 909,
+      volatiles: 56,
+    },
   },
   'reactor-bay': {
     compartment: 'reactor-bay',
     tick: 600,
     temperature: 292.89,
     pressure: 101_257,
-    partial: { O2: 21_266, N2: 78_975, CO2: 37, H2O: 912, volatiles: 57 },
+    partial: {
+      O2: 21_266,
+      N2: 78_975,
+      CO2: 37,
+      H2O: 912,
+      volatiles: 57,
+    },
   },
   airlock: {
     compartment: 'airlock',
     tick: 600,
     temperature: 292.42,
     pressure: 101_119,
-    partial: { O2: 21_231, N2: 78_854, CO2: 44, H2O: 911, volatiles: 64 },
+    partial: {
+      O2: 21_231,
+      N2: 78_854,
+      CO2: 44,
+      H2O: 911,
+      volatiles: 64,
+    },
+  },
+  'chart-room': {
+    compartment: 'chart-room',
+    tick: 600,
+    temperature: 292.89,
+    pressure: 101_237,
+    partial: {
+      O2: 21_259,
+      N2: 78_973,
+      CO2: 38,
+      H2O: 910,
+      volatiles: 65,
+    },
+  },
+  'computer-core': {
+    compartment: 'computer-core',
+    tick: 600,
+    temperature: 292.89,
+    pressure: 101_274,
+    partial: {
+      O2: 21_266,
+      N2: 78_992,
+      CO2: 41,
+      H2O: 914,
+      volatiles: 59,
+    },
+  },
+  quarters: {
+    compartment: 'quarters',
+    tick: 600,
+    temperature: 292.78,
+    pressure: 101_199,
+    partial: {
+      O2: 21_251,
+      N2: 78_962,
+      CO2: 34,
+      H2O: 908,
+      volatiles: 46,
+    },
+  },
+  'comms-relay': {
+    compartment: 'comms-relay',
+    tick: 600,
+    temperature: 292.86,
+    pressure: 101_238,
+    partial: {
+      O2: 21_259,
+      N2: 78_979,
+      CO2: 38,
+      H2O: 912,
+      volatiles: 63,
+    },
+  },
+  'shuttle-bay': {
+    compartment: 'shuttle-bay',
+    tick: 600,
+    temperature: 292.66,
+    pressure: 10,
+    partial: {
+      O2: 3,
+      N2: 0,
+      CO2: 0,
+      H2O: 2,
+      volatiles: 0,
+    },
+  },
+  'drone-bay': {
+    compartment: 'drone-bay',
+    tick: 600,
+    temperature: 292.49,
+    pressure: 18,
+    partial: {
+      O2: 0,
+      N2: 0,
+      CO2: 0,
+      H2O: 1,
+      volatiles: 2,
+    },
+  },
+  'capacitor-room': {
+    compartment: 'capacitor-room',
+    tick: 600,
+    temperature: 292.9,
+    pressure: 101_249,
+    partial: {
+      O2: 21_267,
+      N2: 78_978,
+      CO2: 39,
+      H2O: 913,
+      volatiles: 57,
+    },
+  },
+  engineering: {
+    compartment: 'engineering',
+    tick: 600,
+    temperature: 292.82,
+    pressure: 101_245,
+    partial: {
+      O2: 21_259,
+      N2: 78_962,
+      CO2: 43,
+      H2O: 913,
+      volatiles: 61,
+    },
+  },
+  'ftl-core': {
+    compartment: 'ftl-core',
+    tick: 600,
+    temperature: 292.91,
+    pressure: 101_279,
+    partial: {
+      O2: 21_269,
+      N2: 78_987,
+      CO2: 36,
+      H2O: 909,
+      volatiles: 60,
+    },
+  },
+  'main-drive': {
+    compartment: 'main-drive',
+    tick: 600,
+    temperature: 292.84,
+    pressure: 101_258,
+    partial: {
+      O2: 21_263,
+      N2: 78_986,
+      CO2: 38,
+      H2O: 911,
+      volatiles: 66,
+    },
   },
 };
 
@@ -179,7 +454,7 @@ describe('the life-support gauges', () => {
       '0.04 kPa',
     ]);
     expect(await gauges('Habitat heater')).toEqual(['0 W']);
-    expect(screen.getAllByText('Analyzer, tick 0')).toHaveLength(4);
+    expect(screen.getAllByText('Analyzer, tick 0')).toHaveLength(14);
   });
 
   test('read the air from the analyzers and the heaters from the snapshot at tick 600', async ({
@@ -195,7 +470,7 @@ describe('the life-support gauges', () => {
     expect(await gauges('Habitat analyzer')).toEqual([
       '292.8 K',
       '101.2 kPa',
-      '21.24 kPa',
+      '21.25 kPa',
       '0.04 kPa',
     ]);
     expect(await gauges('Reactor bay analyzer')).toEqual([
@@ -211,8 +486,8 @@ describe('the life-support gauges', () => {
       '0.04 kPa',
     ]);
     expect(await gauges('Bridge heater')).toEqual(['2,117 W']);
-    expect(await gauges('Habitat heater')).toEqual(['2,346 W']);
-    expect(screen.getAllByText('Ship snapshot, tick 600')).toHaveLength(2);
+    expect(await gauges('Habitat heater')).toEqual(['2,450 W']);
+    expect(screen.getAllByText('Ship snapshot, tick 600')).toHaveLength(10);
   });
 
   test('head each compartment and each form at the second level', async ({
@@ -228,6 +503,16 @@ describe('the life-support gauges', () => {
       'Habitat',
       'Reactor bay',
       'Airlock',
+      'Chart room',
+      'Computer core',
+      'Quarters',
+      'Comms relay',
+      'Shuttle bay',
+      'Drone bay',
+      'Capacitor room',
+      'Engineering',
+      'FTL core',
+      'Main drive',
       'Life support',
       'Habitat thermostat',
       'Airlock pump and vent',

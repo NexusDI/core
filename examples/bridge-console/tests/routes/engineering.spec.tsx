@@ -124,7 +124,10 @@ async function gauges() {
 }
 
 describe('the engineering gauges', () => {
-  test('read the idle reactor at tick 0', async ({ renderRoute }) => {
+  test('read the idle reactor at tick 0, where the router lists no load yet', async ({
+    renderRoute,
+  }) => {
+    expect(shipAtStart.power.loads).toEqual([]);
     await renderPage(renderRoute);
     expect(await gauges()).toEqual(['0.00', '0.0 MW', '500.0 K', '0.0 MW']);
   });

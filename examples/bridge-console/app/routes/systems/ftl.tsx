@@ -1,8 +1,4 @@
-import {
-  FTL_RECORD,
-  type FtlRating,
-  type ShipReading,
-} from '@nexusdi/meridian-systems';
+import type { FtlRating, ShipReading } from '@nexusdi/meridian-systems';
 import { Form } from 'react-router';
 
 import { Button } from '../../components';
@@ -36,12 +32,21 @@ export const loader: (args: Route.LoaderArgs) => Promise<ShipReading | null> =
 /**
  * The drive's status, whether it is armed, its charge in GJ, the power the
  * spool draws, the ship's sector and the tick of the last jump. A ship that
- * has not loaded the drive holds no FTL record, and the gauges read the
- * record the drive loads with.
+ * has not loaded the drive holds no FTL record, so the section shows the
+ * status `not loaded` alone.
  */
 function FtlGauges({ ship }: { ship: ShipReading }) {
-  const { status, charge, sector, jumped } = ship.ftl ?? FTL_RECORD.records.ftl;
-  const armed = (ship.setpoints.ftl ?? FTL_RECORD.setpoints.ftl).armed;
+  const record = ship.ftl;
+  const setpoints = ship.setpoints.ftl;
+  if (record === undefined || setpoints === undefined) {
+    return (
+      <ControlSection title="FTL drive">
+        <Gauges label="FTL gauges" gauges={[['Status', 'not loaded']]} />
+      </ControlSection>
+    );
+  }
+  const { status, charge, sector, jumped } = record;
+  const { armed } = setpoints;
   return (
     <ControlSection title="FTL drive">
       <Gauges

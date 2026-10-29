@@ -291,7 +291,7 @@ describe('an exchange through a door', () => {
 });
 
 describe('the deck plan', () => {
-  it('holds the four compartments of the ship in order', () => {
+  it('holds the fourteen compartments of the ship, the four first ones first', () => {
     expect(deck.compartments).toEqual([
       {
         id: 'bridge',
@@ -307,7 +307,7 @@ describe('the deck plan', () => {
         volume: 120,
         conductance: 150,
         structureHeatCapacity: 4_000_000,
-        occupants: 4,
+        occupants: 2,
         floodCharge: 2_000,
         equipment: ['heater', 'scrubber', 'oxygen'],
       },
@@ -329,19 +329,151 @@ describe('the deck plan', () => {
         equipment: ['vent', 'pump'],
         pumpReservoir: 'habitat',
       },
+      {
+        id: 'chart-room',
+        volume: 24,
+        conductance: 45,
+        structureHeatCapacity: 800_000,
+        occupants: 0,
+        floodCharge: 400,
+        equipment: ['heater'],
+      },
+      {
+        id: 'computer-core',
+        volume: 20,
+        conductance: 25,
+        structureHeatCapacity: 1_500_000,
+        occupants: 0,
+        floodCharge: 330,
+        equipment: ['heater'],
+      },
+      {
+        id: 'quarters',
+        volume: 48,
+        conductance: 80,
+        structureHeatCapacity: 1_600_000,
+        occupants: 2,
+        floodCharge: 800,
+        equipment: ['heater', 'scrubber', 'oxygen'],
+      },
+      {
+        id: 'comms-relay',
+        volume: 16,
+        conductance: 40,
+        structureHeatCapacity: 600_000,
+        occupants: 0,
+        floodCharge: 270,
+        equipment: ['heater'],
+      },
+      {
+        id: 'shuttle-bay',
+        volume: 480,
+        conductance: 370,
+        structureHeatCapacity: 12_000_000,
+        occupants: 0,
+        pressurised: false,
+      },
+      {
+        id: 'drone-bay',
+        volume: 50,
+        conductance: 80,
+        structureHeatCapacity: 1_500_000,
+        occupants: 0,
+        pressurised: false,
+      },
+      {
+        id: 'capacitor-room',
+        volume: 36,
+        conductance: 60,
+        structureHeatCapacity: 3_000_000,
+        occupants: 0,
+        floodCharge: 600,
+        equipment: ['heater'],
+      },
+      {
+        id: 'engineering',
+        volume: 90,
+        conductance: 120,
+        structureHeatCapacity: 4_500_000,
+        occupants: 0,
+        floodCharge: 1_500,
+        equipment: ['heater'],
+      },
+      {
+        id: 'ftl-core',
+        volume: 50,
+        conductance: 80,
+        structureHeatCapacity: 5_000_000,
+        occupants: 0,
+        floodCharge: 830,
+        equipment: ['heater'],
+      },
+      {
+        id: 'main-drive',
+        volume: 40,
+        conductance: 70,
+        structureHeatCapacity: 4_000_000,
+        occupants: 0,
+        floodCharge: 670,
+        equipment: ['heater'],
+      },
     ]);
   });
 
-  it('holds the four doors in order', () => {
+  it('holds the sixteen doors in deck order', () => {
     expect(deck.doors).toEqual([
-      { id: 'bridge-habitat', between: ['bridge', 'habitat'], area: 1.5 },
+      { id: 'bridge-habitat', between: ['bridge', 'habitat'], area: 3 },
+      { id: 'habitat-airlock', between: ['habitat', 'airlock'], area: 3 },
+      { id: 'airlock-outer', between: ['airlock', 'space'], area: 3 },
+      { id: 'bridge-chart-room', between: ['bridge', 'chart-room'], area: 3 },
       {
-        id: 'habitat-reactor-bay',
-        between: ['habitat', 'reactor-bay'],
-        area: 1.5,
+        id: 'bridge-computer-core',
+        between: ['bridge', 'computer-core'],
+        area: 3,
       },
-      { id: 'habitat-airlock', between: ['habitat', 'airlock'], area: 1.2 },
-      { id: 'airlock-outer', between: ['airlock', 'space'], area: 1.2 },
+      { id: 'habitat-quarters', between: ['habitat', 'quarters'], area: 3 },
+      {
+        id: 'habitat-comms-relay',
+        between: ['habitat', 'comms-relay'],
+        area: 3,
+      },
+      {
+        id: 'airlock-shuttle-bay',
+        between: ['airlock', 'shuttle-bay'],
+        area: 3,
+      },
+      { id: 'shuttle-bay-outer', between: ['shuttle-bay', 'space'], area: 50 },
+      {
+        id: 'shuttle-bay-drone-bay',
+        between: ['shuttle-bay', 'drone-bay'],
+        area: 3,
+      },
+      { id: 'drone-bay-outer', between: ['drone-bay', 'space'], area: 6 },
+      {
+        id: 'habitat-engineering',
+        between: ['habitat', 'engineering'],
+        area: 3,
+      },
+      {
+        id: 'engineering-capacitor-room',
+        between: ['engineering', 'capacitor-room'],
+        area: 3,
+      },
+      {
+        id: 'engineering-ftl-core',
+        between: ['engineering', 'ftl-core'],
+        area: 3,
+      },
+      {
+        id: 'engineering-reactor-bay',
+        between: ['engineering', 'reactor-bay'],
+        area: 3,
+      },
+      {
+        id: 'reactor-bay-main-drive',
+        between: ['reactor-bay', 'main-drive'],
+        area: 3,
+      },
     ]);
   });
 

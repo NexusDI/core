@@ -117,7 +117,7 @@ function expectWithin(what: string, value: number, low: number, high: number) {
 /**
  * The airlock drill on fixed tick counts from tick 0, each read far from the
  * interlock's 5,000 Pa. Seed 7 gives the airlock 9,089 Pa at tick 300 after
- * the pump-down, 3,949 Pa at tick 340 after the vent, and a 410 Pa gap to the
+ * the pump-down, 3,949 Pa at tick 340 after the vent, and a 384 Pa gap to the
  * habitat at tick 474 after the fill.
  */
 export const airlockDrill: GrowthCase = {
@@ -601,6 +601,9 @@ export async function runGrowthCase(
     );
 }
 
+/** The compartments the deck plan marks unpressurised. */
+const VACUUM_BAYS: readonly string[] = ['shuttle-bay', 'drone-bay'];
+
 /**
  * The cases bridge-api's e2e-growth target runs on workerd
  * (test/worker/growth/sim.test.ts), Deno and Bun (test/runtime/growth.ts).
@@ -611,7 +614,7 @@ export async function runGrowthCase(
  */
 export const growthCases: readonly GrowthCase[] = [
   {
-    name: 'GET /sim reads tick 0 with four compartments of moles, temperature and pressure',
+    name: 'GET /sim reads tick 0 with fourteen compartments of moles, temperature and pressure',
     async run(fetch) {
       const ship = await okJson<ShipReading>('GET /sim', await fetch('/sim'));
       expectEqual('tick', ship.tick, 0);
@@ -623,11 +626,15 @@ export const growthCases: readonly GrowthCase[] = [
       );
       for (const id of COMPARTMENT_IDS) {
         const room = ship.compartments[id];
+        // The two bays hold vacuum, and every other room starts at the
+        // deck plan's 101.3 kPa.
+        const vacuum = VACUUM_BAYS.includes(id);
         expectEqual(`${id} gases`, Object.keys(room.moles), GASES);
         for (const gas of GASES)
           expectEqual(
-            `${id} ${gas} is a positive number`,
-            typeof room.moles[gas] === 'number' && room.moles[gas] > 0,
+            `${id} ${gas} is ${vacuum ? '0' : 'a positive number'}`,
+            typeof room.moles[gas] === 'number' &&
+              (vacuum ? room.moles[gas] === 0 : room.moles[gas] > 0),
             true,
           );
         expectEqual(
@@ -635,8 +642,7 @@ export const growthCases: readonly GrowthCase[] = [
           typeof room.temperature,
           'number',
         );
-        // Every compartment starts at the deck plan's 101.3 kPa.
-        expectEqual(`${id} pressure`, room.pressure, 101_300);
+        expectEqual(`${id} pressure`, room.pressure, vacuum ? 0 : 101_300);
       }
     },
   },

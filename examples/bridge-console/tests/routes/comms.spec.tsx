@@ -4,7 +4,12 @@ import type { NexusSetupStep } from '@nexusdi/vitest';
 import { describe, expect, vi } from 'vitest';
 
 import { BRIDGE_LINK } from '../../app/di/contracts';
-import { FailingSnapshotLink, linkAt, shipAtStart } from '../doubles';
+import {
+  FailingSnapshotLink,
+  linkAt,
+  shipAtStart,
+  idleLoads,
+} from '../doubles';
 import { test, withLink, type RenderRoute } from '../support/console';
 
 vi.mock('../../app/nexus.server', () => import('../support/nexus-server'));
@@ -33,11 +38,11 @@ async function gauges() {
   return [...list.querySelectorAll('dd')].map((dd) => dd.textContent);
 }
 
-/** The tick-0 power record with the comms load asking `demand` W and granted `allocated` W. */
+/** The idle power record with the comms load asking `demand` W and granted `allocated` W. */
 function loadAt(demand: number, allocated: number): ShipReading['power'] {
   return {
     ...shipAtStart.power,
-    loads: shipAtStart.power.loads.map((load) =>
+    loads: idleLoads.map((load) =>
       load.id === 'comms' ? { ...load, demand, allocated } : load,
     ),
   };

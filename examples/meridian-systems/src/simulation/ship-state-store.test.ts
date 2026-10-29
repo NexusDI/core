@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../deck/meridian.deck.json';
 import { AIR, molesAt } from '../physics/gas';
-import type { LoadRecord } from '../systems/engineering/contracts';
-import { LITHIUM_LOOP } from '../systems/engineering/engineering-model';
+import { COMMS_RECORD } from '../systems/comms/comms-record';
 import { FTL_RECORD } from '../systems/ftl/ftl-record';
+import { shipRecords, shipState } from '../../test/ship-state';
 
 import {
   COMPARTMENT_IDS,
@@ -12,16 +12,11 @@ import {
   type CompartmentPlan,
   type DeckPlan,
   DOOR_IDS,
-  type ShipSnapshot,
 } from './contracts';
 import { ShipStateStore } from './ship-state-store';
 
 const plan = deck satisfies DeckPlan;
-const initial = new ShipStateStore(plan).snapshot();
-
-function load(ship: ShipSnapshot, id: string): LoadRecord | undefined {
-  return ship.power.loads.find((entry) => entry.id === id);
-}
+const initial = shipState(plan).snapshot();
 
 /** The deck with `room`'s plan changed by `change`. */
 function withRoom(
@@ -44,35 +39,41 @@ function levels(value: unknown): object[] {
 
 describe('ShipStateStore', () => {
   it('starts at tick 0 and time 0', () => {
-    const ship = new ShipStateStore(plan).snapshot();
+    const ship = shipState(plan).snapshot();
     expect(ship.tick).toBe(0);
     expect(ship.time).toBe(0);
   });
 
   it('holds one record per compartment id, in the order of the list', () => {
-    const ship = new ShipStateStore(plan).snapshot();
+    const ship = shipState(plan).snapshot();
     expect(Object.keys(ship.compartments)).toEqual([...COMPARTMENT_IDS]);
   });
 
-  it('fills every compartment with the deck initial air at 293 K', () => {
-    const ship = new ShipStateStore(plan).snapshot();
+  it('fills every pressurised compartment with the deck initial air at 293 K, and leaves the two bays empty', () => {
+    const ship = shipState(plan).snapshot();
     for (const room of plan.compartments) {
+      const fill = room.pressurised === false ? 0 : 101_300;
       expect(ship.compartments[room.id as CompartmentId]).toEqual({
-        moles: molesAt(101_300, 293, room.volume, AIR),
+        moles: molesAt(fill, 293, room.volume, AIR),
         temperature: 293,
       });
     }
+    expect(
+      plan.compartments
+        .filter((room) => room.pressurised === false)
+        .map(({ id }) => id),
+    ).toEqual(['shuttle-bay', 'drone-bay']);
   });
 
   it('fills a room the deck marks pressurised as it fills a room with no flag', () => {
-    const ship = new ShipStateStore(
+    const ship = shipState(
       withRoom('bridge', { pressurised: true }),
     ).snapshot();
     expect(ship.compartments.bridge).toEqual(initial.compartments.bridge);
   });
 
   it('starts a room the deck marks unpressurised with no gas', () => {
-    const ship = new ShipStateStore(
+    const ship = shipState(
       withRoom('reactor-bay', {
         pressurised: false,
         floodCharge: undefined,
@@ -100,7 +101,7 @@ describe('ShipStateStore', () => {
   ])(
     'refuses an unpressurised room that lists %s with a plain Error',
     (_, deckPlan, message) => {
-      const refuse = () => new ShipStateStore(deckPlan);
+      const refuse = () => shipState(deckPlan);
       expect(refuse).toThrow(message);
       expect(refuse).toThrow(
         expect.objectContaining({ constructor: Error, name: 'Error' }),
@@ -109,7 +110,7 @@ describe('ShipStateStore', () => {
   );
 
   it('freezes the snapshot and its records', () => {
-    const ship = new ShipStateStore(plan).snapshot();
+    const ship = shipState(plan).snapshot();
     expect(Object.isFrozen(ship)).toBe(true);
     expect(Object.isFrozen(ship.compartments)).toBe(true);
     for (const id of COMPARTMENT_IDS) {
@@ -118,8 +119,73 @@ describe('ShipStateStore', () => {
     }
   });
 
+  it('lists the kernel fields, then each record and each setpoint in code-unit order', () => {
+    expect(Object.keys(initial)).toEqual([
+      'tick',
+      'time',
+      'compartments',
+      'comms',
+      'coolant',
+      'drive',
+      'helm',
+      'lifeSupport',
+      'power',
+      'reactor',
+      'safety',
+      'weapons',
+      'setpoints',
+    ]);
+    expect(Object.keys(initial.setpoints)).toEqual([
+      'comms',
+      'drive',
+      'helm',
+      'lifeSupport',
+      'reactor',
+      'safety',
+      'shields',
+      'weapons',
+    ]);
+  });
+
+  it('takes each record and setpoint from the contributions, frozen at every level', () => {
+    for (const record of shipRecords(plan)) {
+      for (const [key, value] of Object.entries(record.records)) {
+        expect(initial).toHaveProperty([key], value);
+      }
+      for (const [key, value] of Object.entries(record.setpoints)) {
+        expect(initial.setpoints).toHaveProperty([key], value);
+      }
+    }
+    for (const level of levels(initial)) {
+      expect(Object.isFrozen(level)).toBe(true);
+    }
+  });
+
+  it('starts the router with no loads, since tick 1 lists each one', () => {
+    expect(initial.power).toStrictEqual({ output: 0, loads: [], shed: [] });
+  });
+
+  it('holds no FTL record before the drive registers one', () => {
+    expect(initial).not.toHaveProperty('ftl');
+    expect(initial.setpoints).not.toHaveProperty('ftl');
+  });
+
+  it('refuses two contributions that hold one key', () => {
+    const records = shipRecords(plan);
+    expect(() => new ShipStateStore(plan, [...records, COMMS_RECORD])).toThrow(
+      "Two ship records hold the key 'comms'.",
+    );
+    expect(
+      () =>
+        new ShipStateStore(plan, [
+          ...records,
+          { records: {}, setpoints: { shields: { raised: true } } },
+        ]),
+    ).toThrow("Two ship records hold the key 'shields'.");
+  });
+
   it('replaces the snapshot on commit', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     const next = { ...store.snapshot(), tick: 1, time: 0.5 };
     store.commit(next);
     expect(store.snapshot()).toBe(next);
@@ -130,54 +196,20 @@ describe('ShipStateStore', () => {
       ...plan,
       compartments: plan.compartments.filter((room) => room.id !== 'airlock'),
     };
-    expect(() => new ShipStateStore(partial)).toThrow(/'airlock'/);
-  });
-
-  it('starts the engineering records idle', () => {
-    const ship = new ShipStateStore(plan).snapshot();
-    expect(ship.reactor).toEqual({
-      level: 0,
-      thermal: 0,
-      electric: 0,
-      tripped: false,
-    });
-    expect(ship.coolant).toEqual({ temperature: LITHIUM_LOOP.standby });
-    expect(ship.power.output).toBe(0);
-    expect(ship.power.shed).toEqual([]);
-    expect(load(ship, 'shields')).toEqual({
-      id: 'shields',
-      priority: 2,
-      demand: 0,
-      allocated: 0,
-    });
-    expect(ship.setpoints.reactor).toEqual({ throttle: 0 });
-    expect(ship.setpoints.shields).toEqual({ raised: false });
-    for (const record of [
-      ship.reactor,
-      ship.coolant,
-      ship.power,
-      ship.power.loads,
-      ...ship.power.loads,
-      ship.power.shed,
-      ship.setpoints,
-      ship.setpoints.reactor,
-      ship.setpoints.shields,
-    ]) {
-      expect(Object.isFrozen(record)).toBe(true);
-    }
+    expect(() => shipState(partial)).toThrow(/'airlock'/);
   });
 });
 
 describe('ShipStateStore setpoint queue', () => {
   it('answers a queued change with the next tick', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     expect(store.queue({ reactor: { throttle: 1 } })).toEqual({ tick: 1 });
     store.commit({ ...store.snapshot(), tick: 4, time: 2 });
     expect(store.queue({ shields: { raised: true } })).toEqual({ tick: 5 });
   });
 
   it('merges the queued changes in queue order at applyQueued', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     store.queue({ reactor: { throttle: 0.5 } });
     store.queue({ shields: { raised: true } });
     store.queue({ reactor: { throttle: 1 } });
@@ -195,7 +227,7 @@ describe('ShipStateStore setpoint queue', () => {
   });
 
   it('keeps the setpoints a change leaves out', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     store.queue({ reactor: { throttle: 0.4 } });
     store.applyQueued(1);
     store.queue({ shields: { raised: true } });
@@ -207,7 +239,7 @@ describe('ShipStateStore setpoint queue', () => {
   });
 
   it('logs the changes of one tick as one merged entry under that tick', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     store.queue({ reactor: { throttle: 0.5 } });
     store.queue({ shields: { raised: true } });
     store.applyQueued(1);
@@ -220,7 +252,7 @@ describe('ShipStateStore setpoint queue', () => {
   });
 
   it('merges throttle 0.2, shields raised and throttle 0.8 into one entry', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     store.queue({ reactor: { throttle: 0.2 } });
     store.queue({ shields: { raised: true } });
     store.queue({ reactor: { throttle: 0.8 } });
@@ -234,8 +266,8 @@ describe('ShipStateStore setpoint queue', () => {
   });
 
   it('holds 10,000 changes between two ticks as one entry with the setpoints of applying them one by one', () => {
-    const merged = new ShipStateStore(plan);
-    const stepped = new ShipStateStore(plan);
+    const merged = shipState(plan);
+    const stepped = shipState(plan);
     for (let i = 1; i <= 10_000; i++) {
       const change =
         i % 3 === 0
@@ -256,7 +288,7 @@ describe('ShipStateStore setpoint queue', () => {
   });
 
   it('leaves a change it merged earlier as it was', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     store.queue({ reactor: { throttle: 0.2 } });
     store.applyQueued(1);
     const first = store.log()[0].change;
@@ -271,7 +303,7 @@ describe('ShipStateStore setpoint queue', () => {
   });
 
   it('empties the queue once it applies it', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     store.queue({ reactor: { throttle: 0.5 } });
     const first = store.applyQueued(1);
     expect(store.applyQueued(2)).toBe(first);
@@ -279,13 +311,13 @@ describe('ShipStateStore setpoint queue', () => {
   });
 
   it('returns the current snapshot when nothing is queued', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     expect(store.applyQueued(1)).toBe(store.snapshot());
     expect(store.log()).toEqual([]);
   });
 
   it('keeps a change from the caller mutating it after the queue', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     const change = { reactor: { throttle: 0.5 } };
     store.queue(change);
     change.reactor.throttle = 0.9;
@@ -294,7 +326,7 @@ describe('ShipStateStore setpoint queue', () => {
   });
 
   it('drops a field a change sets to undefined, from the setpoints and the log', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     store.queue({ reactor: { throttle: 0.5 } });
     store.applyQueued(1);
     store.queue({
@@ -310,7 +342,7 @@ describe('ShipStateStore setpoint queue', () => {
   });
 
   it('keeps the newest 1,000 entries in the log', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     for (let i = 1; i <= 1_001; i++) {
       store.queue({ reactor: { throttle: i / 1_001 } });
       store.applyQueued(i);
@@ -326,50 +358,21 @@ describe('ShipStateStore setpoint queue', () => {
 });
 
 describe('ShipStateStore life support', () => {
-  it('starts life support offline with every device the deck lists at its initial setting', () => {
-    const ship = new ShipStateStore(plan).snapshot();
-    expect(ship.setpoints.lifeSupport).toStrictEqual({
-      online: false,
-      heaters: {
-        bridge: { on: true, target: 293 },
-        habitat: { on: true, target: 293 },
-      },
-      scrubbers: { bridge: true, habitat: true },
-      oxygen: { bridge: true, habitat: true },
-      vents: { airlock: false },
-      pumps: { airlock: 'off' },
-    });
-    expect(ship.lifeSupport).toStrictEqual({
-      heaters: { bridge: 0, habitat: 0 },
-    });
-  });
-
-  it('lists the 0 W life-support load first, beside the lowered shields', () => {
-    const ship = new ShipStateStore(plan).snapshot();
-    expect(ship.power.loads).toEqual([
-      { id: 'life-support', priority: 1, demand: 0, allocated: 0 },
-      { id: 'shields', priority: 2, demand: 0, allocated: 0 },
-      { id: 'comms', priority: 3, demand: 0, allocated: 0 },
-      { id: 'thrusters', priority: 4, demand: 0, allocated: 0 },
-      { id: 'main-drive', priority: 5, demand: 0, allocated: 0 },
-      { id: 'railgun', priority: 6, demand: 0, allocated: 0 },
-    ]);
-  });
-
   it('freezes every level of the initial snapshot', () => {
-    const ship = new ShipStateStore(plan).snapshot();
+    const ship = shipState(plan).snapshot();
     for (const level of levels(ship)) {
       expect(Object.isFrozen(level)).toBe(true);
     }
   });
 
   it('applies a target and an off queued in one tick as one heater setting, and leaves the bridge heater as it was', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     const bridge = store.snapshot().setpoints.lifeSupport.heaters.bridge;
     store.queue({ lifeSupport: { heaters: { habitat: { target: 295 } } } });
     store.queue({ lifeSupport: { heaters: { habitat: { on: false } } } });
     const ship = store.applyQueued(1);
     expect(ship.setpoints.lifeSupport.heaters).toStrictEqual({
+      ...initial.setpoints.lifeSupport.heaters,
       bridge: { on: true, target: 293 },
       habitat: { on: false, target: 295 },
     });
@@ -385,7 +388,7 @@ describe('ShipStateStore life support', () => {
   });
 
   it('applies a throttle and a heater change queued in one tick', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     store.queue({ reactor: { throttle: 0.01 } });
     store.queue({
       lifeSupport: { online: true, heaters: { bridge: { target: 290 } } },
@@ -401,7 +404,7 @@ describe('ShipStateStore life support', () => {
   });
 
   it('freezes every level of the merged setpoints and of the logged change', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     const change = {
       lifeSupport: {
         heaters: { habitat: { target: 295 } },
@@ -417,7 +420,7 @@ describe('ShipStateStore life support', () => {
   });
 
   it('keeps a nested change from the caller mutating it after the queue', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     const change = { lifeSupport: { heaters: { habitat: { target: 295 } } } };
     store.queue(change);
     change.lifeSupport.heaters.habitat.target = 300;
@@ -429,37 +432,16 @@ describe('ShipStateStore life support', () => {
 });
 
 describe('ShipStateStore safety', () => {
-  it('starts with every door shut, no flood, no drill, no fire and no alarm', () => {
-    const ship = new ShipStateStore(plan).snapshot();
-    expect(ship.setpoints.safety).toStrictEqual({
-      doors: {
-        'bridge-habitat': false,
-        'habitat-reactor-bay': false,
-        'habitat-airlock': false,
-        'airlock-outer': false,
-      },
-      floods: { bridge: false, habitat: false, 'reactor-bay': false },
-      drills: { bridge: false, habitat: false, 'reactor-bay': false },
-    });
-    expect(ship.safety).toStrictEqual({
-      fires: { bridge: 0, habitat: 0, 'reactor-bay': 0, airlock: 0 },
-      flooded: { bridge: 0, habitat: 0, 'reactor-bay': 0 },
-      alarms: [],
-    });
-    expect(Object.keys(ship.setpoints.safety.doors)).toEqual([...DOOR_IDS]);
-  });
-
   it('opens one door a queued change names and leaves the others shut', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     const before = store.snapshot().setpoints;
     store.queue({ safety: { doors: { 'bridge-habitat': true } } });
     const ship = store.applyQueued(1);
     expect(ship.setpoints.safety.doors).toStrictEqual({
+      ...Object.fromEntries(DOOR_IDS.map((id) => [id, false])),
       'bridge-habitat': true,
-      'habitat-reactor-bay': false,
-      'habitat-airlock': false,
-      'airlock-outer': false,
     });
+    expect(Object.keys(ship.setpoints.safety.doors)).toEqual([...DOOR_IDS]);
     expect(ship.setpoints.safety.floods).toBe(before.safety.floods);
     expect(ship.setpoints.safety.drills).toBe(before.safety.drills);
     expect(ship.setpoints.lifeSupport).toBe(before.lifeSupport);
@@ -467,31 +449,8 @@ describe('ShipStateStore safety', () => {
 });
 
 describe('ShipStateStore comms', () => {
-  it('starts the phased array on standby with no hail queued', () => {
-    const ship = new ShipStateStore(plan).snapshot();
-    expect(ship.comms).toStrictEqual({
-      status: 'standby',
-      sent: null,
-      messages: [],
-    });
-    expect(ship.setpoints.comms).toStrictEqual({ hail: false });
-    const keys = Object.keys(ship);
-    expect(keys.indexOf('comms')).toBe(keys.indexOf('lifeSupport') + 1);
-    const setpoints = Object.keys(ship.setpoints);
-    expect(setpoints.indexOf('comms')).toBe(
-      setpoints.indexOf('lifeSupport') + 1,
-    );
-    for (const record of [
-      ship.comms,
-      ship.comms.messages,
-      ship.setpoints.comms,
-    ]) {
-      expect(Object.isFrozen(record)).toBe(true);
-    }
-  });
-
   it('applies a queued hail and leaves the record to phase 6', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     const record = store.snapshot().comms;
     store.queue({ comms: { hail: true } });
     const ship = store.applyQueued(1);
@@ -501,42 +460,8 @@ describe('ShipStateStore comms', () => {
 });
 
 describe('ShipStateStore drive and helm', () => {
-  it('starts the drive and the helm at rest after comms, frozen', () => {
-    const ship = new ShipStateStore(plan).snapshot();
-    expect(ship.drive).toStrictEqual({
-      thrust: 0,
-      massFlow: 0,
-      acceleration: 0,
-      velocity: 0,
-      distance: 0,
-    });
-    expect(ship.helm).toStrictEqual({ attitude: 0, rate: 0, torque: 0 });
-    expect(ship.setpoints.drive).toStrictEqual({ throttle: 0 });
-    expect(ship.setpoints.helm).toStrictEqual({ heading: 0 });
-    expect(Object.keys(ship).slice(-4)).toEqual([
-      'helm',
-      'ftl',
-      'safety',
-      'setpoints',
-    ]);
-    expect(Object.keys(ship.setpoints).slice(-4)).toEqual([
-      'drive',
-      'helm',
-      'ftl',
-      'safety',
-    ]);
-    for (const record of [
-      ship.drive,
-      ship.helm,
-      ship.setpoints.drive,
-      ship.setpoints.helm,
-    ]) {
-      expect(Object.isFrozen(record)).toBe(true);
-    }
-  });
-
   it('applies a queued throttle and course and leaves the records to phase 2', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     const { drive, helm } = store.snapshot();
     store.queue({ drive: { throttle: 1 } });
     store.queue({ helm: { heading: 0.5 } });
@@ -549,59 +474,9 @@ describe('ShipStateStore drive and helm', () => {
   });
 });
 
-describe('ShipStateStore ftl', () => {
-  it('starts the ftl record offline at Sol and the setpoints idle after helm, frozen', () => {
-    const ship = new ShipStateStore(plan).snapshot();
-    expect(ship.ftl).toStrictEqual({
-      status: 'offline',
-      charge: 0,
-      sector: 'Sol',
-      jumped: null,
-    });
-    expect(ship.setpoints.ftl).toStrictEqual({ armed: false, jump: null });
-    const keys = Object.keys(ship);
-    expect(keys.indexOf('ftl')).toBe(keys.indexOf('helm') + 1);
-    const setpoints = Object.keys(ship.setpoints);
-    expect(setpoints.indexOf('ftl')).toBe(setpoints.indexOf('helm') + 1);
-    expect(Object.isFrozen(ship.ftl)).toBe(true);
-    expect(Object.isFrozen(ship.setpoints.ftl)).toBe(true);
-  });
-});
-
-describe('ShipStateStore weapons', () => {
-  it('starts the weapons record idle and the setpoints unarmed after comms, frozen', () => {
-    const ship = new ShipStateStore(plan).snapshot();
-    expect(ship.weapons).toStrictEqual({
-      status: 'idle',
-      charge: 0,
-      shots: 0,
-      hits: 0,
-      lastShot: null,
-    });
-    expect(ship.setpoints.weapons).toStrictEqual({ armed: false, range: null });
-    const keys = Object.keys(ship);
-    expect(keys.indexOf('weapons')).toBe(keys.indexOf('comms') + 1);
-    const setpoints = Object.keys(ship.setpoints);
-    expect(setpoints.indexOf('weapons')).toBe(setpoints.indexOf('comms') + 1);
-    expect(Object.isFrozen(ship.weapons)).toBe(true);
-    expect(Object.isFrozen(ship.setpoints.weapons)).toBe(true);
-  });
-});
-
 describe('ShipStateStore register', () => {
-  /** A store whose drive record reads `charge` J, as a running drive leaves it. */
-  function charged(charge: number): ShipStateStore {
-    const store = new ShipStateStore(plan);
-    const ship = store.snapshot();
-    store.commit({
-      ...ship,
-      ftl: { status: 'spooling', charge, sector: 'Sol', jumped: null },
-    });
-    return store;
-  }
-
   it('writes the record and its setpoints into the current snapshot, frozen', () => {
-    const store = charged(5);
+    const store = shipState(plan);
     store.register(FTL_RECORD);
     const ship = store.snapshot();
     expect(ship.ftl).toStrictEqual(FTL_RECORD.records.ftl);
@@ -611,8 +486,20 @@ describe('ShipStateStore register', () => {
     }
   });
 
+  it('drops a key no register holds from a commit, so a register starts from the record it gets', () => {
+    const store = shipState(plan);
+    const ship = store.snapshot();
+    store.commit({
+      ...ship,
+      ftl: { status: 'spooling', charge: 5, sector: 'Sol', jumped: null },
+    });
+    expect(store.snapshot()).not.toHaveProperty('ftl');
+    store.register(FTL_RECORD);
+    expect(store.snapshot().ftl).toStrictEqual(FTL_RECORD.records.ftl);
+  });
+
   it('removes the keys on unregister, twice safely, and keeps the other records', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     const unregister = store.register(FTL_RECORD);
     const before = store.snapshot();
     unregister();
@@ -625,7 +512,7 @@ describe('ShipStateStore register', () => {
   });
 
   it('drops the pending change of a key it unregisters', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     const unregister = store.register(FTL_RECORD);
     store.queue({ ftl: { armed: true } });
     unregister();
@@ -643,8 +530,82 @@ describe('ShipStateStore register', () => {
     ]);
   });
 
+  it('puts the record and its setpoints in code-unit order between the others', () => {
+    const store = shipState(plan);
+    store.register(FTL_RECORD);
+    const ship = store.snapshot();
+    expect(Object.keys(ship).slice(5, 8)).toEqual(['drive', 'ftl', 'helm']);
+    expect(Object.keys(ship.setpoints).slice(1, 4)).toEqual([
+      'drive',
+      'ftl',
+      'helm',
+    ]);
+  });
+
+  it('keeps a registered record in a snapshot the caller built before the register', () => {
+    const store = shipState(plan);
+    const before = store.snapshot();
+    store.register(FTL_RECORD);
+    const next = { ...before, tick: 1, time: 0.5 };
+    store.commit(next);
+    const ship = store.snapshot();
+    expect(ship.tick).toBe(1);
+    expect(ship.ftl).toStrictEqual(FTL_RECORD.records.ftl);
+    expect(ship.setpoints.ftl).toStrictEqual(FTL_RECORD.setpoints.ftl);
+    expect(Object.keys(ship).slice(5, 8)).toEqual(['drive', 'ftl', 'helm']);
+  });
+
+  it('drops an unregistered record from a snapshot the caller built before the unregister', () => {
+    const store = shipState(plan);
+    const unregister = store.register(FTL_RECORD);
+    const before = store.snapshot();
+    unregister();
+    store.commit({ ...before, tick: 1, time: 0.5 });
+    expect(store.snapshot()).not.toHaveProperty('ftl');
+    expect(store.snapshot().setpoints).not.toHaveProperty('ftl');
+  });
+
+  it('commits a snapshot that holds the keys it holds as it is', () => {
+    const store = shipState(plan);
+    const next = { ...store.snapshot(), tick: 1, time: 0.5 };
+    store.commit(next);
+    expect(store.snapshot()).toBe(next);
+  });
+
+  it.each(['tick', 'time', 'compartments', 'setpoints'])(
+    'refuses a contribution that holds the kernel key %s with a plain Error',
+    (key) => {
+      const records = [
+        ...shipRecords(plan),
+        { records: { [key]: 0 }, setpoints: {} },
+      ];
+      const refuse = () => new ShipStateStore(plan, records);
+      expect(refuse).toThrow(
+        `A ship record cannot hold the snapshot's own key '${key}'.`,
+      );
+      expect(refuse).toThrow(
+        expect.objectContaining({ constructor: Error, name: 'Error' }),
+      );
+    },
+  );
+
+  it('refuses a register that holds a kernel key', () => {
+    expect(() =>
+      shipState(plan).register({
+        records: Object.fromEntries([['tick', 3]]),
+        setpoints: {},
+      }),
+    ).toThrow("A ship record cannot hold the snapshot's own key 'tick'.");
+  });
+
+  it('refuses a key a contribution holds', () => {
+    expect(() => shipState(plan).register(COMMS_RECORD)).toThrow(
+      "Two ship records hold the key 'comms'.",
+    );
+  });
+
   it('refuses a key an earlier register holds until it unregisters', () => {
-    const store = new ShipStateStore(plan);
+    const store = shipState(plan);
     const unregister = store.register(FTL_RECORD);
     expect(() => store.register(FTL_RECORD)).toThrow(
       "Two ship records hold the key 'ftl'.",

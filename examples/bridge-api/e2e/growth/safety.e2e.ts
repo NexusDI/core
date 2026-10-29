@@ -58,15 +58,15 @@ describe.each(FRAMEWORKS)('safety on %s', (framework) => {
       await queue(url, pump('evacuate'), 1);
 
       // At tick 120 the airlock holds 37,095.6 Pa against the habitat's
-      // 107,681.0 Pa.
+      // 107,676.3 Pa.
       await advance(url, 120, 120);
-      await refused(url, '70,585');
+      await refused(url, '70,581');
       await queue(url, pump('fill'), 121);
 
       await advance(url, 68, 188);
-      await refused(url, '5,323');
+      await refused(url, '5,320');
 
-      // At tick 189 the difference is 4,391 Pa, under the limit.
+      // At tick 189 the difference is 4,388 Pa, under the limit.
       await advance(url, 1, 189);
       const opened = await post(url, '/commands', door('open'));
       expect(opened.status).toBe(202);
@@ -76,8 +76,8 @@ describe.each(FRAMEWORKS)('safety on %s', (framework) => {
       });
       await queue(url, pump('off'), 190);
 
-      // At tick 209 the model gives 101,250.9 Pa in the habitat and
-      // 101,172.4 Pa in the airlock.
+      // At tick 209 the model gives 101,240.0 Pa in the habitat and
+      // 101,212.0 Pa in the airlock.
       await advance(url, 20, 209);
       const ship = await readShip(url);
       expect(ship.setpoints.safety.doors['habitat-airlock']).toBe(true);

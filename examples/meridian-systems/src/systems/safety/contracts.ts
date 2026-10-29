@@ -10,7 +10,7 @@ export const SAFETY_SYSTEM = 'safety';
  * after "It takes".
  */
 export const SAFETY_ACTIONS =
-  'open and close with a door of bridge-habitat, habitat-reactor-bay, habitat-airlock or airlock-outer, and flood and drill with a compartment of bridge, habitat or reactor-bay';
+  'open and close with a door of bridge-habitat, habitat-airlock, airlock-outer, bridge-chart-room, bridge-computer-core, habitat-quarters, habitat-comms-relay, airlock-shuttle-bay, shuttle-bay-outer, shuttle-bay-drone-bay, drone-bay-outer, habitat-engineering, engineering-capacitor-room, engineering-ftl-core, engineering-reactor-bay or reactor-bay-main-drive, and flood and drill with a compartment of bridge, habitat, reactor-bay, chart-room, computer-core, quarters, comms-relay, capacitor-room, engineering, ftl-core or main-drive';
 
 /** Every alarm the safety step raises, in the order it evaluates them for a room. */
 export type AlarmCode =

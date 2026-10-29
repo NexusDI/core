@@ -26,7 +26,7 @@ export interface LifeSupportReading {
 }
 
 /**
- * The snapshot and the four analyzer reads, all in flight at once. A call
+ * The snapshot and an analyzer read of each compartment, all in flight at once. A call
  * that fails leaves its part null, and the page shows that part offline.
  */
 export const lifeSupportLoader: (

@@ -9,7 +9,8 @@ import type {
   TickListener,
 } from '../simulation/contracts';
 import { readShip } from '../simulation/read-ship';
-import { ShipStateStore } from '../simulation/ship-state-store';
+import type { ShipStateStore } from '../simulation/ship-state-store';
+import { shipState } from '../../test/ship-state';
 
 import type { TelemetrySink } from './contracts';
 import { SnapshotFeed } from './snapshot-feed';
@@ -47,7 +48,7 @@ class RecordingSink implements TelemetrySink {
 function build() {
   const loop = new FakeLoop();
   const plan: DeckPlan = deck;
-  const state = new ShipStateStore(plan);
+  const state = shipState(plan);
   const feed = new SnapshotFeed(loop, state, plan);
   feed.onInit();
   return { loop, state, feed };

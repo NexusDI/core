@@ -5,7 +5,7 @@ import deck from '../../../deck/meridian.deck.json';
 import { InterlockError } from '../../errors';
 import { AIR, molesAt } from '../../physics/gas';
 import type { CompartmentId, DeckPlan } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import { PressureInterlock } from './pressure-interlock';
 
@@ -13,7 +13,7 @@ const plan = deck satisfies DeckPlan;
 
 /** An interlock over the deck's ship with the airlock at `pa` Pa. */
 function build(pa = 101_300) {
-  const state = new ShipStateStore(plan);
+  const state = shipState(plan);
   const ship = state.snapshot();
   const room = plan.compartments.find((entry) => entry.id === 'airlock');
   if (!room) throw new Error('the deck has no airlock');
@@ -96,7 +96,7 @@ describe('PressureInterlock', () => {
   });
 
   it('reads the committed snapshot on each call', () => {
-    const state = new ShipStateStore(plan);
+    const state = shipState(plan);
     const interlock = new PressureInterlock(state, plan);
     const ship = state.snapshot();
     const habitat = ship.compartments.habitat;

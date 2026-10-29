@@ -30,15 +30,37 @@ export const COMPARTMENT_IDS = [
   'habitat',
   'reactor-bay',
   'airlock',
+  'chart-room',
+  'computer-core',
+  'quarters',
+  'comms-relay',
+  'shuttle-bay',
+  'drone-bay',
+  'capacitor-room',
+  'engineering',
+  'ftl-core',
+  'main-drive',
 ] as const;
 export type CompartmentId = (typeof COMPARTMENT_IDS)[number];
 
 /** Every door of the ship. `checkDeckPlan` checks the deck's doors against this list. */
 export const DOOR_IDS = [
   'bridge-habitat',
-  'habitat-reactor-bay',
   'habitat-airlock',
   'airlock-outer',
+  'bridge-chart-room',
+  'bridge-computer-core',
+  'habitat-quarters',
+  'habitat-comms-relay',
+  'airlock-shuttle-bay',
+  'shuttle-bay-outer',
+  'shuttle-bay-drone-bay',
+  'drone-bay-outer',
+  'habitat-engineering',
+  'engineering-capacitor-room',
+  'engineering-ftl-core',
+  'engineering-reactor-bay',
+  'reactor-bay-main-drive',
 ] as const;
 export type DoorId = (typeof DOOR_IDS)[number];
 
@@ -155,6 +177,11 @@ export interface ISimClock {
 
 export interface IShipState {
   snapshot(): ShipSnapshot;
+  /**
+   * Makes `next` the current snapshot with the record and setpoint keys the
+   * contributions and the registers hold now, so a register or an unregister
+   * during a tick reaches the snapshot the tick commits.
+   */
   commit(next: ShipSnapshot): void;
   /**
    * Merges `change` over the change pending for the next tick, level by

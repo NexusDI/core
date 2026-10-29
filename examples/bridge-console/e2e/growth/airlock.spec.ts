@@ -11,8 +11,8 @@ test('cycles the airlock under the interlock on /airlock', async ({
   const seen = problems(page);
   // The growth cases share one manual ship, which keeps its tick and its state
   // across the cases. Life support is online by now, and the airlock holds the
-  // habitat's air with both doors shut. Each command queues for the tick after
-  // the one the ship holds when the command goes out.
+  // habitat's air with every airlock door shut. Each command queues for the
+  // tick after the one the ship holds when the command goes out.
   const { tick } = (await (
     await request.get(`${bridgeApi}/sim`)
   ).json()) as ShipReading;

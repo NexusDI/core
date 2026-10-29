@@ -50,6 +50,7 @@ const venting: ShipReading = {
   tick: 318,
   time: 159,
   compartments: {
+    ...shipAtStart.compartments,
     bridge: {
       ...shipAtStart.compartments.bridge,
       temperature: 292.8509719320864,
@@ -88,13 +89,14 @@ const venting: ShipReading = {
 
 /**
  * The ship at tick 446 of the same drill, with the pump filling. The vent and
- * both airlock doors are shut.
+ * every airlock door are shut.
  */
 const filling: ShipReading = {
   ...venting,
   tick: 446,
   time: 223,
   compartments: {
+    ...venting.compartments,
     bridge: {
       ...venting.compartments.bridge,
       temperature: 292.81705395283814,
@@ -131,7 +133,7 @@ const filling: ShipReading = {
 };
 
 describe('the airlock gauges', () => {
-  test('show the pump off and the vent shut, with both doors shut, at tick 0', async ({
+  test('show the pump off and the vent shut, with every airlock door shut, at tick 0', async ({
     renderRoute,
   }) => {
     await renderPage(renderRoute);
@@ -142,6 +144,11 @@ describe('the airlock gauges', () => {
       '101.3 kPa',
     ]);
     expect(await gauges('airlock-outer door')).toEqual([
+      'Shut',
+      '101.3 kPa',
+      '0.0 kPa',
+    ]);
+    expect(await gauges('airlock-shuttle-bay door')).toEqual([
       'Shut',
       '101.3 kPa',
       '0.0 kPa',
@@ -180,14 +187,19 @@ describe('the airlock gauges', () => {
     ]);
   });
 
-  test('list the two airlock doors and no other', async ({ renderRoute }) => {
+  test('list the three airlock doors and no other', async ({ renderRoute }) => {
     await renderPage(renderRoute);
     expect(screen.queryByLabelText('bridge-habitat door')).toBeNull();
-    expect(screen.queryByLabelText('habitat-reactor-bay door')).toBeNull();
+    expect(screen.queryByLabelText('engineering-reactor-bay door')).toBeNull();
+    expect(screen.queryByLabelText('shuttle-bay-outer door')).toBeNull();
     const options = [
       ...screen.getByLabelText<HTMLSelectElement>('Door').options,
     ].map((option) => option.value);
-    expect(options).toEqual(['habitat-airlock', 'airlock-outer']);
+    expect(options).toEqual([
+      'habitat-airlock',
+      'airlock-outer',
+      'airlock-shuttle-bay',
+    ]);
   });
 
   test('head each section at the second level', async ({ renderRoute }) => {

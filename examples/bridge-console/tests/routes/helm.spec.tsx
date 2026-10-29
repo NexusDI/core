@@ -10,6 +10,7 @@ import {
   FakeBridgeLink,
   linkAt,
   shipAtStart,
+  idleLoads,
 } from '../doubles';
 import { test, withLink, type RenderRoute } from '../support/console';
 
@@ -36,14 +37,14 @@ async function gauges(label: string) {
   return [...list.querySelectorAll('dd')].map((dd) => dd.textContent);
 }
 
-/** The tick-0 power record with the loads in `grants` asking and granted watts. */
+/** The idle power record with the loads in `grants` asking and granted watts. */
 function loadsOf(
   grants: Record<string, readonly [demand: number, allocated: number]>,
   shed: string[] = [],
 ): ShipReading['power'] {
   return {
     ...shipAtStart.power,
-    loads: shipAtStart.power.loads.map((load) => {
+    loads: idleLoads.map((load) => {
       const grant = grants[load.id];
       return grant === undefined
         ? load

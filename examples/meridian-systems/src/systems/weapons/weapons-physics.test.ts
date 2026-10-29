@@ -7,14 +7,14 @@ import type {
   ShipSnapshot,
   TickContext,
 } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
 import { LITHIUM_LOOP } from '../engineering/engineering-model';
+import { shipState } from '../../../test/ship-state';
 
 import type { IWeaponMount } from './contracts';
 import { RAILGUN } from './weapons-model';
 import { WeaponsPhysics } from './weapons-physics';
 
-const idle = new ShipStateStore(deck satisfies DeckPlan).snapshot();
+const idle = shipState(deck satisfies DeckPlan).snapshot();
 
 /** 0.0899 K: a quarter of the 300 MJ shot over the loop's heat capacity. */
 const PULSE_KELVIN =
@@ -52,11 +52,7 @@ const waiting: ShipSnapshot = {
   weapons: { ...idle.weapons, status: 'charging', charge: 150e6 },
   power: {
     ...idle.power,
-    loads: idle.power.loads.map((entry) =>
-      entry.id === 'railgun'
-        ? { ...entry, demand: 300e6, allocated: 300e6 }
-        : entry,
-    ),
+    loads: [{ id: 'railgun', priority: 6, demand: 300e6, allocated: 300e6 }],
   },
   setpoints: { ...idle.setpoints, weapons: { armed: true, range: 10_000 } },
 };

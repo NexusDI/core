@@ -10,6 +10,7 @@ import {
   FakeBridgeLink,
   linkAt,
   shipAtStart,
+  idleLoads,
 } from '../doubles';
 import { test, withLink, type RenderRoute } from '../support/console';
 
@@ -47,10 +48,7 @@ function spoolLoad(
 ): ShipReading['power'] {
   return {
     ...shipAtStart.power,
-    loads: [
-      ...shipAtStart.power.loads,
-      { id: 'ftl-spool', priority: 7, demand, allocated },
-    ],
+    loads: [...idleLoads, { id: 'ftl-spool', priority: 7, demand, allocated }],
     shed,
   };
 }
@@ -104,18 +102,19 @@ const jumped: ShipReading = {
   time: 150.5,
   power: spoolLoad(0, 0),
   ftl: { status: 'idle', charge: 0, sector: 'Kepler-442b', jumped: 301 },
+  setpoints: { ...shipAtStart.setpoints, ftl: { armed: false, jump: null } },
 };
 
-const idle = ['offline', 'No', '0.0 GJ', '0.0 MW', 'Sol', 'none'] as const;
-
 describe('the FTL gauges', () => {
-  test('read the ship with no drive at tick 0', async ({ renderRoute }) => {
+  test('show the status alone on a ship that has not loaded the drive', async ({
+    renderRoute,
+  }) => {
     await renderPage(renderRoute);
-    expect(await gauges('FTL gauges')).toEqual(idle);
+    expect(await gauges('FTL gauges')).toEqual(['not loaded']);
   });
 
-  test('name each gauge', async ({ renderRoute }) => {
-    await renderPage(renderRoute);
+  test('name each gauge of a loaded drive', async ({ renderRoute }) => {
+    await renderPage(renderRoute, withLink(linkAt(spooling)));
     const names = [
       ...(await screen.findByLabelText('FTL gauges')).querySelectorAll('dt'),
     ].map((dt) => dt.textContent);

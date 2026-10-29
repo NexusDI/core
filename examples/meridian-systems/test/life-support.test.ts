@@ -104,7 +104,9 @@ describe('LifeSupport', () => {
     expect(next.setpoints.lifeSupport.online).toBe(true);
     expect(next.power.shed).toEqual(['life-support']);
     expect(lifeSupportLoad(next)).toMatchObject({ allocated: 0 });
-    expect(next.lifeSupport.heaters).toEqual({ bridge: 0, habitat: 0 });
+    expect(Object.values(next.lifeSupport.heaters)).toEqual(
+      Array.from({ length: 10 }, () => 0),
+    );
   });
 
   test('pumps the airlock down and holds it once the pump stalls', ({
@@ -193,14 +195,14 @@ describe('LifeSupport', () => {
     expect(loop.advance(120).compartments).toEqual(stopped.compartments);
   });
 
-  test('holds the habitat at 292.6 K after an hour online at throttle 0.01', ({
+  test('holds the habitat at 292.5 K after an hour online at throttle 0.01', ({
     nexus: ship,
   }) => {
     const desk = ship.get(COMMAND_DESK);
     throttle(desk, 0.01);
     online(desk);
     const hour = ship.get(TICK_LOOP).advance(7_200);
-    expect(hour.compartments.habitat.temperature.toFixed(1)).toBe('292.6');
+    expect(hour.compartments.habitat.temperature.toFixed(1)).toBe('292.5');
     expect(hour.power.shed).toEqual([]);
   });
 });
