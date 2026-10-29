@@ -1,12 +1,15 @@
 import { defineModule, provide } from '@nexusdi/core';
 import {
   type Alarm,
+  COMMAND_DESK,
   FTL_DRIVE,
+  FtlCommands,
   type FtlRating,
   type FtlRecord,
   type IAlarmSink,
   type IAtmosphereProbe,
   type IAtmosphereSensor,
+  type ICommandDesk,
   type IFtlDrive,
   type IShipState,
   type ISubspaceLink,
@@ -110,7 +113,7 @@ export class FixedLink implements ISubspaceLink {
  * 0 W, and every field is finite, so a telemetry frame carries it as JSON.
  */
 export class FakeJumpDrive implements IFtlDrive, Disposable {
-  static deps = [TICK_LOOP, SHIP_STATE] as const;
+  static deps = [TICK_LOOP, SHIP_STATE, COMMAND_DESK] as const;
 
   readonly rating: FtlRating = {
     energy: 90e9,
@@ -120,19 +123,24 @@ export class FakeJumpDrive implements IFtlDrive, Disposable {
     coolantLimit: Number.MAX_VALUE,
   };
 
-  private unregister: () => void = () => {};
+  private readonly unregisters: (() => void)[] = [];
 
   constructor(
     private readonly loop: ITickLoop,
     private readonly state: IShipState,
+    private readonly desk: ICommandDesk,
   ) {}
 
+  /** Registers its step with the loop and the library's FTL commands with the desk. */
   onInit(): void {
-    this.unregister = this.loop.register({
-      name: 'FtlDrive',
-      phase: 3,
-      step: (ship, tick) => this.step(ship, tick),
-    });
+    this.unregisters.push(
+      this.loop.register({
+        name: 'FtlDrive',
+        phase: 3,
+        step: (ship, tick) => this.step(ship, tick),
+      }),
+    );
+    this.unregisters.push(this.desk.register(new FtlCommands(() => this)));
   }
 
   spool(): QueuedCommand {
@@ -144,7 +152,9 @@ export class FakeJumpDrive implements IFtlDrive, Disposable {
   }
 
   [Symbol.dispose](): void {
-    this.unregister();
+    for (const unregister of this.unregisters.splice(0).reverse()) {
+      unregister();
+    }
   }
 
   private step(ship: ShipSnapshot, { tick }: TickContext): ShipSnapshot {

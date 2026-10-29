@@ -1,6 +1,8 @@
 import { Token } from '@nexusdi/core';
 
-import type { QueuedCommand } from '../../simulation/commands';
+import type { ICommandHandler, QueuedCommand } from '../../simulation/commands';
+import type { IShipSystem } from '../../simulation/contracts';
+import type { IPowerConsumer } from '../engineering/contracts';
 
 /** The name the FTL drive answers to on the command desk. */
 export const FTL_SYSTEM = 'ftl';
@@ -72,3 +74,9 @@ export interface IFtlDrive {
 }
 
 export const FTL_DRIVE = new Token<IFtlDrive>('FtlDrive');
+/** The drive's step, which `JumpDrive` registers with the tick loop. `FtlDrive` keeps it private. */
+export const FTL_PHYSICS = new Token<IShipSystem>('FtlPhysics');
+/** The drive's load, which `JumpDrive` registers with the power router. `FtlDrive` keeps it private. */
+export const FTL_POWER = new Token<IPowerConsumer>('FtlPower');
+/** The drive's commands, which `JumpDrive` registers with the desk. `FtlDrive` keeps them private. */
+export const FTL_COMMANDS = new Token<ICommandHandler>('FtlCommands');

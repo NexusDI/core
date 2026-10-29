@@ -3,39 +3,22 @@ import {
   FTL_DRIVE,
   type FtlRating,
   type IFtlDrive,
-  type QueuedCommand,
 } from '@nexusdi/meridian-systems';
 
-import { fieldOf } from './json-body';
-import { type RefusedReply, refusedReply } from './refusal';
 import type { FrameRating } from './telemetry-stream';
 
-/** The status and body `POST /ftl/spool` and `POST /ftl/jump` answer. */
-export type FtlReply =
-  { readonly status: 202; readonly body: QueuedCommand } | RefusedReply;
-
-/** Runs one drive command: 202 with its tick, or the reply of its refusal. */
-function answer(command: () => QueuedCommand): FtlReply {
-  try {
-    return { status: 202, body: command() };
-  } catch (error) {
-    return refusedReply(error);
-  }
+/** The body `POST /sections/ftl` answers once the drive has loaded. */
+export interface FtlSectionReply {
+  readonly rating: FtlRating;
 }
 
-/** Arms the spool of `drive`. */
-export const answerSpool = (drive: IFtlDrive): FtlReply =>
-  answer(() => drive.spool());
-
 /**
- * Jumps `drive` to the star `to` of `body`. A body with no string `to` jumps
- * to '', a star no chart holds, so the drive words the refusal.
+ * The answer of `POST /sections/ftl`: the rating of the drive bound to
+ * FTL_DRIVE. From then on the desk serves `ftl` on `POST /commands`.
  */
-export const answerJump = (drive: IFtlDrive, body: unknown): FtlReply =>
-  answer(() => {
-    const to = fieldOf(body, 'to');
-    return drive.jump(typeof to === 'string' ? to : '');
-  });
+export const answerFtlSection = (drive: IFtlDrive): FtlSectionReply => ({
+  rating: drive.rating,
+});
 
 /**
  * The FTL rating of each telemetry frame, read through the stream's request

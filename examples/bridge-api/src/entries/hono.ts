@@ -21,7 +21,7 @@ import { HTTPException } from 'hono/http-exception';
 import { answerAtmosphere } from '../bridge/atmosphere';
 import { answerCommand } from '../bridge/commands';
 import { compartmentOf } from '../bridge/compartment-of';
-import { answerJump, answerSpool, ftlRating } from '../bridge/ftl';
+import { answerFtlSection, ftlRating } from '../bridge/ftl';
 import { readJson } from '../bridge/json-body';
 import { MISSION_HEADER, requestOf } from '../bridge/mission';
 import type { BridgeOptions } from '../bridge/options';
@@ -56,8 +56,8 @@ export function createBridge(
     maxSize: SIM_BODY_LIMIT,
     onError: (c) => c.body(null, 413),
   });
-  // The drive loads on the first FTL request, and the section extends a
-  // request scope that opened before the load.
+  // POST /sections/ftl loads the drive, and the section extends a request
+  // scope that opened before the load.
   const ftl = di.load(FtlDrive);
   const bridge = new Hono<NexusEnv>();
 
@@ -161,24 +161,11 @@ export function createBridge(
     ),
   );
   bridge.post(
-    '/ftl/spool',
+    '/sections/ftl',
     ftl,
-    ftl.inject({ drive: FTL_DRIVE }, ({ drive }, c) => {
-      const answer = answerSpool(drive);
-      return c.json(answer.body, answer.status);
-    }),
-  );
-  bridge.post(
-    '/ftl/jump',
-    limit,
-    ftl,
-    ftl.inject({ drive: FTL_DRIVE }, async ({ drive }, c) => {
-      const answer = answerJump(
-        drive,
-        readJson(c.req.header('content-type'), await c.req.text()),
-      );
-      return c.json(answer.body, answer.status);
-    }),
+    ftl.inject({ drive: FTL_DRIVE }, ({ drive }, c) =>
+      c.json(answerFtlSection(drive)),
+    ),
   );
   return bridge;
 }

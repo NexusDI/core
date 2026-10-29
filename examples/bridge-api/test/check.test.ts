@@ -178,7 +178,7 @@ describe('the bridge API graph', () => {
     for (const provider of bridgeProviders) expect(provider.notes).toEqual([]);
   });
 
-  it('labels the loaded FTL drive with its system in the development graph', async () => {
+  it('labels the loaded FTL drive and its parts with their system in the development graph', async () => {
     await using ship = await Nexus.create(offlineMeridian(), {
       plugins: bridgePlugins({ dev: true }),
     });
@@ -189,7 +189,12 @@ describe('the bridge API graph', () => {
       providers
         .filter((p) => p.module === ftl?.id)
         .map((p) => [p.token, p.notes]),
-    ).toEqual([['FtlDrive', ['system: FtlDrive']]]);
+    ).toEqual(
+      ['FtlDrive', 'FtlPhysics', 'FtlPower', 'FtlCommands'].map((token) => [
+        token,
+        ['system: FtlDrive'],
+      ]),
+    );
   });
 
   it('fails the check when a provider has no MISSION to read', () => {

@@ -1,5 +1,6 @@
 import {
   FTL_DRIVE,
+  type ICommandDesk,
   type IShipState,
   type IShipSystem,
   type ITickLoop,
@@ -34,7 +35,7 @@ async function frameAt(
 }
 
 describe.each(FRAMEWORKS)('the telemetry stream on %s', (framework) => {
-  test('sends the rating of the drive a spool loads after the stream opened', async () => {
+  test('sends the rating of the drive a section request loads after the stream opened', async () => {
     const scopes = nodeScopes();
     await using ship = await scopedShip(scopes);
     const bridge = await servers[framework](ship, scopes);
@@ -58,9 +59,7 @@ describe.each(FRAMEWORKS)('the telemetry stream on %s', (framework) => {
       expect(first.ftl.status).toBe('offline');
       expect(first).not.toHaveProperty('ftlRating');
 
-      // The cold reactor refuses the spool, and the section has loaded
-      // the drive by then.
-      expect((await post('/ftl/spool')).status).toBe(409);
+      expect((await post('/sections/ftl')).status).toBe(200);
       expect((await post('/sim/advance', json({ ticks: 1 }))).status).toBe(200);
       const loaded = await frameAt(stream, 1);
       expect(loaded.tick).toBe(1);
@@ -92,14 +91,15 @@ describe.each(FRAMEWORKS)('the simulated drive on %s', (framework) => {
     await using ship = await simulatedShip();
     const advance = () =>
       call(ship, 'POST', '/sim/advance', json({ ticks: 1 }));
-    expect(await call(ship, 'POST', '/ftl/spool')).toEqual({
-      status: 202,
-      body: { tick: 1 },
-    });
+    const ftl = (action: string, args: object = {}) =>
+      call(ship, 'POST', '/commands', json({ system: 'ftl', action, ...args }));
+    expect((await call(ship, 'POST', '/sections/ftl')).status).toBe(200);
+    expect(await ftl('spool')).toEqual({ status: 202, body: { tick: 1 } });
     await advance();
-    expect(
-      await call(ship, 'POST', '/ftl/jump', json({ to: 'Proxima-b' })),
-    ).toEqual({ status: 202, body: { tick: 2 } });
+    expect(await ftl('jump', { to: 'Proxima-b' })).toEqual({
+      status: 202,
+      body: { tick: 2 },
+    });
     await advance();
     const reading = (await call(ship, 'GET', '/sim')).body as ShipReading;
     expect(reading.ftl).toEqual({
@@ -126,7 +126,16 @@ describe.each(FRAMEWORKS)('the simulated drive on %s', (framework) => {
       expect(first.ftl.status).toBe('offline');
       expect(first).not.toHaveProperty('ftlRating');
       expect(
-        (await fetch(`${bridge.url}/ftl/spool`, { method: 'POST' })).status,
+        (await fetch(`${bridge.url}/sections/ftl`, { method: 'POST' })).status,
+      ).toBe(200);
+      expect(
+        (
+          await fetch(`${bridge.url}/commands`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ system: 'ftl', action: 'spool' }),
+          })
+        ).status,
       ).toBe(202);
       await fetch(`${bridge.url}/sim/advance`, {
         method: 'POST',
@@ -166,7 +175,8 @@ test('the simulated drive writes idle once after the load and keeps a charged ar
       return () => {};
     },
   } as unknown as ITickLoop;
-  new FakeJumpDrive(loop, {} as IShipState).onInit();
+  const desk = { register: () => () => {} } as unknown as ICommandDesk;
+  new FakeJumpDrive(loop, {} as IShipState, desk).onInit();
   const step = (ship: ShipSnapshot) =>
     system?.step(ship, { tick: 1 } as TickContext);
   const shipAt = (status: 'offline' | 'charged', armed: boolean) =>

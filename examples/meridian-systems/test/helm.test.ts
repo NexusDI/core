@@ -5,6 +5,7 @@ import { meridianSystems } from '../src/meridian-systems.module';
 import { toRadians, wrap } from '../src/systems/helm/helm-model';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
 import { SHIP_STATE, TICK_LOOP } from '../src/simulation/contracts';
+import { FtlDrive } from '../src/systems/ftl/ftl-drive.module';
 import { HELM, HELM_ACTIONS, THRUSTERS } from '../src/systems/helm/contracts';
 import { MAIN_DRIVE } from '../src/systems/propulsion/contracts';
 import { BUNDLED_CHARTS } from '../src/systems/tactical/star-charts';
@@ -30,7 +31,7 @@ afterEach(() => {
 });
 
 describe('the helm and the drive', () => {
-  test('builds with the helm and the drive and lists helm on the desk', ({
+  test('builds with the helm and the drive and lists helm on the desk', async ({
     nexus: ship,
   }) => {
     expect(() => Nexus.check(meridianSystems(SHIP_OPTIONS))).not.toThrow();
@@ -45,6 +46,16 @@ describe('the helm and the drive', () => {
       expect.objectContaining({
         reason: 'system',
         expected: 'comms, engineering, helm, life-support, safety and weapons',
+      }),
+    );
+    await ship.load(FtlDrive);
+    expect(() =>
+      ship.get(COMMAND_DESK).submit({ system: 'warp-core', action: 'engage' }),
+    ).toThrow(
+      expect.objectContaining({
+        reason: 'system',
+        expected:
+          'comms, engineering, ftl, helm, life-support, safety and weapons',
       }),
     );
   });

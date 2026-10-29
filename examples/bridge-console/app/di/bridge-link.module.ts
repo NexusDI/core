@@ -12,6 +12,7 @@ import type { NexusGraph } from '@nexusdi/devtools';
 import type {
   AtmosphereReading,
   CompartmentId,
+  FtlRating,
   ShipCommand,
   ShipReading,
 } from '@nexusdi/meridian-systems';
@@ -76,18 +77,18 @@ class BridgeApiLink implements IBridgeLink {
   async command(cmd: ShipCommand): Promise<CommandAnswer> {
     return this.#post('commands', cmd);
   }
-  async spool(): Promise<CommandAnswer> {
-    return this.#post('ftl/spool');
-  }
-  async jump(to: string): Promise<CommandAnswer> {
-    return this.#post('ftl/jump', { to });
+  async loadFtl(): Promise<FtlRating> {
+    const url = new URL('sections/ftl', this.options.url);
+    const res = await this.#fetch(url, 'POST');
+    if (res.status !== 200) throw await rejection(res, url);
+    return ((await res.json()) as { rating: FtlRating }).rating;
   }
 
   /**
    * Posts `body` as JSON to `path` and reads the answer: 202 is the queued
    * tick, 400 and 409 are the backend's refusal, and any other status rejects.
    */
-  async #post(path: string, body?: unknown): Promise<CommandAnswer> {
+  async #post(path: string, body: unknown): Promise<CommandAnswer> {
     const url = new URL(path, this.options.url);
     const res = await fetch(url, {
       method: 'POST',
@@ -124,9 +125,10 @@ class BridgeApiLink implements IBridgeLink {
     return this.#ok(await this.#fetch(url), url);
   }
 
-  /** Fetches `url` with the request's mission and abort signal. */
-  #fetch(url: URL) {
+  /** Sends `method` to `url` with no body, the request's mission and its abort signal. */
+  #fetch(url: URL, method: 'GET' | 'POST' = 'GET') {
     return fetch(url, {
+      method,
       headers: { [MISSION_HEADER]: this.request.mission.id },
       signal: this.request.signal,
     });

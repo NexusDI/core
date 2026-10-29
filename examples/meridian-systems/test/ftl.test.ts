@@ -1,18 +1,35 @@
-import { Nexus } from '@nexusdi/core';
+import { defineModule, Nexus, provide } from '@nexusdi/core';
 import { describe, expect, vi } from 'vitest';
 
 import { meridianSystems } from '../src/meridian-systems.module';
 import { LITHIUM_LOOP } from '../src/systems/engineering/engineering-model';
-import { COMMAND_DESK } from '../src/simulation/commands';
+import {
+  COMMAND_DESK,
+  COMMAND_HANDLERS,
+  type ICommandHandler,
+  type QueuedCommand,
+} from '../src/simulation/commands';
 import {
   SHIP_STATE,
   SHIP_SYSTEMS,
   type ShipSnapshot,
   TICK_LOOP,
 } from '../src/simulation/contracts';
-import { POWER_ROUTER } from '../src/systems/engineering/contracts';
-import { FTL_DRIVE } from '../src/systems/ftl/contracts';
+import {
+  POWER_CONSUMERS,
+  POWER_ROUTER,
+} from '../src/systems/engineering/contracts';
+import {
+  FTL_COMMANDS,
+  FTL_DRIVE,
+  FTL_PHYSICS,
+  FTL_POWER,
+  type IFtlDrive,
+} from '../src/systems/ftl/contracts';
 import { FtlDrive } from '../src/systems/ftl/ftl-drive.module';
+import { FtlPhysics } from '../src/systems/ftl/ftl-physics';
+import { FtlPower } from '../src/systems/ftl/ftl-power';
+import { JumpDrive } from '../src/systems/ftl/jump-drive';
 
 import { shipTest } from './fixtures';
 import { loadOf, SHIP_OPTIONS, throttle } from './support';
@@ -62,17 +79,20 @@ describe('the FTL drive', () => {
     expect(() => Nexus.check(FtlDrive)).toThrow(
       expect.objectContaining({
         code: 'NEXUS_BLUEPRINT_INVALID',
-        errors: ['TickLoop', 'ShipState', 'NavCharts', 'PowerRouter'].map(
-          (token) =>
-            expect.objectContaining({ code: 'NEXUS_MISSING_PROVIDER', token }),
+        errors: [
+          'TickLoop',
+          'ShipState',
+          'NavCharts',
+          'PowerRouter',
+          'CommandDesk',
+        ].map((token) =>
+          expect.objectContaining({ code: 'NEXUS_MISSING_PROVIDER', token }),
         ),
       }),
     );
   });
 
-  test('loads once, registers a load at 0 W and keeps the desk list', async ({
-    nexus: ship,
-  }) => {
+  test('loads once and registers a load at 0 W', async ({ nexus: ship }) => {
     const loop = ship.get(TICK_LOOP);
     expect(ship.has(FTL_DRIVE)).toBe(false);
 
@@ -123,20 +143,97 @@ describe('the FTL drive', () => {
     });
     expect(loop.advance(1).ftl).toBe(second.ftl);
 
-    expect(ship.get(SHIP_SYSTEMS).map(({ name }) => name)).not.toContain(
-      'FtlDrive',
-    );
-    expect(() =>
-      ship.get(COMMAND_DESK).submit({ system: 'ftl', action: 'spool' }),
-    ).toThrow(
-      expect.objectContaining({
-        reason: 'system',
-        expected: 'comms, engineering, helm, life-support, safety and weapons',
-      }),
-    );
     expect(() =>
       loop.register({ name: 'FtlDrive', phase: 3, step: (ship) => ship }),
     ).toThrow("Two ship systems are named 'FtlDrive'.");
+  });
+
+  test('adds no contribution to a multi token, and the buses hold the drive until dispose', async () => {
+    const ship = await Nexus.create(meridianSystems(SHIP_OPTIONS));
+    const contributions = () => ({
+      systems: ship.get(SHIP_SYSTEMS),
+      handlers: ship.get(COMMAND_HANDLERS),
+      consumers: ship.get(POWER_CONSUMERS),
+    });
+    const desk = ship.get(COMMAND_DESK);
+    const spool = () => desk.submit({ system: 'ftl', action: 'spool' });
+    const before = contributions();
+    expect(spool).toThrow(
+      expect.objectContaining({
+        code: 'MERIDIAN_BAD_COMMAND',
+        reason: 'system',
+        system: 'ftl',
+      }),
+    );
+
+    await ship.load(FtlDrive);
+    expect(contributions()).toEqual(before);
+    // The desk hands the spool to the drive, and the cold reactor refuses it.
+    expect(spool).toThrow(budget(0));
+    expect(
+      ship.get(POWER_ROUTER).loads(ship.get(SHIP_STATE).snapshot()),
+    ).toContainEqual(expect.objectContaining({ id: 'ftl-spool' }));
+
+    const router = ship.get(POWER_ROUTER);
+    const loop = ship.get(TICK_LOOP);
+    const ships = ship.get(SHIP_STATE);
+    await ship[Symbol.asyncDispose]();
+    expect(spool).toThrow(
+      expect.objectContaining({ reason: 'system', system: 'ftl' }),
+    );
+    expect(router.loads(ships.snapshot()).map(({ id }) => id)).not.toContain(
+      'ftl-spool',
+    );
+    expect(() =>
+      loop.register({ name: 'FtlDrive', phase: 3, step: (ship) => ship }),
+    ).not.toThrow();
+  });
+
+  test('refuses a drive that publishes a contribution at load', async ({
+    nexus: ship,
+  }) => {
+    const Publishing = defineModule({
+      name: 'PublishingFtlDrive',
+      providers: [provide(SHIP_SYSTEMS, { useClass: FtlPhysics })],
+      exports: [SHIP_SYSTEMS],
+    });
+    await expect(ship.load(Publishing)).rejects.toThrow(
+      expect.objectContaining({
+        code: 'NEXUS_LOAD_CONTRIBUTION',
+        module: 'PublishingFtlDrive',
+        token: 'ShipSystems',
+      }),
+    );
+  });
+
+  test('needs lazy() in the commands, since the drive reads them to register them', () => {
+    class EagerFtlCommands implements ICommandHandler {
+      static deps = [FTL_DRIVE] as const;
+      readonly system = 'ftl';
+      constructor(private readonly drive: IFtlDrive) {}
+      handle(): QueuedCommand {
+        return this.drive.spool();
+      }
+    }
+    const Eager = defineModule({
+      name: 'EagerFtlDrive',
+      providers: [
+        provide(FTL_DRIVE, { useClass: JumpDrive }),
+        provide(FTL_PHYSICS, { useClass: FtlPhysics }),
+        provide(FTL_POWER, { useClass: FtlPower }),
+        provide(FTL_COMMANDS, { useClass: EagerFtlCommands }),
+      ],
+      exports: [FTL_DRIVE],
+    });
+    expect(() =>
+      Nexus.check(meridianSystems(SHIP_OPTIONS), { load: [Eager] }),
+    ).toThrow(
+      expect.objectContaining({
+        errors: [
+          expect.objectContaining({ code: 'NEXUS_CIRCULAR_DEPENDENCY' }),
+        ],
+      }),
+    );
   });
 
   test('unregisters the loop when the router register throws, and loads on a retry', async ({
@@ -162,6 +259,27 @@ describe('the FTL drive', () => {
     const loaded = loop.advance(1);
     expect(loaded.ftl.status).toBe('idle');
     expect(loaded.power.loads.map(({ id }) => id)).toContain('ftl-spool');
+  });
+
+  test('unregisters the loop and the router when the desk register throws', async ({
+    nexus: ship,
+  }) => {
+    const loop = ship.get(TICK_LOOP);
+    const router = ship.get(POWER_ROUTER);
+    vi.spyOn(ship.get(COMMAND_DESK), 'register').mockImplementationOnce(() => {
+      throw new Error('The desk is down.');
+    });
+
+    await expect(ship.load(FtlDrive)).rejects.toThrow(
+      expect.objectContaining({
+        code: 'NEXUS_PROVIDER_FAILED',
+        cause: expect.objectContaining({ message: 'The desk is down.' }),
+      }),
+    );
+    expect(
+      router.loads(ship.get(SHIP_STATE).snapshot()).map(({ id }) => id),
+    ).not.toContain('ftl-spool');
+    loop.register({ name: 'FtlDrive', phase: 3, step: (ship) => ship })();
   });
 
   test('refuses a spool on a cold reactor and holds it until the reactor reaches 0.9', async ({

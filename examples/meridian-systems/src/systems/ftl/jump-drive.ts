@@ -1,52 +1,77 @@
 import { FtlNotSpooledError } from '../../errors';
-import type { QueuedCommand } from '../../simulation/commands';
+import {
+  COMMAND_DESK,
+  type ICommandDesk,
+  type ICommandHandler,
+  type QueuedCommand,
+} from '../../simulation/commands';
 import {
   type IShipState,
+  type IShipSystem,
   type ITickLoop,
   SHIP_STATE,
   TICK_LOOP,
 } from '../../simulation/contracts';
-import { type IPowerRouter, POWER_ROUTER } from '../engineering/contracts';
+import {
+  type IPowerConsumer,
+  type IPowerRouter,
+  POWER_ROUTER,
+} from '../engineering/contracts';
 import { type INavCharts, NAV_CHARTS } from '../tactical/contracts';
 
-import type { FtlRating, IFtlDrive } from './contracts';
+import {
+  FTL_COMMANDS,
+  FTL_PHYSICS,
+  FTL_POWER,
+  type FtlRating,
+  type IFtlDrive,
+} from './contracts';
 import { refuseFtl } from './ftl-commands';
 import { FTL_SPOOL, FTL_SPOOL_LOAD } from './ftl-model';
-import { FtlPhysics } from './ftl-physics';
-import { FtlPower } from './ftl-power';
 
 /**
- * The Meridian's jump drive. It registers with the loop and the router in
- * `onInit`, so a container whose plugin sets `onInit: false` gives a drive
- * that never charges.
+ * The Meridian's jump drive. A module that `load()` adds cannot contribute to
+ * a multi token, so `onInit` registers the drive's step with the loop, its
+ * load with the router and its commands with the desk, and the dispose
+ * unregisters them. A container whose plugin sets `onInit: false` gives a
+ * drive that never charges and that the desk does not serve.
  */
 export class JumpDrive implements IFtlDrive, Disposable {
-  static deps = [TICK_LOOP, SHIP_STATE, NAV_CHARTS, POWER_ROUTER] as const;
+  static deps = [
+    TICK_LOOP,
+    SHIP_STATE,
+    NAV_CHARTS,
+    POWER_ROUTER,
+    COMMAND_DESK,
+    FTL_PHYSICS,
+    FTL_POWER,
+    FTL_COMMANDS,
+  ] as const;
 
   readonly rating: FtlRating = FTL_SPOOL;
-
-  private unregister: readonly (() => void)[] = [];
+  /** The unregister of each registration so far, in registration order. */
+  private readonly unregisters: (() => void)[] = [];
 
   constructor(
     private readonly loop: ITickLoop,
     private readonly state: IShipState,
     private readonly charts: INavCharts,
     private readonly router: IPowerRouter,
+    private readonly desk: ICommandDesk,
+    private readonly physics: IShipSystem,
+    private readonly power: IPowerConsumer,
+    private readonly commands: ICommandHandler,
   ) {}
 
+  /**
+   * The drive keeps each unregister as its register returns. When a register
+   * throws, load() disposes the drive it built, and the dispose removes the
+   * parts registered before it, so a later load can register them again.
+   */
   onInit(): void {
-    // The loop's all(SHIP_SYSTEMS) and the router's all(POWER_CONSUMERS) are
-    // the lists at their construction, so a loaded drive registers itself.
-    // The drive keeps each unregister as its register returns. When the
-    // router's register throws, load() disposes the drive it built, and the
-    // dispose removes the loop entry, so a later load can register the drive
-    // again.
-    const leaveLoop = this.loop.register(new FtlPhysics(this.rating));
-    this.unregister = [leaveLoop];
-    this.unregister = [
-      leaveLoop,
-      this.router.register(new FtlPower(this.rating)),
-    ];
+    this.unregisters.push(this.loop.register(this.physics));
+    this.unregisters.push(this.router.register(this.power));
+    this.unregisters.push(this.desk.register(this.commands));
   }
 
   spool(): QueuedCommand {
@@ -67,7 +92,10 @@ export class JumpDrive implements IFtlDrive, Disposable {
     return this.state.queue({ ftl: { jump: to } });
   }
 
+  /** Unregisters the parts in reverse registration order. */
   [Symbol.dispose](): void {
-    for (const unregister of this.unregister) unregister();
+    for (const unregister of this.unregisters.splice(0).reverse()) {
+      unregister();
+    }
   }
 }

@@ -6,7 +6,7 @@
  * and the `.server` suffix fails the client build if client code imports
  * this module and, through it, nexus.server.
  */
-import type { ShipCommand } from '@nexusdi/meridian-systems';
+import type { FtlRating, ShipCommand } from '@nexusdi/meridian-systems';
 import type { ActionFunctionArgs } from 'react-router';
 
 import {
@@ -74,9 +74,9 @@ export function commandFrom(
  * A route action that reads the submitted form, hands it to `post` with the
  * request's bridge link, and answers what the link answers.
  */
-function linkAction(
-  post: (link: IBridgeLink, form: FormData) => Promise<CommandAnswer>,
-): (args: ActionFunctionArgs) => Promise<CommandAnswer> {
+function linkAction<A>(
+  post: (link: IBridgeLink, form: FormData) => Promise<A>,
+): (args: ActionFunctionArgs) => Promise<A> {
   return di.inject(
     { link: BRIDGE_LINK },
     async ({ link }, { request }: ActionFunctionArgs) =>
@@ -100,18 +100,23 @@ export function systemAction(
 }
 
 /**
- * A route action for the FTL page: the form's `command` is `spool` or `jump`,
- * and a jump reads the star from the `to` field. The FTL routes sit outside
- * `POST /commands`, so the action calls the link's own posts. Any other
- * command goes to `POST /commands` and comes back as the backend's refusal.
+ * What the FTL page's action answers: the loaded drive's rating, or a
+ * command's answer. `accepted: 'loaded'` tells the load apart from a command,
+ * whose `accepted` is a boolean.
  */
-export function ftlAction(): (
-  args: ActionFunctionArgs,
-) => Promise<CommandAnswer> {
-  return linkAction((link, form) => {
-    const command = String(form.get('command') ?? '');
-    if (command === 'spool') return link.spool();
-    if (command === 'jump') return link.jump(String(form.get('to') ?? ''));
-    return link.command(commandFrom(form, 'ftl', {}));
-  });
+export type FtlAnswer =
+  { readonly accepted: 'loaded'; readonly rating: FtlRating } | CommandAnswer;
+
+/**
+ * A route action for the FTL page. The form's `command` `load` posts to
+ * `POST /sections/ftl`, which loads the drive. Every other command goes to
+ * `POST /commands` for the `ftl` system, with the star of a jump read from
+ * the `to` field, and comes back as the queued tick or the backend's refusal.
+ */
+export function ftlAction(): (args: ActionFunctionArgs) => Promise<FtlAnswer> {
+  return linkAction<FtlAnswer>(async (link, form) =>
+    form.get('command') === 'load'
+      ? { accepted: 'loaded', rating: await link.loadFtl() }
+      : link.command(commandFrom(form, 'ftl', { to: 'text' })),
+  );
 }

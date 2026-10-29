@@ -7,11 +7,12 @@ import type {
 import { LITHIUM_LOOP, pulseCoolant } from '../engineering/engineering-model';
 
 import type { FtlRating } from './contracts';
-import { FTL_SPOOL_LOAD, stepFtl } from './ftl-model';
+import { FTL_SPOOL, FTL_SPOOL_LOAD, stepFtl } from './ftl-model';
 
 /**
- * Steps the FTL drive in phase 3 of each tick. `JumpDrive` builds
- * it with its rating and registers it with the loop.
+ * Steps the FTL drive in phase 3 of each tick, at the Meridian's spool
+ * rating unless a test passes another. `JumpDrive` registers it with the
+ * loop.
  */
 export class FtlPhysics implements IShipSystem {
   /** The graph reads the phase without building the class. */
@@ -20,7 +21,7 @@ export class FtlPhysics implements IShipSystem {
   readonly name = 'FtlDrive';
   readonly phase = FtlPhysics.phase;
 
-  constructor(private readonly rating: FtlRating) {}
+  constructor(private readonly rating: FtlRating = FTL_SPOOL) {}
 
   /**
    * The spool charges with the power the router allocated the ftl-spool load

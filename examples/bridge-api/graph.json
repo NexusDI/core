@@ -964,6 +964,42 @@
       "internal": false
     },
     {
+      "id": "p60",
+      "token": "FtlPhysics",
+      "module": "m17",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "FtlPhysics",
+      "internal": false
+    },
+    {
+      "id": "p61",
+      "token": "FtlPower",
+      "module": "m17",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "FtlPower",
+      "internal": false
+    },
+    {
+      "id": "p62",
+      "token": "FtlCommands",
+      "module": "m17",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "implementation": "FtlCommands",
+      "internal": false
+    },
+    {
       "id": "request",
       "token": "REQUEST",
       "module": "m0",
@@ -1481,6 +1517,31 @@
       "from": "p59",
       "to": "p15",
       "kind": "required"
+    },
+    {
+      "from": "p59",
+      "to": "p5",
+      "kind": "required"
+    },
+    {
+      "from": "p59",
+      "to": "p60",
+      "kind": "required"
+    },
+    {
+      "from": "p59",
+      "to": "p61",
+      "kind": "required"
+    },
+    {
+      "from": "p59",
+      "to": "p62",
+      "kind": "required"
+    },
+    {
+      "from": "p62",
+      "to": "p59",
+      "kind": "lazy"
     }
   ]
 }
