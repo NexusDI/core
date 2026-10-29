@@ -13,6 +13,8 @@ import { THRUSTERS_LOAD, thrustersDemand } from './helm-model';
 export class HelmPower implements IPowerConsumer {
   static deps = [THRUSTERS] as const;
 
+  readonly id = THRUSTERS_LOAD.id;
+
   constructor(private readonly thrusters: IThrusters) {}
 
   draw(ship: ShipSnapshot): PowerLoad {

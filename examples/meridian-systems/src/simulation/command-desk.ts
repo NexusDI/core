@@ -17,20 +17,9 @@ export class CommandDesk implements ICommandDesk {
   static deps = [all(COMMAND_HANDLERS)] as const;
 
   private readonly handlers = new Map<string, ICommandHandler>();
-  /** The systems the desk serves, in words, for the text of a refusal. */
-  private readonly serves: string;
 
   constructor(handlers: ICommandHandler[]) {
-    for (const handler of handlers) {
-      if (this.handlers.has(handler.system)) {
-        throw new Error(
-          `Two command handlers serve the system '${handler.system}'.`,
-        );
-      }
-      this.handlers.set(handler.system, handler);
-    }
-    const names = [...this.handlers.keys()].sort(byCodeUnit);
-    this.serves = names.length === 0 ? 'no system' : listInWords(names);
+    for (const handler of handlers) this.register(handler);
   }
 
   submit(body: unknown): QueuedCommand {
@@ -39,7 +28,7 @@ export class CommandDesk implements ICommandDesk {
         reason: 'envelope',
         system: stringField(body, 'system'),
         action: stringField(body, 'action'),
-        expected: this.serves,
+        expected: this.serves(),
       });
     }
     const handler = this.handlers.get(body.system);
@@ -48,10 +37,34 @@ export class CommandDesk implements ICommandDesk {
         reason: 'system',
         system: body.system,
         action: body.action,
-        expected: this.serves,
+        expected: this.serves(),
       });
     }
     return handler.handle(body);
+  }
+
+  /**
+   * The unregister removes `handler` only while it still serves its system,
+   * so a stale unregister leaves a later handler of that system in place.
+   */
+  register(handler: ICommandHandler): () => void {
+    if (this.handlers.has(handler.system)) {
+      throw new Error(
+        `Two command handlers serve the system '${handler.system}'.`,
+      );
+    }
+    this.handlers.set(handler.system, handler);
+    return () => {
+      if (this.handlers.get(handler.system) === handler) {
+        this.handlers.delete(handler.system);
+      }
+    };
+  }
+
+  /** The systems the desk serves now, in words, for the text of a refusal. */
+  private serves(): string {
+    const names = [...this.handlers.keys()].sort(byCodeUnit);
+    return names.length === 0 ? 'no system' : listInWords(names);
   }
 }
 

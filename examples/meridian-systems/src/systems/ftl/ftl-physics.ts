@@ -11,7 +11,7 @@ import { FTL_SPOOL_LOAD, stepFtl } from './ftl-model';
 
 /**
  * Steps the FTL drive in phase 3 of each tick. `JumpDrive` builds
- * it with its rating and attaches it to the loop.
+ * it with its rating and registers it with the loop.
  */
 export class FtlPhysics implements IShipSystem {
   /** The graph reads the phase without building the class. */

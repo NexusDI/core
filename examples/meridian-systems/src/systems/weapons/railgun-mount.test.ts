@@ -16,7 +16,7 @@ function build({ dt = 0.5, refuse = false } = {}) {
   let thunkCalls = 0;
   const router: IPowerRouter = {
     loads: () => [],
-    attach: () => () => {},
+    register: () => () => {},
     divert(load) {
       diverted.push(load);
       if (refuse) {

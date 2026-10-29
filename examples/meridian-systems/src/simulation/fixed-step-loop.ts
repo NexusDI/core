@@ -71,10 +71,10 @@ export class FixedStepLoop implements ITickLoop {
   }
 
   /**
-   * `advance()` walks the entries a tick started with, so a system attached
+   * `advance()` walks the entries a tick started with, so a system registered
    * during a tick first steps on the next one.
    */
-  attach(system: IShipSystem): () => void {
+  register(system: IShipSystem): () => void {
     const entry = this.add(system);
     return () => {
       this.entries = this.entries.filter((other) => other !== entry);

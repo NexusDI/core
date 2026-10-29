@@ -15,7 +15,9 @@ import { refusalOf, SHIP_TEXT } from '../src/bridge/refusal';
 import { FakeFlightLog } from './doubles';
 
 /** A desk whose submit() calls `answer`. */
-const desk = (answer: () => { tick: number }): ICommandDesk => ({
+const desk = (
+  answer: () => { tick: number },
+): Pick<ICommandDesk, 'submit'> => ({
   submit: answer,
 });
 

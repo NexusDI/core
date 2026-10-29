@@ -116,11 +116,11 @@ export interface IPowerRouter {
   divert(load: PowerLoad): void;
   /**
    * Lists `consumer`'s draw after the consumers of POWER_CONSUMERS and returns
-   * a function that removes it and runs twice safely. The router resolved
-   * `all(POWER_CONSUMERS)` at its construction, so a consumer that a module
-   * loaded later joins this way.
+   * a function that removes it and runs twice safely. A module that `load()`
+   * adds cannot contribute to POWER_CONSUMERS, so its consumer joins this way.
+   * Throws for a load id the router lists.
    */
-  attach(consumer: IPowerConsumer): () => void;
+  register(consumer: IPowerConsumer): () => void;
 }
 
 export interface IShieldGrid {
@@ -133,6 +133,11 @@ export interface IShieldGrid {
 
 /** A system that asks the power router for electricity on each tick. */
 export interface IPowerConsumer {
+  /**
+   * The id of the load `draw` returns, unique across the ship. The router
+   * refuses a second consumer of one id, so `draw` must return this id.
+   */
+  readonly id: string;
   /** The system's load on the tick that reads `ship`. */
   draw(ship: ShipSnapshot): PowerLoad;
 }
