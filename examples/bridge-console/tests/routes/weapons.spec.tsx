@@ -9,6 +9,7 @@ import {
   FakeBridgeLink,
   linkAt,
   shipAtStart,
+  idleLoads,
 } from '../doubles';
 import { test, withLink, type RenderRoute } from '../support/console';
 
@@ -50,7 +51,7 @@ function railgunLoad(
   return {
     ...shipAtStart.power,
     loads: [
-      ...shipAtStart.power.loads.filter(({ id }) => id !== 'railgun'),
+      ...idleLoads.filter(({ id }) => id !== 'railgun'),
       { id: 'railgun', priority: 6, demand, allocated },
     ],
     shed,

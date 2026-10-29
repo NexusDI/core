@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import deck from '../../deck/meridian.deck.json';
+import { shipState } from '../../test/ship-state';
 
 import type { DeckPlan, ShipSnapshot } from './contracts';
 import { roundNumber, roundSnapshot } from './round-snapshot';
-import { ShipStateStore } from './ship-state-store';
 
-const ship = new ShipStateStore(deck satisfies DeckPlan).snapshot();
+const ship = shipState(deck satisfies DeckPlan).snapshot();
 
 describe('roundSnapshot', () => {
   it('rounds a fraction to four significant digits', () => {

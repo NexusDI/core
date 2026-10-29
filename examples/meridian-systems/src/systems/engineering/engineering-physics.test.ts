@@ -7,7 +7,7 @@ import type {
   ShipSnapshot,
   TickContext,
 } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import type {
   CoolantRating,
@@ -26,7 +26,7 @@ const tick: TickContext = {
   tick: 1,
   dt,
   rng: new SeededRandom({ seed: 7 }),
-  start: new ShipStateStore(deck satisfies DeckPlan).snapshot(),
+  start: shipState(deck satisfies DeckPlan).snapshot(),
 };
 
 interface Running {
@@ -39,7 +39,7 @@ interface Running {
 
 /** The deck's idle ship with the reactor at `level` and the setpoints given. */
 function shipAt(running: Running): ShipSnapshot {
-  const idle = new ShipStateStore(deck satisfies DeckPlan).snapshot();
+  const idle = shipState(deck satisfies DeckPlan).snapshot();
   return {
     ...idle,
     reactor: {

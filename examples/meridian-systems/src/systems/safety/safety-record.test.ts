@@ -1,33 +1,49 @@
 import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
-import { DOOR_IDS, type DeckPlan } from '../../simulation/contracts';
+import {
+  COMPARTMENT_IDS,
+  type DeckPlan,
+  DOOR_IDS,
+} from '../../simulation/contracts';
 
 import { safetyRecord } from './safety-record';
 
 const plan = deck satisfies DeckPlan;
 
+/** The eleven rooms with a flood charge: every room but the airlock and the two bays. */
+const CHARGED = [
+  'bridge',
+  'habitat',
+  'reactor-bay',
+  'chart-room',
+  'computer-core',
+  'quarters',
+  'comms-relay',
+  'capacitor-room',
+  'engineering',
+  'ftl-core',
+  'main-drive',
+];
+
 describe('safetyRecord', () => {
   it('starts with every door shut, no flood, no drill, no fire and no alarm', () => {
+    const each = <T>(ids: readonly string[], value: T) =>
+      Object.fromEntries(ids.map((id) => [id, value]));
     const record = safetyRecord(plan);
     expect(record).toStrictEqual({
       records: {
         safety: {
-          fires: { bridge: 0, habitat: 0, 'reactor-bay': 0, airlock: 0 },
-          flooded: { bridge: 0, habitat: 0, 'reactor-bay': 0 },
+          fires: each(COMPARTMENT_IDS, 0),
+          flooded: each(CHARGED, 0),
           alarms: [],
         },
       },
       setpoints: {
         safety: {
-          doors: {
-            'bridge-habitat': false,
-            'habitat-reactor-bay': false,
-            'habitat-airlock': false,
-            'airlock-outer': false,
-          },
-          floods: { bridge: false, habitat: false, 'reactor-bay': false },
-          drills: { bridge: false, habitat: false, 'reactor-bay': false },
+          doors: each(DOOR_IDS, false),
+          floods: each(CHARGED, false),
+          drills: each(CHARGED, false),
         },
       },
     });

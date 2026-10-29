@@ -7,12 +7,12 @@ import type {
   TickContext,
 } from '../../simulation/contracts';
 import { SeededRandom } from '../../simulation/seeded-random';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import { FTL_SPOOL } from './ftl-model';
 import { FtlPhysics } from './ftl-physics';
 
-const start = new ShipStateStore(deck satisfies DeckPlan).snapshot();
+const start = shipState(deck satisfies DeckPlan).snapshot();
 const tick: TickContext = {
   tick: 301,
   dt: 0.5,

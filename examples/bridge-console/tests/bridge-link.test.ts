@@ -7,6 +7,7 @@ import { defineModule, Nexus } from '@nexusdi/core';
 import { createBridge } from '@nexusdi/bridge-api/hono';
 import { bridgePlugins, OfflineMeridian } from '@nexusdi/bridge-api/ship';
 import { graph } from '@nexusdi/devtools';
+import { COMPARTMENT_IDS } from '@nexusdi/meridian-systems';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { BridgeLink } from '../app/di/bridge-link.module';
@@ -175,12 +176,7 @@ describe('the bridge link', () => {
     expect(ship.tick).toBe(0);
     expect(ship.compartments.habitat.pressure).toBe(101_300);
     expect(ship.time).toBe(0);
-    expect(Object.keys(ship.compartments)).toEqual([
-      'bridge',
-      'habitat',
-      'reactor-bay',
-      'airlock',
-    ]);
+    expect(Object.keys(ship.compartments)).toEqual([...COMPARTMENT_IDS]);
   });
 
   it('returns the telemetry body, whose first event is a snapshot at tick 0', async () => {

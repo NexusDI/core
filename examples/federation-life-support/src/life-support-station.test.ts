@@ -75,6 +75,16 @@ describe('LifeSupportStation', () => {
       'habitat',
       'reactor-bay',
       'airlock',
+      'chart-room',
+      'computer-core',
+      'quarters',
+      'comms-relay',
+      'shuttle-bay',
+      'drone-bay',
+      'capacitor-room',
+      'engineering',
+      'ftl-core',
+      'main-drive',
     ]);
   });
 

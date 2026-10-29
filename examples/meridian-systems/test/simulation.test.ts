@@ -9,13 +9,16 @@ import {
   DECK_PLAN,
   SHIP_RECORDS,
   type SimOptions,
+  type SystemRecord,
   TICK_LOOP,
 } from '../src/simulation/contracts';
 import { roundNumber, roundSnapshot } from '../src/simulation/round-snapshot';
 import { TELEMETRY } from '../src/telemetry/contracts';
 import { Telemetry } from '../src/telemetry/telemetry.module';
+import { byCodeUnit } from '../src/simulation/by-code-unit';
 
 import { shipRoot } from './ship-root';
+import { shipRecords } from './ship-state';
 import { shipTest, test } from './fixtures';
 import { LOOP_WATCH, PROBE_LOG, caught } from './support';
 
@@ -70,6 +73,19 @@ describe('MeridianSystems', () => {
     ]);
   });
 
+  test('collects the records test/ship-state.ts hands a store with no container', ({
+    nexus: ship,
+  }) => {
+    const byKeys = (records: readonly SystemRecord[]) =>
+      [...records].sort((a, b) =>
+        byCodeUnit(
+          Object.keys(a.records).join(),
+          Object.keys(b.records).join(),
+        ),
+      );
+    expect(byKeys(shipRecords())).toEqual(byKeys(ship.get(SHIP_RECORDS)));
+  });
+
   it('builds on its own and gives one snapshot for one seed', async () => {
     await using first = await Nexus.create(shipRoot());
     await using second = await Nexus.create(shipRoot());
@@ -116,7 +132,9 @@ describe('COMPARTMENT', () => {
     if (!isNexusError(refused, 'MERIDIAN_UNKNOWN_COMPARTMENT')) {
       throw new Error('expected MERIDIAN_UNKNOWN_COMPARTMENT');
     }
-    expect(refused.expected).toBe('bridge, habitat, reactor-bay and airlock');
+    expect(refused.expected).toBe(
+      'bridge, habitat, reactor-bay, airlock, chart-room, computer-core, quarters, comms-relay, shuttle-bay, drone-bay, capacitor-room, engineering, ftl-core and main-drive',
+    );
   });
 });
 

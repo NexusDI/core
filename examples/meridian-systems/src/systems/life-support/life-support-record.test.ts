@@ -7,19 +7,35 @@ import { lifeSupportRecord } from './life-support-record';
 
 const plan = deck satisfies DeckPlan;
 
+/** Every room with a heater: all but the reactor bay, the airlock and the two bays. */
+const HEATED = [
+  'bridge',
+  'habitat',
+  'chart-room',
+  'computer-core',
+  'quarters',
+  'comms-relay',
+  'capacitor-room',
+  'engineering',
+  'ftl-core',
+  'main-drive',
+];
+
+/** The three rooms where crew breathe, each with a scrubber and a generator. */
+const CREWED = ['bridge', 'habitat', 'quarters'];
+
 describe('lifeSupportRecord', () => {
   it('starts life support offline with every device the deck lists at its initial setting', () => {
+    const each = <T>(ids: readonly string[], value: T) =>
+      Object.fromEntries(ids.map((id) => [id, value]));
     expect(lifeSupportRecord(plan)).toStrictEqual({
-      records: { lifeSupport: { heaters: { bridge: 0, habitat: 0 } } },
+      records: { lifeSupport: { heaters: each(HEATED, 0) } },
       setpoints: {
         lifeSupport: {
           online: false,
-          heaters: {
-            bridge: { on: true, target: 293 },
-            habitat: { on: true, target: 293 },
-          },
-          scrubbers: { bridge: true, habitat: true },
-          oxygen: { bridge: true, habitat: true },
+          heaters: each(HEATED, { on: true, target: 293 }),
+          scrubbers: each(CREWED, true),
+          oxygen: each(CREWED, true),
           vents: { airlock: false },
           pumps: { airlock: 'off' },
         },

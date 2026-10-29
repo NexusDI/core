@@ -112,12 +112,8 @@ describe('the FTL drive', () => {
       'main-drive',
       'railgun',
     ]);
-    expect(first.ftl).toEqual({
-      status: 'offline',
-      charge: 0,
-      sector: 'Sol',
-      jumped: null,
-    });
+    expect(first).not.toHaveProperty('ftl');
+    expect(first.setpoints).not.toHaveProperty('ftl');
 
     // Two loads at once build one drive: a second JumpDrive would register a
     // second system named FtlDrive, which the loop refuses.
@@ -132,7 +128,6 @@ describe('the FTL drive', () => {
       sector: 'Sol',
       jumped: null,
     });
-    expect(second.ftl).not.toBe(first.ftl);
     expect(second.power.loads.map(({ id }) => id)).toEqual([
       'life-support',
       'shields',
@@ -448,7 +443,7 @@ describe('the FTL drive', () => {
     throttle(desk, 0.01);
     desk.submit({ system: 'life-support', action: 'online' });
     loop.advance(600);
-    expect(() => drive.spool()).toThrow(budget(12_093_132.552581994));
+    expect(() => drive.spool()).toThrow(budget(12_080_804.705268854));
   });
 
   test('extends a scope opened before the load', async ({ nexus: ship }) => {

@@ -43,17 +43,17 @@ describe.each(FRAMEWORKS)('life support on %s', (framework) => {
       expect(cold.temperature).toBeGreaterThanOrEqual(292.95);
       expect(cold.temperature).toBeLessThanOrEqual(293.05);
 
-      // At tick 600 the habitat heater draws 2,346.4006 W.
+      // At tick 600 the habitat heater draws 2,449.5397 W.
       await advance(url, 600, 600);
       const warm = await readAir(url, 'habitat');
       expect(warm.tick).toBe(600);
-      expect(Math.abs(warm.temperature - 292.765)).toBeLessThan(0.1);
+      expect(Math.abs(warm.temperature - 292.755)).toBeLessThan(0.1);
       const ship = await readShip(url);
-      expect(ship.lifeSupport.heaters.habitat).toBe(2346.4006);
+      expect(ship.lifeSupport.heaters.habitat).toBe(2449.5397);
 
       // The pump moves the airlock's air into the habitat from tick 601.
       // At tick 720 the model gives 37,023 Pa in the airlock and
-      // 107,590.6 Pa in the habitat, and the airlock's analyzer adds up to
+      // 107,582.8 Pa in the habitat, and the airlock's analyzer adds up to
       // 20 Pa of noise.
       await queue(url, evacuate, 601);
       await advance(url, 120, 720);
@@ -75,7 +75,7 @@ describe.each(FRAMEWORKS)('life support on %s', (framework) => {
       expect(await galley.json()).toMatchObject({
         code: 'MERIDIAN_UNKNOWN_COMPARTMENT',
         message:
-          "No compartment is named 'galley'. The deck has bridge, habitat, reactor-bay and airlock.",
+          "No compartment is named 'galley'. The deck has bridge, habitat, reactor-bay, airlock, chart-room, computer-core, quarters, comms-relay, shuttle-bay, drone-bay, capacitor-room, engineering, ftl-core and main-drive.",
       });
     }));
 });

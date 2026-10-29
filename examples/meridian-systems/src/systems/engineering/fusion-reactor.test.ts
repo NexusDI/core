@@ -2,14 +2,15 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
 import type { DeckPlan } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import type { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import { FUSION_REACTOR } from './engineering-model';
 import { FusionReactor } from './fusion-reactor';
 
 /** A store whose snapshot runs the reactor at `level` on tick 40. */
 function running(level: number): ShipStateStore {
-  const state = new ShipStateStore(deck satisfies DeckPlan);
+  const state = shipState(deck satisfies DeckPlan);
   const ship = state.snapshot();
   state.commit({
     ...ship,

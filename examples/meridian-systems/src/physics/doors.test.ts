@@ -11,6 +11,7 @@ import {
   molesAt,
   pressure,
   totalMoles,
+  ventFraction,
   type Air,
 } from './gas';
 
@@ -48,14 +49,47 @@ function fractionsOf(id: string) {
 
 describe('the door fractions', () => {
   it.each([
-    ['bridge-habitat', 0.188064, 0.125376, 0.062688],
-    ['habitat-reactor-bay', 0.170971, 0.068388, 0.102583],
-    ['habitat-airlock', 0.203297, 0.018482, 0.184815],
+    ['bridge-habitat', 0.340759, 0.227173, 0.113586],
+    ['habitat-airlock', 0.433445, 0.039404, 0.394041],
+    ['bridge-chart-room', 0.590516, 0.168719, 0.421797],
+    ['bridge-computer-core', 0.608394, 0.152099, 0.456296],
+    ['habitat-quarters', 0.360091, 0.102883, 0.257208],
+    ['habitat-comms-relay', 0.423898, 0.04987, 0.374028],
+    ['airlock-shuttle-bay', 0.141389, 0.13794, 0.003449],
+    ['shuttle-bay-drone-bay', 0.131953, 0.012448, 0.119505],
+    ['habitat-engineering', 0.300327, 0.128712, 0.171616],
+    ['engineering-capacitor-room', 0.448569, 0.128162, 0.320406],
+    ['engineering-ftl-core', 0.414749, 0.148125, 0.266624],
+    ['engineering-reactor-bay', 0.356721, 0.167869, 0.188852],
+    ['reactor-bay-main-drive', 0.464739, 0.154913, 0.309826],
   ])('gives %s f %s, fromA %s and fromB %s a tick', (id, f, fromA, fromB) => {
     const fractions = fractionsOf(id);
     expect(fractions.fromA + fractions.fromB).toBeCloseTo(f, 6);
     expect(fractions.fromA).toBeCloseTo(fromA, 6);
     expect(fractions.fromB).toBeCloseTo(fromB, 6);
+  });
+
+  it.each([
+    ['airlock-outer', 0.00193045],
+    ['shuttle-bay-outer', 0.0739647],
+    ['drone-bay-outer', 0.0497871],
+  ])('keeps %s of the room a door to space opens on, a tick', (id, kept) => {
+    const [inside] = door(id).between;
+    expect(ventFraction(door(id).area, room(inside).volume, dt)).toBeCloseTo(
+      kept,
+      7,
+    );
+  });
+
+  it('gives every door a 3.0 m² hatch but the two outer bay doors', () => {
+    expect(
+      deck.doors
+        .filter(({ area }) => area !== 3)
+        .map(({ id, area }) => [id, area]),
+    ).toEqual([
+      ['shuttle-bay-outer', 50],
+      ['drone-bay-outer', 6],
+    ]);
   });
 
   it('shrinks the molar-density gap by 1 − f in one step', () => {
@@ -80,7 +114,7 @@ describe('the door fractions', () => {
     );
   });
 
-  it('evens out a bridge at 100 kPa and a habitat at 50 kPa in 48 ticks', () => {
+  it('evens out a bridge at 100 kPa and a habitat at 50 kPa in 11 ticks', () => {
     const { fromA, fromB } = fractionsOf('bridge-habitat');
     const [sa, sb] = [
       room('bridge').structureHeatCapacity,
@@ -92,7 +126,7 @@ describe('the door fractions', () => {
     const energy = (x: Air, y: Air) =>
       heatCapacity(x, sa) * x.temperature + heatCapacity(y, sb) * y.temperature;
     const before = energy(a, b);
-    for (let tick = 0; tick < 48; tick += 1) {
+    for (let tick = 0; tick < 11; tick += 1) {
       const next = exchange(a, b, sa, sb, fromA, fromB);
       a = next.a;
       b = next.b;
@@ -104,8 +138,8 @@ describe('the door fractions', () => {
     expect(Math.abs(energy(a, b) - before) / before).toBeLessThan(1e-12);
     const [pa, pb] = [roomPressure('bridge', a), roomPressure('habitat', b)];
     expect(Math.abs(pa - pb) / pb).toBeLessThan(0.01);
-    expect(pa).toBeCloseTo(66_668.18, 1);
-    expect(pb).toBeCloseTo(66_665.91, 1);
+    expect(pa).toBeCloseTo(67_007.36, 1);
+    expect(pb).toBeCloseTo(66_496.32, 1);
   });
 });
 

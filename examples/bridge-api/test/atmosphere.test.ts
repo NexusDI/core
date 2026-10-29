@@ -25,7 +25,8 @@ const failing = (error: unknown) =>
     throw error;
   });
 
-const ROOMS = 'bridge, habitat, reactor-bay and airlock';
+const ROOMS =
+  'bridge, habitat, reactor-bay, airlock, chart-room, computer-core, quarters, comms-relay, shuttle-bay, drone-bay, capacitor-room, engineering, ftl-core and main-drive';
 const FIX =
   'read /compartments/<id>/atmosphere with one of the compartments above.';
 

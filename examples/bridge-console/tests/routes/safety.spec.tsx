@@ -48,6 +48,7 @@ const shipAt190: ShipReading = {
   tick: 190,
   time: 95,
   compartments: {
+    ...shipAtStart.compartments,
     bridge: {
       ...shipAtStart.compartments.bridge,
       temperature: 292.78815948058684,
@@ -70,13 +71,11 @@ const shipAt190: ShipReading = {
     },
   },
   safety: {
-    fires: {
-      bridge: 0,
-      habitat: 0,
-      'reactor-bay': 0.18000000000000002,
-      airlock: 0,
+    fires: { ...shipAtStart.safety.fires, 'reactor-bay': 0.18000000000000002 },
+    flooded: {
+      ...shipAtStart.safety.flooded,
+      'reactor-bay': 1234.5678901234567,
     },
-    flooded: { bridge: 0, habitat: 0, 'reactor-bay': 1234.5678901234567 },
     alarms: [
       { code: 'FIRE', subject: 'reactor-bay' },
       { code: 'LOAD_SHED', subject: 'life-support' },
@@ -128,6 +127,17 @@ describe('the safety gauges', () => {
       '101.3 kPa',
       '0.0 kPa',
     ]);
+    expect(await gauges('shuttle-bay-drone-bay door')).toEqual([
+      'Shut',
+      '0.0 kPa',
+      '0.0 kPa',
+    ]);
+    expect(await gauges('engineering-reactor-bay door')).toEqual([
+      'Shut',
+      '101.3 kPa',
+      '101.3 kPa',
+    ]);
+    expect(screen.getAllByLabelText(/ door$/)).toHaveLength(16);
   });
 
   test('show an open door and the pressure of each side to 0.1 kPa at tick 190', async ({
@@ -139,9 +149,9 @@ describe('the safety gauges', () => {
       '101.2 kPa',
       '101.1 kPa',
     ]);
-    expect(await gauges('habitat-reactor-bay door')).toEqual([
+    expect(await gauges('engineering-reactor-bay door')).toEqual([
       'Shut',
-      '101.2 kPa',
+      '101.3 kPa',
       '104.2 kPa',
     ]);
     expect(await gauges('airlock-outer door')).toEqual([

@@ -5,7 +5,7 @@ import { UnknownCompartmentError } from '../errors';
 import { COMPARTMENT_IDS, type CompartmentId } from './contracts';
 import { listInWords } from './list-in-words';
 
-/** The deck's compartments in words: `bridge, habitat, reactor-bay and airlock`. */
+/** The deck's compartments in words, from `bridge, habitat` to `ftl-core and main-drive`. */
 const ROOMS = listInWords(COMPARTMENT_IDS);
 
 function isCompartmentId(id: string): id is CompartmentId {

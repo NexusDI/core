@@ -82,7 +82,7 @@ describe('the airlock drill under the interlock', () => {
     // The pump stalls by tick 288, and the vent takes the airlock on down.
     to(288);
     refused(desk, 'airlock-outer', 9_089);
-    refused(desk, 'habitat-airlock', 101_339);
+    refused(desk, 'habitat-airlock', 101_328);
     expect(pump(desk, 'off')).toEqual({ tick: 289 });
     expect(vent(desk, true)).toEqual({ tick: 289 });
 
@@ -96,12 +96,12 @@ describe('the airlock drill under the interlock', () => {
     expect(close(desk, 'airlock-outer')).toEqual({ tick: 338 });
     expect(vent(desk, false)).toEqual({ tick: 338 });
     expect(pump(desk, 'fill')).toEqual({ tick: 338 });
-    refused(desk, 'habitat-airlock', 110_413);
+    refused(desk, 'habitat-airlock', 110_400);
     to(338);
-    refused(desk, 'habitat-airlock', 109_401);
+    refused(desk, 'habitat-airlock', 109_388);
 
     to(445);
-    refused(desk, 'habitat-airlock', 5_915);
+    refused(desk, 'habitat-airlock', 5_911);
     to(446);
     expect(pump(desk, 'off')).toEqual({ tick: 447 });
     expect(open(desk, 'habitat-airlock')).toEqual({ tick: 447 });
@@ -109,8 +109,8 @@ describe('the airlock drill under the interlock', () => {
     to(466);
     expect(now.setpoints.safety.doors['habitat-airlock']).toBe(true);
     const inner = gap(now, deck, 'habitat-airlock');
-    expect(inner).toBeGreaterThan(131.5);
-    expect(inner).toBeLessThan(133.5);
+    expect(inner).toBeGreaterThan(69.7);
+    expect(inner).toBeLessThan(71.7);
     expect(alarmed).toEqual([]);
 
     const log = ship.get(SHIP_STATE).log();

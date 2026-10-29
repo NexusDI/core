@@ -1,10 +1,10 @@
-import type { DoorId, ShipReading } from '@nexusdi/meridian-systems';
+import type { ShipReading } from '@nexusdi/meridian-systems';
 
 import type { CommandAnswer } from '../di/contracts';
 import type { Route } from './+types/airlock';
 import { snapshotLoader } from './snapshot-loader.server';
 import { AirlockControls } from './systems/airlock-controls';
-import { Door } from './systems/doors';
+import { Door, doorsOf } from './systems/doors';
 import { systemAction } from './systems/system-action.server';
 import {
   CommandSelect,
@@ -14,8 +14,8 @@ import {
   SystemPage,
 } from './systems/system-page';
 
-/** The two doors that bound the airlock, in the order the deck lists them. */
-const AIRLOCK_DOORS: readonly DoorId[] = ['habitat-airlock', 'airlock-outer'];
+/** The doors that bound the airlock, in the order the deck lists them. */
+const AIRLOCK_DOORS = doorsOf('airlock');
 
 /**
  * The system each airlock command belongs to: the pump and the vent are life
@@ -46,7 +46,7 @@ export const action: (args: Route.ActionArgs) => Promise<CommandAnswer> =
 export const loader: (args: Route.LoaderArgs) => Promise<ShipReading | null> =
   snapshotLoader;
 
-/** The airlock's pump and vent, then its two doors, read from `ship`. */
+/** The airlock's pump and vent, then its doors, read from `ship`. */
 function AirlockGauges({ ship }: { ship: ShipReading }) {
   const { pumps, vents } = ship.setpoints.lifeSupport;
   return (

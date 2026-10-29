@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import deck from '../../deck/meridian.deck.json';
-import { COMPARTMENT_IDS } from '../simulation/contracts';
+import { COMPARTMENT_IDS, DOOR_IDS } from '../simulation/contracts';
 
 import {
   SHIP_GEOMETRY,
@@ -220,17 +220,23 @@ const inRooms = (p: Point) =>
     .map((c) => c.id);
 
 describe('the ship geometry', () => {
-  it("lists section 16.2's fourteen compartments, the deck plan's ids first", () => {
+  it("lists the fourteen compartments in the deck plan's order", () => {
     const ids = compartments.map((c) => c.id);
     expect(ids).toEqual(SPEC_COMPARTMENTS);
-    expect(ids.slice(0, COMPARTMENT_IDS.length)).toEqual([...COMPARTMENT_IDS]);
-    for (const room of deck.compartments) expect(ids).toContain(room.id);
+    expect(ids).toEqual([...COMPARTMENT_IDS]);
+    expect(deck.compartments.map((room) => room.id)).toEqual(ids);
   });
 
-  it('marks the two bays alone as unpressurised', () => {
+  it('marks the two bays alone as unpressurised, as the deck plan does', () => {
     expect(compartments.filter((c) => !c.pressurised).map((c) => c.id)).toEqual(
       ['shuttle-bay', 'drone-bay'],
     );
+    expect(
+      deck.compartments.map((room) => [
+        room.id,
+        !('pressurised' in room) || room.pressurised,
+      ]),
+    ).toEqual(compartments.map((c) => [c.id, c.pressurised]));
   });
 
   it('gives every span two values in order and every point three', () => {
@@ -329,6 +335,13 @@ describe('the ship geometry', () => {
 
   it("lists section 16.2's sixteen doors", () => {
     expect(doors.map((d) => d.id)).toEqual(SPEC_DOORS);
+  });
+
+  it("joins the rooms each door of the deck plan joins, in the deck plan's order", () => {
+    expect(deck.doors.map((d) => [d.id, d.between])).toEqual(
+      doors.map((d) => [d.id, d.between]),
+    );
+    expect(doors.map((d) => d.id)).toEqual([...DOOR_IDS]);
   });
 
   it('sizes each hatch at 1.5 m by 2.0 m and the bay doors at 10 m by 5 m and 3 m by 2 m', () => {

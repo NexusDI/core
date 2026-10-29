@@ -1147,6 +1147,41 @@
       "kind": "required"
     },
     {
+      "from": "p2",
+      "to": "p19",
+      "kind": "all"
+    },
+    {
+      "from": "p2",
+      "to": "p26",
+      "kind": "all"
+    },
+    {
+      "from": "p2",
+      "to": "p33",
+      "kind": "all"
+    },
+    {
+      "from": "p2",
+      "to": "p38",
+      "kind": "all"
+    },
+    {
+      "from": "p2",
+      "to": "p43",
+      "kind": "all"
+    },
+    {
+      "from": "p2",
+      "to": "p49",
+      "kind": "all"
+    },
+    {
+      "from": "p2",
+      "to": "p54",
+      "kind": "all"
+    },
+    {
       "from": "p4",
       "to": "p8",
       "kind": "required"

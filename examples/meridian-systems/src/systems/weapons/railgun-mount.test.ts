@@ -3,15 +3,15 @@ import { describe, expect, it } from 'vitest';
 import deck from '../../../deck/meridian.deck.json';
 import { PowerBudgetError } from '../../errors';
 import type { DeckPlan } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
 import type { IPowerRouter, PowerLoad } from '../engineering/contracts';
+import { shipState } from '../../../test/ship-state';
 
 import { RailgunMount } from './railgun-mount';
 import { RAILGUN } from './weapons-model';
 
 /** A mount at `dt` over a fake router that records each divert and refuses when told. */
 function build({ dt = 0.5, refuse = false } = {}) {
-  const state = new ShipStateStore(deck satisfies DeckPlan);
+  const state = shipState(deck satisfies DeckPlan);
   const diverted: PowerLoad[] = [];
   const router: IPowerRouter = {
     loads: () => [],

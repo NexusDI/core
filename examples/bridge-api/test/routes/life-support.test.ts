@@ -134,7 +134,7 @@ describe.each(FRAMEWORKS)('the atmosphere route on %s', (framework) => {
         body: {
           code: 'MERIDIAN_UNKNOWN_COMPARTMENT',
           message:
-            "No compartment is named 'galley'. The deck has bridge, habitat, reactor-bay and airlock.",
+            "No compartment is named 'galley'. The deck has bridge, habitat, reactor-bay, airlock, chart-room, computer-core, quarters, comms-relay, shuttle-bay, drone-bay, capacitor-room, engineering, ftl-core and main-drive.",
           fix: 'read /compartments/<id>/atmosphere with one of the compartments above.',
         },
       },
@@ -154,7 +154,7 @@ describe.each(FRAMEWORKS)('the atmosphere route on %s', (framework) => {
     expect(body).toMatchObject({
       code: 'MERIDIAN_UNKNOWN_COMPARTMENT',
       message:
-        "No compartment is named 'habitat'. The deck has bridge, habitat, reactor-bay and airlock.",
+        "No compartment is named 'habitat'. The deck has bridge, habitat, reactor-bay, airlock, chart-room, computer-core, quarters, comms-relay, shuttle-bay, drone-bay, capacitor-room, engineering, ftl-core and main-drive.",
     });
   });
 

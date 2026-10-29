@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
 import type { DeckPlan, ShipSnapshot } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
 import { HULL } from '../../physics/constants';
+import { shipState } from '../../../test/ship-state';
 
 import type { IThrusters, ThrusterRating } from './contracts';
 import { RCS_THRUSTERS, thrustersDemand } from './helm-model';
 import { HelmPower } from './helm-power';
 
-const idle = new ShipStateStore(deck satisfies DeckPlan).snapshot();
+const idle = shipState(deck satisfies DeckPlan).snapshot();
 
 /** Thrusters of `rating` that never queue. */
 function thrusters(rating: ThrusterRating = RCS_THRUSTERS): IThrusters {

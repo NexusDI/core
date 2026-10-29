@@ -7,13 +7,13 @@ import type {
   TickContext,
 } from '../../simulation/contracts';
 import { SeededRandom } from '../../simulation/seeded-random';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import type { IMainDrive } from './contracts';
 import { PLASMA_DRIVE } from './propulsion-model';
 import { PropulsionPhysics } from './propulsion-physics';
 
-const idle = new ShipStateStore(deck satisfies DeckPlan).snapshot();
+const idle = shipState(deck satisfies DeckPlan).snapshot();
 const tick: TickContext = {
   tick: 1,
   dt: 0.5,

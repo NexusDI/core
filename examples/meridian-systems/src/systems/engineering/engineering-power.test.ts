@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
 import type { DeckPlan } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import type { IShieldGrid, PowerLoad } from './contracts';
 import { ShieldPower } from './engineering-power';
 
-const start = new ShipStateStore(deck satisfies DeckPlan).snapshot();
+const start = shipState(deck satisfies DeckPlan).snapshot();
 
 /** A grid that draws `load` and queues nothing. */
 function grid(load: PowerLoad): IShieldGrid {

@@ -28,16 +28,14 @@ import {
 } from './safety-model';
 
 const dt = 0.5;
-const ids = ['bridge', 'habitat', 'reactor-bay', 'airlock'];
-const charges: Record<string, number> = {
-  bridge: 1_000,
-  habitat: 2_000,
-  'reactor-bay': 1_330,
-};
-const rooms = deck.compartments.map((plan) =>
-  charges[plan.id] === undefined
-    ? plan
-    : { ...plan, floodCharge: charges[plan.id] },
+const rooms = deck.compartments;
+const ids = rooms.map((plan) => plan.id);
+const charges: Record<string, number> = Object.fromEntries(
+  rooms.flatMap((plan) =>
+    'floodCharge' in plan && plan.floodCharge !== undefined
+      ? [[plan.id, plan.floodCharge]]
+      : [],
+  ),
 );
 const doorIds = deck.doors.map((door) => door.id);
 
@@ -61,8 +59,14 @@ function air(id: string, pa = 101_300, temperature = 293): Air {
   };
 }
 
+/** Every room at the deck's initial air, and the two vacuum bays empty. */
 const initial = (): Record<string, Air> =>
-  Object.fromEntries(ids.map((id) => [id, air(id)]));
+  Object.fromEntries(
+    rooms.map((plan) => [
+      plan.id,
+      air(plan.id, 'pressurised' in plan && !plan.pressurised ? 0 : 101_300),
+    ]),
+  );
 
 /** What a reading may override: the total pressure, the temperature and two partials. */
 interface Override {
@@ -197,7 +201,12 @@ describe('the doors', () => {
         setpoints: setpoints({ doors: { 'bridge-habitat': true } }),
       }),
     );
-    const { fromA, fromB } = doorFractions(1.5, 60, 120, dt);
+    const { fromA, fromB } = doorFractions(
+      door('bridge-habitat').area,
+      60,
+      120,
+      dt,
+    );
     const expected = exchange(
       compartments.bridge,
       compartments.habitat,
@@ -222,11 +231,11 @@ describe('the doors', () => {
       input({
         compartments,
         setpoints: setpoints({
-          doors: { 'bridge-habitat': true, 'habitat-reactor-bay': true },
+          doors: { 'bridge-habitat': true, 'habitat-engineering': true },
         }),
       }),
     );
-    const first = doorFractions(1.5, 60, 120, dt);
+    const first = doorFractions(door('bridge-habitat').area, 60, 120, dt);
     const one = exchange(
       compartments.bridge,
       compartments.habitat,
@@ -235,26 +244,26 @@ describe('the doors', () => {
       first.fromA,
       first.fromB,
     );
-    const second = doorFractions(1.5, 120, 80, dt);
+    const second = doorFractions(door('habitat-engineering').area, 120, 90, dt);
     const two = exchange(
       one.b,
-      compartments['reactor-bay'],
+      compartments.engineering,
       room('habitat').structureHeatCapacity,
-      room('reactor-bay').structureHeatCapacity,
+      room('engineering').structureHeatCapacity,
       second.fromA,
       second.fromB,
     );
     expect(result.compartments.bridge).toEqual(one.a);
     expect(result.compartments.habitat).toEqual(two.a);
-    expect(result.compartments['reactor-bay']).toEqual(two.b);
+    expect(result.compartments.engineering).toEqual(two.b);
   });
 
-  it('vents the airlock through the outer door, keeping 0.08208 a tick', () => {
+  it('vents the airlock through the outer door, keeping 0.00193 a tick', () => {
     const result = stepSafety(
       input({ setpoints: setpoints({ doors: { 'airlock-outer': true } }) }),
     );
     const kept = ventFraction(door('airlock-outer').area, 12, dt);
-    expect(kept).toBeCloseTo(0.08208, 5);
+    expect(kept).toBeCloseTo(0.00193045, 8);
     expect(result.compartments.airlock).toEqual(vent(initial().airlock, kept));
   });
 });
@@ -339,6 +348,14 @@ describe('the floods', () => {
     ['bridge', 50],
     ['habitat', 100],
     ['reactor-bay', 66.5],
+    ['chart-room', 20],
+    ['computer-core', 16.5],
+    ['quarters', 40],
+    ['comms-relay', 13.5],
+    ['capacitor-room', 30],
+    ['engineering', 75],
+    ['ftl-core', 41.5],
+    ['main-drive', 33.5],
   ])(
     'finishes the %s flood of %s mol a tick on its 20th tick',
     (id, perTick) => {
@@ -524,12 +541,17 @@ describe('a decompression', () => {
       input({ setpoints: open(), read: falling(99_000) }),
     );
     expect(result.safety.alarms.map(key)).toEqual(['DECOMPRESSION habitat']);
-    expect(result.setpoints.doors).toEqual({
-      'bridge-habitat': false,
-      'habitat-reactor-bay': false,
-      'habitat-airlock': false,
-      'airlock-outer': true,
-    });
+    expect(
+      Object.entries(result.setpoints.doors)
+        .filter(([, open]) => !open)
+        .map(([id]) => id),
+    ).toEqual([
+      'bridge-habitat',
+      'habitat-airlock',
+      'habitat-quarters',
+      'habitat-comms-relay',
+      'habitat-engineering',
+    ]);
   });
 
   it('shuts them again on every tick it stays active', () => {

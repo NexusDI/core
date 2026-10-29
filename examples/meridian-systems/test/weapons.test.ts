@@ -84,16 +84,15 @@ describe('the weapons', () => {
       'tick',
       'time',
       'compartments',
-      'reactor',
-      'coolant',
-      'power',
-      'lifeSupport',
       'comms',
-      'weapons',
+      'coolant',
       'drive',
       'helm',
-      'ftl',
+      'lifeSupport',
+      'power',
+      'reactor',
       'safety',
+      'weapons',
       'setpoints',
     ]);
   });
@@ -114,20 +113,7 @@ describe('the weapons', () => {
     });
     expect(Object.isFrozen(start.weapons)).toBe(true);
     expect(Object.isFrozen(start.setpoints.weapons)).toBe(true);
-    expect(start.power.loads.map(({ id }) => id)).toEqual([
-      'life-support',
-      'shields',
-      'comms',
-      'thrusters',
-      'main-drive',
-      'railgun',
-    ]);
-    expect(loadOf(start, 'railgun')).toEqual({
-      id: 'railgun',
-      priority: 6,
-      demand: 0,
-      allocated: 0,
-    });
+    expect(start.power.loads).toEqual([]);
 
     const first = loop.advance(1);
     expect(first.weapons).toBe(start.weapons);

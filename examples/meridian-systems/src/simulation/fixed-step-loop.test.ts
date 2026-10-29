@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import deck from '../../deck/meridian.deck.json';
+import { shipState } from '../../test/ship-state';
+import { FTL_RECORD } from '../systems/ftl/ftl-record';
 
 import type {
   DeckPlan,
@@ -13,7 +15,6 @@ import type {
 import { FixedStepClock } from './fixed-step-clock';
 import { FixedStepLoop } from './fixed-step-loop';
 import { SeededRandom } from './seeded-random';
-import { ShipStateStore } from './ship-state-store';
 
 interface Call {
   readonly name: string;
@@ -42,7 +43,7 @@ function probe(
 
 function build(systems: IShipSystem[]) {
   const clock = new FixedStepClock({ dt: 0.5 });
-  const state = new ShipStateStore(deck satisfies DeckPlan);
+  const state = shipState(deck satisfies DeckPlan);
   const rng = new SeededRandom({ seed: 7 });
   return { clock, state, loop: new FixedStepLoop(clock, state, rng, systems) };
 }
@@ -382,5 +383,34 @@ describe('FixedStepLoop', () => {
       loop.advance(2);
       expect(calls.map((call) => call.tick.tick)).toEqual([2]);
     });
+  });
+});
+
+describe('FixedStepLoop and a record registered in a step', () => {
+  it('commits a record a step registers, and drops one a step unregisters', () => {
+    let unregister: (() => void) | undefined;
+    const { state, loop } = build([
+      {
+        name: 'Registrar',
+        phase: 1,
+        step(ship) {
+          if (unregister === undefined) {
+            unregister = state.register(FTL_RECORD);
+          } else {
+            unregister();
+          }
+          return ship;
+        },
+      },
+    ]);
+    const registered = loop.advance(1);
+    expect(registered.ftl).toStrictEqual(FTL_RECORD.records.ftl);
+    expect(registered.setpoints.ftl).toStrictEqual(FTL_RECORD.setpoints.ftl);
+    expect(registered.tick).toBe(1);
+
+    const unregistered = loop.advance(1);
+    expect(unregistered).not.toHaveProperty('ftl');
+    expect(unregistered.setpoints).not.toHaveProperty('ftl');
+    expect(unregistered.tick).toBe(2);
   });
 });

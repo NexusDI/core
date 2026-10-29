@@ -3,13 +3,13 @@ import { describe, expect, it } from 'vitest';
 import deck from '../../../deck/meridian.deck.json';
 import { PowerBudgetError } from '../../errors';
 import type { DeckPlan } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import type { IPowerRouter, PowerLoad } from './contracts';
 import { DeflectorGrid } from './deflector-grid';
 
 function build(refuse = false) {
-  const state = new ShipStateStore(deck satisfies DeckPlan);
+  const state = shipState(deck satisfies DeckPlan);
   const diverted: PowerLoad[] = [];
   const router: IPowerRouter = {
     loads: () => [],

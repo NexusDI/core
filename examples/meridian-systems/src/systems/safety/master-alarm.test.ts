@@ -6,7 +6,7 @@ import type {
   ShipSnapshot,
   TickListener,
 } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import type { Alarm, IAlarmSink } from './contracts';
 import { MasterAlarm } from './master-alarm';
@@ -40,7 +40,7 @@ class RecordingSink implements IAlarmSink {
   }
 }
 
-const idle = new ShipStateStore(deck).snapshot();
+const idle = shipState(deck).snapshot();
 
 /** The idle ship at `tick` with `alarms` active. */
 function at(tick: number, alarms: readonly Alarm[]): ShipSnapshot {

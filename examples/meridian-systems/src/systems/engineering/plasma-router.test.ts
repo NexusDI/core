@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import deck from '../../../deck/meridian.deck.json';
 import { PowerBudgetError } from '../../errors';
 import type { DeckPlan, ShipSnapshot } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import type { IPowerConsumer, IShieldGrid, PowerLoad } from './contracts';
 import { ShieldPower } from './engineering-power';
@@ -38,7 +38,7 @@ function build(
   draw: PowerLoad = { ...RAISED, demand: 0 },
   consumers: IPowerConsumer[] = [],
 ) {
-  const state = new ShipStateStore(deck satisfies DeckPlan);
+  const state = shipState(deck satisfies DeckPlan);
   const ship = state.snapshot();
   state.commit({ ...ship, reactor: { ...ship.reactor, electric } });
   const seen: ShipSnapshot[] = [];
@@ -252,7 +252,7 @@ describe('PlasmaRouter', () => {
   });
 
   it('reads the consumers of POWER_CONSUMERS once, on the first call that needs them', () => {
-    const state = new ShipStateStore(deck satisfies DeckPlan);
+    const state = shipState(deck satisfies DeckPlan);
     let reads = 0;
     const router = new PlasmaRouter(state, () => {
       reads++;

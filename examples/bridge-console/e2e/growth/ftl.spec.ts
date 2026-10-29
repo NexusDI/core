@@ -35,9 +35,7 @@ test('loads the drive, spools and jumps from /systems/ftl', async ({
   // No earlier case loads the drive, so the page reads the ship before it,
   // and the desk refuses a spool until the drive loads.
   await page.goto('/systems/ftl');
-  await expect(gauge(ftl, 'Status')).toHaveText('offline');
-  await expect(gauge(ftl, 'Spool charge')).toHaveText('0.0 GJ');
-  await expect(gauge(ftl, 'Sector')).toHaveText('Sol');
+  await expect(gauge(ftl, 'Status')).toHaveText('not loaded');
   await page.getByRole('button', { name: 'Spool drive' }).click();
   await expect(page.getByRole('alert')).toContainText(
     "No ship system is named 'ftl'.",

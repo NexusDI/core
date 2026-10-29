@@ -35,11 +35,12 @@ test('brings life support online and reads the heated habitat on /systems/life-s
   });
   expect(advance.status()).toBe(200);
 
-  // The model gives the habitat 292.765 K and 101,206 Pa at tick 600, with
-  // the heater at 2,346 W. After 7,200 ticks online it reads 292.552 K and
-  // 101,007 Pa, and the analyzer adds up to 0.05 K and 20 Pa of noise.
+  // The model gives the habitat 292.755 K and 101,202 Pa at tick 600, with
+  // the heater at 2,450 W. After 7,200 ticks online it reads 292.532 K and
+  // 101,023 Pa, and the analyzer adds up to 0.05 K and 20 Pa of noise. The
+  // page reads an analyzer in each of the fourteen compartments.
   await page.reload();
-  await expect(page.getByText(`Analyzer, tick ${tick + 600}`)).toHaveCount(4);
+  await expect(page.getByText(`Analyzer, tick ${tick + 600}`)).toHaveCount(14);
   const analyzer = page.getByLabel('Habitat analyzer', { exact: true });
   const temperature = gauge(analyzer, 'Temperature');
   const pressure = gauge(analyzer, 'Pressure');

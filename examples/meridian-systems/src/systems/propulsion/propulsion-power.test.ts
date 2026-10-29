@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
 import type { DeckPlan, ShipSnapshot } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import type { DriveRating, IMainDrive } from './contracts';
 import { PropulsionPower } from './propulsion-power';
 import { driveDemand, PLASMA_DRIVE } from './propulsion-model';
 
-const idle = new ShipStateStore(deck satisfies DeckPlan).snapshot();
+const idle = shipState(deck satisfies DeckPlan).snapshot();
 
 /** A main drive of `rating` that never queues. */
 function drive(rating: DriveRating = PLASMA_DRIVE): IMainDrive {

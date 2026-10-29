@@ -10,6 +10,16 @@ export const COMPARTMENT_NAMES = {
   habitat: 'Habitat',
   'reactor-bay': 'Reactor bay',
   airlock: 'Airlock',
+  'chart-room': 'Chart room',
+  'computer-core': 'Computer core',
+  quarters: 'Quarters',
+  'comms-relay': 'Comms relay',
+  'shuttle-bay': 'Shuttle bay',
+  'drone-bay': 'Drone bay',
+  'capacitor-room': 'Capacitor room',
+  engineering: 'Engineering',
+  'ftl-core': 'FTL core',
+  'main-drive': 'Main drive',
 } as const satisfies Record<CompartmentId, string>;
 
 /** The compartments in the deck's order, each with its name. */

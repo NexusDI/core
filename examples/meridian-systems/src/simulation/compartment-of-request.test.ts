@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { UnknownCompartmentError } from '../errors';
 
 import { compartmentOfRequest } from './compartment-of-request';
+import { COMPARTMENT_IDS } from './contracts';
 
-const ROOMS = 'bridge, habitat, reactor-bay and airlock';
+const ROOMS =
+  'bridge, habitat, reactor-bay, airlock, chart-room, computer-core, quarters, comms-relay, shuttle-bay, drone-bay, capacitor-room, engineering, ftl-core and main-drive';
 
 /** What `compartmentOfRequest` threw, or undefined. */
 function refusal(compartment?: string): unknown {
@@ -17,14 +19,14 @@ function refusal(compartment?: string): unknown {
 }
 
 describe('compartmentOfRequest', () => {
-  it.each(['bridge', 'habitat', 'reactor-bay', 'airlock'])(
+  it.each([...COMPARTMENT_IDS])(
     'answers %s for a request that names it',
     (compartment) => {
       expect(compartmentOfRequest({ compartment })).toBe(compartment);
     },
   );
 
-  it('refuses an unknown compartment and names the four rooms', () => {
+  it('refuses an unknown compartment and names the fourteen rooms', () => {
     const error = refusal('galley');
     expect(error).toBeInstanceOf(UnknownCompartmentError);
     expect({ ...(error as UnknownCompartmentError) }).toStrictEqual({

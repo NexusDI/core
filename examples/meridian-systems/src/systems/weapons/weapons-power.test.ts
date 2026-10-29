@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
 import type { DeckPlan, ShipSnapshot } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import type { IWeaponMount, RailgunRating } from './contracts';
 import { RAILGUN, railgunDemand } from './weapons-model';
 import { WeaponsPower } from './weapons-power';
 
-const start = new ShipStateStore(deck satisfies DeckPlan).snapshot();
+const start = shipState(deck satisfies DeckPlan).snapshot();
 
 /** A mount of `rating` that never fires. */
 function mount(rating: RailgunRating = RAILGUN): IWeaponMount {

@@ -6,7 +6,7 @@ import type {
   CompartmentState,
   DeckPlan,
 } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { shipState } from '../../../test/ship-state';
 
 import type { AtmosphereReading, IAtmosphereProbe } from './contracts';
 import { GasAnalyzer } from './gas-analyzer';
@@ -34,7 +34,7 @@ class ProbeDouble implements IAtmosphereProbe {
 }
 
 function build() {
-  const state = new ShipStateStore(plan);
+  const state = shipState(plan);
   const probe = new ProbeDouble();
   const analyzer = () => new GasAnalyzer('habitat', state, probe);
   return { state, probe, analyzer };

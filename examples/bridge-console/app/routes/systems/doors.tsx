@@ -18,12 +18,28 @@ type Side = CompartmentId | 'space';
  */
 const DOORS = {
   'bridge-habitat': ['bridge', 'habitat'],
-  'habitat-reactor-bay': ['habitat', 'reactor-bay'],
   'habitat-airlock': ['habitat', 'airlock'],
   'airlock-outer': ['airlock', 'space'],
+  'bridge-chart-room': ['bridge', 'chart-room'],
+  'bridge-computer-core': ['bridge', 'computer-core'],
+  'habitat-quarters': ['habitat', 'quarters'],
+  'habitat-comms-relay': ['habitat', 'comms-relay'],
+  'airlock-shuttle-bay': ['airlock', 'shuttle-bay'],
+  'shuttle-bay-outer': ['shuttle-bay', 'space'],
+  'shuttle-bay-drone-bay': ['shuttle-bay', 'drone-bay'],
+  'drone-bay-outer': ['drone-bay', 'space'],
+  'habitat-engineering': ['habitat', 'engineering'],
+  'engineering-capacitor-room': ['engineering', 'capacitor-room'],
+  'engineering-ftl-core': ['engineering', 'ftl-core'],
+  'engineering-reactor-bay': ['engineering', 'reactor-bay'],
+  'reactor-bay-main-drive': ['reactor-bay', 'main-drive'],
 } as const satisfies Record<DoorId, readonly [Side, Side]>;
 
 export const DOOR_IDS = Object.keys(DOORS) as readonly DoorId[];
+
+/** The doors with `room` on one side, in the order the deck lists them. */
+export const doorsOf = (room: CompartmentId): readonly DoorId[] =>
+  DOOR_IDS.filter((id) => DOORS[id].some((side) => side === room));
 
 const sideName = (side: Side) =>
   side === 'space' ? 'Space' : COMPARTMENT_NAMES[side];

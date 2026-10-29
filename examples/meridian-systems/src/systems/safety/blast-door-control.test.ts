@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
 import { BadCommandError } from '../../errors';
-import type { DeckPlan } from '../../simulation/contracts';
-import { ShipStateStore } from '../../simulation/ship-state-store';
+import { type DeckPlan, DOOR_IDS } from '../../simulation/contracts';
+import { shipState } from '../../../test/ship-state';
 
 import { BlastDoorControl } from './blast-door-control';
 import { SAFETY_ACTIONS } from './contracts';
 
 function build() {
-  const state = new ShipStateStore(deck satisfies DeckPlan);
+  const state = shipState(deck satisfies DeckPlan);
   return { state, doors: new BlastDoorControl(state) };
 }
 
@@ -18,10 +18,8 @@ describe('BlastDoorControl', () => {
     const { state, doors } = build();
     expect(doors.open('habitat-airlock')).toEqual({ tick: 1 });
     expect(state.applyQueued(1).setpoints.safety.doors).toEqual({
-      'bridge-habitat': false,
-      'habitat-reactor-bay': false,
+      ...Object.fromEntries(DOOR_IDS.map((id) => [id, false])),
       'habitat-airlock': true,
-      'airlock-outer': false,
     });
   });
 
@@ -64,7 +62,7 @@ describe('BlastDoorControl', () => {
       }),
     );
     expect(state.applyQueued(1).setpoints.safety).toEqual(
-      new ShipStateStore(deck).snapshot().setpoints.safety,
+      shipState(deck).snapshot().setpoints.safety,
     );
   });
 });

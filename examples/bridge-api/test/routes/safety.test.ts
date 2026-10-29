@@ -1,5 +1,9 @@
 import { Nexus } from '@nexusdi/core';
-import { SHIP_STATE, type ShipReading } from '@nexusdi/meridian-systems';
+import {
+  DOOR_IDS,
+  SHIP_STATE,
+  type ShipReading,
+} from '@nexusdi/meridian-systems';
 import { nodeScopes } from '@nexusdi/node';
 import { describe, expect } from 'vitest';
 
@@ -89,7 +93,7 @@ describe.each(FRAMEWORKS)('the door commands on %s', (framework) => {
 describe.each(FRAMEWORKS)('the safety commands on %s', (framework) => {
   const call = calls[framework];
   const SAFETY =
-    'open and close with a door of bridge-habitat, habitat-reactor-bay, habitat-airlock or airlock-outer, and flood and drill with a compartment of bridge, habitat or reactor-bay';
+    'open and close with a door of bridge-habitat, habitat-airlock, airlock-outer, bridge-chart-room, bridge-computer-core, habitat-quarters, habitat-comms-relay, airlock-shuttle-bay, shuttle-bay-outer, shuttle-bay-drone-bay, drone-bay-outer, habitat-engineering, engineering-capacitor-room, engineering-ftl-core, engineering-reactor-bay or reactor-bay-main-drive, and flood and drill with a compartment of bridge, habitat, reactor-bay, chart-room, computer-core, quarters, comms-relay, capacitor-room, engineering, ftl-core or main-drive';
   const refused = (action: string, argument: 'door' | 'compartment') => ({
     status: 400,
     body: {
@@ -145,17 +149,26 @@ describe.each(FRAMEWORKS)('the safety commands on %s', (framework) => {
     expect(status).toBe(200);
     const ship = body as ShipReading;
     expect(ship.safety.alarms).toEqual([]);
-    expect(ship.setpoints.safety.doors).toEqual({
-      'bridge-habitat': false,
-      'habitat-reactor-bay': false,
-      'habitat-airlock': false,
-      'airlock-outer': false,
-    });
-    expect(ship.setpoints.safety.drills).toEqual({
-      bridge: false,
-      habitat: false,
-      'reactor-bay': false,
-    });
+    expect(ship.setpoints.safety.doors).toEqual(
+      Object.fromEntries(DOOR_IDS.map((id) => [id, false])),
+    );
+    expect(ship.setpoints.safety.drills).toEqual(
+      Object.fromEntries(
+        [
+          'bridge',
+          'habitat',
+          'reactor-bay',
+          'chart-room',
+          'computer-core',
+          'quarters',
+          'comms-relay',
+          'capacitor-room',
+          'engineering',
+          'ftl-core',
+          'main-drive',
+        ].map((id) => [id, false]),
+      ),
+    );
   });
 
   test('GET /safety answers an empty 404, as safety rides /commands and /sim', async ({
