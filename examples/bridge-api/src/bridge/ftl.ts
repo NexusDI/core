@@ -23,9 +23,9 @@ export const answerFtlSection = (drive: IFtlDrive): FtlSectionReply => ({
 /**
  * The FTL rating of each telemetry frame, read through the stream's request
  * scope `scope`: undefined while the frame holds no FTL record or the record
- * reads `offline`, and from the first other status the rating of the drive bound to FTL_DRIVE.
- * The stream's scope opened before the first FTL request loaded the drive,
- * so the read calls `scope.extend()` first. Without the extend, `get` throws
+ * reads `offline`, and from the first other status the rating of the drive
+ * bound to FTL_DRIVE. The stream's scope opened before `POST /sections/ftl`
+ * loaded the drive, so the read calls `scope.extend()` first. Without the extend, `get` throws
  * NEXUS_LOADED_AFTER_SCOPE. The extend and the read run once, and every
  * later frame gets the same promise.
  */

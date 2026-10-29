@@ -125,7 +125,7 @@ export async function createBridge(
         onRequest: di.injectHook(
           { driver: SIM_DRIVER },
           async ({ driver }, _req, reply) => {
-            if (driver.mode === 'live') reply.callNotFound();
+            if (driver.mode === 'live') return reply.callNotFound();
           },
         ),
       },

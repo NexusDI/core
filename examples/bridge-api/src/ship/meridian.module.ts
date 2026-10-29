@@ -45,6 +45,7 @@ function bridgeShip(
   { sim, mode }: ShipSetup,
   link: readonly ModuleRef[],
 ) {
+  const driver = SimDriver.forRoot({ mode });
   return defineModule({
     name,
     imports: [
@@ -57,8 +58,10 @@ function bridgeShip(
       MissionScope,
       AuditTrail,
       AlarmPanel,
-      SimDriver.forRoot({ mode }),
+      driver,
     ],
+    // A test that imports the root reads the driver and the audit log.
+    exports: [driver, AuditTrail],
   });
 }
 

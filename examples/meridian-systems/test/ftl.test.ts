@@ -151,7 +151,7 @@ describe('the FTL drive', () => {
   });
 
   test('adds no contribution to a multi token, and the buses hold the drive until dispose', async () => {
-    const ship = await Nexus.create(shipRoot({ reads: READS }));
+    await using ship = await Nexus.create(shipRoot({ reads: READS }));
     const contributions = () => ({
       systems: ship.get(SHIP_SYSTEMS),
       handlers: ship.get(COMMAND_HANDLERS),

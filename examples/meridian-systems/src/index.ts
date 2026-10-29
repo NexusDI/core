@@ -15,10 +15,15 @@ export {
 // startup, and the system modules whose tokens an app reads.
 export { MeridianSystems } from './meridian-systems.module';
 export { Simulation } from './simulation/simulation.module';
+export { Comms } from './systems/comms/comms.module';
 export { SubspaceLink } from './systems/comms/subspace-link.module';
+export { Engineering } from './systems/engineering/engineering.module';
+export { Helm } from './systems/helm/helm.module';
 export { ShipLifeSupport } from './systems/life-support/life-support.module';
+export { Propulsion } from './systems/propulsion/propulsion.module';
 export { Safety } from './systems/safety/safety.module';
 export { Tactical } from './systems/tactical/tactical.module';
+export { Weapons } from './systems/weapons/weapons.module';
 export { Telemetry } from './telemetry/telemetry.module';
 
 // The graph annotator that labels each provider with its system and phase.
