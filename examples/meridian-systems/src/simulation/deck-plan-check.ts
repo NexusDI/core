@@ -9,7 +9,8 @@ import {
 
 /**
  * Refuses a deck plan whose compartments differ from `COMPARTMENT_IDS`, a
- * room with a bad device list or flood charge, or a deck whose doors differ
+ * room with a bad device list or flood charge, an unpressurised room with
+ * either, or a deck whose doors differ
  * from `DOOR_IDS`. Each refusal is a plain `Error`, since a bad deck is a bug
  * in the ship's files and no crew command reaches it.
  */
@@ -27,6 +28,7 @@ export function checkDeckPlan(deck: DeckPlan): void {
     seen.add(room.id);
     checkEquipment(room);
     checkFloodCharge(room);
+    checkVacuum(room);
   }
   for (const id of COMPARTMENT_IDS) {
     if (!seen.has(id)) {
@@ -85,6 +87,25 @@ function checkFloodCharge(room: CompartmentPlan): void {
   if (!Number.isFinite(charge) || charge <= 0) {
     throw new Error(
       `The deck plan gives compartment '${room.id}' a floodCharge of ${charge}. A charge is a positive finite number of moles.`,
+    );
+  }
+}
+
+/**
+ * Refuses an unpressurised room that lists a device or a flood charge, since
+ * a device or a flood in vacuum would act on no gas.
+ */
+function checkVacuum(room: CompartmentPlan): void {
+  if (room.pressurised !== false) return;
+  const equipment = room.equipment ?? [];
+  if (equipment.length > 0) {
+    throw new Error(
+      `The deck plan gives the unpressurised compartment '${room.id}' the equipment ${equipment.join(', ')}. A room with no air carries no device.`,
+    );
+  }
+  if (room.floodCharge !== undefined) {
+    throw new Error(
+      `The deck plan gives the unpressurised compartment '${room.id}' a floodCharge. A room with no air takes no flood.`,
     );
   }
 }

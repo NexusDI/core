@@ -585,6 +585,14 @@ describe('the fuel conditions', () => {
     expect(pressure(air.moles.O2, 293, habitat.volume)).toBeCloseTo(15_750, 6);
     expect(burns(air, habitat.volume)).toBe(false);
   });
+
+  it('lets no fire burn in an empty room', () => {
+    const empty: Air = {
+      moles: molesAt(0, 293, habitat.volume, AIR),
+      temperature: 293,
+    };
+    expect(burns(empty, habitat.volume)).toBe(false);
+  });
 });
 
 describe('the fire law', () => {
