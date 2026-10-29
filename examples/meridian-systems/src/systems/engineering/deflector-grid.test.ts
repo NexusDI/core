@@ -25,7 +25,7 @@ function build(refuse = false) {
       }
     },
   };
-  return { state, diverted, grid: new DeflectorGrid(state, () => router) };
+  return { state, diverted, grid: new DeflectorGrid(state, router) };
 }
 
 describe('DeflectorGrid', () => {

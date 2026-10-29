@@ -44,6 +44,19 @@ export class StarCharts implements INavCharts {
     return new StarCharts(readCharts(await link.receive<unknown>('charts')));
   }
 
+  /**
+   * The charts `link` downloads, or the bundled table when the ship has no
+   * link. The offline charts come back at once, with no promise, so the
+   * offline ship awaits only its life-support calibration at startup.
+   */
+  static chart(
+    link: ISubspaceLink | undefined,
+  ): StarCharts | Promise<StarCharts> {
+    return link === undefined
+      ? new StarCharts(BUNDLED_CHARTS)
+      : StarCharts.download(link);
+  }
+
   constructor(private readonly headings: Readonly<Record<string, number>>) {}
 
   /** The bundled table and the downloaded one go through this check, so an entry that is not a finite number reads as uncharted. */

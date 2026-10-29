@@ -4,6 +4,7 @@ import {
   ATMOSPHERE_PROBE,
   COMPARTMENT_IDS,
   MASTER_ALARM,
+  Safety,
 } from '@nexusdi/meridian-systems';
 import { createTestingContainer } from '@nexusdi/testing';
 import { nexusTest } from '@nexusdi/vitest';
@@ -17,18 +18,18 @@ import { FailingProbe, RecordingAlarmSink } from './doubles';
 
 /**
  * Exports ALARM_SINKS, as AlarmPanel does, so all(ALARM_SINKS) in Safety
- * reads the sink wherever the module sits in the graph.
+ * reads the sink with no global and no import of Safety.
  */
 const RecordingAlarms = defineModule({
   name: 'RecordingAlarms',
-  global: true,
   providers: [provide(ALARM_SINKS, { useClass: RecordingAlarmSink })],
   exports: [ALARM_SINKS],
 });
 
 const AlarmTestShip = defineModule({
   name: 'AlarmTestShip',
-  imports: [OfflineMeridian, RecordingAlarms],
+  // Safety for MASTER_ALARM: the test reads the alarm from its root.
+  imports: [OfflineMeridian, Safety, RecordingAlarms],
 });
 
 const test = nexusTest(base, AlarmTestShip, {
@@ -72,7 +73,7 @@ describe('the alarm panel with a failing probe', () => {
 
   test('holds the four faults as the active alarms', ({ nexus }) => {
     nexus.get(SIM_DRIVER, inShip).advance(10);
-    expect(nexus.get(MASTER_ALARM, inShip).active()).toEqual(faults);
+    expect(nexus.get(MASTER_ALARM).active()).toEqual(faults);
   });
 });
 

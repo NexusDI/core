@@ -81,9 +81,7 @@ describe('the bridge API graph', () => {
         p.notes,
       ]),
     );
-    expect(notes['TickLoop in MeridianSystems']).toEqual([
-      'system: MeridianSystems',
-    ]);
+    expect(notes['TickLoop in Simulation']).toEqual(['system: Simulation']);
     expect(notes['ShipState in Simulation']).toEqual(['system: Simulation']);
     expect(notes['TelemetryFeed in Telemetry']).toEqual(['system: Telemetry']);
     expect(notes['ShipSystems in Engineering']).toEqual([
@@ -118,18 +116,14 @@ describe('the bridge API graph', () => {
     ]) {
       expect(notes[`${token} in Safety`]).toEqual(['system: Safety']);
     }
-    expect(notes['ShipSystems in OfflineComms']).toEqual([
-      'system: OfflineComms',
+    expect(notes['ShipSystems in Comms']).toEqual([
+      'system: Comms',
       'phase: 6',
     ]);
     for (const token of ['CommsArray', 'PowerConsumers', 'CommandHandlers']) {
-      expect(notes[`${token} in OfflineComms`]).toEqual([
-        'system: OfflineComms',
-      ]);
+      expect(notes[`${token} in Comms`]).toEqual(['system: Comms']);
     }
-    expect(notes['NavCharts in OfflineTactical']).toEqual([
-      'system: OfflineTactical',
-    ]);
+    expect(notes['NavCharts in Tactical']).toEqual(['system: Tactical']);
     expect(notes['ShipSystems in Propulsion']).toEqual([
       'system: Propulsion',
       'phase: 2',

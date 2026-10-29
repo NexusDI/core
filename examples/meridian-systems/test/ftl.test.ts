@@ -1,7 +1,8 @@
 import { defineModule, Nexus, provide } from '@nexusdi/core';
 import { describe, expect, vi } from 'vitest';
 
-import { meridianSystems } from '../src/meridian-systems.module';
+import { Engineering } from '../src/systems/engineering/engineering.module';
+import { Tactical } from '../src/systems/tactical/tactical.module';
 import { LITHIUM_LOOP } from '../src/systems/engineering/engineering-model';
 import {
   COMMAND_DESK,
@@ -31,10 +32,13 @@ import { FtlPhysics } from '../src/systems/ftl/ftl-physics';
 import { FtlPower } from '../src/systems/ftl/ftl-power';
 import { JumpDrive } from '../src/systems/ftl/jump-drive';
 
+import { shipRoot } from './ship-root';
 import { shipTest } from './fixtures';
-import { loadOf, SHIP_OPTIONS, throttle } from './support';
+import { loadOf, throttle } from './support';
 
-const test = shipTest(meridianSystems(SHIP_OPTIONS));
+/** The system modules whose tokens these cases read from the root. */
+const READS = [Engineering];
+const test = shipTest(shipRoot({ reads: READS }));
 
 /** 10.7914 K: a tenth of the 90 GJ charge over the loop's heat capacity. */
 const PULSE_KELVIN =
@@ -74,19 +78,21 @@ async function loaded(ship: Nexus) {
 describe('the FTL drive', () => {
   test('checks as a load and fails alone', () => {
     expect(() =>
-      Nexus.check(meridianSystems(SHIP_OPTIONS), { load: [FtlDrive] }),
+      Nexus.check(shipRoot({ reads: READS }), { load: [FtlDrive] }),
     ).not.toThrow();
+    // FtlDrive imports Engineering and Tactical, and alone it lacks the
+    // kernel that Simulation gives a ship.
     expect(() => Nexus.check(FtlDrive)).toThrow(
       expect.objectContaining({
         code: 'NEXUS_BLUEPRINT_INVALID',
-        errors: [
-          'TickLoop',
-          'ShipState',
-          'NavCharts',
-          'PowerRouter',
-          'CommandDesk',
-        ].map((token) =>
-          expect.objectContaining({ code: 'NEXUS_MISSING_PROVIDER', token }),
+        errors: expect.arrayContaining(
+          ['TickLoop', 'ShipState', 'CommandDesk'].map((token) =>
+            expect.objectContaining({
+              code: 'NEXUS_MISSING_PROVIDER',
+              token,
+              module: 'FtlDrive',
+            }),
+          ),
         ),
       }),
     );
@@ -149,7 +155,7 @@ describe('the FTL drive', () => {
   });
 
   test('adds no contribution to a multi token, and the buses hold the drive until dispose', async () => {
-    const ship = await Nexus.create(meridianSystems(SHIP_OPTIONS));
+    const ship = await Nexus.create(shipRoot({ reads: READS }));
     const contributions = () => ({
       systems: ship.get(SHIP_SYSTEMS),
       handlers: ship.get(COMMAND_HANDLERS),
@@ -217,6 +223,7 @@ describe('the FTL drive', () => {
     }
     const Eager = defineModule({
       name: 'EagerFtlDrive',
+      imports: [Engineering, Tactical],
       providers: [
         provide(FTL_DRIVE, { useClass: JumpDrive }),
         provide(FTL_PHYSICS, { useClass: FtlPhysics }),
@@ -226,7 +233,7 @@ describe('the FTL drive', () => {
       exports: [FTL_DRIVE],
     });
     expect(() =>
-      Nexus.check(meridianSystems(SHIP_OPTIONS), { load: [Eager] }),
+      Nexus.check(shipRoot({ reads: READS }), { load: [Eager] }),
     ).toThrow(
       expect.objectContaining({
         errors: [
@@ -384,7 +391,7 @@ describe('the FTL drive', () => {
     });
 
     // The same run with no jump reads the loop 10.7914 K cooler at tick 301.
-    await using calm = await Nexus.create(meridianSystems(SHIP_OPTIONS));
+    await using calm = await Nexus.create(shipRoot({ reads: READS }));
     const still = await loaded(calm);
     throttle(still.desk, 1);
     still.loop.advance(100);

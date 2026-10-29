@@ -2,7 +2,6 @@ import { defineModule, NEXUS_PLUGIN_API, provide, Token } from '@nexusdi/core';
 import { inspect, type NexusGraph } from '@nexusdi/devtools';
 import { describe, expect, it } from 'vitest';
 
-import { meridianSystems } from '../src/meridian-systems.module';
 import { shipNotes } from '../src/notes';
 import {
   type IShipSystem,
@@ -13,6 +12,7 @@ import { Simulation } from '../src/simulation/simulation.module';
 import { FTL_DRIVE } from '../src/systems/ftl/contracts';
 import { FtlDrive } from '../src/systems/ftl/ftl-drive.module';
 
+import { shipRoot } from './ship-root';
 import { ProbeSystems, shipUnderTest } from './ship-under-test';
 import { FailingFtlDrive, SHIP_OPTIONS } from './support';
 
@@ -47,16 +47,16 @@ function notesByModule(graph: NexusGraph): Record<string, string[][]> {
 }
 
 describe('shipNotes', () => {
-  it('labels each provider under the module that binds TICK_LOOP with its system', () => {
+  it('labels each provider of the simulation and of every module MeridianSystems imports with its system', () => {
     const Root = defineModule({
       name: 'Root',
-      imports: [meridianSystems(SHIP_OPTIONS), Bridge],
+      imports: [shipRoot(), Bridge],
     });
     const byModule = notesByModule(inspect(Root, { annotate: [shipNotes] }));
-    for (const name of ['MeridianSystems', 'Simulation', 'Telemetry']) {
+    for (const name of ['Simulation', 'Telemetry', 'Engineering', 'Helm']) {
       expect(byModule[name].length).toBeGreaterThan(0);
       for (const notes of byModule[name]) {
-        expect(notes).toEqual([`system: ${name}`]);
+        expect(notes[0]).toBe(`system: ${name}`);
       }
     }
     expect(byModule.Bridge).toEqual([[]]);
@@ -67,7 +67,7 @@ describe('shipNotes', () => {
     const byModule = notesByModule(
       inspect(ShipUnderTest, { annotate: [shipNotes] }),
     );
-    for (const name of ['ShipUnderTest', 'ProbeSystems']) {
+    for (const name of ['Simulation', 'ProbeSystems']) {
       expect(byModule[name].length).toBeGreaterThan(0);
       for (const notes of byModule[name]) {
         expect(notes).toEqual([`system: ${name}`]);
@@ -76,7 +76,7 @@ describe('shipNotes', () => {
   });
 
   it('labels the engineering ship system with its phase and the reactor without one', () => {
-    const graph = inspect(meridianSystems(SHIP_OPTIONS), {
+    const graph = inspect(shipRoot(), {
       annotate: [shipNotes],
     });
     const notesOf = (implementation: string) =>
@@ -132,7 +132,7 @@ describe('shipNotes', () => {
     // Under a root, so FtlDrive sits outside the walk from TICK_LOOP's module.
     const ship = defineModule({
       name: 'Root',
-      imports: [meridianSystems(SHIP_OPTIONS)],
+      imports: [shipRoot()],
     });
     const loaded = inspect(ship, { load: [FtlDrive], annotate: [shipNotes] });
     expect(notesOf(loaded, 'JumpDrive')).toEqual(['system: FtlDrive']);
@@ -156,11 +156,35 @@ describe('shipNotes', () => {
     expect(notesOf(replaced, 'FailingFtlDrive')).toEqual(['system: StandIn']);
   });
 
-  it('gives no note to a root without TICK_LOOP', () => {
+  it('labels every provider of a root that binds a ship system itself', () => {
+    class Stepper implements IShipSystem {
+      static readonly phase = 2;
+      readonly name = 'Stepper';
+      readonly phase = 2;
+      step(ship: ShipSnapshot): ShipSnapshot {
+        return ship;
+      }
+    }
     const Root = defineModule({
-      name: 'Root',
+      name: 'SteppingRoot',
       imports: [Simulation.forRoot(SHIP_OPTIONS), Bridge],
+      providers: [
+        provide(SHIP_SYSTEMS, { useClass: Stepper }),
+        provide(HELM, { useClass: FakeHelm }),
+      ],
     });
+    const byModule = notesByModule(inspect(Root, { annotate: [shipNotes] }));
+    // The stepper, the helm and the root's REQUEST provider.
+    expect(byModule.SteppingRoot).toEqual([
+      ['system: SteppingRoot', 'phase: 2'],
+      ['system: SteppingRoot'],
+      ['system: SteppingRoot'],
+    ]);
+    expect(byModule.Bridge).toEqual([[]]);
+  });
+
+  it('gives no note to a root without the simulation', () => {
+    const Root = defineModule({ name: 'Root', imports: [Bridge] });
     const graph = inspect(Root, { annotate: [shipNotes] });
     expect(graph.providers.flatMap((provider) => provider.notes)).toEqual([]);
   });

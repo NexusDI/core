@@ -1,7 +1,8 @@
 import { Nexus } from '@nexusdi/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { meridianSystems } from '../src/meridian-systems.module';
+import { Comms } from '../src/systems/comms/comms.module';
+import { Tactical } from '../src/systems/tactical/tactical.module';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
 import {
   SHIP_STATE,
@@ -12,10 +13,13 @@ import { COMMS_ARRAY } from '../src/systems/comms/contracts';
 import { NAV_CHARTS } from '../src/systems/tactical/contracts';
 import { BUNDLED_CHARTS } from '../src/systems/tactical/star-charts';
 
+import { shipRoot } from './ship-root';
 import { shipTest } from './fixtures';
-import { loadOf, RELAY_URL, SHIP_OPTIONS, throttle } from './support';
+import { loadOf, RELAY_URL, throttle } from './support';
 
-const test = shipTest(meridianSystems(SHIP_OPTIONS));
+/** The system modules whose tokens these cases read from the root. */
+const READS = [Comms, Tactical];
+const test = shipTest(shipRoot({ reads: READS }));
 
 const hail = (desk: ICommandDesk) =>
   desk.submit({ system: 'comms', action: 'hail' });
@@ -36,8 +40,7 @@ function stubRelay(): string[] {
 }
 
 /** The relay graph, which downloads its charts at build. */
-const relayGraph = () =>
-  meridianSystems({ ...SHIP_OPTIONS, relayUrl: RELAY_URL });
+const relayGraph = () => shipRoot({ reads: READS, relayUrl: RELAY_URL });
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -47,7 +50,7 @@ describe('comms on the offline ship', () => {
   test('passes the check and plots a course over the bundled charts', ({
     nexus: ship,
   }) => {
-    expect(() => Nexus.check(meridianSystems(SHIP_OPTIONS))).not.toThrow();
+    expect(() => Nexus.check(shipRoot({ reads: READS }))).not.toThrow();
     expect(ship.get(COMMS_ARRAY).linked).toBe(false);
     expect(ship.get(NAV_CHARTS).plot('Kepler-442b')).toEqual({
       to: 'Kepler-442b',

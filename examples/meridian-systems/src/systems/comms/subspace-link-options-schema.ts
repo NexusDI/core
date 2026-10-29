@@ -19,7 +19,7 @@ const RELAY_TIMEOUT = refusing(
 );
 
 /**
- * The options `Comms.forRoot()` takes. The container runs it at create and
+ * The options `SubspaceLink.forRoot()` takes. The container runs it at create and
  * rejects with `NEXUS_PROVIDER_FAILED`, whose cause is
  * `NEXUS_INVALID_MODULE_OPTIONS`. A key outside the shape is refused.
  * `frequency` is `DEFAULT_COMMS_FREQUENCY` when the options leave it out.
@@ -29,7 +29,7 @@ const RELAY_TIMEOUT = refusing(
  * `relayTimeout` must be a whole number of ms from 1 to `MAX_RELAY_TIMEOUT`
  * when it is set.
  */
-export const COMMS_OPTIONS_SCHEMA = z.strictObject({
+export const SUBSPACE_LINK_OPTIONS_SCHEMA = z.strictObject({
   frequency: z._default(
     z.number({ error: FREQUENCY }).check(z.positive({ error: FREQUENCY })),
     DEFAULT_COMMS_FREQUENCY,

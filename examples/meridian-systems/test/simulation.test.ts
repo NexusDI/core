@@ -1,7 +1,7 @@
-import { defineModule, isNexusError, Nexus } from '@nexusdi/core';
+import { isNexusError, Nexus } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
-import { meridianSystems } from '../src/meridian-systems.module';
+import { MeridianSystems } from '../src/meridian-systems.module';
 import { GASES, pressure } from '../src/physics/gas';
 import { COMMAND_DESK } from '../src/simulation/commands';
 import {
@@ -12,30 +12,35 @@ import {
 } from '../src/simulation/contracts';
 import { roundNumber, roundSnapshot } from '../src/simulation/round-snapshot';
 import { TELEMETRY } from '../src/telemetry/contracts';
+import { Telemetry } from '../src/telemetry/telemetry.module';
 
+import { shipRoot } from './ship-root';
 import { shipTest, test } from './fixtures';
-import { LOOP_WATCH, PROBE_LOG, SHIP_OPTIONS, caught } from './support';
+import { LOOP_WATCH, PROBE_LOG, caught } from './support';
 
-describe('meridianSystems', () => {
-  const test = shipTest(meridianSystems(SHIP_OPTIONS));
+describe('MeridianSystems', () => {
+  const test = shipTest(shipRoot());
 
   it('passes the check', () => {
-    expect(() => Nexus.check(meridianSystems(SHIP_OPTIONS))).not.toThrow();
+    expect(() => Nexus.check(shipRoot())).not.toThrow();
   });
 
-  it('exports TELEMETRY to a root that imports it', async () => {
-    const Root = defineModule({
-      name: 'Root',
-      imports: [meridianSystems(SHIP_OPTIONS)],
-    });
-    expect(() => Nexus.check(Root)).not.toThrow();
-    await using ship = await Nexus.create(Root);
+  it('exports nothing, so a root reads TELEMETRY only when it imports Telemetry', async () => {
+    expect(MeridianSystems.exports ?? []).toEqual([]);
+    await using bare = await Nexus.create(shipRoot());
+    expect(() => bare.get(TELEMETRY)).toThrow(
+      expect.objectContaining({
+        code: 'NEXUS_NOT_VISIBLE',
+        token: 'TelemetryFeed',
+      }),
+    );
+    await using ship = await Nexus.create(shipRoot({ reads: [Telemetry] }));
     expect(ship.get(TELEMETRY)).toBeDefined();
   });
 
   it('builds on its own and gives one snapshot for one seed', async () => {
-    await using first = await Nexus.create(meridianSystems(SHIP_OPTIONS));
-    await using second = await Nexus.create(meridianSystems(SHIP_OPTIONS));
+    await using first = await Nexus.create(shipRoot());
+    await using second = await Nexus.create(shipRoot());
     const a = first.get(TICK_LOOP).advance(600);
     const b = second.get(TICK_LOOP).advance(600);
     expect(roundSnapshot(a)).toEqual(roundSnapshot(b));
@@ -58,7 +63,7 @@ describe('meridianSystems', () => {
 });
 
 describe('COMPARTMENT', () => {
-  const test = shipTest(meridianSystems(SHIP_OPTIONS));
+  const test = shipTest(shipRoot());
 
   test('reads the compartment of the request a scope carries', async ({
     nexus: ship,
@@ -102,7 +107,7 @@ describe('Simulation.forRoot', () => {
     [{ seed: 7 }, 'dt', `${DT}, got undefined`],
   ])('refuses %o at create', async (options, field, message) => {
     const error = await caught(() =>
-      Nexus.create(meridianSystems(options as unknown as SimOptions)),
+      Nexus.create(shipRoot({ sim: options as unknown as SimOptions })),
     );
     expect(error).toMatchObject({
       code: 'NEXUS_PROVIDER_FAILED',
@@ -117,7 +122,7 @@ describe('Simulation.forRoot', () => {
 
   it('lists every refused field', async () => {
     const error = await caught(() =>
-      Nexus.create(meridianSystems({ seed: -1, dt: 0 })),
+      Nexus.create(shipRoot({ sim: { seed: -1, dt: 0 } })),
     );
     expect(error).toMatchObject({
       cause: {
@@ -133,7 +138,7 @@ describe('Simulation.forRoot', () => {
     { seed: 0, dt: 0.001 },
     { seed: 4294967295, dt: 60 },
   ])('accepts %o', async (options) => {
-    await using ship = await Nexus.create(meridianSystems(options));
+    await using ship = await Nexus.create(shipRoot({ sim: options }));
     expect(ship.get(TICK_LOOP).advance(1).time).toBe(options.dt);
   });
 });

@@ -1,7 +1,6 @@
 import { Nexus } from '@nexusdi/core';
 import { expect } from 'vitest';
 
-import { meridianSystems } from '../src/meridian-systems.module';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
 import {
   type ITickLoop,
@@ -10,7 +9,7 @@ import {
   TICK_LOOP,
 } from '../src/simulation/contracts';
 import { roundSnapshot } from '../src/simulation/round-snapshot';
-import { SHIP_OPTIONS } from '../test/support';
+import { shipRoot } from '../test/ship-root';
 
 /** What a golden script drives, and the `capture` that puts a reading into the golden. */
 export interface GoldenShip {
@@ -42,10 +41,7 @@ export async function goldenText(
   script: (ship: GoldenShip) => void | Promise<void>,
   { relayUrl, create }: GoldenBuild = {},
 ): Promise<string> {
-  await using nexus = await Nexus.create(
-    meridianSystems({ ...SHIP_OPTIONS, relayUrl }),
-    create,
-  );
+  await using nexus = await Nexus.create(shipRoot({ relayUrl }), create);
   const record: ShipSnapshot[] = [];
   await script({
     nexus,

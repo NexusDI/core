@@ -34,7 +34,9 @@ import { FTL_SPOOL, FTL_SPOOL_LOAD } from './ftl-model';
  * a multi token, so `onInit` registers the drive's step with the loop, its
  * load with the router and its commands with the desk, and the dispose
  * unregisters them. A container whose plugin sets `onInit: false` gives a
- * drive that never charges and that the desk does not serve.
+ * drive that never charges and that the desk does not serve. A ship loads
+ * the drive after startup, when every consumer of the router is built, so the
+ * router's register reads a ready list.
  */
 export class JumpDrive implements IFtlDrive, Disposable {
   static deps = [

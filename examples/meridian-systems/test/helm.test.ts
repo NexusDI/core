@@ -1,7 +1,8 @@
 import { Nexus } from '@nexusdi/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { meridianSystems } from '../src/meridian-systems.module';
+import { Helm } from '../src/systems/helm/helm.module';
+import { Propulsion } from '../src/systems/propulsion/propulsion.module';
 import { toRadians, wrap } from '../src/systems/helm/helm-model';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
 import { SHIP_STATE, TICK_LOOP } from '../src/simulation/contracts';
@@ -10,10 +11,13 @@ import { HELM, HELM_ACTIONS, THRUSTERS } from '../src/systems/helm/contracts';
 import { MAIN_DRIVE } from '../src/systems/propulsion/contracts';
 import { BUNDLED_CHARTS } from '../src/systems/tactical/star-charts';
 
+import { shipRoot } from './ship-root';
 import { shipTest } from './fixtures';
-import { loadOf, RELAY_URL, SHIP_OPTIONS, throttle } from './support';
+import { loadOf, RELAY_URL, throttle } from './support';
 
-const test = shipTest(meridianSystems(SHIP_OPTIONS));
+/** The system modules whose tokens these cases read from the root. */
+const READS = [Helm, Propulsion];
+const test = shipTest(shipRoot({ reads: READS }));
 
 const KEPLER = 0.7330382858376184;
 
@@ -23,8 +27,7 @@ const burn = (desk: ICommandDesk, level: unknown) =>
   desk.submit({ system: 'helm', action: 'burn', level });
 
 /** The relay graph, which downloads its charts at build. */
-const relayGraph = () =>
-  meridianSystems({ ...SHIP_OPTIONS, relayUrl: RELAY_URL });
+const relayGraph = () => shipRoot({ reads: READS, relayUrl: RELAY_URL });
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -34,7 +37,7 @@ describe('the helm and the drive', () => {
   test('builds with the helm and the drive and lists helm on the desk', async ({
     nexus: ship,
   }) => {
-    expect(() => Nexus.check(meridianSystems(SHIP_OPTIONS))).not.toThrow();
+    expect(() => Nexus.check(shipRoot({ reads: READS }))).not.toThrow();
     expect(() => Nexus.check(relayGraph())).not.toThrow();
 
     expect(ship.get(HELM)).toBeDefined();
@@ -256,7 +259,7 @@ describe('the helm and the drive', () => {
   });
 
   it("steers the charted heading offline and from the relay's table", async () => {
-    await using offline = await Nexus.create(meridianSystems(SHIP_OPTIONS));
+    await using offline = await Nexus.create(shipRoot({ reads: READS }));
     expect(course(offline.get(COMMAND_DESK), 'TRAPPIST-1e')).toEqual({
       tick: 1,
     });

@@ -50,7 +50,10 @@ function build(
     raise: () => ({ tick: 1 }),
     lower: () => ({ tick: 1 }),
   };
-  const router = new PlasmaRouter(state, [new ShieldPower(grid), ...consumers]);
+  const router = new PlasmaRouter(state, () => [
+    new ShieldPower(grid),
+    ...consumers,
+  ]);
   return { state, router, seen };
 }
 
@@ -248,10 +251,27 @@ describe('PlasmaRouter', () => {
     });
   });
 
+  it('reads the consumers of POWER_CONSUMERS once, on the first call that needs them', () => {
+    const state = new ShipStateStore(deck satisfies DeckPlan);
+    let reads = 0;
+    const router = new PlasmaRouter(state, () => {
+      reads++;
+      return [consumer(RAISED).double];
+    });
+    expect(reads).toBe(0);
+    router.loads(state.snapshot());
+    router.loads(state.snapshot());
+    expect(reads).toBe(1);
+  });
+
   it('refuses two consumers of POWER_CONSUMERS with one load id', () => {
     const load = { id: 'pump', priority: 1, demand: 0, heatShare: 0 };
-    expect(() =>
-      build(0, RAISED, [consumer(load).double, consumer(load).double]),
-    ).toThrow("Two power consumers draw the load 'pump'.");
+    const { state, router } = build(0, RAISED, [
+      consumer(load).double,
+      consumer(load).double,
+    ]);
+    expect(() => router.loads(state.snapshot())).toThrow(
+      "Two power consumers draw the load 'pump'.",
+    );
   });
 });

@@ -2,8 +2,8 @@ import { RelayError } from '../../errors';
 import { formatNumber } from '../../text';
 
 import {
-  COMMS_OPTIONS,
-  type CommsOptions,
+  SUBSPACE_LINK_OPTIONS,
+  type SubspaceLinkOptions,
   DEFAULT_RELAY_TIMEOUT,
   type ISubspaceLink,
 } from './contracts';
@@ -13,9 +13,9 @@ import {
  * it once at startup, and no tick reads it.
  */
 export class SubspaceRelay implements ISubspaceLink {
-  static deps = [COMMS_OPTIONS] as const;
+  static deps = [SUBSPACE_LINK_OPTIONS] as const;
 
-  constructor(private readonly options: CommsOptions) {}
+  constructor(private readonly options: SubspaceLinkOptions) {}
 
   async receive<T>(channel: string): Promise<T> {
     const url = new URL(

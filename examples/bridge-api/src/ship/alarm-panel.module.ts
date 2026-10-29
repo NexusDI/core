@@ -26,7 +26,6 @@ class AuditAlarmSink implements IAlarmSink {
  */
 export const AlarmPanel = defineModule({
   name: 'AlarmPanel',
-  global: true,
   imports: [AuditTrail],
   providers: [provide(ALARM_SINKS, { useClass: AuditAlarmSink })],
   exports: [ALARM_SINKS],

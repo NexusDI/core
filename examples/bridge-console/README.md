@@ -377,7 +377,7 @@ the state it needs. The first case starts from the ship's current tick. It
 reads that tick from the backend, opens `/diagnostics` and finds the tick in
 the strip. It posts 600 ticks to the backend's `/sim/advance` and reads a
 tick 600 higher, its ship time, 293 K and 101.3 kPa from the live stream
-with no reload. The second case finds `Simulation`, `MeridianSystems` and
+with no reload. The second case finds `Simulation`, `Engineering` and
 `Telemetry` on `/diagnostics`, with `system: Telemetry` on the feed. The
 third, `e2e/growth/engineering.spec.ts`, reads the ship's tick from the
 backend, raises the shields at the idle reactor and reads the

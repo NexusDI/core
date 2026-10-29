@@ -1,7 +1,7 @@
 import { defineModule, provide } from '@nexusdi/core';
 
 import { COMMAND_HANDLERS } from '../../simulation/commands';
-import { SHIP_SYSTEMS } from '../../simulation/contracts';
+import { DECK_PLAN, SHIP_SYSTEMS } from '../../simulation/contracts';
 import { POWER_CONSUMERS } from '../engineering/contracts';
 
 import { CalibratedProbe } from './calibrated-probe';
@@ -17,6 +17,7 @@ import { LIFE_SUPPORT_OPTIONS_SCHEMA } from './life-support-options-schema';
 import { LifeSupportCommands } from './life-support-commands';
 import { LifeSupportPhysics } from './life-support-physics';
 import { LifeSupportPower } from './life-support-power';
+import { readCalibration } from './read-calibration';
 
 /** The air of every compartment, stepped in phase 4, its probe, its analyzers and its panel. */
 export const LifeSupport = defineModule({
@@ -43,4 +44,16 @@ export const LifeSupport = defineModule({
     POWER_CONSUMERS,
     COMMAND_HANDLERS,
   ],
+});
+
+/**
+ * The ship's one configured `LifeSupport`, with the calibration read at
+ * startup. Core keys a module by its definition, so `Safety` and
+ * `MeridianSystems` import this one object and the graph holds one life
+ * support. A second `forRootAsync()` call would add a second module with a
+ * second `ATMOSPHERE_PROBE`.
+ */
+export const ShipLifeSupport = LifeSupport.forRootAsync({
+  deps: [DECK_PLAN],
+  useFactory: readCalibration,
 });

@@ -13,7 +13,6 @@ import { RAILGUN } from './weapons-model';
 function build({ dt = 0.5, refuse = false } = {}) {
   const state = new ShipStateStore(deck satisfies DeckPlan);
   const diverted: PowerLoad[] = [];
-  let thunkCalls = 0;
   const router: IPowerRouter = {
     loads: () => [],
     register: () => () => {},
@@ -28,18 +27,13 @@ function build({ dt = 0.5, refuse = false } = {}) {
       }
     },
   };
-  const mount = new RailgunMount(state, { dt }, () => {
-    thunkCalls += 1;
-    return router;
-  });
-  return { state, diverted, mount, thunkCalls: () => thunkCalls };
+  const mount = new RailgunMount(state, { dt }, router);
+  return { state, diverted, mount };
 }
 
 describe('RailgunMount', () => {
-  it('reads the railgun rating and never calls the router thunk at construction', () => {
-    const { mount, thunkCalls } = build();
-    expect(mount.rating).toBe(RAILGUN);
-    expect(thunkCalls()).toBe(0);
+  it('reads the railgun rating', () => {
+    expect(build().mount.rating).toBe(RAILGUN);
   });
 
   it('diverts 300,000,000 W on an unarmed fire and queues the armed setpoints with the range', () => {
