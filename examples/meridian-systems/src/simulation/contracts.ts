@@ -29,6 +29,17 @@ export interface SimOptions {
   readonly seed: number;
   /** Ship seconds per tick. */
   readonly dt: number;
+  /**
+   * The ship's files, such as the sensor calibration. Without them the ship
+   * reads the copies the library bundles.
+   */
+  readonly files?: IShipFiles;
+}
+
+/** The files a ship reads at startup, by name. */
+export interface IShipFiles {
+  /** The parsed JSON of the file `name`. Rejects when the file cannot be read. */
+  read(name: string): Promise<unknown>;
 }
 
 /** Every compartment of the ship, in the order the snapshot lists them. */
@@ -224,6 +235,7 @@ export const SHIP_STATE = new Token<IShipState>('ShipState');
 export const SHIP_SYSTEMS = new MultiToken<IShipSystem>('ShipSystems');
 export const TICK_LOOP = new Token<ITickLoop>('TickLoop');
 export const DECK_PLAN = new Token<DeckPlan>('DeckPlan');
+export const SHIP_FILES = new Token<IShipFiles>('ShipFiles');
 
 declare module '@nexusdi/core' {
   interface NexusRequest {

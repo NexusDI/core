@@ -31,7 +31,8 @@
       "import": "./src/geometry/ship-geometry.ts",
       "default": "./src/geometry/ship-geometry.ts"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./deck/*.json": "./deck/*.json"
   },
   "dependencies": {
     "@nexusdi/core": "*",

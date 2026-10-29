@@ -1,8 +1,9 @@
-import { COMMAND_DESK } from '@nexusdi/meridian-systems';
+import { COMMAND_DESK, SHIP_FILES } from '@nexusdi/meridian-systems';
 import { nodeScopes } from '@nexusdi/node';
 import { describe, expect, it } from 'vitest';
 
 import { shipFromEnv } from '../../src/env/ship';
+import { NodeShipFiles } from '../../src/env/ship-files';
 import { FLIGHT_LOG, SIM_DRIVER } from '../../src/ship/contracts';
 
 describe('shipFromEnv', () => {
@@ -25,5 +26,12 @@ describe('shipFromEnv', () => {
   it('reads the mode from the env it is given', async () => {
     await using ship = await shipFromEnv(undefined, { SIM_MODE: 'manual' });
     expect(ship.get(SIM_DRIVER).mode).toBe('manual');
+  });
+});
+
+describe('shipFromEnv and the ship files', () => {
+  it('reads the ship files from disk on the Node servers', async () => {
+    await using ship = await shipFromEnv(undefined, { SIM_MODE: 'manual' });
+    expect(ship.get(SHIP_FILES)).toBeInstanceOf(NodeShipFiles);
   });
 });

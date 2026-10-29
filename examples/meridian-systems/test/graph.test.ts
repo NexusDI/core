@@ -3,7 +3,11 @@ import { inspect } from '@nexusdi/devtools';
 import { describe, expect, it } from 'vitest';
 
 import { MeridianSystems } from '../src/meridian-systems.module';
-import { DECK_PLAN, SHIP_SYSTEMS } from '../src/simulation/contracts';
+import {
+  DECK_PLAN,
+  SHIP_FILES,
+  SHIP_SYSTEMS,
+} from '../src/simulation/contracts';
 import { Simulation } from '../src/simulation/simulation.module';
 import { HelmControl } from '../src/systems/helm/helm-control';
 import { HelmPhysics } from '../src/systems/helm/helm-physics';
@@ -106,7 +110,7 @@ describe('the module graph', () => {
 
   it('reports NEXUS_AMBIGUOUS_PROVIDER for a module that sees two forRootAsync results', () => {
     const second = LifeSupport.forRootAsync({
-      deps: [DECK_PLAN],
+      deps: [SHIP_FILES, DECK_PLAN],
       useFactory: readCalibration,
     });
     const READER = new Token<IAtmosphereProbe>('ProbeReader');

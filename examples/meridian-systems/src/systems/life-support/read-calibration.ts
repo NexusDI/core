@@ -1,20 +1,27 @@
-import calibration from '../../../deck/sensors.calibration.json' with { type: 'json' };
-import type { DeckPlan } from '../../simulation/contracts';
+import type { DeckPlan, IShipFiles } from '../../simulation/contracts';
 
 import type { LifeSupportOptions, SensorCalibration } from './contracts';
 import { LIFE_SUPPORT_RATINGS } from './life-support-model';
 
+/** The calibration file the analyzers read. */
+const CALIBRATION_FILE = 'sensors.calibration.json';
+
 /**
  * The factory `LifeSupport.forRootAsync` runs at startup: the analyzers'
- * calibration and the device ratings. It is async though the demo has
- * nothing to await, since the file is a static import; a ship that reads its
- * calibration from a device awaits that read here. Throws a plain `Error`
- * when a compartment of `deck` has no calibration entry.
+ * calibration, read through `files`, and the device ratings. A read that
+ * rejects rejects the startup. Throws a plain `Error` for a file that holds
+ * no compartments and for a compartment of `deck` with no calibration entry.
  */
 export async function readCalibration(
+  files: IShipFiles,
   deck: DeckPlan,
 ): Promise<LifeSupportOptions> {
-  const file: SensorCalibration = calibration;
+  const file = (await files.read(CALIBRATION_FILE)) as SensorCalibration;
+  if (typeof file?.compartments !== 'object' || file.compartments === null) {
+    throw new Error(
+      `The ship file '${CALIBRATION_FILE}' holds no compartments.`,
+    );
+  }
   for (const room of deck.compartments) {
     if (!Object.hasOwn(file.compartments, room.id)) {
       throw new Error(
