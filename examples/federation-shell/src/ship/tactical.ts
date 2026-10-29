@@ -14,7 +14,7 @@ import { StarCharts } from './star-charts';
  * The contract module. A remote's section is loaded with `load()`, and a
  * remote cannot import this module object, so the shell grants `Tactical` to
  * each station's load with `{ imports: [Tactical] }`. The shell's root
- * imports it, and no other module sees it. BRIDGE_ENDPOINT stays inside:
+ * imports it, and no module but the granted stations sees it. BRIDGE_ENDPOINT stays inside:
  * only the shell's classes read it.
  */
 export const Tactical = defineModule({

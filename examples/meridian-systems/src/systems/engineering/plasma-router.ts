@@ -17,8 +17,8 @@ import { allocatePower } from './engineering-model';
 
 /**
  * Lists the loads of a tick and checks a new load against the reactor's
- * output. Every system's consumer, Engineering's `ShieldPower` among them,
- * reaches it through `all(POWER_CONSUMERS)`.
+ * output. The router reaches every system's consumer, Engineering's
+ * `ShieldPower` among them, through `lazy(all(POWER_CONSUMERS))`.
  */
 export class PlasmaRouter implements IPowerRouter {
   // The shield grid and the railgun mount call the router, and the router

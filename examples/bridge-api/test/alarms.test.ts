@@ -36,12 +36,6 @@ const test = nexusTest(base, AlarmTestShip, {
   create: { plugins: bridgePlugins() },
 });
 
-/**
- * SIM_DRIVER and AUDIT_LOG resolve from inside OfflineMeridian, which
- * exports nothing. Each lookup passes the module, so they all read alike.
- */
-const inShip = { module: OfflineMeridian };
-
 const faults = COMPARTMENT_IDS.map((subject) => ({
   code: 'SENSOR_FAULT',
   subject,
@@ -55,9 +49,9 @@ describe('the alarm panel with a failing probe', () => {
   test('raises SENSOR_FAULT for each compartment once and clears none', ({
     nexus,
   }) => {
-    nexus.get(SIM_DRIVER, inShip).advance(10);
+    nexus.get(SIM_DRIVER).advance(10);
     const sink = nexus
-      .get(ALARM_SINKS, inShip)
+      .get(ALARM_SINKS)
       .find((entry) => entry instanceof RecordingAlarmSink);
     expect(sink?.heard).toEqual(
       faults.map((alarm) => ({ call: 'raise', alarm, tick: 1 })),
@@ -65,14 +59,14 @@ describe('the alarm panel with a failing probe', () => {
   });
 
   test('writes each raise to the audit log', ({ nexus }) => {
-    nexus.get(SIM_DRIVER, inShip).advance(10);
-    expect(nexus.get(AUDIT_LOG, inShip).calls).toEqual(
+    nexus.get(SIM_DRIVER).advance(10);
+    expect(nexus.get(AUDIT_LOG).calls).toEqual(
       COMPARTMENT_IDS.map((room) => `raised SENSOR_FAULT ${room} at tick 1`),
     );
   });
 
   test('holds the four faults as the active alarms', ({ nexus }) => {
-    nexus.get(SIM_DRIVER, inShip).advance(10);
+    nexus.get(SIM_DRIVER).advance(10);
     expect(nexus.get(MASTER_ALARM).active()).toEqual(faults);
   });
 });
