@@ -11,6 +11,7 @@ import {
   type QueuedCommand,
 } from '../src/simulation/commands';
 import {
+  SHIP_RECORDS,
   SHIP_STATE,
   SHIP_SYSTEMS,
   type ShipSnapshot,
@@ -160,6 +161,7 @@ describe('the FTL drive', () => {
       systems: ship.get(SHIP_SYSTEMS),
       handlers: ship.get(COMMAND_HANDLERS),
       consumers: ship.get(POWER_CONSUMERS),
+      records: ship.get(SHIP_RECORDS),
     });
     const desk = ship.get(COMMAND_DESK);
     const spool = () => desk.submit({ system: 'ftl', action: 'spool' });
@@ -174,6 +176,9 @@ describe('the FTL drive', () => {
 
     await ship.load(FtlDrive);
     expect(contributions()).toEqual(before);
+    expect(ship.get(SHIP_STATE).snapshot().ftl).toEqual(
+      expect.objectContaining({ status: 'offline' }),
+    );
     // The desk hands the spool to the drive, and the cold reactor refuses it.
     expect(spool).toThrow(budget(0));
     expect(
@@ -190,6 +195,8 @@ describe('the FTL drive', () => {
     expect(router.loads(ships.snapshot()).map(({ id }) => id)).not.toContain(
       'ftl-spool',
     );
+    expect(ships.snapshot()).not.toHaveProperty('ftl');
+    expect(ships.snapshot().setpoints).not.toHaveProperty('ftl');
     expect(() =>
       loop.register({ name: 'FtlDrive', phase: 3, step: (ship) => ship }),
     ).not.toThrow();
@@ -258,9 +265,10 @@ describe('the FTL drive', () => {
       }),
     );
     expect(ship.has(FTL_DRIVE)).toBe(false);
-    // The loop holds its six built-in systems again, so the name is free.
+    // The loop holds its six built-in systems again, so the name is free,
+    // and the ship holds no FTL record.
     loop.register({ name: 'FtlDrive', phase: 3, step: (ship) => ship })();
-    expect(loop.advance(1).ftl?.status).toBe('offline');
+    expect(loop.advance(1)).not.toHaveProperty('ftl');
 
     await ship.load(FtlDrive);
     const loaded = loop.advance(1);

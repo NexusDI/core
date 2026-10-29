@@ -4,6 +4,7 @@ import deck from '../../deck/meridian.deck.json';
 import { AIR, molesAt } from '../physics/gas';
 import type { LoadRecord } from '../systems/engineering/contracts';
 import { LITHIUM_LOOP } from '../systems/engineering/engineering-model';
+import { FTL_RECORD } from '../systems/ftl/ftl-record';
 
 import {
   COMPARTMENT_IDS,
@@ -584,5 +585,71 @@ describe('ShipStateStore weapons', () => {
     expect(setpoints.indexOf('weapons')).toBe(setpoints.indexOf('comms') + 1);
     expect(Object.isFrozen(ship.weapons)).toBe(true);
     expect(Object.isFrozen(ship.setpoints.weapons)).toBe(true);
+  });
+});
+
+describe('ShipStateStore register', () => {
+  /** A store whose drive record reads `charge` J, as a running drive leaves it. */
+  function charged(charge: number): ShipStateStore {
+    const store = new ShipStateStore(plan);
+    const ship = store.snapshot();
+    store.commit({
+      ...ship,
+      ftl: { status: 'spooling', charge, sector: 'Sol', jumped: null },
+    });
+    return store;
+  }
+
+  it('writes the record and its setpoints into the current snapshot, frozen', () => {
+    const store = charged(5);
+    store.register(FTL_RECORD);
+    const ship = store.snapshot();
+    expect(ship.ftl).toStrictEqual(FTL_RECORD.records.ftl);
+    expect(ship.setpoints.ftl).toStrictEqual(FTL_RECORD.setpoints.ftl);
+    for (const level of levels(ship)) {
+      expect(Object.isFrozen(level)).toBe(true);
+    }
+  });
+
+  it('removes the keys on unregister, twice safely, and keeps the other records', () => {
+    const store = new ShipStateStore(plan);
+    const unregister = store.register(FTL_RECORD);
+    const before = store.snapshot();
+    unregister();
+    unregister();
+    const ship = store.snapshot();
+    expect(ship).not.toHaveProperty('ftl');
+    expect(ship.setpoints).not.toHaveProperty('ftl');
+    expect(ship.helm).toBe(before.helm);
+    expect(ship.setpoints.helm).toBe(before.setpoints.helm);
+  });
+
+  it('drops the pending change of a key it unregisters', () => {
+    const store = new ShipStateStore(plan);
+    const unregister = store.register(FTL_RECORD);
+    store.queue({ ftl: { armed: true } });
+    unregister();
+    expect(store.applyQueued(1).setpoints).not.toHaveProperty('ftl');
+    expect(store.log()).toEqual([]);
+
+    const again = store.register(FTL_RECORD);
+    store.queue({ ftl: { armed: true }, reactor: { throttle: 1 } });
+    again();
+    const ship = store.applyQueued(2);
+    expect(ship.setpoints).not.toHaveProperty('ftl');
+    expect(ship.setpoints.reactor).toEqual({ throttle: 1 });
+    expect(store.log()).toEqual([
+      { tick: 2, change: { reactor: { throttle: 1 } } },
+    ]);
+  });
+
+  it('refuses a key an earlier register holds until it unregisters', () => {
+    const store = new ShipStateStore(plan);
+    const unregister = store.register(FTL_RECORD);
+    expect(() => store.register(FTL_RECORD)).toThrow(
+      "Two ship records hold the key 'ftl'.",
+    );
+    unregister();
+    expect(() => store.register(FTL_RECORD)).not.toThrow();
   });
 });

@@ -172,6 +172,14 @@ export interface IShipState {
    * change one tick applied, so the log covers 1,000 ticks.
    */
   log(): readonly LoggedChange[];
+  /**
+   * Writes `record`'s records and setpoints into the current snapshot and
+   * returns a function that removes those keys from the snapshot, the
+   * setpoints and the pending change, and runs twice safely. A module that
+   * `load()` adds cannot contribute to SHIP_RECORDS, so its record joins
+   * this way. Throws for a key an earlier register holds.
+   */
+  register(record: SystemRecord): () => void;
 }
 
 export interface TickContext {

@@ -176,7 +176,8 @@ test('the simulated drive writes idle once after the load and keeps a charged ar
     },
   } as unknown as ITickLoop;
   const desk = { register: () => () => {} } as unknown as ICommandDesk;
-  new FakeJumpDrive(loop, {} as IShipState, desk).onInit();
+  const state = { register: () => () => {} } as unknown as IShipState;
+  new FakeJumpDrive(loop, state, desk).onInit();
   const step = (ship: ShipSnapshot) =>
     system?.step(ship, { tick: 1 } as TickContext);
   const shipAt = (status: 'offline' | 'charged', armed: boolean) =>

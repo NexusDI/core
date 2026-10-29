@@ -17,6 +17,7 @@ import { FtlCommands } from './ftl-commands';
 import { FTL_SPOOL } from './ftl-model';
 import { FtlPhysics } from './ftl-physics';
 import { FtlPower } from './ftl-power';
+import { FTL_RECORD } from './ftl-record';
 import { JumpDrive } from './jump-drive';
 
 /** A drive over fakes of the loop, the router and the desk that record what it asks. */
@@ -28,6 +29,15 @@ function build(refuse = false) {
   const join = (bus: string) => {
     registered.push(bus);
     return () => void unregistered.push(bus);
+  };
+  const register = state.register.bind(state);
+  state.register = (record) => {
+    const unregister = register(record);
+    const leave = join('state');
+    return () => {
+      leave();
+      unregister();
+    };
   };
   const loop: ITickLoop = {
     advance: () => state.snapshot(),
@@ -83,14 +93,19 @@ describe('JumpDrive', () => {
     expect(build().drive.rating).toBe(FTL_SPOOL);
   });
 
-  it('registers with the loop, the router and the desk on init and unregisters in reverse on dispose', () => {
-    const { registered, unregistered, drive } = build();
+  it('registers its record with the state, then the loop, the router and the desk on init, and unregisters in reverse on dispose', () => {
+    const { state, registered, unregistered, drive } = build();
     expect(registered).toEqual([]);
     drive.onInit();
-    expect(registered).toEqual(['loop', 'router', 'desk']);
+    expect(registered).toEqual(['state', 'loop', 'router', 'desk']);
+    expect(state.snapshot().ftl).toStrictEqual(FTL_RECORD.records.ftl);
+    expect(state.snapshot().setpoints.ftl).toStrictEqual(
+      FTL_RECORD.setpoints.ftl,
+    );
     drive[Symbol.dispose]();
     drive[Symbol.dispose]();
-    expect(unregistered).toEqual(['desk', 'router', 'loop']);
+    expect(unregistered).toEqual(['desk', 'router', 'loop', 'state']);
+    expect(state.snapshot()).not.toHaveProperty('ftl');
   });
 
   it('diverts the spool load, then queues the armed setpoint', () => {

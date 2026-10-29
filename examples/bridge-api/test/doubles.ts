@@ -4,6 +4,7 @@ import {
   COMMAND_DESK,
   FTL_DRIVE,
   FtlCommands,
+  FTL_RECORD,
   type FtlRating,
   type FtlRecord,
   type IAlarmSink,
@@ -131,8 +132,12 @@ export class FakeJumpDrive implements IFtlDrive, Disposable {
     private readonly desk: ICommandDesk,
   ) {}
 
-  /** Registers its step with the loop and the library's FTL commands with the desk. */
+  /**
+   * Registers the library's FTL record with the ship state, its step with
+   * the loop and the library's FTL commands with the desk.
+   */
   onInit(): void {
+    this.unregisters.push(this.state.register(FTL_RECORD));
     this.unregisters.push(
       this.loop.register({
         name: 'FtlDrive',
