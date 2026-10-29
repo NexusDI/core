@@ -492,8 +492,9 @@ the light (8.4), so data stays crisp at every zoom.
   per metre and samples the same textures at every zoom.
 - Origin: every deck shares one origin, the bow at the centreline, on the geometry's
   axes (x aft of the bow, y to starboard). Each deck image carries a 2 m margin on every
-  side, as `ship_svg.py` draws it, so the origin sits at pixel (64, 640) on a 76 by 20 m
-  frame at 32 pixels per metre, the same on every deck.
+  side, as `ship_svg.py` draws it with the deck viewBox (−2, −10, 76, 20), so the origin
+  sits at pixel (64, 320) on a 76 by 20 m frame at 32 pixels per metre, the same on every
+  deck.
 - Sidecar: every image, painted or generated, has a JSON sidecar beside it that
   names its view (`deck-<id>`, `side`, `top`, `cutaway`), its pixels per metre and the pixel of the
   origin. The game places an image by its sidecar alone. The paint-over's output aligns
@@ -629,7 +630,8 @@ The system targets WCAG 2.2 AA on every surface.
 The bridge console and the federation shell render MeridianOS: a bridge-station desktop,
 in the dark theme alone (4.3).
 The backdrop is a painted raster of the Meridian's bridge, from the bridge's fixtures in the
-geometry (`forward-console`, `helm`, `station-bank` and `command-chair`) and
+geometry (`forward-console`, `helm`, `command-chair`, and the four station fixtures
+`cartography`, `engineering`, `life-support` and `comms` that replace the station bank) and
 `exterior.windowStrip`, with the six stations of ship-systems 16.1 and crew seats painted
 over them, with the starfield of 9.4 in the windows. The reader's station sits in the
 foreground, and its panels are DOM plates arranged on the station's screens. The deck
