@@ -452,15 +452,17 @@ reads the ship's tick `t` from the backend, sets the throttle to 1 on
 `/systems/engineering` and the burn to 0 on `/systems/helm`, and each reads
 `Queued for tick` `t + 1`. It posts 40 ticks to the backend. The level climbs
 from 0.6 to 0.9 in 30 ticks, so the spool draws from tick `t + 41` on any
-start tick. On `/systems/ftl` the gauges read `offline`, `0.0 GJ` and `Sol`,
-since no earlier case loads the drive. `Spool drive` reads `Queued for tick`
-`t + 41`. After 200 more ticks and a reload, the page reads `charged` and
+start tick. On `/systems/ftl` the page reads `Status` `not loaded`, since no earlier
+case loads the drive. `Spool drive` shows the alert "No ship system is named
+'ftl'.", because the desk refuses the spool. `Load drive` shows `Drive loaded:
+the spool draws 900.0 MW, and a jump spends 90.0 GJ.`, and `Spool drive` then
+reads `Queued for tick` `t + 41`. After 200 more ticks and a reload, the page reads `charged` and
 `90.0 GJ`. The case selects Proxima-b and clicks `Jump`, which reads
 `Queued for tick` `t + 241`. After 1 tick and a reload the gauges read
 `idle`, `0.0 GJ`, `Proxima-b` and `tick t + 241`. The case ends with
 `No alarms` on `/systems/safety` and no console error. The backend is a Node
-server with `nodeScopes()`, so the first spool runs the adapter's section and
-its extend. The spool does not touch the array, so the comms case, two
+server with `nodeScopes()`, so `POST /sections/ftl` runs the adapter's section
+and its extend. The spool does not touch the array, so the comms case, two
 projects later, still reads 0 W.
 
 `e2e/growth/weapons.spec.ts` runs in a seventh project, `weapons`, that depends

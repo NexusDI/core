@@ -182,7 +182,7 @@ for the role, and one class bound with `useClass` (docs §7.3). Names in the exi
 
 | Module            | System                                         | Tokens it exports                                                                                                             | Configured by                                                                                                                              | State on 0.4                                                                    |
 | ----------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| `Simulation`      | the kernel, the tick loop and the command desk | `SIM_OPTIONS`, `SIM_CLOCK`, `RNG`, `SHIP_STATE`, `DECK_PLAN`, `COMPARTMENT`, `TICK_LOOP`, `COMMAND_DESK`                      | `Simulation.forRoot({ seed, dt })`, `global`                                                                                               | growth G0; `COMPARTMENT` in G2; `TICK_LOOP` and `COMMAND_DESK` move here in T17 |
+| `Simulation`      | the kernel, the tick loop and the command desk | `SIM_OPTIONS`, `SIM_CLOCK`, `RNG`, `SHIP_STATE`, `DECK_PLAN`, `SHIP_FILES`, `COMPARTMENT`, `TICK_LOOP`, `COMMAND_DESK`        | `Simulation.forRoot({ seed, dt, files? })`, `global`                                                                                       | growth G0; `COMPARTMENT` in G2; `TICK_LOOP` and `COMMAND_DESK` move here in T17 |
 | `MeridianSystems` | every system at startup                        | none; it provides and exports nothing                                                                                         | none; imports `Telemetry`, `Engineering`, `ShipLifeSupport`, `Safety`, `Comms`, `Tactical`, `Propulsion`, `Helm` and `Weapons`; not global | growth G0; a plain module from T17                                              |
 | `SubspaceLink`    | the link to the relay                          | `SUBSPACE_LINK`                                                                                                               | `SubspaceLink.forRoot({ relayUrl, relayTimeout?, frequency? })`, `global`; a ship without it runs offline                                  | growth G5; its own module from T17                                              |
 | `Engineering`     | reactor and power                              | `REACTOR`, `POWER_ROUTER`, `SHIELD_GRID`, `SHIP_SYSTEMS`, `POWER_CONSUMERS`, `COMMAND_HANDLERS`; `COOLANT_LOOP` stays private | none                                                                                                                                       | in §7.1; the simulation's form is G1                                            |
@@ -210,7 +210,7 @@ its `SHIP_SYSTEMS` provider private cannot go unnoticed. `COMPUTER` stays in the
 regions of §7.1. No simulated system reads it, so `Engineering` binds none.
 
 Only `Simulation` and `SubspaceLink` are global. `Simulation` binds `SIM_OPTIONS`,
-`SIM_CLOCK`, `RNG`, `SHIP_STATE`, `DECK_PLAN`, `COMPARTMENT`, `TICK_LOOP` and
+`SIM_CLOCK`, `RNG`, `SHIP_STATE`, `DECK_PLAN`, `SHIP_FILES`, `COMPARTMENT`, `TICK_LOOP` and
 `COMMAND_DESK`, so every system reads the kernel with no import. `SubspaceLink` binds
 `SUBSPACE_LINK`, which `PhasedArray` and `Tactical` read through
 `optional(SUBSPACE_LINK)`.
@@ -291,6 +291,7 @@ constructor and declares tokens in `static deps`.
 | `IShipSystem`        | `SHIP_SYSTEMS = new MultiToken<IShipSystem>('ShipSystems')`               | one class per system                                                                                                                 | singleton | each system's own                                                                                       |
 | `ITickLoop`          | `TICK_LOOP = new Token<ITickLoop>('TickLoop')`                            | `FixedStepLoop`                                                                                                                      | singleton | `[SIM_CLOCK, SHIP_STATE, RNG, all(SHIP_SYSTEMS)]`                                                       |
 | `DeckPlan`           | `DECK_PLAN = new Token<DeckPlan>('DeckPlan')`                             | the deck file, a value                                                                                                               | value     | none                                                                                                    |
+| `IShipFiles`         | `SHIP_FILES = new Token<IShipFiles>('ShipFiles')`                         | `options.files`, or `BundledShipFiles` without it, a factory                                                                         | singleton | `[SIM_OPTIONS]`                                                                                         |
 | `CompartmentId`      | `COMPARTMENT = new Token<CompartmentId>('Compartment')`                   | `compartmentOfRequest`, a factory                                                                                                    | scoped    | `[REQUEST]`, `eager: false`                                                                             |
 | `IReactorCore`       | `REACTOR` (§7.1)                                                          | `FusionReactor`                                                                                                                      | singleton | `[SHIP_STATE]`                                                                                          |
 | `ICoolantLoop`       | `COOLANT_LOOP = new Token<ICoolantLoop>('CoolantLoop')`                   | `RadiatorLoop`                                                                                                                       | singleton | none                                                                                                    |
@@ -1315,7 +1316,7 @@ offline; otherwise each heater that is on at `clamp(K_t · (T_set − T), 0, Q_m
 scrubber that is on at 1,200 W, each generator that is on at its rate times 600 kJ/mol,
 and each pump whose mode is not `off` at `P_pump`. `LifeSupportPhysics` runs the devices
 from the same function, so the router and phase 4 see one figure. No life-support command
-diverts. The tick-0 power record lists the 0 W `life-support` load, which sorts first.
+diverts. The store starts the power record with no loads, and the router lists the 0 W `life-support` load, which sorts first, from tick 1.
 
 From G5 `CommsPower` draws `comms` at priority 3 from the pure `commsDemand` in
 `src/physics/comms.ts`, read from the snapshot at the start of the tick: 5,000,000 W on each tick a
@@ -2312,7 +2313,7 @@ reads at tick 130 no fire, no alarm, the valve shut and the habitat from 142,000
 143,500 Pa.
 
 G4 adds no route and no command. The airlock drill uses four routes: `POST /commands`,
-`GET /sim`, `POST /sim/advance` and `GET /commands`. `test/routes.test.ts` gains
+`GET /sim`, `POST /sim/advance` and `GET /commands`. `test/routes/life-support.test.ts` gains
 `the airlock commands on %s` on `scopedShip` for the three frameworks. Its first case posts
 `close airlock-outer`, which answers 202
 `{ tick: 1, flightLog: ['survey-7: closed airlock-outer'] }`, then `vent airlock open false`
@@ -2358,7 +2359,7 @@ and `bridge-api` is private. `test/fixtures.ts` stays byte-identical: its
 `override(NAV_CHARTS, { useClass: FakeCharts })` replaces the library's `Tactical` factory,
 so the fixture's linked ship fetches nothing.
 
-`test/routes.test.ts` gains `the comms commands on %s` on Hono, Express and Fastify. On the
+`test/routes/comms.test.ts` gains `the comms commands on %s` on Hono, Express and Fastify. On the
 fixture's linked ship, `engineering throttle 0.01` and `comms hail` each answer 202
 `{ tick: 1 }`. After one tick `GET /sim` holds
 `comms` `{ status: 'awaiting reply', sent: 1, messages: [] }`, `setpoints.comms`
@@ -2400,7 +2401,7 @@ four providers.
 
 G6 adds no route. `helm course` and `helm burn` go through `POST /commands`, and `GET /sim`,
 `/sim/advance` and the telemetry frames carry `drive`, `helm`, `setpoints.drive`,
-`setpoints.helm` and the two loads. `test/routes.test.ts` gains `the helm commands on %s`
+`setpoints.helm` and the two loads. `test/routes/helm.test.ts` gains `the helm commands on %s`
 on Hono, Express and Fastify, after every existing block. On the fixture's linked ship,
 whose `FakeCharts` plots heading 42 for every star, `engineering throttle 0.6`,
 `helm course to Kepler-442b` and `helm burn level 1` each answer 202 `{ tick: 1 }`, and
@@ -2454,7 +2455,7 @@ with the rating of the drive bound to `FTL_DRIVE`. The spool and the jump go thr
 the 400 of section 3.3. `src/ship/meridian.ts` re-exports `FtlDrive` from the library for
 the `graph` target.
 
-`test/routes.test.ts` gains `the ftl commands on %s` on Hono, Express and Fastify, after
+`test/routes/ftl.test.ts` gains `the ftl commands on %s` on Hono, Express and Fastify, after
 every existing block, on `scopedShip`, so `nodeScopes()` opens each request's scope before
 the load. `json`, `calls` and `scopedShip` move into `test/route-helpers.ts`, which
 `test/ftl.test.ts` imports too, and every earlier test body stays as it was. Before the
@@ -2535,7 +2536,7 @@ stays as it was.
 
 G8 adds no route and changes no file under `src`. `weapons fire` goes through
 `POST /commands`, and `GET /sim`, `/sim/advance` and the telemetry frames carry `weapons`,
-`setpoints.weapons` and the `railgun` load. `test/routes.test.ts` gains
+`setpoints.weapons` and the `railgun` load. `test/routes/weapons.test.ts` gains
 `the weapons commands on %s` on Hono, Express and Fastify, after every existing block, on
 `OfflineMeridian` with `bridgePlugins()`. From tick 0 a fire at 10,000 m answers 409
 `{ code: 'MERIDIAN_POWER_BUDGET', message: 'The railgun load needs 300 MW, and the router has 0 MW free beside the loads above it.', fix }`,
@@ -2611,7 +2612,7 @@ electric output, the coolant temperature and the shields' allocation, and the pa
 
 `BRIDGE_LINK` gains `atmosphere(compartment)` in G2 with
 `GET /compartments/:id/atmosphere`; a 404 rejects. The life-support page's loader reads
-`snapshot()` and `atmosphere(id)` for the four compartments in parallel, and a call that
+`snapshot()` and `atmosphere(id)` for the fourteen compartments in parallel, and a call that
 fails shows its part offline. The gauges round to a fixed precision: the temperature to
 0.1 K, the pressure to 0.1 kPa, the O₂ and CO₂ partial pressures to 0.01 kPa, and the
 heater power from `snapshot()` to whole watts. The forms post `online`, a habitat `heater`
@@ -3267,7 +3268,7 @@ of any range), so no engine can disagree on a hit. The record keeps no hit chanc
 `/sim` sends no result of `Math.exp`, and `fireRailgun` reads no coolant figure.
 
 From G4 a gating case in
-`test/routes.test.ts` posts life-support commands to the bridge on the three frameworks
+`test/routes/life-support.test.ts` posts life-support commands to the bridge on the three frameworks
 (section 7.1), from G5 `the comms commands on %s` posts the hail on each, and from G6
 `the helm commands on %s` posts a course and a burn on each, from G7
 `the ftl commands on %s` posts a spool and a jump on each, and from G8
@@ -3396,22 +3397,23 @@ rows. Until they reach that branch, no docs page uses them.
 | `ISimClock`          | `SIM_CLOCK`, described `'SimClock'`                                               | `FixedStepClock`                                                | singleton | `Simulation`, `[SIM_OPTIONS]`                                                                                              |
 | `IRandomSource`      | `RNG`, described `'RandomSource'`                                                 | `SeededRandom`                                                  | singleton | `Simulation`, `[SIM_OPTIONS]`                                                                                              |
 | `IShipState`         | `SHIP_STATE`, described `'ShipState'`                                             | `ShipStateStore`                                                | singleton | `Simulation`, `[DECK_PLAN, all(SHIP_RECORDS)]`                                                                             |
-| `ITickLoop`          | `TICK_LOOP`, described `'TickLoop'`                                               | `FixedStepLoop`                                                 | singleton | `MeridianSystems`, `[SIM_CLOCK, SHIP_STATE, RNG, all(SHIP_SYSTEMS)]`                                                       |
+| `ITickLoop`          | `TICK_LOOP`, described `'TickLoop'`                                               | `FixedStepLoop`                                                 | singleton | `Simulation`, `[SIM_CLOCK, SHIP_STATE, RNG, all(SHIP_SYSTEMS)]`                                                            |
 | `IShipSystem`        | `SHIP_SYSTEMS`, a `MultiToken<IShipSystem>`                                       | one physics class per system                                    | singleton | each system module                                                                                                         |
 | `DeckPlan`           | `DECK_PLAN`                                                                       | the deck file                                                   | value     | `Simulation`                                                                                                               |
+| `IShipFiles`         | `SHIP_FILES`, described `'ShipFiles'`                                             | `options.files`, or `BundledShipFiles` without it, a factory    | singleton | `Simulation`, `[SIM_OPTIONS]`                                                                                              |
 | `CompartmentId`      | `COMPARTMENT`, described `'Compartment'`                                          | `compartmentOfRequest`, a factory over `REQUEST`                | scoped    | `Simulation`, `[REQUEST]`, `eager: false`                                                                                  |
 | `ICoolantLoop`       | `COOLANT_LOOP`, described `'CoolantLoop'`                                         | `RadiatorLoop`                                                  | singleton | `Engineering`, no deps; not exported                                                                                       |
 | `ICommandHandler`    | `COMMAND_HANDLERS`, a `MultiToken<ICommandHandler>` described `'CommandHandlers'` | one handler class per system; `EngineeringCommands` in G1       | singleton | each system module; `Engineering`, `[REACTOR, SHIELD_GRID]`                                                                |
-| `ICommandDesk`       | `COMMAND_DESK`, described `'CommandDesk'`                                         | `CommandDesk`                                                   | singleton | `MeridianSystems`, `[all(COMMAND_HANDLERS)]`                                                                               |
+| `ICommandDesk`       | `COMMAND_DESK`, described `'CommandDesk'`                                         | `CommandDesk`                                                   | singleton | `Simulation`, `[all(COMMAND_HANDLERS)]`                                                                                    |
 | `IAtmosphereSensor`  | `ATMOSPHERE_SENSOR`, described `'AtmosphereSensor'`                               | `GasAnalyzer`                                                   | transient | `LifeSupport`, `[COMPARTMENT, SHIP_STATE, ATMOSPHERE_PROBE]`                                                               |
 | `IAtmosphereProbe`   | `ATMOSPHERE_PROBE`, described `'AtmosphereProbe'`                                 | `CalibratedProbe`                                               | singleton | `LifeSupport`, `[RNG, LIFE_SUPPORT_OPTIONS, DECK_PLAN]`                                                                    |
 | `IAtmosphereControl` | `ATMOSPHERE_CONTROL`, described `'AtmosphereControl'`                             | `EnvironmentalController`                                       | singleton | `LifeSupport`, `[SHIP_STATE]`                                                                                              |
 | `IPowerConsumer`     | `POWER_CONSUMERS`, a `MultiToken<IPowerConsumer>` described `'PowerConsumers'`    | one class per system that draws power; `LifeSupportPower` in G2 | singleton | each system module; `LifeSupport`, `[LIFE_SUPPORT_OPTIONS, DECK_PLAN]`                                                     |
 | `IBlastDoors`        | `BLAST_DOORS`                                                                     | `BlastDoorControl`                                              | singleton | `Safety`, `[SHIP_STATE]`; `open` wrapped by `PressureInterlock`, and `open` and `close` by `bridge-api`'s `FlightRecorder` |
 | `IFireSuppression`   | `FIRE_SUPPRESSION`                                                                | `InertGasSuppression`                                           | singleton | `Safety`, `[SHIP_STATE]`                                                                                                   |
-| `IAlarmSink`         | `ALARM_SINKS`, a `MultiToken<IAlarmSink>`                                         | `AuditAlarmSink`                                                | singleton | `bridge-api`'s global `AlarmPanel`, `[AUDIT_LOG]`; `Safety` binds none                                                     |
+| `IAlarmSink`         | `ALARM_SINKS`, a `MultiToken<IAlarmSink>`                                         | `AuditAlarmSink`                                                | singleton | `bridge-api`'s `AlarmPanel`, not global, `[AUDIT_LOG]`; `Safety` binds none                                                |
 | `IMasterAlarm`       | `MASTER_ALARM`                                                                    | `MasterAlarm`                                                   | singleton | `Safety`, `[TICK_LOOP, all(ALARM_SINKS)]`                                                                                  |
-| `ICommsArray`        | `COMMS_ARRAY`, described `'CommsArray'`                                           | `PhasedArray`                                                   | singleton | `Comms` or `OfflineComms`, `[SHIP_STATE, optional(SUBSPACE_LINK)]`                                                         |
+| `ICommsArray`        | `COMMS_ARRAY`, described `'CommsArray'`                                           | `PhasedArray`                                                   | singleton | `Comms`, `[SHIP_STATE, optional(SUBSPACE_LINK)]`                                                                           |
 | `IMainDrive`         | `MAIN_DRIVE`                                                                      | `PlasmaDrive`                                                   | singleton | `Propulsion`, `[SHIP_STATE]`                                                                                               |
 | `IThrusters`         | `THRUSTERS`                                                                       | `RcsThrusters`                                                  | singleton | `Helm`, `[SHIP_STATE]`                                                                                                     |
 | `IHelm`              | `HELM`                                                                            | `HelmControl`                                                   | singleton | `Helm`, `[THRUSTERS, MAIN_DRIVE, NAV_CHARTS]`                                                                              |
@@ -4450,7 +4452,7 @@ The goldens and the tests:
 - The unit and module tests that name the door `habitat-reactor-bay` move to
   `engineering-reactor-bay`: `doors.test.ts`, `gas.test.ts`, `safety.test.ts`,
   `ship-state-store.test.ts`, `blast-door-control.test.ts`, `safety-commands.test.ts`,
-  `test/safety.test.ts` and `bridge-api`'s `test/routes.test.ts`. The cases that enumerate
+  `test/safety.test.ts` and `bridge-api`'s `test/routes/*.test.ts`. The cases that enumerate
   compartments or doors gain the new ids.
 - The console's doors page and its `airlock.spec.tsx`, `safety.spec.tsx` and
   `tests/doubles.ts` take the new doors. The life-support station keeps its habitat
