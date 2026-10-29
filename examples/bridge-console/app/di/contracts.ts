@@ -4,6 +4,7 @@ import type { NexusGraph } from '@nexusdi/devtools';
 import type {
   AtmosphereReading,
   CompartmentId,
+  FtlRating,
   ShipCommand,
   ShipReading,
 } from '@nexusdi/meridian-systems';
@@ -55,12 +56,11 @@ export interface IBridgeLink {
   /** Posts `cmd` to `POST /commands`. Any status but 202, 400 and 409 rejects. */
   command(cmd: ShipCommand): Promise<CommandAnswer>;
   /**
-   * Posts the spool to `POST /ftl/spool`. The backend loads the FTL drive on
-   * the first spool or jump.
+   * Posts to `POST /sections/ftl`, which loads the FTL drive, and gives the
+   * drive's rating. From then on `command` reaches the `ftl` system. Any
+   * status but 200 rejects.
    */
-  spool(): Promise<CommandAnswer>;
-  /** Posts a jump to the charted star `to`, to `POST /ftl/jump`. */
-  jump(to: string): Promise<CommandAnswer>;
+  loadFtl(): Promise<FtlRating>;
 }
 export const BRIDGE_LINK = new Token<IBridgeLink>('BridgeLink');
 

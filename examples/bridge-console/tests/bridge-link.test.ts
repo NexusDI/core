@@ -11,6 +11,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { BridgeLink } from '../app/di/bridge-link.module';
 import { BRIDGE_LINK } from '../app/di/contracts';
+import { FTL_RATING } from './doubles';
 
 let backend: Nexus;
 let server: ServerType;
@@ -377,59 +378,24 @@ describe("the bridge link's commands", () => {
   });
 });
 
-describe("the bridge link's FTL calls", () => {
-  it('posts the spool with no body and gives the tick it queues for', async () => {
+describe("the bridge link's FTL section", () => {
+  it('posts the load with no body and gives the rating of the loaded drive', async () => {
     using fetch = vi
       .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(Response.json({ tick: 101 }, { status: 202 }));
+      .mockResolvedValue(Response.json({ rating: FTL_RATING }));
     await using bridge = await linkTo(base);
-    expect(await bridge.link.spool()).toStrictEqual({
-      accepted: true,
-      tick: 101,
-    });
+    expect(await bridge.link.loadFtl()).toStrictEqual(FTL_RATING);
     const [url, init] = fetch.mock.calls[0] ?? [];
-    expect(String(url)).toBe(`${base}ftl/spool`);
+    expect(String(url)).toBe(`${base}sections/ftl`);
     expect(init?.method).toBe('POST');
     expect(init?.body).toBeUndefined();
     expect(new Headers(init?.headers).get('x-mission-id')).toBe('survey-9');
   });
 
-  it('posts the star of a jump and gives the tick it queues for', async () => {
-    using fetch = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(Response.json({ tick: 301 }, { status: 202 }));
-    await using bridge = await linkTo(base);
-    expect(await bridge.link.jump('Kepler-442b')).toStrictEqual({
-      accepted: true,
-      tick: 301,
-    });
-    const [url, init] = fetch.mock.calls[0] ?? [];
-    expect(String(url)).toBe(`${base}ftl/jump`);
-    expect(init?.body).toBe('{"to":"Kepler-442b"}');
-  });
-
-  it('gives the refusal of a jump on a spool below the full charge', async () => {
-    const refusal = {
-      code: 'MERIDIAN_FTL_NOT_SPOOLED',
-      message: 'The FTL drive holds 0 GJ of the 90 GJ a jump needs.',
-      fix: 'spool the drive and wait until it holds the full charge, then jump.',
-    };
-    using fetch = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(Response.json(refusal, { status: 409 }));
-    await using bridge = await linkTo(base);
-    expect(await bridge.link.jump('Kepler-442b')).toStrictEqual({
-      accepted: false,
-      status: 409,
-      ...refusal,
-    });
-    expect(fetch).toHaveBeenCalledOnce();
-  });
-
-  it('rejects when the backend answers 500 for a spool', async () => {
+  it('rejects when the backend answers 500 for the load', async () => {
     await using bridge = await linkTo(brokenBase);
-    await expect(bridge.link.spool()).rejects.toThrow(
-      'bridge-api answered 500 for /ftl/spool',
+    await expect(bridge.link.loadFtl()).rejects.toThrow(
+      'bridge-api answered 500 for /sections/ftl',
     );
   });
 });

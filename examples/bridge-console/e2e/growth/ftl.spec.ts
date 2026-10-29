@@ -3,7 +3,10 @@ import type { ShipReading } from '@nexusdi/meridian-systems';
 import { expect, problems, test } from '../support';
 import { advance, bridgeApi, gauge } from './ship';
 
-test('spools and jumps from /systems/ftl', async ({ page, request }) => {
+test('loads the drive, spools and jumps from /systems/ftl', async ({
+  page,
+  request,
+}) => {
   const seen = problems(page);
   // The growth cases share one manual ship, which keeps its tick and its state
   // across the cases: the helm case leaves the throttle at 0.6 and the drive
@@ -29,11 +32,22 @@ test('spools and jumps from /systems/ftl', async ({ page, request }) => {
   await expect(answer).toHaveText(`Queued for tick ${tick + 1}`);
   await advance(request, 40);
 
-  // No earlier case loads the drive, so the page reads the ship before it.
+  // No earlier case loads the drive, so the page reads the ship before it,
+  // and the desk refuses a spool until the drive loads.
   await page.goto('/systems/ftl');
   await expect(gauge(ftl, 'Status')).toHaveText('offline');
   await expect(gauge(ftl, 'Spool charge')).toHaveText('0.0 GJ');
   await expect(gauge(ftl, 'Sector')).toHaveText('Sol');
+  await page.getByRole('button', { name: 'Spool drive' }).click();
+  await expect(page.getByRole('alert')).toContainText(
+    "No ship system is named 'ftl'.",
+  );
+  await page.getByRole('button', { name: 'Load drive' }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Drive loaded' }),
+  ).toHaveText(
+    'Drive loaded: the spool draws 900.0 MW, and a jump spends 90.0 GJ.',
+  );
   await page.getByRole('button', { name: 'Spool drive' }).click();
   await expect(answer).toHaveText(`Queued for tick ${tick + 41}`);
 

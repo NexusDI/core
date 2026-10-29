@@ -3,6 +3,7 @@ import type { NexusGraph } from '@nexusdi/devtools';
 import type {
   AtmosphereReading,
   CompartmentId,
+  FtlRating,
   ShipCommand,
   ShipReading,
 } from '@nexusdi/meridian-systems';
@@ -10,6 +11,15 @@ import type {
 import type { INavCharts } from '@nexusdi/meridian-systems/charts';
 
 import type { CommandAnswer, IBridgeLink } from '../app/di/contracts';
+
+/** The rating `POST /sections/ftl` answers for the Meridian's drive. */
+export const FTL_RATING: FtlRating = {
+  energy: 90_000_000_000,
+  power: 900_000_000,
+  pulseShare: 0.1,
+  reactorLevel: 0.9,
+  coolantLimit: 1_300,
+};
 
 /** Charts that hold every star and plot every course at heading 42. */
 export class FixedCharts implements INavCharts {
@@ -218,13 +228,9 @@ export class FakeBridgeLink implements IBridgeLink {
       fix: 'raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
     };
   }
-  /** Queues the spool for tick 1. */
-  async spool(): Promise<CommandAnswer> {
-    return { accepted: true, tick: 1 };
-  }
-  /** Queues the jump for tick 1. */
-  async jump(): Promise<CommandAnswer> {
-    return { accepted: true, tick: 1 };
+  /** Loads a drive with the Meridian's spool rating. */
+  async loadFtl(): Promise<FtlRating> {
+    return FTL_RATING;
   }
 }
 

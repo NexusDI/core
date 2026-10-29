@@ -337,8 +337,9 @@ export const courseAndBurn: GrowthCase = {
 };
 
 /**
- * The spool and the jump on the offline ship. The reactor is cold at tick 0, so
- * the first spool finds no power and the drive loads all the same. The spool at tick 101 charges 450 MJ a tick and
+ * The spool and the jump on the offline ship. The desk refuses `ftl` until
+ * `POST /sections/ftl` loads the drive. The reactor is cold at tick 0, so the
+ * first spool finds no power. The spool at tick 101 charges 450 MJ a tick and
  * holds 90 GJ at tick 300. A second spool at tick 300 queues nothing, and a jump to
  * a star the charts lack is refused. The jump to Kepler-442b at tick 301 moves
  * the sector and empties the charge. Every value is an integer or a string,
@@ -350,10 +351,25 @@ export const spoolAndJump: GrowthCase = {
   async run(fetch) {
     const spool = (ship: ShipReading) =>
       ship.power.loads.find((load) => load.id === 'ftl-spool');
+    await send(fetch, command('ftl', 'spool'), 400, {
+      code: 'MERIDIAN_BAD_COMMAND',
+      message:
+        "No ship system is named 'ftl'. The desk serves comms, engineering, helm, life-support, safety and weapons.",
+      fix: 'send the command to one of the systems above.',
+    });
+    await post(fetch, 'ftl section', '/sections/ftl', undefined, 200, {
+      rating: {
+        energy: 90_000_000_000,
+        power: 900_000_000,
+        pulseShare: 0.1,
+        reactorLevel: 0.9,
+        coolantLimit: 1_300,
+      },
+    });
     await send(fetch, command('engineering', 'throttle', { level: 1 }), 202, {
       tick: 1,
     });
-    await post(fetch, 'spool', '/ftl/spool', {}, 409, {
+    await send(fetch, command('ftl', 'spool'), 409, {
       code: 'MERIDIAN_POWER_BUDGET',
       message:
         'The ftl-spool load needs 900 MW, and the router has 0 MW free beside the loads above it.',
@@ -373,8 +389,8 @@ export const spoolAndJump: GrowthCase = {
       demand: 0,
       allocated: 0,
     });
-    await post(fetch, 'spool', '/ftl/spool', {}, 202, { tick: 101 });
-    await post(fetch, 'jump', '/ftl/jump', { to: 'Kepler-442b' }, 409, {
+    await send(fetch, command('ftl', 'spool'), 202, { tick: 101 });
+    await send(fetch, command('ftl', 'jump', { to: 'Kepler-442b' }), 409, {
       code: 'MERIDIAN_FTL_NOT_SPOOLED',
       message: 'The FTL drive holds 0 GJ of the 90 GJ a jump needs.',
       fix: 'spool the drive and wait until it holds the full charge, then jump.',
@@ -393,14 +409,14 @@ export const spoolAndJump: GrowthCase = {
       demand: 900_000_000,
       allocated: 900_000_000,
     });
-    await post(fetch, 'spool', '/ftl/spool', {}, 202, { tick: 301 });
-    await post(fetch, 'jump', '/ftl/jump', { to: 'Vega' }, 400, {
+    await send(fetch, command('ftl', 'spool'), 202, { tick: 301 });
+    await send(fetch, command('ftl', 'jump', { to: 'Vega' }), 400, {
       code: 'MERIDIAN_BAD_COMMAND',
       message:
         'ftl jump cannot use the to argument. It takes spool with no arguments and jump with a charted star to jump to.',
       fix: 'send the arguments in the ranges above.',
     });
-    await post(fetch, 'jump', '/ftl/jump', { to: 'Kepler-442b' }, 202, {
+    await send(fetch, command('ftl', 'jump', { to: 'Kepler-442b' }), 202, {
       tick: 301,
     });
 

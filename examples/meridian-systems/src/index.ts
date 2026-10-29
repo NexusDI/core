@@ -112,7 +112,8 @@ export {
   SHIELD_GRID,
 } from './systems/engineering/contracts';
 
-// The FTL drive, which a running ship adds with load(), and its contract.
+// The FTL drive, which a running ship adds with load(), its contract and
+// the command handler a stand-in drive registers with the desk.
 export {
   FTL_DRIVE,
   type FtlRating,
@@ -121,6 +122,7 @@ export {
   type FtlStatus,
   type IFtlDrive,
 } from './systems/ftl/contracts';
+export { FtlCommands } from './systems/ftl/ftl-commands';
 export { FtlDrive } from './systems/ftl/ftl-drive.module';
 
 // Helm.

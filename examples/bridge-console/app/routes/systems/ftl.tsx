@@ -1,13 +1,12 @@
-import type { ShipReading } from '@nexusdi/meridian-systems';
+import type { FtlRating, ShipReading } from '@nexusdi/meridian-systems';
 import { Form } from 'react-router';
 
 import { Button } from '../../components';
-import type { CommandAnswer } from '../../di/contracts';
 import { fixed, megawatts } from '../../fixed';
 import { snapshotLoader } from '../snapshot-loader.server';
 import type { Route } from './+types/ftl';
 import { allocated } from './allocated';
-import { ftlAction } from './system-action.server';
+import { type FtlAnswer, ftlAction } from './system-action.server';
 import {
   ControlSection,
   Gauges,
@@ -16,8 +15,11 @@ import {
 } from './system-page';
 import { StarSelect } from './star-select';
 
-/** Sends the submitted form to bridge-api as an FTL spool or jump. */
-export const action: (args: Route.ActionArgs) => Promise<CommandAnswer> =
+/**
+ * Loads the FTL drive into bridge-api's ship, or sends the submitted form to
+ * bridge-api as an FTL spool or jump.
+ */
+export const action: (args: Route.ActionArgs) => Promise<FtlAnswer> =
   ftlAction();
 
 /**
@@ -50,13 +52,37 @@ function FtlGauges({ ship }: { ship: ShipReading }) {
   );
 }
 
+/**
+ * The drive section: one button that loads the drive into the ship, and once
+ * it has, the spool's draw and the charge a jump spends.
+ */
+function LoadDrive({ loaded }: { loaded: FtlRating | undefined }) {
+  return (
+    <ControlSection title="Drive">
+      <Form method="post">
+        <Button type="submit" name="command" value="load">
+          Load drive
+        </Button>
+      </Form>
+      {loaded === undefined ? null : (
+        <p role="status">
+          {`Drive loaded: the spool draws ${megawatts(loaded.power)}, and a jump spends ${fixed(loaded.energy / 1e9, 1)} GJ.`}
+        </p>
+      )}
+    </ControlSection>
+  );
+}
+
 export default function Ftl({
   loaderData: ship,
   actionData,
 }: Route.ComponentProps) {
+  const loaded = actionData?.accepted === 'loaded' ? actionData : undefined;
+  const answer = actionData?.accepted === 'loaded' ? undefined : actionData;
   return (
-    <SystemPage answer={actionData}>
+    <SystemPage answer={answer}>
       {ship === null ? <SnapshotOffline /> : <FtlGauges ship={ship} />}
+      <LoadDrive loaded={loaded?.rating} />
       <ControlSection title="Spool">
         <Form method="post">
           <Button type="submit" name="command" value="spool">

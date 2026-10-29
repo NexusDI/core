@@ -2,7 +2,6 @@ import { fireEvent, screen } from '@testing-library/react';
 import type { ShipReading } from '@nexusdi/meridian-systems';
 import { BUNDLED_CHARTS } from '@nexusdi/meridian-systems/charts';
 import type { NexusSetupStep } from '@nexusdi/vitest';
-import { Form, useActionData } from 'react-router';
 import { describe, expect, vi } from 'vitest';
 
 import { BRIDGE_LINK, type CommandAnswer } from '../../app/di/contracts';
@@ -162,7 +161,7 @@ describe('the FTL gauges', () => {
       screen
         .getAllByRole('heading', { level: 2 })
         .map((heading) => heading.textContent),
-    ).toEqual(['FTL drive', 'Spool', 'Jump']);
+    ).toEqual(['FTL drive', 'Drive', 'Spool', 'Jump']);
   });
 
   test('say the snapshot is offline when it fails, and keep the controls', async ({
@@ -175,22 +174,39 @@ describe('the FTL gauges', () => {
   });
 });
 
+describe('the load button', () => {
+  test('loads the drive and shows its rating', async ({ renderRoute }) => {
+    const scope = await renderPage(renderRoute);
+    const load = vi.spyOn(scope.get(BRIDGE_LINK), 'loadFtl');
+    const command = vi.spyOn(scope.get(BRIDGE_LINK), 'command');
+    fireEvent.click(screen.getByRole('button', { name: 'Load drive' }));
+    expect((await screen.findByRole('status')).textContent).toBe(
+      'Drive loaded: the spool draws 900.0 MW, and a jump spends 90.0 GJ.',
+    );
+    expect(load).toHaveBeenCalledOnce();
+    expect(command).not.toHaveBeenCalled();
+  });
+});
+
 describe('the spool button', () => {
-  test('posts the spool and shows the tick it queues for', async ({
+  test('posts the spool to the ftl system and shows the tick it queues for', async ({
     renderRoute,
   }) => {
     const scope = await renderPage(renderRoute);
-    const spool = vi.spyOn(scope.get(BRIDGE_LINK), 'spool');
+    const command = vi.spyOn(scope.get(BRIDGE_LINK), 'command');
     fireEvent.click(screen.getByRole('button', { name: 'Spool drive' }));
     expect((await screen.findByRole('status')).textContent).toBe(
       'Queued for tick 1',
     );
-    expect(spool).toHaveBeenCalledOnce();
+    expect(command).toHaveBeenCalledExactlyOnceWith({
+      system: 'ftl',
+      action: 'spool',
+    });
   });
 
   test('shows a refusal with its fix', async ({ renderRoute }) => {
     class Refusing extends FakeBridgeLink {
-      override async spool(): Promise<CommandAnswer> {
+      override async command(): Promise<CommandAnswer> {
         return {
           accepted: false,
           status: 409,
@@ -207,46 +223,27 @@ describe('the spool button', () => {
       'The ftl-spool load needs 900 MW, and the router has 0 MW free beside the loads above it.Fix: raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
     );
   });
-});
 
-describe('a command that is neither the spool nor the jump', () => {
-  test('goes to the commands route for the ftl system and shows its refusal', async ({
+  test('shows the refusal of a ship whose drive has not loaded', async ({
     renderRoute,
   }) => {
-    class Refusing extends FakeBridgeLink {
+    class Unloaded extends FakeBridgeLink {
       override async command(): Promise<CommandAnswer> {
         return {
           accepted: false,
           status: 400,
           code: 'MERIDIAN_BAD_COMMAND',
-          message: 'No ship system serves ftl.',
+          message:
+            "No ship system is named 'ftl'. The desk serves comms, engineering, helm, life-support, safety and weapons.",
+          fix: 'send the command to one of the systems above.',
         };
       }
     }
-    function Reset() {
-      const answer = useActionData<CommandAnswer>();
-      return (
-        <Form method="post">
-          <button type="submit" name="command" value="reset">
-            Reset
-          </button>
-          <output>{answer?.accepted === false ? answer.message : ''}</output>
-        </Form>
-      );
-    }
-    const { scope } = await renderRoute(
-      { default: Reset, action: ftl.action },
-      { path: '/systems/ftl', overrides: withLink(Refusing) },
+    await renderPage(renderRoute, withLink(Unloaded));
+    fireEvent.click(screen.getByRole('button', { name: 'Spool drive' }));
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      "No ship system is named 'ftl'. The desk serves comms, engineering, helm, life-support, safety and weapons.Fix: send the command to one of the systems above.",
     );
-    const command = vi.spyOn(scope.get(BRIDGE_LINK), 'command');
-    const spool = vi.spyOn(scope.get(BRIDGE_LINK), 'spool');
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
-    expect(await screen.findByText('No ship system serves ftl.')).toBeDefined();
-    expect(command.mock.calls[0]?.[0]).toStrictEqual({
-      system: 'ftl',
-      action: 'reset',
-    });
-    expect(spool).not.toHaveBeenCalled();
   });
 });
 
@@ -260,11 +257,11 @@ describe('the jump button', () => {
     ).toEqual(Object.keys(BUNDLED_CHARTS));
   });
 
-  test('posts the star and shows the tick it queues for', async ({
+  test('posts the star to the ftl system and shows the tick it queues for', async ({
     renderRoute,
   }) => {
     const scope = await renderPage(renderRoute);
-    const jump = vi.spyOn(scope.get(BRIDGE_LINK), 'jump');
+    const command = vi.spyOn(scope.get(BRIDGE_LINK), 'command');
     fireEvent.change(screen.getByRole('combobox'), {
       target: { value: 'Proxima-b' },
     });
@@ -272,12 +269,16 @@ describe('the jump button', () => {
     expect((await screen.findByRole('status')).textContent).toBe(
       'Queued for tick 1',
     );
-    expect(jump).toHaveBeenCalledExactlyOnceWith('Proxima-b');
+    expect(command).toHaveBeenCalledExactlyOnceWith({
+      system: 'ftl',
+      action: 'jump',
+      to: 'Proxima-b',
+    });
   });
 
   test('shows a refusal with its fix', async ({ renderRoute }) => {
     class Refusing extends FakeBridgeLink {
-      override async jump(): Promise<CommandAnswer> {
+      override async command(): Promise<CommandAnswer> {
         return {
           accepted: false,
           status: 409,

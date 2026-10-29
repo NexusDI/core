@@ -245,18 +245,24 @@ The FTL drive section lists six gauges:
   `Last jump` reads `tick N`, or `none` before the first jump. Words and ticks
   carry no unit.
 
+The ship starts without the drive. The `Drive` section holds the button
+`Load drive`, which posts `command=load`. `ftlAction()` in
+`system-action.server.ts` calls `BRIDGE_LINK.loadFtl()`, which posts to
+`POST /sections/ftl`, and the section then reads `Drive loaded: the spool
+draws 900.0 MW, and a jump spends 90.0 GJ.` from the rating the backend
+answers. The line shows the answer of the last post, so a spool replaces it.
+A second load answers the same.
+
 Two forms post the FTL commands. The spool form is the button `Spool drive`,
 which posts `command=spool`. The jump form is `StarSelect`
 (`star-select.tsx`), a select of the stars in `BUNDLED_CHARTS` and the button
 `Jump`, which posts `command=jump` with the star as `to`. The helm page's
-course form is a `StarSelect` too. `ftlAction()` in `system-action.server.ts`
-reads `command` and `to` and calls `BRIDGE_LINK.spool()` or
-`BRIDGE_LINK.jump(to)`. Any other command goes to `command()` for the system
-`ftl`, and the page shows the backend's refusal. The two posts go to
-`POST /ftl/spool` and `POST /ftl/jump`, outside `POST /commands`. They share
-the link's private `#post` with `command()`, so the reading of the 202, 400
-and 409 answers exists once. The page shows the answer to the last command as
-the other pages do: `Queued for tick N`, or a refusal with its `Fix:` line.
+course form is a `StarSelect` too. `ftlAction()` hands every command but
+`load` to `BRIDGE_LINK.command()` for the system `ftl`, so the spool and the
+jump go to `POST /commands` as every other page's commands do. Before the
+drive loads, the desk refuses them with `No ship system is named 'ftl'.`. The
+page shows the answer to the last command as the other pages do: `Queued for
+tick N`, or a refusal with its `Fix:` line.
 
 A spool needs power. It asks for 900 MW at priority 7. On a reactor at full
 output a main drive that burns at level 1 leaves 384.9 MW. The spool never fits
@@ -269,14 +275,14 @@ reactor with the `MERIDIAN_POWER_BUDGET` text: at tick 0 it has 0 MW free. A jum
 significant digits, as the golden holds them. `/sim` sends eight. It reads the
 gauges at tick 0, on the first tick of the spool, on the tick the router sheds
 it, at the full charge and on the tick after the jump, and it reads the gauge
-names and the three section headings. When the snapshot fails, the page reads
-`Ship snapshot offline` and keeps its controls. The spool button posts and
-shows the tick it queues for, and a refused spool shows its `Fix:` line. The
-select lists the charted stars, and `Jump` posts the star. A refused jump shows
-its text. A command that is neither the spool nor the jump reaches
-`command()` for `ftl`. `tests/bridge-link.test.ts` covers both posts: the
-spool with no body, the jump with its star, the 409 for a jump below the full
-charge and a rejection for a 500.
+names and the four section headings. When the snapshot fails, the page reads
+`Ship snapshot offline` and keeps its controls. `Load drive` calls
+`loadFtl()` and shows the rating. The spool button posts `ftl spool` to
+`command()` and shows the tick it queues for, and a refused spool shows its
+`Fix:` line, the desk's refusal of an unloaded drive among them. The select
+lists the charted stars, and `Jump` posts `ftl jump` with the star. A refused
+jump shows its text. `tests/bridge-link.test.ts` covers the load: a post to
+`sections/ftl` with no body that gives the rating, and a rejection for a 500.
 
 ## The Weapons Page
 

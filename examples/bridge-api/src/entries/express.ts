@@ -27,7 +27,7 @@ import express, {
 import { answerAtmosphere } from '../bridge/atmosphere';
 import { answerCommand } from '../bridge/commands';
 import { compartmentOf } from '../bridge/compartment-of';
-import { answerJump, answerSpool, ftlRating } from '../bridge/ftl';
+import { answerFtlSection, ftlRating } from '../bridge/ftl';
 import { readJson } from '../bridge/json-body';
 import { MISSION_HEADER, requestOf } from '../bridge/mission';
 import type { BridgeOptions } from '../bridge/options';
@@ -58,8 +58,8 @@ export function createBridge(
   const text = express.text({ type: () => true, limit: SIM_BODY_LIMIT });
   const body = (req: Request) =>
     readJson(req.get('content-type'), req.body as string | undefined);
-  // The drive loads on the first FTL request, and the section extends a
-  // request scope that opened before the load.
+  // POST /sections/ftl loads the drive, and the section extends a request
+  // scope that opened before the load.
   const ftl = di.load(FtlDrive);
 
   // Routes match in their own case and refuse a trailing slash, as Hono and
@@ -156,20 +156,10 @@ export function createBridge(
     ),
   );
   bridge.post(
-    '/ftl/spool',
+    '/sections/ftl',
     ftl,
     ftl.inject({ drive: FTL_DRIVE }, ({ drive }, _req, res) => {
-      const answer = answerSpool(drive);
-      res.status(answer.status).json(answer.body);
-    }),
-  );
-  bridge.post(
-    '/ftl/jump',
-    text,
-    ftl,
-    ftl.inject({ drive: FTL_DRIVE }, ({ drive }, req, res) => {
-      const answer = answerJump(drive, body(req));
-      res.status(answer.status).json(answer.body);
+      res.json(answerFtlSection(drive));
     }),
   );
   // Every error ends with its status and an empty body, so Express's
