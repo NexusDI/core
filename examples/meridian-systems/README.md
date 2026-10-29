@@ -30,6 +30,8 @@ const Ship = defineModule({
 
 Each ship system contributes one `IShipSystem`, with a `name` and a `phase` from 1 to 6, to the multi token `SHIP_SYSTEMS`. `FixedStepLoop` takes them all with `all(SHIP_SYSTEMS)`. `all()` reads the binding module's own providers plus every contribution that a module publishes by exporting the token, wherever that module sits in the graph. Every module with a step exports `SHIP_SYSTEMS`: `Engineering`, `LifeSupport`, `Safety`, `Comms`, `Propulsion`, `Helm` and `Weapons`. `TICK_LOOP` sits in `Simulation`, and the loop sorts the systems by phase and then by name, so the list order does not matter to it. The command desk reads `all(COMMAND_HANDLERS)` the same way, so `COMMAND_DESK` sits beside it. Engineering's router reads `lazy(all(POWER_CONSUMERS))`, and every system's load reaches it because each module with a load exports `POWER_CONSUMERS`. A contribution that no provider reads fails at startup: a module that keeps its `SHIP_SYSTEMS` provider private makes `Nexus.create` reject with `NEXUS_UNREAD_CONTRIBUTION`. Safety's physics reads LifeSupport's `ATMOSPHERE_PROBE` because `Safety` imports `ShipLifeSupport`.
 
+Each system with a record contributes one `SystemRecord`, `{ records, setpoints }`, to `SHIP_RECORDS` from its `<system>-record.ts`, and `ShipStateStore` builds the tick-0 snapshot from `all(SHIP_RECORDS)`. `ShipRecords` and `ShipSetpoints` are interfaces that each system's `contracts.ts` augments, so a new system adds its record with no edit to the store or the snapshot type. No contribution reads `SHIP_STATE`, so the store takes a plain `all()`. The FTL drive loads after startup and registers its record with `SHIP_STATE.register()` (the FTL Drive section below).
+
 The tokens follow the interface-first rule: each interface has a token named for its role, and the module binds a class to each service token with `useClass`. `src/index.ts` exports the tokens, their interfaces and the six error classes, and keeps the other classes internal. An app registers `PressureInterlock` with the interceptors plugin itself, so `@nexusdi/meridian-systems/interlock` exports that class.
 
 | Token                   | Interface             | Bound to                   | Bound in                   |
@@ -44,6 +46,7 @@ The tokens follow the interface-first rule: each interface has a token named for
 | `TELEMETRY`             | `ITelemetryFeed`      | `SnapshotFeed`             | `Telemetry`                |
 | `SHIP_SYSTEMS`          | `IShipSystem`         | one class per system       | each system module         |
 | `COMMAND_HANDLERS`      | `ICommandHandler`     | one class per system       | each system module         |
+| `SHIP_RECORDS`          | `SystemRecord`        | one value per system       | each system module         |
 | `REACTOR`               | `IReactorCore`        | `FusionReactor`            | `Engineering`              |
 | `COOLANT_LOOP`          | `ICoolantLoop`        | `RadiatorLoop`             | `Engineering`, private     |
 | `POWER_ROUTER`          | `IPowerRouter`        | `PlasmaRouter`             | `Engineering`              |
@@ -74,7 +77,7 @@ A crew member raises the shields, and the ship must answer at once whether the r
 
 ### The Module and Its Tokens
 
-`Engineering` binds four services and makes three contributions:
+`Engineering` binds four services and makes four contributions:
 
 ```text
 REACTOR          FusionReactor        deps [SHIP_STATE]
@@ -84,9 +87,10 @@ SHIELD_GRID      DeflectorGrid        deps [SHIP_STATE, POWER_ROUTER]
 POWER_CONSUMERS  ShieldPower          deps [SHIELD_GRID]
 SHIP_SYSTEMS     EngineeringPhysics   deps [REACTOR, COOLANT_LOOP, POWER_ROUTER]
 COMMAND_HANDLERS EngineeringCommands  deps [REACTOR, SHIELD_GRID]
+SHIP_RECORDS     ENGINEERING_RECORD   a value
 ```
 
-It exports `REACTOR`, `POWER_ROUTER`, `SHIELD_GRID`, `SHIP_SYSTEMS`, `POWER_CONSUMERS` and `COMMAND_HANDLERS`. `COOLANT_LOOP` stays inside the module: `EngineeringPhysics` reads the loop's rating, and every other system reads the reactor and the router. A root that asks for it gets `NEXUS_NOT_VISIBLE`, and `test/engineering.test.ts` checks that.
+It exports `REACTOR`, `POWER_ROUTER`, `SHIELD_GRID`, `SHIP_SYSTEMS`, `POWER_CONSUMERS`, `COMMAND_HANDLERS` and `SHIP_RECORDS`. `COOLANT_LOOP` stays inside the module: `EngineeringPhysics` reads the loop's rating, and every other system reads the reactor and the router. A root that asks for it gets `NEXUS_NOT_VISIBLE`, and `test/engineering.test.ts` checks that.
 
 - `FusionReactor` reads `output`, the electric output now in W, from `SHIP_STATE`, and `throttle(level)` queues the reactor setpoint there. Its `rating` holds the fixed figures in W.
 - `RadiatorLoop` holds the lithium loop's `rating` and nothing else.
@@ -138,13 +142,15 @@ The snapshot carries four engineering records, all in SI units:
 - `power`: `output` and `loads`, each load with its `id`, `priority`, `demand` and `allocated`. `shed` lists the ids of the loads that asked for power and got none.
 - `setpoints`: `reactor.throttle` and `shields.raised`, beside `lifeSupport` (next section).
 
+`ENGINEERING_RECORD` starts the reactor cold, the loop at 500 K and the power record with no loads. The router lists each load from tick 1.
+
 ## Life Support
 
 A crew member asks for the habitat's air, and the answer must come from the habitat's analyzer at the current tick. The heaters, scrubbers, oxygen generators and the airlock pump draw power from the reactor, and the router that shares that power belongs to Engineering. `LifeSupport` binds the analyzer and the panel behind tokens, and contributes its physics, its load and its commands. It contributes its load to the router and its commands to the desk, so neither Engineering nor the desk changes when it joins.
 
 ### The Module and Its Tokens
 
-`LifeSupport`, in `src/systems/life-support/life-support.module.ts`, binds three services and makes three contributions:
+`LifeSupport`, in `src/systems/life-support/life-support.module.ts`, binds three services and makes four contributions:
 
 ```text
 ATMOSPHERE_PROBE    CalibratedProbe          deps [RNG, LIFE_SUPPORT_OPTIONS, DECK_PLAN]
@@ -153,9 +159,10 @@ ATMOSPHERE_CONTROL  EnvironmentalController  deps [SHIP_STATE]
 SHIP_SYSTEMS        LifeSupportPhysics       deps [LIFE_SUPPORT_OPTIONS, DECK_PLAN]
 POWER_CONSUMERS     LifeSupportPower         deps [LIFE_SUPPORT_OPTIONS, DECK_PLAN]
 COMMAND_HANDLERS    LifeSupportCommands      deps [ATMOSPHERE_CONTROL]
+SHIP_RECORDS        lifeSupportRecord        factory, deps [DECK_PLAN]
 ```
 
-It exports all six tokens. `src/systems/life-support/contracts.ts` holds the interfaces and the tokens, and each class sits in its own file beside it.
+It exports all seven tokens. `src/systems/life-support/contracts.ts` holds the interfaces and the tokens, and each class sits in its own file beside it.
 
 ### Calibrating the Analyzers at Startup
 
@@ -208,7 +215,7 @@ The router shares the reactor's output among loads, and each system adds its own
 - `scrubber` and `oxygen` take a `compartment` and a boolean `on`, and `vent` a `compartment` and a boolean `open`.
 - `pump` takes a `compartment` and a `mode`: `off`, `evacuate`, which moves the room's gas into its reservoir, or `fill`, which moves reservoir gas into the room.
 
-The deck gives the bridge and the habitat a heater, a scrubber and an oxygen generator, and the airlock a vent and a pump whose reservoir is the habitat. `EnvironmentalController` checks that the compartment has the device and throws `BadCommandError` with `reason: 'argument'` when it lacks one, so a heater in the airlock and a pump in the habitat are refused. A missing or bad argument also throws `argument`, and an unknown action throws `action`.
+The deck gives the bridge, the habitat and the quarters a heater, a scrubber and an oxygen generator, every other pressurised room but the reactor bay and the airlock a heater, and the airlock a vent and a pump whose reservoir is the habitat. The shuttle bay and the drone bay hold vacuum and carry no device. `EnvironmentalController` checks that the compartment has the device and throws `BadCommandError` with `reason: 'argument'` when it lacks one, so a heater in the airlock and a pump in the habitat are refused. A missing or bad argument also throws `argument`, and an unknown action throws `action`.
 
 ### The Physics Behind Life Support
 
@@ -217,10 +224,10 @@ The deck gives the bridge and the habitat a heater, a scrubber and an oxygen gen
 - Life support starts offline. While `setpoints.lifeSupport.online` is false, the step returns the ship unchanged, so the seeded ship keeps its initial air and the idle golden's compartments stay as they were. From the tick that applies `online`, every term below runs. Device commands queue while life support is offline and act from the first online tick.
 - Life support runs on the reactor. At throttle 0 the reactor gives no power, so from the first online tick the router sheds `life-support`, and `test/life-support.test.ts` asserts that. A shed tick runs no heater, scrubber, generator or pump. Metabolism, hull loss, the bay leak and an open vent still run. Every powered scenario queues an engineering throttle of 0.01 beside `online`: the reactor gives 12.1 MW from tick 1, and the coolant settles at 514.1 K. This increment has no battery.
 - Each tick, each room first steps from its start-of-tick air: metabolism and off-gassing, the generator, the scrubber, then the heat balance. Every open vent runs next, then every pump that is on and has not stalled, in deck order.
-- The heat balance is explicit Euler, `T' = T + dt · (Q_heater + 100 W · occupants + Q_bay − G · (T − T_hull)) / C`, with `C` the structure's heat capacity plus each gas's moles times its `c_v`. The air holds 2.5 % of the habitat's 4,104,250 J/K. Each heater is a proportional thermostat, `clamp(10 kW/K · (T_set − T), 0, 10 kW)`, set to 293 K. After 600 ticks online the habitat reads 292.765 K at 2,346 W, and after an hour 292.552 K at 4,482 W, under the setpoint by the offset of a proportional controller. The bridge settles at 292.725 K at 2,745 W.
+- The heat balance is explicit Euler, `T' = T + dt · (Q_heater + 100 W · occupants + Q_bay − G · (T − T_hull)) / C`, with `C` the structure's heat capacity plus each gas's moles times its `c_v`. The air holds 2.5 % of the habitat's 4,104,250 J/K. Each heater is a proportional thermostat, `clamp(10 kW/K · (T_set − T), 0, 10 kW)`, set to 293 K. After 600 ticks online the habitat reads 292.755 K at 2,450 W, and after an hour 292.532 K at 4,679 W, under the setpoint by the offset of a proportional controller. The bridge settles at 292.725 K at 2,745 W.
 - Each occupant uses 3.038 × 10⁻⁴ mol/s of O₂ and gives 2.630 × 10⁻⁴ mol/s of CO₂ and 1.606 × 10⁻³ mol/s of water. Each room gives off 10⁻⁶ mol/s of volatiles.
-- A scrubber, 0.05 m³/s at 1.2 kW, removes the fraction `1 − exp(−dt · S / V)` of the CO₂ and the volatiles. Water above 40 % relative humidity falls by the same fraction and stops at 40 %, with the saturation pressure from the Magnus formula (2,312 Pa at 293 K). The habitat's CO₂ climbs toward 2.5245 mol, 51.25 Pa, and reads 48.8 Pa after an hour.
-- An oxygen generator adds `clamp(2 × 10⁻⁵ mol/(s·Pa) · (21 kPa − p_O₂), 0, 0.01 mol/s)` of O₂ at 600 kJ per mol, 6 kW at the full rate, and takes its water from the ship's tank. The habitat's generator settles 60.8 Pa under 21 kPa and draws 729 W there.
+- A scrubber, 0.05 m³/s at 1.2 kW, removes the fraction `1 − exp(−dt · S / V)` of the CO₂ and the volatiles. Water above 40 % relative humidity falls by the same fraction and stops at 40 %, with the saturation pressure from the Magnus formula (2,312 Pa at 293 K). The habitat's two occupants hold its CO₂ toward 25.6 Pa, and it reads 28.9 Pa after an hour.
+- An oxygen generator adds `clamp(2 × 10⁻⁵ mol/(s·Pa) · (21 kPa − p_O₂), 0, 0.01 mol/s)` of O₂ at 600 kJ per mol, 6 kW at the full rate, and takes its water from the ship's tank. The habitat's generator settles 30.4 Pa under 21 kPa and draws 364.6 W there, as the bridge's does.
 - The coolant loop leaks into the reactor bay: `Q_bay = UA · (T_c − T)`, with `UA` from the bay's `coolantConductance` of 2 W/K in the deck. The pipe runs 40 m through the bay at 0.3 m across, which gives 37.7 m² of surface, and a vacuum jacket with U ≈ 0.05 W/(m²·K) gives 1.9 W/K, rounded to 2. The loop's own balance leaves the leak out, since it is 7.4 × 10⁻⁷ of the loop's heat at full output. With hull loss alone the bay settles at 264.3 K beside a 500 K loop, with a time constant of 15.05 h, so after an hour at throttle 0.01 it reads 291.17 K.
 - A vent of 0.01 m² keeps the fraction `exp(−dt · A / (κ · V))` of every gas, with `κ` 0.02 s/m. The airlock loses 2.0618 % a tick (τ 24 s), and a full airlock falls under 100 Pa at tick 333. The vent keeps the temperature and draws no power.
 - The pump moves the fraction `min(1, 0.2 m³/s · dt / V_source)` of each gas, 0.008333 of the airlock per tick. The moved gas carries its energy into the target, so each gas's moles and the total `Σ C · T` stay the same. It draws `400 W + 0.2 m³/s · clamp(rise, 0, 101,300 Pa) / 0.6`, where `rise` is the target's pressure less the source's at the start of the tick, from 400 W to 34,166.67 W while its mode is not `off`. From a rise of 101,300 Pa it moves no gas and still draws the full figure. A pump that evacuates the airlock from tick 0 leaves it at 37,096 Pa at tick 120 and stalls at tick 289 with the airlock at 9,089 Pa. With the pump off and the vent open from tick 290, the airlock reads under 100 Pa at tick 506.
@@ -238,7 +245,7 @@ A crew member opens the airlock's inner door, and the ship must refuse while the
 
 ### The Module and Its Tokens
 
-`Safety`, in `src/systems/safety/safety.module.ts`, binds three services and makes two contributions:
+`Safety`, in `src/systems/safety/safety.module.ts`, binds three services and makes three contributions:
 
 ```text
 BLAST_DOORS       BlastDoorControl     deps [SHIP_STATE]
@@ -246,13 +253,14 @@ FIRE_SUPPRESSION  InertGasSuppression  deps [SHIP_STATE]
 MASTER_ALARM      MasterAlarm          deps [TICK_LOOP, all(ALARM_SINKS)]
 SHIP_SYSTEMS      SafetyPhysics        deps [DECK_PLAN, ATMOSPHERE_PROBE]
 COMMAND_HANDLERS  SafetyCommands       deps [BLAST_DOORS, FIRE_SUPPRESSION]
+SHIP_RECORDS      safetyRecord         factory, deps [DECK_PLAN]
 ```
 
-It exports all five tokens. `src/systems/safety/contracts.ts` holds the interfaces and the tokens, `ALARM_SINKS` among them, which no module of the library binds. `Safety` imports `ShipLifeSupport`, so `SafetyPhysics` reads LifeSupport's `ATMOSPHERE_PROBE` through LifeSupport's exports.
+It exports all six tokens. `src/systems/safety/contracts.ts` holds the interfaces and the tokens, `ALARM_SINKS` among them, which no module of the library binds. `Safety` imports `ShipLifeSupport`, so `SafetyPhysics` reads LifeSupport's `ATMOSPHERE_PROBE` through LifeSupport's exports.
 
 ### The Doors and the Interlock
 
-The deck has the four doors of `DOOR_IDS`: `bridge-habitat`, `habitat-reactor-bay`, `habitat-airlock` and `airlock-outer`, which joins the airlock to `space`. Every door starts shut. `BLAST_DOORS.open(door)` and `close(door)` queue the door's setpoint for the next tick, and throw `BadCommandError` with `reason: 'argument'` for a door the deck lacks. A command for the state a door already holds queues and changes nothing.
+The deck has the sixteen doors of `DOOR_IDS`, each a 3.0 m² hatch but the bays' doors to space. Three join a room to `space`: `airlock-outer`, `shuttle-bay-outer` (50 m²) and `drone-bay-outer` (6 m²). `engineering-reactor-bay` joins engineering to the reactor bay, and the habitat reaches the reactor bay through engineering. Every door starts shut. `BLAST_DOORS.open(door)` and `close(door)` queue the door's setpoint for the next tick, and throw `BadCommandError` with `reason: 'argument'` for a door the deck lacks. A command for the state a door already holds queues and changes nothing.
 
 `PressureInterlock`, in `src/systems/safety/pressure-interlock.ts`, refuses to open a door with more than 5,000 Pa across it (`PRESSURE_INTERLOCK.limit`). It is an `Interceptor`, with `static deps = [SHIP_STATE, DECK_PLAN] as const`. It reads the true pressures of the committed snapshot through `doorPressures`, with `space` at 0 Pa, so its answer never depends on the RNG, and it throws `InterlockError` with the difference rounded to the pascal. Nothing interlocks `close`. At tick 0 the outer door holds 101,300 Pa, so the interlock refuses it until the airlock falls under 5 kPa.
 
@@ -282,7 +290,7 @@ The binding wraps the panel `SafetyCommands` holds, so a desk command passes the
 - `flood` calls `FIRE_SUPPRESSION.flood(compartment)`, which opens the room's flood valve, and the valve releases the room's charge of N₂ over 10 s.
 - `open` and `close` take a string `door` and call the door panel.
 
-`drill` and `flood` take a room with a flood charge: every compartment but the airlock. The airlock has none, so the panel refuses it with `reason: 'argument'`. A missing or non-string argument throws `argument` before the panel runs, so an interceptor on a panel reads a string, and an unknown action throws `action`. The error's `expected` reads "open and close with a door of bridge-habitat, habitat-reactor-bay, habitat-airlock or airlock-outer, and flood and drill with a compartment of bridge, habitat or reactor-bay".
+`drill` and `flood` take a room with a flood charge: every compartment but the airlock and the two bays. The airlock has none, so the panel refuses it with `reason: 'argument'`. A missing or non-string argument throws `argument` before the panel runs, so an interceptor on a panel reads a string, and an unknown action throws `action`. The error's `expected` reads "open and close with a door of bridge-habitat, habitat-airlock, airlock-outer, bridge-chart-room, bridge-computer-core, habitat-quarters, habitat-comms-relay, airlock-shuttle-bay, shuttle-bay-outer, shuttle-bay-drone-bay, drone-bay-outer, habitat-engineering, engineering-capacitor-room, engineering-ftl-core, engineering-reactor-bay or reactor-bay-main-drive, and flood and drill with a compartment of bridge, habitat, reactor-bay, chart-room, computer-core, quarters, comms-relay, capacitor-room, engineering, ftl-core or main-drive".
 
 ### The Master Alarm and Its Sinks
 
@@ -294,11 +302,11 @@ Each tick, the safety step writes the active alarms into `safety.alarms`. `Maste
 
 `SafetyPhysics` runs in phase 5 under the name `Safety`, after LifeSupport, and delegates each step to `stepSafety` in `src/systems/safety/safety-model.ts`. The step runs the doors, the fires, the floods and the alarms, in that order. It has no online gate, so fires and floods run while life support is offline.
 
-- Each open door trades gas in deck order, from the air the door before it left. With `f = 1 − exp(−dt · A / (κ · (V_a + V_b)))`, side A sends the fraction `f · V_b / V` of each gas and side B `f · V_a / V`, so one step multiplies the gap in molar density by `1 − f`. For `bridge-habitat`, `f` is 0.188064 a tick. `exchange` in `gas.ts` takes both parcels from the air before the step and mixes each into the other side's kept air at its own room's temperature, so a hot room and a cold room at one molar density still trade heat. Each gas's moles and `Σ C · T` stay the same.
-- An open `airlock-outer` vents the airlock to space and keeps 0.08208 of its gas a tick, −186.0 kPa/s from 101.3 kPa.
+- Each open door trades gas in deck order, from the air the door before it left. With `f = 1 − exp(−dt · A / (κ · (V_a + V_b)))`, side A sends the fraction `f · V_b / V` of each gas and side B `f · V_a / V`, so one step multiplies the gap in molar density by `1 − f`. For `bridge-habitat`, `f` is 0.340759 a tick. `exchange` in `gas.ts` takes both parcels from the air before the step and mixes each into the other side's kept air at its own room's temperature, so a hot room and a cold room at one molar density still trade heat. Each gas's moles and `Σ C · T` stay the same.
+- An open door to space vents its room. `airlock-outer` keeps 0.00193 of the airlock's gas a tick, −202.2 kPa/s from 101.3 kPa.
 - A room's air burns while its O₂ mole fraction is above 16 % and `p_O₂` is above 16 kPa (`burns` in `safety-model.ts`). A room with no fire, above 330 K, whose air burns, lights with the chance `1 − exp(−λ · dt)`, `λ = 10⁻³ /s`, on one draw from Safety's fork. Any other room draws nothing. A drill lights a room whose air burns at any temperature, with no draw, and every drill flag returns to false on that tick, lit or not.
 - A fire starts at intensity `φ = 0.05`. While the air burns it grows by `0.05 · dt` a tick to at most 1, and reaches 1 in 38 ticks. While it does not, `φ` falls by the factor `exp(−0.2 · dt)` a tick, and the fire goes out under 0.01. A fire burns `0.5 · φ · dt` mol of O₂ a tick, at most the room's O₂, and heats the room by 400 kJ per mol burned. Each 0.5 mol burned adds 0.4 mol of CO₂ and 0.2 mol of H₂O.
-- The deck gives the bridge a flood charge of 1,000 mol of N₂, the habitat 2,000 mol and the reactor bay 1,330 mol (`floodCharge`). An open valve releases `charge / 20` a tick, 10 s at `dt` 0.5, at the room's temperature, and counts it in `safety.flooded`. The tick that releases the last of the charge writes the valve false and the count 0. A flood queued while one runs changes nothing. After a 2,000 mol flood the habitat holds 14.99 % O₂ at 141.9 kPa, so its air no longer burns and the fire dies down.
+- The deck gives the bridge a flood charge of 1,000 mol of N₂, the habitat 2,000 mol, the reactor bay 1,330 mol and each other charged room 16.67 mol per m³ (`floodCharge`). An open valve releases `charge / 20` a tick, 10 s at `dt` 0.5, at the room's temperature, and counts it in `safety.flooded`. The tick that releases the last of the charge writes the valve false and the count 0. A flood queued while one runs changes nothing. After a 2,000 mol flood the habitat holds 14.99 % O₂ at 141.9 kPa, so its air no longer burns and the fire dies down.
 - Each compartment, in `COMPARTMENT_IDS` order, raises `FIRE` while `φ > 0`. Safety then reads the room twice through `ATMOSPHERE_PROBE`: the start-of-tick air at `tick − 1` and the stepped air at `tick`, the readings a route gives for those two committed ticks. A read that throws raises `SENSOR_FAULT` for the room and skips its atmosphere alarms, and the fault clears on the first tick both reads succeed. An occupied room (`occupants > 0`) then raises the five atmosphere alarms of the table below. `COOLANT_HIGH` above 1,350 K and `REACTOR_TRIP` follow, each with the subject `reactor`, then one `LOAD_SHED` per shed load.
 
 The alarms outside the table follow their records. Each atmosphere alarm raises at its first limit and, once it stood active at the start of the tick, clears only past its second. Each gap is at least ten times the sensor noise, so a noisy reading near a limit raises the alarm once. `dP/dt` is `(P_now − P_start) / dt`.
@@ -311,7 +319,7 @@ The alarms outside the table follow their records. Each atmosphere alarm raises 
 | `TEMPERATURE`   | `T` < 283 K or `T` > 303 K | 283.5 K ≤ `T` ≤ 302.5 K |
 | `DECOMPRESSION` | `dP/dt` < −2,000 Pa/s      | `dP/dt` ≥ −1,000 Pa/s   |
 
-While `DECOMPRESSION` stays active, Safety shuts every door of the room on each tick through the setpoints, and the command log gains no entry from it. The airlock has no occupants, so it cycles with no alarm. Two doors opened at tick 0 show the seal: with `habitat-airlock` and `airlock-outer` open, the airlock reads 8,315.2 Pa at tick 1. At tick 2 the habitat reads 99,581.5 Pa and raises `DECOMPRESSION`, and Safety shuts every door of the habitat. At tick 3 the alarm clears.
+While `DECOMPRESSION` stays active, Safety shuts every door of the room on each tick through the setpoints, and the command log gains no entry from it. The airlock has no occupants, so it cycles with no alarm. Two doors opened at tick 0 show the seal: with `habitat-airlock` and `airlock-outer` open, the airlock reads 195.6 Pa at tick 1. At tick 2 the habitat reads 97,316.1 Pa and raises `DECOMPRESSION`, and Safety shuts every door of the habitat. At tick 3 the alarm clears.
 
 The step is idle with every door shut, no fire, no room above 330 K, no drill and no valve open. It then changes no gas and draws nothing from Safety's fork. It returns the incoming `compartments` object, so the goldens of the seeded ship keep their compartments byte for byte.
 
@@ -327,9 +335,9 @@ The airlock drill cycles the airlock under the interlock with the commands life 
 1. At tick 288 the pump has stalled with the airlock at 9,089 Pa, and the interlock refuses `airlock-outer` and `habitat-airlock`. The crew queues `pump off` and `vent open true`, which apply at tick 289.
 2. The vent takes the airlock under 5,000 Pa. At tick 316 the interlock still refuses the outer door at 5,072 Pa. At tick 317 it passes it at 4,967 Pa, and `open airlock-outer` applies at tick 318.
 3. The outer door stays open 20 ticks. At tick 337 the crew queues `close airlock-outer`, `vent open false` and `pump fill`, which apply at tick 338. The interlock refuses `habitat-airlock` while the fill runs.
-4. At tick 445 the interlock still refuses `habitat-airlock` at 5,915 Pa. At tick 446 the fill has brought the airlock within 5,000 Pa of the habitat, so the crew queues `pump off` and `open habitat-airlock`, and both apply at tick 447.
+4. At tick 445 the interlock still refuses `habitat-airlock` at 5,911 Pa. At tick 446 the fill has brought the airlock within 5,000 Pa of the habitat, so the crew queues `pump off` and `open habitat-airlock`, and both apply at tick 447.
 
-The command log holds five entries, at ticks 1, 289, 318, 338 and 447. The drill raises no alarm in any room. The habitat falls at 184.6 Pa/s at worst, against the 2,000 Pa/s that raises `DECOMPRESSION`, and the airlock has no occupant. `test/safety.test.ts` covers the decompression law for a ship that skips the interlock.
+The command log holds five entries, at ticks 1, 289, 318, 338 and 447. The drill raises no alarm in any room. The habitat falls at 387.4 Pa/s at worst, on tick 447 when the inner door opens, against the 2,000 Pa/s that raises `DECOMPRESSION`, and the airlock has no occupant. `test/safety.test.ts` covers the decompression law for a ship that skips the interlock.
 
 ## Comms
 
@@ -343,16 +351,17 @@ A ship far from the fleet may or may not hold a link to the fleet's relay. A ser
 SUBSPACE_LINK     SubspaceRelay   deps [SUBSPACE_LINK_OPTIONS]
 ```
 
-`Comms`, in `src/systems/comms/comms.module.ts`, takes no options. It binds the array and makes three contributions:
+`Comms`, in `src/systems/comms/comms.module.ts`, takes no options. It binds the array and makes four contributions:
 
 ```text
 COMMS_ARRAY       PhasedArray     deps [SHIP_STATE, optional(SUBSPACE_LINK)]
 SHIP_SYSTEMS      CommsPhysics    deps [COMMS_ARRAY]
 POWER_CONSUMERS   CommsPower      deps [COMMS_ARRAY]
 COMMAND_HANDLERS  CommsCommands   deps [COMMS_ARRAY]
+SHIP_RECORDS      COMMS_RECORD    a value
 ```
 
-`Comms` exports all four tokens, and `SubspaceLink` exports `SUBSPACE_LINK`. A graph with no `SubspaceLink` binds no `SUBSPACE_LINK`, so `PhasedArray` reads `undefined`, and its `linked` flag is false for the life of the ship. `SubspaceLink` is global, so `PhasedArray` finds the link wherever `Comms` sits, and the root decides whether the ship has one.
+`Comms` exports all five tokens, and `SubspaceLink` exports `SUBSPACE_LINK`. A graph with no `SubspaceLink` binds no `SUBSPACE_LINK`, so `PhasedArray` reads `undefined`, and its `linked` flag is false for the life of the ship. `SubspaceLink` is global, so `PhasedArray` finds the link wherever `Comms` sits, and the root decides whether the ship has one.
 
 `SubspaceRelay` calls `fetch` for `<relayUrl>/charts?frequency=1420` and rejects a response that is not ok. The request carries `AbortSignal.timeout(relayTimeout)`, 5000 ms by default, which covers the whole exchange, from the connection to the last byte of the body. A relay that stays silent past it makes the link throw `RelayError` with reason `timeout`, and `StarCharts.download` throws the same error with reason `malformed` when the answer is not a plain JSON object that maps each star name to a finite heading. A `null`, an array, a heading that is not a number, and a star name that `Object.prototype` holds, such as `__proto__` or `constructor`, all fail that check. Both errors stop `Nexus.create`: the container wraps the failed `NAV_CHARTS` factory in `NEXUS_PROVIDER_FAILED` and keeps the `MERIDIAN_RELAY` error as its `cause`. `SubspaceRelay` is the one file under `src/` that calls `fetch`, and the library's ESLint config refuses the global in every other file. A tick does no I/O: `PhasedArray` reads whether the link exists at construction, and no tick calls the link.
 
@@ -402,15 +411,16 @@ A crew member picks a star, and the ship must turn to its heading and then push 
 
 ### The Modules and Their Tokens
 
-`Propulsion`, in `src/systems/propulsion/propulsion.module.ts`, binds the main drive and makes two contributions:
+`Propulsion`, in `src/systems/propulsion/propulsion.module.ts`, binds the main drive and makes three contributions:
 
 ```text
 MAIN_DRIVE       PlasmaDrive         deps [SHIP_STATE]
 SHIP_SYSTEMS     PropulsionPhysics   deps [MAIN_DRIVE]
 POWER_CONSUMERS  PropulsionPower     deps [MAIN_DRIVE]
+SHIP_RECORDS     PROPULSION_RECORD   a value
 ```
 
-`Helm`, in `src/systems/helm/helm.module.ts`, binds the thrusters and the helm and makes three contributions:
+`Helm`, in `src/systems/helm/helm.module.ts`, binds the thrusters and the helm and makes four contributions:
 
 ```text
 THRUSTERS         RcsThrusters   deps [SHIP_STATE]
@@ -418,6 +428,7 @@ HELM              HelmControl    deps [THRUSTERS, MAIN_DRIVE, NAV_CHARTS]
 SHIP_SYSTEMS      HelmPhysics    deps [THRUSTERS]
 POWER_CONSUMERS   HelmPower      deps [THRUSTERS]
 COMMAND_HANDLERS  HelmCommands   deps [HELM]
+SHIP_RECORDS      HELM_RECORD    a value
 ```
 
 Each module exports all its tokens. `Propulsion` binds no command handler, since the crew gives every command to the helm. `Helm` imports `Propulsion` and `Tactical`, since `HelmControl` reads `MAIN_DRIVE` and `NAV_CHARTS`. A `Helm` without `Tactical` fails the check with `NEXUS_MISSING_PROVIDER` for `NavCharts`, and `test/graph.test.ts` checks that. `IMainDrive.rating` and `IThrusters.rating` hold the hardware's fixed figures, so a test swaps a drive or a thruster set behind the token. The helm's control law, `HELM_TUNING` and `HELM_SETTLE`, sits in `src/systems/helm/helm-model.ts`. The hull sits in `src/systems/propulsion/propulsion-model.ts`.
@@ -439,13 +450,13 @@ Neither command diverts the router. A burn on a cold reactor queues, and the rou
 
 ### The Records and the Setpoints
 
-The snapshot gains two records and two setpoints, all in SI units and all at zero at tick 0. They sit after `comms`:
+The snapshot gains two records and two setpoints, all in SI units and all at zero at tick 0:
 
 - `drive`: `thrust` in N, `massFlow` in kg/s, `acceleration` in m/s², `velocity` in m/s and `distance` in m. The ship moves along one track, so `velocity` and `distance` read along the track since tick 0.
 - `helm`: `attitude` in rad, in (−π, π], `rate` in rad/s and `torque` in N·m.
 - `setpoints.drive.throttle` from 0 to 1, and `setpoints.helm.heading` in rad. The one heading holds the course the crew set and the heading the helm steers for.
 
-The tick-0 power record lists the `thrusters` and `main-drive` loads at 0 W after `comms`.
+From tick 1 the power record lists the `thrusters` and `main-drive` loads at 0 W after `comms`.
 
 ### The Physics Behind the Helm and the Drive
 
@@ -480,22 +491,23 @@ A crew member fires the railgun with a range, and the shot leaves once the capac
 
 ### The Module and Its Token
 
-`Weapons`, in `src/systems/weapons/weapons.module.ts`, binds the mount and makes three contributions:
+`Weapons`, in `src/systems/weapons/weapons.module.ts`, binds the mount and makes four contributions:
 
 ```text
 WEAPON_MOUNT      RailgunMount     deps [SHIP_STATE, SIM_OPTIONS, POWER_ROUTER]
 SHIP_SYSTEMS      WeaponsPhysics   deps [WEAPON_MOUNT]
 POWER_CONSUMERS   WeaponsPower     deps [WEAPON_MOUNT, SIM_OPTIONS]
 COMMAND_HANDLERS  WeaponsCommands  deps [WEAPON_MOUNT]
+SHIP_RECORDS      WEAPONS_RECORD   a value
 ```
 
-The module exports all four tokens and imports `Engineering`, since the mount reads `POWER_ROUTER`. `SIM_OPTIONS` reaches the mount and the consumer through the global `Simulation`, and both read `dt` from it. `src/systems/weapons/contracts.ts` holds `IWeaponMount`, whose `rating` carries the railgun's fixed figures and whose `fire(range)` queues a shot, and `WEAPON_MOUNT`, the `Token<IWeaponMount>`. The index exports the token, the interface and the types `RailgunRating`, `RailgunShot`, `WeaponsRecord`, `WeaponsSetpoints` and `WeaponsStatus`.
+The module exports all five tokens and imports `Engineering`, since the mount reads `POWER_ROUTER`. `SIM_OPTIONS` reaches the mount and the consumer through the global `Simulation`, and both read `dt` from it. `src/systems/weapons/contracts.ts` holds `IWeaponMount`, whose `rating` carries the railgun's fixed figures and whose `fire(range)` queues a shot, and `WEAPON_MOUNT`, the `Token<IWeaponMount>`. The index exports the token, the interface and the types `RailgunRating`, `RailgunShot`, `WeaponsRecord`, `WeaponsSetpoints` and `WeaponsStatus`.
 
 `RailgunMount` takes `POWER_ROUTER` directly. The router reads the mount's load through `POWER_CONSUMERS`, so the router depends on the mount's consumer and the mount depends on the router. The router's `lazy(all(POWER_CONSUMERS))` breaks the cycle, and `DeflectorGrid` takes `POWER_ROUTER` directly for the same reason (the Cycle Between the Router and the Grid section above).
 
 ### The Record and the Setpoints
 
-The snapshot gains one record and the setpoints one entry, both after `comms`:
+The snapshot gains one record and the setpoints one entry:
 
 - `weapons`: `status`, `charge` in J, `shots`, `hits` and `lastShot`. `status` is `idle`, `held`, `charging` or `charged`. `shots` counts the shots since tick 0 and `hits` the ones that hit. `lastShot` is `{ tick, range, hit }` for the newest shot, or null before the first.
 - `setpoints.weapons`: `armed`, true once the crew fired, and `range`, the range in m of a shot that waits for its charge, or null.
@@ -567,6 +579,7 @@ It exports `FTL_DRIVE` alone and imports `Engineering` and `Tactical`. `JumpDriv
 A module that `load()` adds never contributes to a multi token. The loop, the router and the desk built their lists at startup, so `load()` refuses a module that exports `SHIP_SYSTEMS`, `POWER_CONSUMERS` or `COMMAND_HANDLERS` with `NEXUS_LOAD_CONTRIBUTION`. The drive's parts are plain providers of the module, and `JumpDrive.onInit()` registers each with its bus:
 
 ```text
+SHIP_STATE.register(FTL_RECORD)  writes the ftl record and setpoints into the snapshot
 TICK_LOOP.register(physics)      runs FtlPhysics in phase 3 from the next tick
 POWER_ROUTER.register(power)     lists the ftl-spool load after the POWER_CONSUMERS entries
 COMMAND_DESK.register(commands)  hands the desk's ftl commands to FtlCommands
@@ -574,16 +587,16 @@ COMMAND_DESK.register(commands)  hands the desk's ftl commands to FtlCommands
 
 Each `register` returns a function that removes the part and runs twice safely. `[Symbol.dispose]` calls them in reverse order, and the container disposes in reverse creation order, so the drive leaves the buses before they stop. `FtlCommands` reads the drive through `lazy()`, since the drive reads the handler to register it. A direct `FTL_DRIVE` dependency fails with `NEXUS_CIRCULAR_DEPENDENCY`. The loop sorts a registered system by phase and name and forks the random stream by its name. It throws "Two ship systems are named 'FtlDrive'." for a name it already runs. A system registered during a tick first steps on the next one. A container whose plugin sets `onInit: false` gives a drive that never charges and that the desk does not serve.
 
-Before the load, `has(FTL_DRIVE)` is false, the power record lists six loads and the desk refuses `ftl` as a system it does not serve. The ship reads `ftl` at `offline`. A scope opened before the load throws `NEXUS_LOADED_AFTER_SCOPE` for `FTL_DRIVE`, with the module `FtlDrive`, until `await scope.extend()`. A second `load()` builds nothing.
+Before the load, `has(FTL_DRIVE)` is false, the power record lists six loads and the desk refuses `ftl` as a system it does not serve. The ship holds no `ftl` record and no `ftl` setpoints. A scope opened before the load throws `NEXUS_LOADED_AFTER_SCOPE` for `FTL_DRIVE`, with the module `FtlDrive`, until `await scope.extend()`. A second `load()` builds nothing.
 
 ### The Record and the Setpoints
 
-The snapshot gains one record and the setpoints one entry, both after `helm`:
+The snapshot gains one record and the setpoints one entry once the drive loads:
 
 - `ftl`: `status`, `charge` in J, `sector` and `jumped`. `status` is `offline`, `idle`, `held`, `spooling` or `charged`. `sector` is the star the ship sits at, `Sol` before the first jump. `jumped` is the tick of the last jump, or null before the first.
 - `setpoints.ftl`: `armed`, true while the spool may charge, and `jump`, the star of a commanded jump or null.
 
-The store starts the record at `{ status: 'offline', charge: 0, sector: 'Sol', jumped: null }` and the setpoints at `{ armed: false, jump: null }`, both frozen. No step ever writes `offline`. The first step after the load writes `idle` (or `held` or `spooling` on an armed tick) as a new object, so a ship that never loads the drive reads `offline` for good, and every earlier golden carries the record at that value. The power record lists `ftl-spool` at 0 W after `railgun` from the tick after the load.
+A loaded module cannot contribute to `SHIP_RECORDS`, so `JumpDrive.onInit()` first calls `SHIP_STATE.register(FTL_RECORD)`, which writes the record `{ status: 'offline', charge: 0, sector: 'Sol', jumped: null }` and the setpoints `{ armed: false, jump: null }` into the current snapshot, both frozen, and the dispose removes both keys. No step ever writes `offline`. The first step after the load writes `idle` (or `held` or `spooling` on an armed tick) as a new object. The power record lists `ftl-spool` at 0 W after `railgun` from the tick after the load.
 
 ### The Spool and the Jump
 
@@ -623,7 +636,7 @@ Two shorter scenarios close the module test. A spool armed at tick 101 meets the
 - `FixedStepClock` derives the time from the tick, so 600 ticks of 0.5 s read exactly 300 s.
 - `register(system)` adds a system to the loop after construction and returns its unregister. The FTL drive is the one caller (the FTL Drive section above). The router and the desk take a `register` of the same shape.
 - `SeededRandom` is splitmix32 over the seed. The loop hands each system its own `RNG.fork(name)`, so a new system leaves the numbers an older system draws unchanged.
-- `ShipStateStore` starts at tick 0 with the deck's four compartments (`bridge`, `habitat`, `reactor-bay`, `airlock`) filled with air at 293 K and 101.3 kPa, the reactor at level 0 with throttle 0, the coolant at 500 K, the 0 W life-support, comms, thrusters, main-drive and railgun loads and the lowered shields, life support offline, every door shut, no fire, the phased array on standby with no hail queued, the ship at rest with heading 0, the main drive at throttle 0, the railgun `idle` with an empty capacitor and unarmed, and the FTL record `offline` at the sector `Sol` with the spool unarmed. It throws a plain `Error` for a deck whose `equipment` lists an unknown device or one device twice, a pump with no `pumpReservoir` or a `pumpReservoir` with no pump, or a reservoir that is unknown or the pump's own room. It also throws for a door the deck lists twice or `DOOR_IDS` lacks, a door of `DOOR_IDS` the deck lacks, a door whose `between` does not hold two distinct sides, each a compartment or `space`, and a `floodCharge` that is not a positive finite number.
+- `ShipStateStore` reads `all(SHIP_RECORDS)`, one `SystemRecord`, `{ records, setpoints }`, from each system's `<system>-record.ts`. `ShipRecords` and `ShipSetpoints` are interfaces that each system's `contracts.ts` augments, so the snapshot type names no system. The store starts at tick 0 with the deck's fourteen compartments, each pressurised room filled with air at 293 K and 101.3 kPa and the two bays empty, then lists every record and the setpoints, each keyed in code-unit order, so the order of the imports never reaches a reading. The records start with the reactor at level 0 with throttle 0, the coolant at 500 K, a power record with no loads, life support offline, every door shut, no fire, the phased array on standby with no hail queued, the ship at rest with heading 0, the main drive at throttle 0 and the railgun `idle` with an empty capacitor and unarmed. It throws a plain `Error` for two contributions that hold one key. `checkDeckPlan` in `deck-plan-check.ts` throws a plain `Error` for a deck whose `equipment` lists an unknown device or one device twice, a pump with no `pumpReservoir` or a `pumpReservoir` with no pump, or a reservoir that is unknown or the pump's own room. It also throws for a door the deck lists twice or `DOOR_IDS` lacks, a door of `DOOR_IDS` the deck lacks, a door whose `between` does not hold two distinct sides, each a compartment or `space`, a `floodCharge` that is not a positive finite number, and a room marked `pressurised: false` that lists a device or a flood charge.
 - `roundSnapshot(ship)` rounds every fraction to four significant digits and keeps integers exact. The golden prints snapshots in that form.
 - `readShip(ship, deck)` returns a `ShipReading`: the snapshot with each compartment's `pressure` in pascals, from the moles of every gas, the temperature and the compartment's volume in the deck plan. It rounds every number once to eight significant digits and keeps integers exact, so a console gauge can round the reading once to its own decimals; the golden's four digits would turn 2.0652 into 2.065. The `bridge-api` routes and the telemetry frames send this reading, so the habitat reads 101.3 kPa at tick 0.
 

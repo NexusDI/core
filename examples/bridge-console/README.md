@@ -89,7 +89,7 @@ and queues any other command for tick 1.
 `/systems/life-support` sits in the ship layout beside the engineering page
 and shows the air of each compartment as its gas analyzer reads it. Its
 loader reads `BRIDGE_LINK.snapshot()` and `BRIDGE_LINK.atmosphere(id)` for
-the four compartments, all in parallel. `atmosphere(id)` calls
+each of the fourteen compartments, all in parallel. `atmosphere(id)` calls
 bridge-api's `GET /compartments/:id/atmosphere`, so each read opens a request
 scope on the backend whose compartment comes from the path, and a 404
 rejects. A read that fails shows `Analyzer offline` for its compartment, and
@@ -123,8 +123,8 @@ setpoints all sit in it. A failed snapshot shows `Ship snapshot offline`.
 
 - Alarms lists each active alarm as `<code> in <subject>`, such as
   `FIRE in reactor-bay`, or `No alarms`.
-- Doors shows each of the four doors `Open` or `Shut`, with the pressure on
-  each side to 0.1 kPa. The outer door's far side reads `Space` at
+- Doors shows each of the sixteen doors `Open` or `Shut`, with the pressure on
+  each side to 0.1 kPa. The far side of a door to space reads `Space` at
   0.0 kPa. The console imports only types from the simulation, so the page
   holds its own table of each door's sides, and `satisfies` checks that it
   names every `DoorId`.
@@ -133,7 +133,7 @@ setpoints all sit in it. A failed snapshot shows `Ship snapshot offline`.
   temperature in whole K.
 
 Two forms post safety commands through `BRIDGE_LINK.command(cmd)`. The door
-form holds a select of the four doors and the buttons `Open door` and
+form holds a select of the sixteen doors and the buttons `Open door` and
 `Close door`. The room form lists the rooms with a flood charge and holds
 `Flood` and `Drill`. It shows only when the snapshot loaded, since its rooms
 come from the snapshot. The page shows the answer to the last command as the
@@ -232,15 +232,18 @@ setpoints beside the loads. Each gauge rounds the snapshot's eight-digit
 reading, so 0.45 GJ reads `0.5 GJ` and 8.55 GJ reads `8.6 GJ`. A failed
 snapshot hides the gauges and shows `Ship snapshot offline`, and the forms stay.
 
-The FTL drive section lists six gauges:
+A ship that has not loaded the drive holds no FTL record, so the FTL drive
+section shows the one gauge `Status` at `not loaded`. Once the drive loads,
+the section lists six gauges:
 
-- `Status` is the record's status. It reads `offline` until the backend has
-  loaded the drive and the drive has taken its first step, then `idle`,
-  `held`, `spooling` or `charged`.
+- `Status` is the record's status. It reads `offline` from the load until
+  the drive has taken its first step, then `idle`, `held`, `spooling` or
+  `charged`.
 - `Armed` reads `Yes` or `No` from the setpoint.
 - `Spool charge` is the charge in GJ to 0.1, and `Spool power` is the
   allocated power of the `ftl-spool` load in MW to 0.1. It reads `0.0 MW`
-  before the drive loads, since the load is not on the router yet.
+  on the tick of the load, since the router lists the load from the next
+  tick.
 - `Sector` is the star the ship sits at, `Sol` before the first jump.
   `Last jump` reads `tick N`, or `none` before the first jump. Words and ticks
   carry no unit.
@@ -341,12 +344,13 @@ offline`.
 
 - Airlock lists the `Pump` as `off`, `evacuate` or `fill`, and the `Vent` as
   `Open` or `Shut`.
-- Doors shows `habitat-airlock` and `airlock-outer`, each `Open` or `Shut`,
-  with the pressure on each side to 0.1 kPa. The outer door's far side reads
-  `Space` at 0.0 kPa.
+- Doors shows `habitat-airlock`, `airlock-outer` and `airlock-shuttle-bay`,
+  the doors whose sides include the airlock, each `Open` or `Shut`, with the
+  pressure on each side to 0.1 kPa. The outer door's far side reads `Space` at
+  0.0 kPa.
 
 The pump and vent forms are `AirlockControls`, which the life-support page
-renders too, and the door form holds a select of the two airlock doors with
+renders too, and the door form holds a select of the three airlock doors with
 `Open door` and `Close door`. The page shows the answer to the last command as
 the other pages do, and an open the interlock refuses shows its
 `MERIDIAN_INTERLOCK` message and `Fix:` line.
