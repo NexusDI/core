@@ -107,13 +107,20 @@ export interface ShipReading extends Omit<ShipSnapshot, 'compartments'> {
 
 /**
  * One compartment of the deck: its volume, hull and crew, the life-support
- * devices it carries (`RoomPlan` documents each field) and its flood charge
- * (`FloodPlan`). The ids are strings because a JSON import types them so.
- * `checkDeckPlan` checks them against `COMPARTMENT_IDS` and the devices
- * against `LIFE_SUPPORT_DEVICES`, and `ShipStateStore` runs the check when
- * the container builds it.
+ * devices it carries (`RoomPlan` documents each field), its flood charge
+ * (`FloodPlan`) and whether it holds air. The ids are strings because a JSON
+ * import types them so. `checkDeckPlan` checks them against
+ * `COMPARTMENT_IDS` and the devices against `LIFE_SUPPORT_DEVICES`, and
+ * `ShipStateStore` runs the check when the container builds it.
  */
-export type CompartmentPlan = RoomPlan & FloodPlan;
+export interface CompartmentPlan extends RoomPlan, FloodPlan {
+  /**
+   * False for a room that holds vacuum, such as a bay open to space, which
+   * starts with no gas and carries no device and no flood charge. True when
+   * absent.
+   */
+  readonly pressurised?: boolean;
+}
 
 export type { DoorPlan } from '../physics/doors';
 

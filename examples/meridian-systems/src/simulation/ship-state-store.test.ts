@@ -8,6 +8,7 @@ import { LITHIUM_LOOP } from '../systems/engineering/engineering-model';
 import {
   COMPARTMENT_IDS,
   type CompartmentId,
+  type CompartmentPlan,
   type DeckPlan,
   DOOR_IDS,
   type ShipSnapshot,
@@ -19,6 +20,19 @@ const initial = new ShipStateStore(plan).snapshot();
 
 function load(ship: ShipSnapshot, id: string): LoadRecord | undefined {
   return ship.power.loads.find((entry) => entry.id === id);
+}
+
+/** The deck with `room`'s plan changed by `change`. */
+function withRoom(
+  room: CompartmentId,
+  change: Partial<CompartmentPlan>,
+): DeckPlan {
+  return {
+    ...plan,
+    compartments: plan.compartments.map((entry) =>
+      entry.id === room ? { ...entry, ...change } : entry,
+    ),
+  };
 }
 
 /** Every object level under `value`, `value` included. */
@@ -48,6 +62,50 @@ describe('ShipStateStore', () => {
       });
     }
   });
+
+  it('fills a room the deck marks pressurised as it fills a room with no flag', () => {
+    const ship = new ShipStateStore(
+      withRoom('bridge', { pressurised: true }),
+    ).snapshot();
+    expect(ship.compartments.bridge).toEqual(initial.compartments.bridge);
+  });
+
+  it('starts a room the deck marks unpressurised with no gas', () => {
+    const ship = new ShipStateStore(
+      withRoom('reactor-bay', {
+        pressurised: false,
+        floodCharge: undefined,
+        coolantConductance: undefined,
+      }),
+    ).snapshot();
+    expect(ship.compartments['reactor-bay']).toEqual({
+      moles: { O2: 0, N2: 0, CO2: 0, H2O: 0, volatiles: 0 },
+      temperature: 293,
+    });
+    expect(ship.compartments.bridge).toEqual(initial.compartments.bridge);
+  });
+
+  it.each([
+    [
+      'equipment',
+      withRoom('airlock', { pressurised: false }),
+      "The deck plan gives the unpressurised compartment 'airlock' the equipment vent, pump. A room with no air carries no device.",
+    ],
+    [
+      'a flood charge',
+      withRoom('reactor-bay', { pressurised: false }),
+      "The deck plan gives the unpressurised compartment 'reactor-bay' a floodCharge. A room with no air takes no flood.",
+    ],
+  ])(
+    'refuses an unpressurised room that lists %s with a plain Error',
+    (_, deckPlan, message) => {
+      const refuse = () => new ShipStateStore(deckPlan);
+      expect(refuse).toThrow(message);
+      expect(refuse).toThrow(
+        expect.objectContaining({ constructor: Error, name: 'Error' }),
+      );
+    },
+  );
 
   it('freezes the snapshot and its records', () => {
     const ship = new ShipStateStore(plan).snapshot();

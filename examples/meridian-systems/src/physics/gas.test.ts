@@ -265,6 +265,23 @@ describe('an exchange through a door', () => {
     expect(b.moles.CO2 / habitat).toBeCloseTo(0.28887, 5);
   });
 
+  it('stays finite beside an empty room and between two', () => {
+    const empty = air(0, 293, habitat);
+    for (const [a, b] of [
+      [air(101_300, 293, bridge), empty],
+      [air(0, 293, bridge), empty],
+    ]) {
+      const next = swap(a, b);
+      for (const side of [next.a, next.b]) {
+        expect(Number.isFinite(side.temperature)).toBe(true);
+        for (const gas of GASES) {
+          expect(Number.isFinite(side.moles[gas])).toBe(true);
+        }
+      }
+    }
+    expect(swap(air(0, 293, bridge), empty).b).toEqual(empty);
+  });
+
   it('freezes what it returns', () => {
     const next = swap(air(1, 293, bridge), air(1, 293, habitat));
     expect(Object.isFrozen(next)).toBe(true);

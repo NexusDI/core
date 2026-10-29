@@ -455,6 +455,55 @@ describe('offline life support', () => {
   });
 });
 
+describe('an empty room', () => {
+  /** A vacuum bay: no crew, no devices and no gas. */
+  const bay: RoomPlan = {
+    id: 'drone-bay',
+    volume: 50,
+    conductance: 80,
+    structureHeatCapacity: 1_500_000,
+    occupants: 0,
+  };
+  const empty = air(0, 293, bay.volume);
+
+  it('stays finite through a tick of the atmosphere', () => {
+    const result = stepAtmosphere(
+      input({
+        rooms: [...ROOMS, bay],
+        compartments: { ...initial(), [bay.id]: empty },
+      }),
+    );
+    const next = result.compartments[bay.id];
+    expect(Number.isFinite(next.temperature)).toBe(true);
+    for (const gas of GASES) {
+      expect(Number.isFinite(next.moles[gas])).toBe(true);
+    }
+    expect(next.temperature).toBeLessThan(293);
+    expect(result.lifeSupport.heaters).not.toHaveProperty(bay.id);
+  });
+
+  it('reads 0 Pa and finite figures through a gas analyzer', () => {
+    const reading = readAtmosphere(
+      empty,
+      bay,
+      bay.id,
+      1,
+      {
+        resolution: { temperature: 0.01, pressure: 1 },
+        compartments: {
+          [bay.id]: {
+            noise: { temperature: 0, pressure: 0, partial: 0 },
+          },
+        },
+      },
+      () => 0.5,
+    );
+    expect(reading.pressure).toBe(0);
+    expect(reading.temperature).toBe(293);
+    for (const gas of GASES) expect(reading.partial[gas]).toBe(0);
+  });
+});
+
 describe('readAtmosphere', () => {
   const noise = { temperature: 0.05, pressure: 20, partial: 5 };
   const calibration: SensorCalibration = {

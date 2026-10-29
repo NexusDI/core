@@ -50,7 +50,8 @@ const LOG_SIZE = 1_000;
 
 /**
  * Holds the current snapshot, which starts at tick 0 with the deck's initial
- * air and every system idle, and one pending change: the merge of every
+ * air in each pressurised room, no gas in a room that holds vacuum and every
+ * system idle, and one pending change: the merge of every
  * setpoint change the crew queued since the last tick. A client that sends
  * commands in a loop between two ticks replaces fields of that one change,
  * so the store keeps one change however many commands arrive.
@@ -227,7 +228,12 @@ function initialSnapshot(deck: DeckPlan): ShipSnapshot {
   for (const id of COMPARTMENT_IDS) {
     compartments[id] = Object.freeze({
       moles: Object.freeze(
-        molesAt(pressure, temperature, rooms[id].volume, AIR),
+        molesAt(
+          rooms[id].pressurised === false ? 0 : pressure,
+          temperature,
+          rooms[id].volume,
+          AIR,
+        ),
       ),
       temperature,
     });
