@@ -45,7 +45,7 @@ test("lists the ship's modules on /diagnostics with the telemetry feed's system 
 }) => {
   const seen = problems(page);
   await page.goto('/diagnostics');
-  for (const name of ['Simulation', 'MeridianSystems', 'Telemetry'])
+  for (const name of ['Simulation', 'Engineering', 'Telemetry'])
     await expect(
       page.getByRole('heading', { level: 3, name, exact: true }),
     ).toBeVisible();

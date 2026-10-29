@@ -3,18 +3,18 @@ import { describe, expect, it } from 'vitest';
 
 import { Simulation } from '../../simulation/simulation.module';
 
-import { COMMS_OPTIONS_SCHEMA } from './comms-options-schema';
-import { Comms } from './comms.module';
+import { SUBSPACE_LINK_OPTIONS_SCHEMA } from './subspace-link-options-schema';
 import { DEFAULT_COMMS_FREQUENCY } from './contracts';
+import { SubspaceLink } from './subspace-link.module';
 
-/** What `Nexus.create` refuses with when `Comms.forRoot(options)` fails its schema. */
+/** What `Nexus.create` refuses with when `SubspaceLink.forRoot(options)` fails its schema. */
 async function refusal(options: unknown) {
   return Nexus.create(
     defineModule({
       name: 'Ship',
       imports: [
         Simulation.forRoot({ seed: 7, dt: 0.5 }),
-        Comms.forRoot(options as never),
+        SubspaceLink.forRoot(options as never),
       ],
     }),
   ).then(
@@ -25,7 +25,7 @@ async function refusal(options: unknown) {
 
 const RELAY = { relayUrl: 'https://relay.test' };
 
-describe('the Comms options schema', () => {
+describe('the SubspaceLink options schema', () => {
   it.each([
     [
       'a frequency that is a string',
@@ -57,10 +57,10 @@ describe('the Comms options schema', () => {
   ])('refuses %s at create', async (_what, options, path) => {
     expect(await refusal(options)).toMatchObject({
       code: 'NEXUS_PROVIDER_FAILED',
-      token: 'CommsOptions',
+      token: 'SubspaceLinkOptions',
       cause: {
         code: 'NEXUS_INVALID_MODULE_OPTIONS',
-        module: 'Comms',
+        module: 'SubspaceLink',
         issues: [path === undefined ? {} : { path: [path] }],
       },
     });
@@ -81,7 +81,7 @@ describe('the Comms options schema', () => {
   });
 
   it('sets the frequency to 1420 when the options leave it out', () => {
-    expect(COMMS_OPTIONS_SCHEMA.parse(RELAY)).toEqual({
+    expect(SUBSPACE_LINK_OPTIONS_SCHEMA.parse(RELAY)).toEqual({
       ...RELAY,
       frequency: DEFAULT_COMMS_FREQUENCY,
     });

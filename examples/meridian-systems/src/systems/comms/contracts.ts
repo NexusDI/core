@@ -45,7 +45,7 @@ export interface ISubspaceLink {
 export const DEFAULT_COMMS_FREQUENCY = 1420;
 
 /** The relay the subspace link calls and the frequency it asks for. */
-export interface CommsOptions {
+export interface SubspaceLinkOptions {
   /** The frequency the link asks for, in MHz. The schema sets `DEFAULT_COMMS_FREQUENCY` when the options leave it out. */
   readonly frequency: number;
   /** The relay's base URL. The link resolves each channel against it. */
@@ -54,7 +54,7 @@ export interface CommsOptions {
   readonly relayTimeout?: number;
 }
 
-/** The wait for a relay's answer when `CommsOptions` sets none, in ms. */
+/** The wait for a relay's answer when `SubspaceLinkOptions` sets none, in ms. */
 export const DEFAULT_RELAY_TIMEOUT = 5_000;
 
 /** The phased array's panel. */
@@ -69,5 +69,7 @@ export interface ICommsArray {
 }
 
 export const SUBSPACE_LINK = new Token<ISubspaceLink>('SubspaceLink');
-export const COMMS_OPTIONS = new Token<CommsOptions>('CommsOptions');
+export const SUBSPACE_LINK_OPTIONS = new Token<SubspaceLinkOptions>(
+  'SubspaceLinkOptions',
+);
 export const COMMS_ARRAY = new Token<ICommsArray>('CommsArray');

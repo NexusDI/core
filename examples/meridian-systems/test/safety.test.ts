@@ -1,8 +1,9 @@
 import { defineModule, Nexus, provide } from '@nexusdi/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { Safety } from '../src/systems/safety/safety.module';
+import { ShipLifeSupport } from '../src/systems/life-support/life-support.module';
 import { InterlockError } from '../src/errors';
-import { meridianSystems } from '../src/meridian-systems.module';
 import { pressure, totalMoles } from '../src/physics/gas';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
 import {
@@ -23,15 +24,17 @@ import {
   MASTER_ALARM,
 } from '../src/systems/safety/contracts';
 
+import { shipRoot } from './ship-root';
 import { shipTest } from './fixtures';
 import {
   INTERLOCK_PLUGINS,
   online,
   RecordingAlarmSink,
-  SHIP_OPTIONS,
   throttle,
 } from './support';
 
+/** The system modules whose tokens these cases read from the root. */
+const READS = [Safety, ShipLifeSupport];
 const open = (desk: ICommandDesk, door: string) =>
   desk.submit({ system: 'safety', action: 'open', door });
 const flood = (desk: ICommandDesk, compartment: string) =>
@@ -56,21 +59,17 @@ function fireOut(loop: ITickLoop, id: CompartmentId): number {
 }
 
 /**
- * The ship with `sink` among the alarm sinks. The sink's module exports
- * ALARM_SINKS, so all(ALARM_SINKS) in Safety reads the sink wherever the
- * module sits in the graph.
+ * The ship with `sink` among the alarm sinks. The sink's module publishes
+ * ALARM_SINKS in its exports, so all(ALARM_SINKS) in Safety reads the sink
+ * with no global and no import of Safety.
  */
 function shipWith(sink: IAlarmSink) {
   const AlarmLog = defineModule({
     name: 'AlarmLog',
-    global: true,
     providers: [provide(ALARM_SINKS, { useValue: sink })],
     exports: [ALARM_SINKS],
   });
-  return defineModule({
-    name: 'ShipWithAlarmLog',
-    imports: [meridianSystems(SHIP_OPTIONS), AlarmLog],
-  });
+  return shipRoot({ reads: [...READS, AlarmLog] });
 }
 
 /** The sink of the ship every case but the interlock's builds, which each case starts empty. */
@@ -83,7 +82,7 @@ beforeEach(() => {
 
 describe('Safety', () => {
   it('passes the check', () => {
-    expect(() => Nexus.check(meridianSystems(SHIP_OPTIONS))).not.toThrow();
+    expect(() => Nexus.check(shipRoot({ reads: READS }))).not.toThrow();
   });
 
   test("shows the root Safety's tokens and the probe Safety reads", ({
@@ -110,7 +109,7 @@ describe('Safety', () => {
 });
 
 describe('the interlock on the blast doors', () => {
-  const test = shipTest(meridianSystems(SHIP_OPTIONS), {
+  const test = shipTest(shipRoot({ reads: READS }), {
     plugins: INTERLOCK_PLUGINS,
   });
 

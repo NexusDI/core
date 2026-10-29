@@ -3,11 +3,12 @@ import type { AddressInfo } from 'node:net';
 import { isNexusError, Nexus } from '@nexusdi/core';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { meridianSystems } from '../src/meridian-systems.module';
 import { NAV_CHARTS } from '../src/systems/tactical/contracts';
 import { BUNDLED_CHARTS } from '../src/systems/tactical/star-charts';
+import { Tactical } from '../src/systems/tactical/tactical.module';
 
-import { caught, SHIP_OPTIONS } from './support';
+import { shipRoot } from './ship-root';
+import { caught } from './support';
 
 const servers: Server[] = [];
 
@@ -58,9 +59,7 @@ describe('a relay that never answers', () => {
   it('fails startup with MERIDIAN_RELAY once the timeout runs out', async () => {
     // The server accepts the connection and holds the request open.
     const relayUrl = await relay(() => undefined);
-    const start = Nexus.create(
-      meridianSystems({ ...SHIP_OPTIONS, relayUrl, relayTimeout: 50 }),
-    );
+    const start = Nexus.create(shipRoot({ relayUrl, relayTimeout: 50 }));
     await expect(start).rejects.toSatisfy(
       (error: unknown) => relayFault(error)?.reason === 'timeout',
     );
@@ -74,9 +73,7 @@ describe('a relay that sends a partial body and stops', () => {
       res.write('{"Vega":');
     });
     await expect(
-      Nexus.create(
-        meridianSystems({ ...SHIP_OPTIONS, relayUrl, relayTimeout: 50 }),
-      ),
+      Nexus.create(shipRoot({ relayUrl, relayTimeout: 50 })),
     ).rejects.toSatisfy(
       (error: unknown) => relayFault(error)?.reason === 'timeout',
     );
@@ -95,8 +92,7 @@ describe('relayTimeout', () => {
   ])('refuses %s at create', async (_kind, relayTimeout) => {
     const error = await caught(() =>
       Nexus.create(
-        meridianSystems({
-          ...SHIP_OPTIONS,
+        shipRoot({
           relayUrl: 'http://127.0.0.1:9',
           relayTimeout: relayTimeout as number,
         }),
@@ -104,10 +100,10 @@ describe('relayTimeout', () => {
     );
     expect(error).toMatchObject({
       code: 'NEXUS_PROVIDER_FAILED',
-      token: 'CommsOptions',
+      token: 'SubspaceLinkOptions',
       cause: {
         code: 'NEXUS_INVALID_MODULE_OPTIONS',
-        module: 'Comms',
+        module: 'SubspaceLink',
         issues: [
           {
             path: ['relayTimeout'],
@@ -134,7 +130,7 @@ describe('a relay that answers a table of the wrong shape', () => {
   ])('fails startup with MERIDIAN_RELAY for %s', async (_kind, body) => {
     const relayUrl = await answering(body);
     await expect(
-      Nexus.create(meridianSystems({ ...SHIP_OPTIONS, relayUrl })),
+      Nexus.create(shipRoot({ relayUrl, reads: [Tactical] })),
     ).rejects.toSatisfy(
       (error: unknown) => relayFault(error)?.reason === 'malformed',
     );
@@ -148,7 +144,7 @@ describe('a relay that answers a valid table', () => {
   it('starts the ship and plots over the downloaded table', async () => {
     const relayUrl = await answering(JSON.stringify(BUNDLED_CHARTS));
     await using ship = await Nexus.create(
-      meridianSystems({ ...SHIP_OPTIONS, relayUrl }),
+      shipRoot({ relayUrl, reads: [Tactical] }),
     );
     expect(ship.get(NAV_CHARTS).plot('Kepler-442b')).toEqual({
       to: 'Kepler-442b',
@@ -159,7 +155,7 @@ describe('a relay that answers a valid table', () => {
   it('starts the ship on the default timeout', async () => {
     const relayUrl = await answering('{"Vega":12.5}');
     await using ship = await Nexus.create(
-      meridianSystems({ ...SHIP_OPTIONS, relayUrl }),
+      shipRoot({ relayUrl, reads: [Tactical] }),
     );
     expect(ship.get(NAV_CHARTS).has('Vega')).toBe(true);
   });

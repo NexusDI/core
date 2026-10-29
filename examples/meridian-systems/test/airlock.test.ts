@@ -1,7 +1,6 @@
 import { describe, expect } from 'vitest';
 
 import { InterlockError } from '../src/errors';
-import { meridianSystems } from '../src/meridian-systems.module';
 import { doorPressures } from '../src/physics/doors';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
 import {
@@ -12,10 +11,11 @@ import {
   TICK_LOOP,
 } from '../src/simulation/contracts';
 
+import { shipRoot } from './ship-root';
 import { shipTest } from './fixtures';
-import { INTERLOCK_PLUGINS, SHIP_OPTIONS } from './support';
+import { INTERLOCK_PLUGINS } from './support';
 
-const test = shipTest(meridianSystems(SHIP_OPTIONS), {
+const test = shipTest(shipRoot(), {
   plugins: INTERLOCK_PLUGINS,
 });
 

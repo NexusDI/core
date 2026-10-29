@@ -1,4 +1,4 @@
-import { all } from '@nexusdi/core';
+import { all, lazy } from '@nexusdi/core';
 
 import { PowerBudgetError } from '../../errors';
 import {
@@ -21,44 +21,43 @@ import { allocatePower } from './engineering-model';
  * reaches it through `all(POWER_CONSUMERS)`.
  */
 export class PlasmaRouter implements IPowerRouter {
-  // all(POWER_CONSUMERS) reads Engineering's own providers plus the
-  // contributions of every module that names POWER_CONSUMERS in its exports.
-  // LifeSupport's consumer reaches the router because LifeSupport exports
-  // POWER_CONSUMERS.
-  static deps = [SHIP_STATE, all(POWER_CONSUMERS)] as const;
+  // The shield grid and the railgun mount call the router, and the router
+  // reads their loads, so the router reads the consumers through a thunk.
+  // One lazy(all()) breaks the cycle for every consumer, and each consumer
+  // takes POWER_ROUTER directly.
+  static deps = [SHIP_STATE, lazy(all(POWER_CONSUMERS))] as const;
 
-  /**
-   * Every consumer by its load id: those of POWER_CONSUMERS in registration
-   * order, then those `register` added, in the order it added them.
-   */
-  private readonly consumers = new Map<string, IPowerConsumer>();
+  /** The consumers `register` added, by load id, in the order it added them. */
+  private readonly registered = new Map<string, IPowerConsumer>();
+  /** The consumers of POWER_CONSUMERS, read once on the first call that needs them. */
+  private contributed: readonly IPowerConsumer[] | undefined;
 
   constructor(
     private readonly state: IShipState,
-    consumers: readonly IPowerConsumer[],
-  ) {
-    for (const consumer of consumers) this.register(consumer);
-  }
+    private readonly consumers: () => IPowerConsumer[],
+  ) {}
 
   /**
    * The unregister removes `consumer` only while it still draws its load, so
    * a stale unregister leaves a later consumer of that id in place.
    */
   register(consumer: IPowerConsumer): () => void {
-    if (this.consumers.has(consumer.id)) {
-      throw new Error(`Two power consumers draw the load '${consumer.id}'.`);
+    if (this.drawn(consumer.id) !== undefined) {
+      throw duplicate(consumer.id);
     }
-    this.consumers.set(consumer.id, consumer);
+    this.registered.set(consumer.id, consumer);
     return () => {
-      if (this.consumers.get(consumer.id) === consumer) {
-        this.consumers.delete(consumer.id);
+      if (this.registered.get(consumer.id) === consumer) {
+        this.registered.delete(consumer.id);
       }
     };
   }
 
-  /** Each consumer's draw, in the order of `consumers`. */
+  /** Each consumer's draw: those of POWER_CONSUMERS, then the registered ones. */
   loads(ship: ShipSnapshot): readonly PowerLoad[] {
-    return [...this.consumers.values()].map((consumer) => consumer.draw(ship));
+    return [...this.contributions(), ...this.registered.values()].map(
+      (consumer) => consumer.draw(ship),
+    );
   }
 
   /**
@@ -86,4 +85,34 @@ export class PlasmaRouter implements IPowerRouter {
       available,
     });
   }
+
+  /** The consumer that draws the load `id`, contributed or registered. */
+  private drawn(id: string): IPowerConsumer | undefined {
+    return (
+      this.contributions().find((consumer) => consumer.id === id) ??
+      this.registered.get(id)
+    );
+  }
+
+  /**
+   * The consumers of POWER_CONSUMERS. The list is fixed once the container
+   * starts, so the router reads it once and refuses two consumers of one id.
+   */
+  private contributions(): readonly IPowerConsumer[] {
+    if (this.contributed === undefined) {
+      const consumers = this.consumers();
+      const ids = new Set<string>();
+      for (const { id } of consumers) {
+        if (ids.has(id)) throw duplicate(id);
+        ids.add(id);
+      }
+      this.contributed = consumers;
+    }
+    return this.contributed;
+  }
+}
+
+/** The refusal of a second consumer of the load `id`. */
+function duplicate(id: string): Error {
+  return new Error(`Two power consumers draw the load '${id}'.`);
 }

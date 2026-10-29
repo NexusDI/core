@@ -1,10 +1,10 @@
 import { Nexus } from '@nexusdi/core';
 import { describe, expect } from 'vitest';
 
+import { ShipLifeSupport } from '../src/systems/life-support/life-support.module';
 import { UnknownCompartmentError } from '../src/errors';
 import { OFF_GASSING } from '../src/systems/life-support/life-support-model';
 import { pressure, totalMoles } from '../src/physics/gas';
-import { meridianSystems } from '../src/meridian-systems.module';
 import { COMMAND_DESK } from '../src/simulation/commands';
 import {
   type CompartmentId,
@@ -20,10 +20,13 @@ import {
   ATMOSPHERE_SENSOR,
 } from '../src/systems/life-support/contracts';
 
+import { shipRoot } from './ship-root';
 import { shipTest } from './fixtures';
-import { loadOf, online, SHIP_OPTIONS, throttle } from './support';
+import { loadOf, online, throttle } from './support';
 
-const test = shipTest(meridianSystems(SHIP_OPTIONS));
+/** The system modules whose tokens these cases read from the root. */
+const READS = [ShipLifeSupport];
+const test = shipTest(shipRoot({ reads: READS }));
 
 const lifeSupportLoad = (ship: ShipSnapshot) => loadOf(ship, 'life-support');
 
@@ -36,7 +39,7 @@ function roomPressure(ship: ShipSnapshot, deck: DeckPlan, id: CompartmentId) {
 
 describe('LifeSupport', () => {
   test('passes the check', () => {
-    expect(() => Nexus.check(meridianSystems(SHIP_OPTIONS))).not.toThrow();
+    expect(() => Nexus.check(shipRoot({ reads: READS }))).not.toThrow();
   });
 
   test('shows the root its sensor in a scope and its panel', async ({

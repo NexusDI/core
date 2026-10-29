@@ -122,7 +122,7 @@ describe.each(FRAMEWORKS)('the helm commands on %s', (framework) => {
     });
   });
 
-  test('a course to TRAPPIST-1e on the offline ship steers the bundled heading', async () => {
+  test('a course to TRAPPIST-1e on the offline ship steers the bundled heading, and the audit records the chart reads', async () => {
     await using ship = await Nexus.create(OfflineMeridian, {
       plugins: bridgePlugins(),
     });
@@ -134,7 +134,10 @@ describe.each(FRAMEWORKS)('the helm commands on %s', (framework) => {
         json({ system: 'helm', action: 'course', to: 'TRAPPIST-1e' }),
       ),
     ).toEqual({ status: 202, body: { tick: 1 } });
-    expect(ship.get(AUDIT_LOG).calls).toEqual([]);
+    expect(ship.get(AUDIT_LOG).calls).toEqual([
+      'has TRAPPIST-1e',
+      'plot TRAPPIST-1e',
+    ]);
     await advance(ship, 1);
     expect((await reading(ship)).setpoints.helm.heading).toBe(-2.7401669);
   });

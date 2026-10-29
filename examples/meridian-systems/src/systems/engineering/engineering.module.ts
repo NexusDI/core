@@ -31,5 +31,12 @@ export const Engineering = defineModule({
     provide(POWER_CONSUMERS, { useClass: ShieldPower }),
     provide(COMMAND_HANDLERS, { useClass: EngineeringCommands }),
   ],
-  exports: [REACTOR, POWER_ROUTER, SHIELD_GRID, SHIP_SYSTEMS, COMMAND_HANDLERS],
+  exports: [
+    REACTOR,
+    POWER_ROUTER,
+    SHIELD_GRID,
+    SHIP_SYSTEMS,
+    POWER_CONSUMERS,
+    COMMAND_HANDLERS,
+  ],
 });

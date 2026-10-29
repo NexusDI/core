@@ -1,8 +1,12 @@
-import { defineModule } from '@nexusdi/core';
+import { defineModule, type ModuleRef } from '@nexusdi/core';
 import {
-  meridianSystems,
-  type MeridianSystemsOptions,
+  MeridianSystems,
+  ShipLifeSupport,
+  Simulation,
   type SimOptions,
+  SubspaceLink,
+  Tactical,
+  Telemetry,
 } from '@nexusdi/meridian-systems';
 
 // The FTL drive, which the bridge loads into a running ship. The graph target
@@ -29,19 +33,30 @@ export interface ShipSetup {
  */
 export const SEEDED: ShipSetup = { sim: { seed: 7, dt: 0.5 }, mode: 'manual' };
 
-/** The root named `name`: the bridge's modules over the ship's systems. */
+/**
+ * The root named `name`: the kernel, the link when `link` is set, every
+ * system, the bridge's own modules, and the system modules whose tokens the
+ * routes read: Tactical for `/course`, ShipLifeSupport for the compartment
+ * route and Telemetry for the stream. The kernel's tokens reach the routes
+ * from the global Simulation.
+ */
 function bridgeShip(
   name: string,
-  systems: MeridianSystemsOptions,
-  mode: SimMode,
+  { sim, mode }: ShipSetup,
+  link: readonly ModuleRef[],
 ) {
   return defineModule({
     name,
     imports: [
+      Simulation.forRoot(sim),
+      ...link,
+      MeridianSystems,
+      Tactical,
+      ShipLifeSupport,
+      Telemetry,
       MissionScope,
       AuditTrail,
       AlarmPanel,
-      meridianSystems(systems),
       SimDriver.forRoot({ mode }),
     ],
   });
@@ -49,12 +64,12 @@ function bridgeShip(
 
 /** The ship linked to the relay at `relayUrl`, which downloads its charts at startup. */
 export function meridian(relayUrl: string, setup: ShipSetup = SEEDED) {
-  return bridgeShip('Meridian', { ...setup.sim, relayUrl }, setup.mode);
+  return bridgeShip('Meridian', setup, [SubspaceLink.forRoot({ relayUrl })]);
 }
 
 /** The ship with no subspace link, over the bundled charts. */
 export function offlineMeridian(setup: ShipSetup = SEEDED) {
-  return bridgeShip('OfflineMeridian', setup.sim, setup.mode);
+  return bridgeShip('OfflineMeridian', setup, []);
 }
 
 /** The graph the CLI draws and the check test compiles. */

@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { CommsOptions } from './contracts';
+import type { SubspaceLinkOptions } from './contracts';
 import { SubspaceRelay } from './subspace-relay';
 
-const options = (relayUrl: string): CommsOptions => ({
+const options = (relayUrl: string): SubspaceLinkOptions => ({
   frequency: 1420,
   relayUrl,
 });

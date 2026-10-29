@@ -11,11 +11,15 @@ export {
   type RelayFaultReason,
 } from './errors';
 
-// The ship module and its options.
-export {
-  meridianSystems,
-  type MeridianSystemsOptions,
-} from './meridian-systems.module';
+// The modules an app imports: the kernel, the optional link, every system at
+// startup, and the system modules whose tokens an app reads.
+export { MeridianSystems } from './meridian-systems.module';
+export { Simulation } from './simulation/simulation.module';
+export { SubspaceLink } from './systems/comms/subspace-link.module';
+export { ShipLifeSupport } from './systems/life-support/life-support.module';
+export { Safety } from './systems/safety/safety.module';
+export { Tactical } from './systems/tactical/tactical.module';
+export { Telemetry } from './telemetry/telemetry.module';
 
 // The graph annotator that labels each provider with its system and phase.
 export { shipNotes } from './notes';
@@ -82,9 +86,9 @@ export { GASES, pressure, type Gas } from './physics/gas';
 // Comms.
 export {
   COMMS_ARRAY,
-  COMMS_OPTIONS,
+  SUBSPACE_LINK_OPTIONS,
   type CommsMessage,
-  type CommsOptions,
+  type SubspaceLinkOptions,
   type CommsRecord,
   type CommsSetpoints,
   type CommsStatus,

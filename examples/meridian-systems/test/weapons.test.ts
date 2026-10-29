@@ -1,7 +1,8 @@
 import { Nexus } from '@nexusdi/core';
 import { describe, expect, vi } from 'vitest';
 
-import { meridianSystems } from '../src/meridian-systems.module';
+import { Engineering } from '../src/systems/engineering/engineering.module';
+import { Weapons } from '../src/systems/weapons/weapons.module';
 import { LITHIUM_LOOP } from '../src/systems/engineering/engineering-model';
 import { RAILGUN } from '../src/systems/weapons/weapons-model';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
@@ -15,10 +16,13 @@ import { FTL_DRIVE } from '../src/systems/ftl/contracts';
 import { FtlDrive } from '../src/systems/ftl/ftl-drive.module';
 import { WEAPON_MOUNT } from '../src/systems/weapons/contracts';
 
+import { shipRoot } from './ship-root';
 import { shipTest } from './fixtures';
-import { loadOf, SHIP_OPTIONS, throttle } from './support';
+import { loadOf, throttle } from './support';
 
-const test = shipTest(meridianSystems(SHIP_OPTIONS));
+/** The system modules whose tokens these cases read from the root. */
+const READS = [Engineering, Weapons];
+const test = shipTest(shipRoot({ reads: READS }));
 
 /** 0.0899 K: a quarter of the 300 MJ shot over the loop's heat capacity. */
 const PULSE_KELVIN =
@@ -37,7 +41,7 @@ const budget = (available: number) =>
   });
 
 /** A second offline ship, for the cases that compare two runs. */
-const create = () => Nexus.create(meridianSystems(SHIP_OPTIONS));
+const create = () => Nexus.create(shipRoot({ reads: READS }));
 
 /** The parts of `ship` a case drives. */
 const parts = (ship: Nexus) => ({
@@ -57,9 +61,9 @@ function firstShot(ship: Nexus, range: number) {
 
 describe('the weapons', () => {
   test('checks as part of the ship', ({ nexus }) => {
-    expect(() => Nexus.check(meridianSystems(SHIP_OPTIONS))).not.toThrow();
+    expect(() => Nexus.check(shipRoot({ reads: READS }))).not.toThrow();
     expect(() =>
-      Nexus.check(meridianSystems(SHIP_OPTIONS), { load: [FtlDrive] }),
+      Nexus.check(shipRoot({ reads: READS }), { load: [FtlDrive] }),
     ).not.toThrow();
 
     const { desk, state } = parts(nexus);

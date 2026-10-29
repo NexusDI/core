@@ -8,8 +8,8 @@ import type {
 // meridian-systems defines the charts and the link. The bridge re-exports
 // them, so every importer of ./contracts keeps its names.
 export {
-  COMMS_OPTIONS,
-  type CommsOptions,
+  SUBSPACE_LINK_OPTIONS,
+  type SubspaceLinkOptions,
   type Course,
   type INavCharts,
   type ISubspaceLink,

@@ -1,5 +1,3 @@
-import { lazy } from '@nexusdi/core';
-
 import type { QueuedCommand } from '../../simulation/commands';
 import {
   type IShipState,
@@ -14,21 +12,19 @@ import { RAILGUN, RAILGUN_LOAD, railgunDemand } from './weapons-model';
 
 /**
  * The Meridian's railgun mount. It queues the crew's shots on `SHIP_STATE`
- * and reads the router through a thunk, since the router reads the mount's
- * load through `POWER_CONSUMERS`.
+ * and reads the router directly, since the router reads the mount's load
+ * through `lazy(all(POWER_CONSUMERS))`.
  */
 export class RailgunMount implements IWeaponMount {
   // SIM_OPTIONS reaches the mount through the global Simulation.
-  static deps = [SHIP_STATE, SIM_OPTIONS, lazy(POWER_ROUTER)] as const;
+  static deps = [SHIP_STATE, SIM_OPTIONS, POWER_ROUTER] as const;
 
   readonly rating: RailgunRating = RAILGUN;
 
-  // The container builds the router after the mount, so the constructor
-  // never calls the thunk.
   constructor(
     private readonly state: IShipState,
     private readonly options: Pick<SimOptions, 'dt'>,
-    private readonly router: () => IPowerRouter,
+    private readonly router: IPowerRouter,
   ) {}
 
   fire(range: number): QueuedCommand {
@@ -45,7 +41,7 @@ export class RailgunMount implements IWeaponMount {
     }
     // The check asks the load the next tick asks once the mount is armed.
     const armed = { ...ship.setpoints.weapons, armed: true };
-    this.router().divert({
+    this.router.divert({
       ...RAILGUN_LOAD,
       demand: railgunDemand(ship.weapons, armed, this.rating, this.options.dt),
     });

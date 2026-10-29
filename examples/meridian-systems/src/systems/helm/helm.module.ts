@@ -3,6 +3,8 @@ import { defineModule, provide } from '@nexusdi/core';
 import { COMMAND_HANDLERS } from '../../simulation/commands';
 import { SHIP_SYSTEMS } from '../../simulation/contracts';
 import { POWER_CONSUMERS } from '../engineering/contracts';
+import { Propulsion } from '../propulsion/propulsion.module';
+import { Tactical } from '../tactical/tactical.module';
 
 import { HELM, THRUSTERS } from './contracts';
 import { HelmCommands } from './helm-commands';
@@ -14,11 +16,11 @@ import { RcsThrusters } from './rcs-thrusters';
 /**
  * The thrusters and the helm, stepped in phase 2, with the thrusters' load on
  * the power router and the crew's helm commands. HelmControl reads MAIN_DRIVE
- * and NAV_CHARTS through the global MeridianSystems, which re-exports
- * Propulsion and the tactical module.
+ * and NAV_CHARTS, so Helm imports Propulsion and Tactical.
  */
 export const Helm = defineModule({
   name: 'Helm',
+  imports: [Propulsion, Tactical],
   providers: [
     provide(THRUSTERS, { useClass: RcsThrusters }),
     provide(HELM, { useClass: HelmControl }),

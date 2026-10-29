@@ -1,7 +1,6 @@
 import { defineModule, type ModuleRef, provide } from '@nexusdi/core';
 
-import { SHIP_SYSTEMS, TICK_LOOP } from '../src/simulation/contracts';
-import { FixedStepLoop } from '../src/simulation/fixed-step-loop';
+import { SHIP_SYSTEMS } from '../src/simulation/contracts';
 import { Simulation } from '../src/simulation/simulation.module';
 import { Telemetry } from '../src/telemetry/telemetry.module';
 
@@ -27,11 +26,14 @@ export const ProbeSystems = defineModule({
   exports: [PROBE_LOG, SHIP_SYSTEMS, LOOP_WATCH],
 });
 
-/** A root of the simulation and the telemetry with `system` imported beside them. */
+/**
+ * A root of the simulation and the telemetry with `system` imported beside
+ * them. The tick loop in `Simulation` collects every `SHIP_SYSTEMS`
+ * contribution that `system` publishes, so the root needs no loop of its own.
+ */
 export function shipUnderTest(system: ModuleRef) {
   return defineModule({
     name: 'ShipUnderTest',
-    global: true,
     imports: [
       // test/fixtures.ts overrides SIM_OPTIONS with SHIP_OPTIONS. These
       // values differ from the override on purpose: the idle case in
@@ -41,11 +43,5 @@ export function shipUnderTest(system: ModuleRef) {
       system,
       Telemetry,
     ],
-    providers: [
-      // all(SHIP_SYSTEMS) reads this module's own providers plus the
-      // contributions of every module that names SHIP_SYSTEMS in its exports.
-      provide(TICK_LOOP, { useClass: FixedStepLoop }),
-    ],
-    exports: [TICK_LOOP],
   });
 }

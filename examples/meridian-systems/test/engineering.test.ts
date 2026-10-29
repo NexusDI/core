@@ -1,11 +1,10 @@
-import { defineModule, Nexus, provide } from '@nexusdi/core';
+import { all, defineModule, Nexus, provide } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
+import { Engineering } from '../src/systems/engineering/engineering.module';
 import * as packageRoot from '../src/index';
-import { meridianSystems } from '../src/meridian-systems.module';
 import { COMMAND_DESK, type ICommandDesk } from '../src/simulation/commands';
 import {
-  type IShipState,
   SHIP_STATE,
   type ShipSnapshot,
   TICK_LOOP,
@@ -13,21 +12,25 @@ import {
 import { Simulation } from '../src/simulation/simulation.module';
 import {
   COOLANT_LOOP,
+  type IPowerConsumer,
   type IPowerRouter,
-  type IShieldGrid,
   POWER_CONSUMERS,
   POWER_ROUTER,
-  type PowerLoad,
   REACTOR,
   SHIELD_GRID,
 } from '../src/systems/engineering/contracts';
-import { ShieldPower } from '../src/systems/engineering/engineering-power';
-import { PlasmaRouter } from '../src/systems/engineering/plasma-router';
+import { WEAPON_MOUNT } from '../src/systems/weapons/contracts';
+import { RailgunMount } from '../src/systems/weapons/railgun-mount';
+import { WeaponsPower } from '../src/systems/weapons/weapons-power';
+import { Weapons } from '../src/systems/weapons/weapons.module';
 
+import { shipRoot } from './ship-root';
 import { shipTest } from './fixtures';
 import { loadOf, SHIP_OPTIONS, throttle } from './support';
 
-const test = shipTest(meridianSystems(SHIP_OPTIONS));
+/** The system modules whose tokens these cases read from the root. */
+const READS = [Engineering];
+const test = shipTest(shipRoot({ reads: READS }));
 
 const shields = (desk: ICommandDesk, raised: boolean) =>
   desk.submit({ system: 'engineering', action: 'shields', raised });
@@ -36,7 +39,7 @@ const shieldsLoad = (ship: ShipSnapshot) => loadOf(ship, 'shields');
 
 describe('Engineering', () => {
   it('passes the check', () => {
-    expect(() => Nexus.check(meridianSystems(SHIP_OPTIONS))).not.toThrow();
+    expect(() => Nexus.check(shipRoot({ reads: READS }))).not.toThrow();
   });
 
   test('shows its panel to the root and keeps its pipes', ({ nexus: ship }) => {
@@ -48,31 +51,26 @@ describe('Engineering', () => {
     expect(ship.get(SHIELD_GRID)).toBeDefined();
   });
 
-  it('fails the check when the grid reads the router without lazy()', () => {
-    class EagerGrid implements IShieldGrid {
-      static deps = [SHIP_STATE, POWER_ROUTER] as const;
-      constructor(
-        private readonly state: IShipState,
-        private readonly router: IPowerRouter,
-      ) {}
-      draw(): PowerLoad {
-        return { id: 'shields', priority: 2, demand: 0, heatShare: 0.25 };
+  it('fails the check when the router reads the consumers through plain all()', () => {
+    /** The router's contract over a plain all(), which the railgun's load reads back. */
+    class EagerRouter implements IPowerRouter {
+      static deps = [all(POWER_CONSUMERS)] as const;
+      constructor(private readonly consumers: IPowerConsumer[]) {}
+      loads(ship: ShipSnapshot) {
+        return this.consumers.map((consumer) => consumer.draw(ship));
       }
-      raise() {
-        this.router.divert(this.draw());
-        return this.state.queue({ shields: { raised: true } });
-      }
-      lower() {
-        return this.state.queue({ shields: { raised: false } });
+      divert() {}
+      register() {
+        return () => {};
       }
     }
     const Eager = defineModule({
-      name: 'EagerEngineering',
+      name: 'EagerRouterShip',
       imports: [Simulation.forRoot(SHIP_OPTIONS)],
       providers: [
-        provide(POWER_ROUTER, { useClass: PlasmaRouter }),
-        provide(SHIELD_GRID, { useClass: EagerGrid }),
-        provide(POWER_CONSUMERS, { useClass: ShieldPower }),
+        provide(POWER_ROUTER, { useClass: EagerRouter }),
+        provide(WEAPON_MOUNT, { useClass: RailgunMount }),
+        provide(POWER_CONSUMERS, { useClass: WeaponsPower }),
       ],
     });
     expect(() => Nexus.check(Eager)).toThrow(
@@ -84,13 +82,28 @@ describe('Engineering', () => {
             path: [
               'PowerRouter',
               'PowerConsumers',
-              'ShieldGrid',
+              'WeaponMount',
               'PowerRouter',
             ],
           }),
         ],
       }),
     );
+  });
+
+  it('lists the railgun load of a Weapons that only the kernel and Engineering sit beside', async () => {
+    await using ship = await Nexus.create(
+      defineModule({
+        name: 'Gunship',
+        imports: [Simulation.forRoot(SHIP_OPTIONS), Weapons, Engineering],
+      }),
+    );
+    const ids = ship
+      .get(POWER_ROUTER)
+      .loads(ship.get(SHIP_STATE).snapshot())
+      .map(({ id }) => id);
+    // all() lists the contributions in the order the walk meets their modules.
+    expect(ids).toEqual(['railgun', 'shields']);
   });
 
   it('leaves the coolant loop out of the package root', () => {
