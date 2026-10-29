@@ -15,6 +15,8 @@ import { LIFE_SUPPORT_LOAD, lifeSupportDemand } from './life-support-model';
 export class LifeSupportPower implements IPowerConsumer {
   static deps = [LIFE_SUPPORT_OPTIONS, DECK_PLAN] as const;
 
+  readonly id = LIFE_SUPPORT_LOAD.id;
+
   constructor(
     private readonly options: LifeSupportOptions,
     private readonly deck: DeckPlan,

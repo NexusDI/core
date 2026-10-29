@@ -134,4 +134,57 @@ describe('CommandDesk', () => {
         ]),
     ).toThrow("Two command handlers serve the system 'probe'.");
   });
+
+  describe('register', () => {
+    it('hands a command to a registered handler', () => {
+      const desk = new CommandDesk([handler('engineering').double]);
+      const probe = handler('probe', 9);
+      desk.register(probe.double);
+      const command = { system: 'probe', action: 'ping' };
+      expect(desk.submit(command)).toEqual({ tick: 9 });
+      expect(probe.received).toEqual([command]);
+    });
+
+    it('lists a registered system in the refusal, in name order', () => {
+      const desk = new CommandDesk([handler('probe').double]);
+      desk.register(handler('ftl').double);
+      expect(
+        refusal(desk, { system: 'warp-core', action: 'engage' }),
+      ).toMatchObject({ reason: 'system', expected: 'ftl and probe' });
+    });
+
+    it('refuses the system at its unregister, which runs twice safely', () => {
+      const desk = new CommandDesk([handler('probe').double]);
+      const unregister = desk.register(handler('ftl').double);
+      unregister();
+      unregister();
+      expect(refusal(desk, { system: 'ftl', action: 'spool' })).toMatchObject({
+        reason: 'system',
+        system: 'ftl',
+        expected: 'probe',
+      });
+      expect(() => desk.register(handler('ftl').double)).not.toThrow();
+    });
+
+    it('keeps a later handler of the system when an old unregister runs', () => {
+      const desk = new CommandDesk([]);
+      const unregister = desk.register(handler('ftl').double);
+      unregister();
+      const later = handler('ftl', 3);
+      desk.register(later.double);
+      unregister();
+      expect(desk.submit({ system: 'ftl', action: 'spool' })).toEqual({
+        tick: 3,
+      });
+    });
+
+    it('refuses a system the desk serves, registered or built in', () => {
+      const desk = new CommandDesk([handler('probe').double]);
+      expect(() => desk.register(handler('probe').double)).toThrow(
+        "Two command handlers serve the system 'probe'.",
+      );
+      desk.register(handler('ftl').double);
+      expect(() => desk.register(handler('ftl').double)).toThrow(/'ftl'/);
+    });
+  });
 });

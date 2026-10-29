@@ -292,12 +292,12 @@ describe('FixedStepLoop', () => {
     });
   });
 
-  describe('attach', () => {
-    it('runs an attached system from the next tick in phase and name order', () => {
+  describe('register', () => {
+    it('runs a registered system from the next tick in phase and name order', () => {
       const calls: Call[] = [];
       const { loop } = build([probe('b', 4, calls), probe('z', 1, calls)]);
       loop.advance(1);
-      loop.attach(probe('a', 4, calls));
+      loop.register(probe('a', 4, calls));
       loop.advance(1);
       expect(calls.map((call) => [call.tick.tick, call.name])).toEqual([
         [1, 'z'],
@@ -308,62 +308,73 @@ describe('FixedStepLoop', () => {
       ]);
     });
 
-    it('gives an attached system the fork for its name', () => {
+    it('gives a registered system the fork for its name', () => {
       const calls: Call[] = [];
       const { loop } = build([]);
-      loop.attach(probe('FtlDrive', 3, calls));
+      loop.register(probe('FtlDrive', 3, calls));
       loop.advance(2);
       const fork = new SeededRandom({ seed: 7 }).fork('FtlDrive');
       expect(calls.map((call) => call.draw)).toEqual(draw(fork, 2));
     });
 
-    it('refuses a name the loop runs, attached or built in', () => {
+    it('refuses a name the loop runs, registered or built in', () => {
       const { loop } = build([probe('FtlDrive', 3, [])]);
-      expect(() => loop.attach(probe('FtlDrive', 3, []))).toThrow(
+      expect(() => loop.register(probe('FtlDrive', 3, []))).toThrow(
         "Two ship systems are named 'FtlDrive'.",
       );
-      loop.attach(probe('a', 4, []));
-      expect(() => loop.attach(probe('a', 2, []))).toThrow(/'a'/);
+      loop.register(probe('a', 4, []));
+      expect(() => loop.register(probe('a', 2, []))).toThrow(/'a'/);
     });
 
-    it('removes the system at its detach, which runs twice safely', () => {
+    it('removes the system at its unregister, which runs twice safely', () => {
       const calls: Call[] = [];
       const { loop } = build([probe('b', 4, calls)]);
-      const detach = loop.attach(probe('a', 4, calls));
+      const unregister = loop.register(probe('a', 4, calls));
       loop.advance(1);
-      detach();
-      detach();
+      unregister();
+      unregister();
       loop.advance(1);
       expect(calls.map((call) => [call.tick.tick, call.name])).toEqual([
         [1, 'a'],
         [1, 'b'],
         [2, 'b'],
       ]);
-      expect(() => loop.attach(probe('a', 4, calls))).not.toThrow();
+      expect(() => loop.register(probe('a', 4, calls))).not.toThrow();
     });
 
-    it('first steps a system attached inside a listener on the next tick', () => {
+    it('keeps a later system of the name when an old unregister runs', () => {
+      const calls: Call[] = [];
+      const { loop } = build([]);
+      const unregister = loop.register(probe('a', 4, []));
+      unregister();
+      loop.register(probe('a', 4, calls));
+      unregister();
+      loop.advance(1);
+      expect(calls.map((call) => call.name)).toEqual(['a']);
+    });
+
+    it('first steps a system registered inside a listener on the next tick', () => {
       const calls: Call[] = [];
       const { loop } = build([]);
       const stop = loop.listen(() => {
         stop();
-        loop.attach(probe('a', 4, calls));
+        loop.register(probe('a', 4, calls));
       });
       loop.advance(2);
       expect(calls.map((call) => call.tick.tick)).toEqual([2]);
     });
 
-    it('first steps a system attached during a step on the next tick', () => {
+    it('first steps a system registered during a step on the next tick', () => {
       const calls: Call[] = [];
       const { loop } = build([]);
-      let attached = false;
-      loop.attach({
+      let registered = false;
+      loop.register({
         name: 'loader',
         phase: 1,
         step(ship) {
-          if (!attached) {
-            attached = true;
-            loop.attach(probe('a', 4, calls));
+          if (!registered) {
+            registered = true;
+            loop.register(probe('a', 4, calls));
           }
           return ship;
         },

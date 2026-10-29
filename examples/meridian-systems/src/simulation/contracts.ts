@@ -210,11 +210,11 @@ export interface ITickLoop {
   listen(listener: TickListener): () => void;
   /**
    * Runs `system` in its phase from the next tick on, with the fork for its
-   * name, and returns a function that removes it and runs twice safely. The
-   * loop resolved `all(SHIP_SYSTEMS)` at its construction, so a system that a
-   * module loaded later joins this way. Throws for a name the loop runs.
+   * name, and returns a function that removes it and runs twice safely. A
+   * module that `load()` adds cannot contribute to SHIP_SYSTEMS, so its system
+   * joins this way. Throws for a name the loop runs.
    */
-  attach(system: IShipSystem): () => void;
+  register(system: IShipSystem): () => void;
 }
 
 export const SIM_OPTIONS = new Token<SimOptions>('SimOptions');

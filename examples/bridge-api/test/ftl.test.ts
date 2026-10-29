@@ -161,8 +161,8 @@ test('an override of the FTL drive without lazy fails create() as unused', async
 test('the simulated drive writes idle once after the load and keeps a charged armed ship', () => {
   let system: IShipSystem | undefined;
   const loop = {
-    attach(attached: IShipSystem) {
-      system = attached;
+    register(registered: IShipSystem) {
+      system = registered;
       return () => {};
     },
   } as unknown as ITickLoop;

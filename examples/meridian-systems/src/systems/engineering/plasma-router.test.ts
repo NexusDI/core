@@ -20,6 +20,7 @@ const RAISED: PowerLoad = {
 function consumer(load: PowerLoad) {
   const seen: ShipSnapshot[] = [];
   const double: IPowerConsumer = {
+    id: load.id,
     draw(at) {
       seen.push(at);
       return load;
@@ -172,7 +173,7 @@ describe('PlasmaRouter', () => {
     expect(() => build(250e6, RAISED).router.divert(RAISED)).not.toThrow();
   });
 
-  describe('attach', () => {
+  describe('register', () => {
     const pump = (): PowerLoad => ({
       id: 'pump',
       priority: 1,
@@ -186,50 +187,71 @@ describe('PlasmaRouter', () => {
       heatShare: 0.1,
     };
 
-    it('lists an attached consumer after the consumers of POWER_CONSUMERS', () => {
+    it('lists a registered consumer after the consumers of POWER_CONSUMERS', () => {
       const listed = consumer(pump());
-      const attached = consumer(spool);
+      const registered = consumer(spool);
       const { state, router } = build(0, RAISED, [listed.double]);
-      router.attach(attached.double);
+      router.register(registered.double);
       const ship = state.snapshot();
       expect(router.loads(ship).map((load) => load.id)).toEqual([
         'shields',
         'pump',
         'ftl-spool',
       ]);
-      expect(attached.seen).toEqual([ship]);
+      expect(registered.seen).toEqual([ship]);
     });
 
-    it('counts an attached load against a new load', () => {
+    it('counts a registered load against a new load', () => {
       const { router } = build(250e6, RAISED);
-      router.attach(consumer({ ...spool, priority: 1, demand: 100e6 }).double);
+      router.register(
+        consumer({ ...spool, priority: 1, demand: 100e6 }).double,
+      );
       expect(refusal(router, { ...RAISED, priority: 3 })).toMatchObject({
         consumer: 'shields',
         available: 150e6,
       });
     });
 
-    it('removes one attach of a consumer attached twice at its detach', () => {
+    it('removes the consumer at its unregister, which runs twice safely', () => {
+      const { state, router } = build(0, RAISED, [consumer(pump()).double]);
+      const unregister = router.register(consumer(spool).double);
+      unregister();
+      unregister();
+      expect(router.loads(state.snapshot()).map((load) => load.id)).toEqual([
+        'shields',
+        'pump',
+      ]);
+      expect(() => router.register(consumer(spool).double)).not.toThrow();
+    });
+
+    it('keeps a later consumer of the id when an old unregister runs', () => {
       const { state, router } = build(0, RAISED);
-      const double = consumer(spool).double;
-      const detach = router.attach(double);
-      router.attach(double);
-      detach();
+      const unregister = router.register(consumer(spool).double);
+      unregister();
+      router.register(consumer(spool).double);
+      unregister();
       expect(router.loads(state.snapshot()).map((load) => load.id)).toEqual([
         'shields',
         'ftl-spool',
       ]);
     });
 
-    it('removes the consumer at its detach, which runs twice safely', () => {
-      const { state, router } = build(0, RAISED, [consumer(pump()).double]);
-      const detach = router.attach(consumer(spool).double);
-      detach();
-      detach();
-      expect(router.loads(state.snapshot()).map((load) => load.id)).toEqual([
-        'shields',
-        'pump',
-      ]);
+    it('refuses a load id the router lists, registered or built in', () => {
+      const { router } = build(0, RAISED, [consumer(pump()).double]);
+      expect(() => router.register(consumer(pump()).double)).toThrow(
+        "Two power consumers draw the load 'pump'.",
+      );
+      router.register(consumer(spool).double);
+      expect(() => router.register(consumer(spool).double)).toThrow(
+        /'ftl-spool'/,
+      );
     });
+  });
+
+  it('refuses two consumers of POWER_CONSUMERS with one load id', () => {
+    const load = { id: 'pump', priority: 1, demand: 0, heatShare: 0 };
+    expect(() =>
+      build(0, RAISED, [consumer(load).double, consumer(load).double]),
+    ).toThrow("Two power consumers draw the load 'pump'.");
   });
 });

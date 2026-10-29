@@ -70,7 +70,7 @@ describe('the FTL drive', () => {
     );
   });
 
-  test('loads once, attaches a load at 0 W and keeps the desk list', async ({
+  test('loads once, registers a load at 0 W and keeps the desk list', async ({
     nexus: ship,
   }) => {
     const loop = ship.get(TICK_LOOP);
@@ -92,7 +92,7 @@ describe('the FTL drive', () => {
       jumped: null,
     });
 
-    // Two loads at once build one drive: a second JumpDrive would attach a
+    // Two loads at once build one drive: a second JumpDrive would register a
     // second system named FtlDrive, which the loop refuses.
     await expect(
       Promise.all([ship.load(FtlDrive), ship.load(FtlDrive)]),
@@ -135,15 +135,15 @@ describe('the FTL drive', () => {
       }),
     );
     expect(() =>
-      loop.attach({ name: 'FtlDrive', phase: 3, step: (ship) => ship }),
+      loop.register({ name: 'FtlDrive', phase: 3, step: (ship) => ship }),
     ).toThrow("Two ship systems are named 'FtlDrive'.");
   });
 
-  test('detaches the loop when the router attach throws, and loads on a retry', async ({
+  test('unregisters the loop when the router register throws, and loads on a retry', async ({
     nexus: ship,
   }) => {
     const loop = ship.get(TICK_LOOP);
-    vi.spyOn(ship.get(POWER_ROUTER), 'attach').mockImplementationOnce(() => {
+    vi.spyOn(ship.get(POWER_ROUTER), 'register').mockImplementationOnce(() => {
       throw new Error('The router is down.');
     });
 
@@ -155,7 +155,7 @@ describe('the FTL drive', () => {
     );
     expect(ship.has(FTL_DRIVE)).toBe(false);
     // The loop holds its six built-in systems again, so the name is free.
-    loop.attach({ name: 'FtlDrive', phase: 3, step: (ship) => ship })();
+    loop.register({ name: 'FtlDrive', phase: 3, step: (ship) => ship })();
     expect(loop.advance(1).ftl.status).toBe('offline');
 
     await ship.load(FtlDrive);

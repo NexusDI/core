@@ -12,6 +12,8 @@ import { COMMS_ARRAY, type ICommsArray } from './contracts';
 export class CommsPower implements IPowerConsumer {
   static deps = [COMMS_ARRAY] as const;
 
+  readonly id = COMMS_LOAD.id;
+
   constructor(private readonly array: ICommsArray) {}
 
   draw(ship: ShipSnapshot): PowerLoad {

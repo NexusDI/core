@@ -18,7 +18,7 @@ export type CommandReply =
  * throw is a bug, and the framework answers it with an empty 500.
  */
 export function answerCommand(
-  desk: ICommandDesk,
+  desk: Pick<ICommandDesk, 'submit'>,
   body: unknown,
   log: IFlightLog,
 ): CommandReply {

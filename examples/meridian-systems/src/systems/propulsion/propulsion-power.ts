@@ -11,6 +11,8 @@ import { driveDemand, MAIN_DRIVE_LOAD } from './propulsion-model';
 export class PropulsionPower implements IPowerConsumer {
   static deps = [MAIN_DRIVE] as const;
 
+  readonly id = MAIN_DRIVE_LOAD.id;
+
   constructor(private readonly drive: IMainDrive) {}
 
   draw(ship: ShipSnapshot): PowerLoad {

@@ -72,6 +72,13 @@ export interface ICommandDesk {
    * Throws `BadCommandError` for a bad envelope or an unknown system.
    */
   submit(body: unknown): QueuedCommand;
+  /**
+   * Hands the commands of `handler.system` to `handler` and returns a function
+   * that removes it and runs twice safely. A module that `load()` adds cannot
+   * contribute to COMMAND_HANDLERS, so its handler joins this way. Throws for a
+   * system the desk serves.
+   */
+  register(handler: ICommandHandler): () => void;
 }
 
 export const COMMAND_HANDLERS = new MultiToken<ICommandHandler>(

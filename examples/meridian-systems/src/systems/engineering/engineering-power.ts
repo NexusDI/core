@@ -6,6 +6,7 @@ import {
   type PowerLoad,
   SHIELD_GRID,
 } from './contracts';
+import { DEFLECTOR_GRID } from './engineering-model';
 
 /**
  * The shield grid's load on the power router, from the grid's own `draw`. The
@@ -15,6 +16,8 @@ import {
  */
 export class ShieldPower implements IPowerConsumer {
   static deps = [SHIELD_GRID] as const;
+
+  readonly id = DEFLECTOR_GRID.id;
 
   constructor(private readonly grid: IShieldGrid) {}
 

@@ -6,7 +6,6 @@ import {
   SHIP_STATE,
   type ShipSnapshot,
 } from '../../simulation/contracts';
-import { Subscribers } from '../../simulation/subscribers';
 
 import {
   type IPowerConsumer,
@@ -29,29 +28,37 @@ export class PlasmaRouter implements IPowerRouter {
   static deps = [SHIP_STATE, all(POWER_CONSUMERS)] as const;
 
   /**
-   * The consumers `attach` added, in the order it added them. Each attach
-   * holds its own entry, so a detach removes that attach alone.
+   * Every consumer by its load id: those of POWER_CONSUMERS in registration
+   * order, then those `register` added, in the order it added them.
    */
-  private readonly attached = new Subscribers<IPowerConsumer>();
+  private readonly consumers = new Map<string, IPowerConsumer>();
 
   constructor(
     private readonly state: IShipState,
-    private readonly consumers: readonly IPowerConsumer[],
-  ) {}
-
-  attach(consumer: IPowerConsumer): () => void {
-    return this.attached.add(consumer);
+    consumers: readonly IPowerConsumer[],
+  ) {
+    for (const consumer of consumers) this.register(consumer);
   }
 
   /**
-   * Each consumer's draw in registration order, then the draws of the
-   * attached consumers.
+   * The unregister removes `consumer` only while it still draws its load, so
+   * a stale unregister leaves a later consumer of that id in place.
    */
+  register(consumer: IPowerConsumer): () => void {
+    if (this.consumers.has(consumer.id)) {
+      throw new Error(`Two power consumers draw the load '${consumer.id}'.`);
+    }
+    this.consumers.set(consumer.id, consumer);
+    return () => {
+      if (this.consumers.get(consumer.id) === consumer) {
+        this.consumers.delete(consumer.id);
+      }
+    };
+  }
+
+  /** Each consumer's draw, in the order of `consumers`. */
   loads(ship: ShipSnapshot): readonly PowerLoad[] {
-    return [
-      ...this.consumers.map((consumer) => consumer.draw(ship)),
-      ...[...this.attached].map((consumer) => consumer.draw(ship)),
-    ];
+    return [...this.consumers.values()].map((consumer) => consumer.draw(ship));
   }
 
   /**

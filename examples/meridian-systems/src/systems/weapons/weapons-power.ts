@@ -16,6 +16,8 @@ export class WeaponsPower implements IPowerConsumer {
   // SIM_OPTIONS reaches the consumer through the global Simulation.
   static deps = [WEAPON_MOUNT, SIM_OPTIONS] as const;
 
+  readonly id = RAILGUN_LOAD.id;
+
   constructor(
     private readonly mount: IWeaponMount,
     private readonly options: Pick<SimOptions, 'dt'>,

@@ -10,6 +10,8 @@ import { FTL_SPOOL_LOAD, ftlDemand } from './ftl-model';
  * snapshot at the start of the tick. `JumpDrive` builds it with its rating.
  */
 export class FtlPower implements IPowerConsumer {
+  readonly id = FTL_SPOOL_LOAD.id;
+
   constructor(private readonly rating: FtlRating) {}
 
   draw(ship: ShipSnapshot): PowerLoad {

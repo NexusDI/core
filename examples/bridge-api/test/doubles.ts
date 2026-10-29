@@ -120,7 +120,7 @@ export class FakeJumpDrive implements IFtlDrive, Disposable {
     coolantLimit: Number.MAX_VALUE,
   };
 
-  private detach: () => void = () => {};
+  private unregister: () => void = () => {};
 
   constructor(
     private readonly loop: ITickLoop,
@@ -128,7 +128,7 @@ export class FakeJumpDrive implements IFtlDrive, Disposable {
   ) {}
 
   onInit(): void {
-    this.detach = this.loop.attach({
+    this.unregister = this.loop.register({
       name: 'FtlDrive',
       phase: 3,
       step: (ship, tick) => this.step(ship, tick),
@@ -144,7 +144,7 @@ export class FakeJumpDrive implements IFtlDrive, Disposable {
   }
 
   [Symbol.dispose](): void {
-    this.detach();
+    this.unregister();
   }
 
   private step(ship: ShipSnapshot, { tick }: TickContext): ShipSnapshot {

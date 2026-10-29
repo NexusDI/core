@@ -31,20 +31,20 @@ function build(refuse = false) {
   const systems: IShipSystem[] = [];
   const consumers: IPowerConsumer[] = [];
   const diverted: PowerLoad[] = [];
-  const detached: string[] = [];
+  const unregistered: string[] = [];
   const loop: ITickLoop = {
     advance: () => state.snapshot(),
     listen: () => () => {},
-    attach(system) {
+    register(system) {
       systems.push(system);
-      return () => void detached.push('system');
+      return () => void unregistered.push('system');
     },
   };
   const router: IPowerRouter = {
     loads: () => [],
-    attach(consumer) {
+    register(consumer) {
       consumers.push(consumer);
-      return () => void detached.push('consumer');
+      return () => void unregistered.push('consumer');
     },
     divert(load) {
       diverted.push(load);
@@ -63,7 +63,7 @@ function build(refuse = false) {
     new StarCharts(BUNDLED_CHARTS),
     router,
   );
-  return { state, systems, consumers, diverted, detached, drive };
+  return { state, systems, consumers, diverted, unregistered, drive };
 }
 
 /** Commits the store's snapshot with the spool holding `charge` J. */
@@ -77,8 +77,8 @@ describe('JumpDrive', () => {
     expect(build().drive.rating).toBe(FTL_SPOOL);
   });
 
-  it('attaches one system and one consumer on init and detaches both on dispose', () => {
-    const { systems, consumers, detached, drive } = build();
+  it('registers one system and one consumer on init and unregisters both on dispose', () => {
+    const { systems, consumers, unregistered, drive } = build();
     expect(systems).toEqual([]);
     drive.onInit();
     expect(systems).toHaveLength(1);
@@ -86,7 +86,7 @@ describe('JumpDrive', () => {
     expect(consumers).toHaveLength(1);
     expect(consumers[0]).toBeInstanceOf(FtlPower);
     drive[Symbol.dispose]();
-    expect(detached).toEqual(['system', 'consumer']);
+    expect(unregistered).toEqual(['system', 'consumer']);
   });
 
   it('diverts the spool load, then queues the armed setpoint', () => {
