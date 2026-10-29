@@ -20,8 +20,9 @@ describe('the shell', () => {
     ).not.toThrow();
   });
 
-  it('makes Tactical global, so a loaded remote sees its tokens', () => {
-    expect(Tactical.global).toBe(true);
+  it('keeps Tactical out of the globals, since the shell grants it to each station', () => {
+    expect(Tactical.global).toBeFalsy();
+    expect(Meridian.imports).toContain(Tactical);
   });
 
   it("exports the contract's NAV_CHARTS from Tactical", () => {

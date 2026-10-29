@@ -1,4 +1,10 @@
-import { Token, defineModule, provide, type ModuleRef } from '@nexusdi/core';
+import {
+  Token,
+  defineModule,
+  provide,
+  type LoadEntry,
+  type ModuleRef,
+} from '@nexusdi/core';
 
 import { COMMAND_LINK, NAV_CHARTS, STATION_TELEMETRY } from './index.js';
 import type {
@@ -75,7 +81,8 @@ export class FakeStationTelemetry implements IFakeTelemetry {
 
 /**
  * What the shell's Tactical gives a loaded remote, over fakes: the three
- * contract tokens, and the doubles behind two of them for a test to read.
+ * contract tokens, and the doubles behind two of them for a test to read. A
+ * test grants it to the station it loads, as the shell does.
  */
 export const FakeTactical = defineModule({
   name: 'Tactical',
@@ -93,13 +100,19 @@ export const FakeTactical = defineModule({
     RECORDING_LINK,
     FAKE_TELEMETRY,
   ],
-  global: true,
 });
 
-/** A ship root that imports FakeTactical and the station under test. */
-export function stationRoot(station: ModuleRef) {
-  return defineModule({
-    name: 'Meridian',
-    imports: [FakeTactical, station],
-  });
-}
+/** The shell's root over fakes. A station test loads its station into it with `STATION_GRANT`. */
+export const FakeShell = defineModule({
+  name: 'Meridian',
+  imports: [FakeTactical],
+});
+
+/** The grant the shell gives each station it loads, over FakeTactical. */
+export const STATION_GRANT = { imports: [FakeTactical] } as const;
+
+/** The load entry of `station` with its grant, for `Nexus.check(FakeShell, { load })`. */
+export const grantedLoad = (station: ModuleRef): LoadEntry => ({
+  module: station,
+  ...STATION_GRANT,
+});

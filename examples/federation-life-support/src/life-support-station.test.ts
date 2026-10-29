@@ -10,7 +10,9 @@ import type {
 import {
   RECORDED_TICK,
   RECORDING_LINK,
-  stationRoot,
+  FakeShell,
+  grantedLoad,
+  STATION_GRANT,
 } from '@nexusdi/federation-contracts/testing';
 import { nexusTest } from '@nexusdi/vitest';
 import { describe, expect, test as base } from 'vitest';
@@ -57,11 +59,16 @@ const online = (reading: TelemetryReading | null): TelemetryState => ({
   reading,
 });
 
-const root = stationRoot(LifeSupportStation);
-const test = nexusTest(base, root);
+/** A fresh shell per test with LifeSupportStation loaded under the grant, as the shell loads it. */
+const test = nexusTest(base, FakeShell).extend<{ station: Nexus }>({
+  station: async ({ nexus }, serve) => {
+    await nexus.load(LifeSupportStation, STATION_GRANT);
+    await serve(nexus);
+  },
+});
 
 describe('LifeSupportStation', () => {
-  test('lists the compartments in reading order', ({ nexus }) => {
+  test('lists the compartments in reading order', ({ station: nexus }) => {
     const rows = nexus.get(ATMOSPHERE_DESK).compartments(online(idle));
     expect(rows?.map((row) => row.id)).toEqual([
       'bridge',
@@ -71,7 +78,7 @@ describe('LifeSupportStation', () => {
     ]);
   });
 
-  test('reads the habitat air in SI', ({ nexus }) => {
+  test('reads the habitat air in SI', ({ station: nexus }) => {
     const rows = nexus.get(ATMOSPHERE_DESK).compartments(online(idle));
     expect(rows?.find((row) => row.id === 'habitat')?.gauges).toEqual([
       ['Temperature', '293.0 K'],
@@ -82,7 +89,7 @@ describe('LifeSupportStation', () => {
   });
 
   test('reads 0.00 kPa partial pressures in an evacuated compartment', ({
-    nexus,
+    station: nexus,
   }) => {
     const vacuum: TelemetryReading = {
       ...idle,
@@ -95,11 +102,13 @@ describe('LifeSupportStation', () => {
     expect(gauges).toEqual(['3.0 K', '0.0 kPa', '0.00 kPa', '0.00 kPa']);
   });
 
-  test('has no rows before the first reading', ({ nexus }) => {
+  test('has no rows before the first reading', ({ station: nexus }) => {
     expect(nexus.get(ATMOSPHERE_DESK).compartments(online(null))).toBeNull();
   });
 
-  test('sends each command to the habitat over the link', async ({ nexus }) => {
+  test('sends each command to the habitat over the link', async ({
+    station: nexus,
+  }) => {
     const desk = nexus.get(ATMOSPHERE_DESK);
     await desk.online();
     await desk.scrubber('habitat', false);
@@ -121,11 +130,11 @@ describe('LifeSupportStation', () => {
     ]);
   });
 
-  test('starts each test with no command sent', ({ nexus }) => {
+  test('starts each test with no command sent', ({ station: nexus }) => {
     expect(nexus.get(RECORDING_LINK).sent).toEqual([]);
   });
 
-  test('returns the receipt the link gives', async ({ nexus }) => {
+  test('returns the receipt the link gives', async ({ station: nexus }) => {
     expect(await nexus.get(ATMOSPHERE_DESK).online()).toEqual({
       queued: true,
       tick: RECORDED_TICK,
@@ -134,6 +143,11 @@ describe('LifeSupportStation', () => {
   });
 
   test('passes Nexus.check with federation()', () => {
-    expect(() => Nexus.check(root, { plugins: [federation()] })).not.toThrow();
+    expect(() =>
+      Nexus.check(FakeShell, {
+        plugins: [federation()],
+        load: [grantedLoad(LifeSupportStation)],
+      }),
+    ).not.toThrow();
   });
 });

@@ -46,7 +46,6 @@ const shellAt = (version: string) => {
       provide(commandLink, { useValue: link }),
     ],
     exports: [navCharts, stationTelemetry, commandLink],
-    global: true,
   });
 };
 
@@ -69,14 +68,18 @@ function stationOn(token: Token<unknown>) {
   return defineModule({ name: 'Station', providers: [Station] });
 }
 
-/** The errors `Nexus.check` reports for a shell at `version` and `remote`. */
+/**
+ * The errors `Nexus.check` reports for a shell at `version` that loads
+ * `remote` with its Tactical granted, as the shell loads a station.
+ */
 function checkAgainst(version: string, remote = Cartography): unknown[] {
-  const root = defineModule({
-    name: 'Meridian',
-    imports: [shellAt(version), remote],
-  });
+  const tactical = shellAt(version);
+  const root = defineModule({ name: 'Meridian', imports: [tactical] });
   try {
-    Nexus.check(root, { plugins: [federation()] });
+    Nexus.check(root, {
+      plugins: [federation()],
+      load: [{ module: remote, imports: [tactical] }],
+    });
   } catch (error) {
     if (isNexusError(error, 'NEXUS_BLUEPRINT_INVALID'))
       return [...error.errors];

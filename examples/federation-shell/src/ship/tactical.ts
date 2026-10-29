@@ -12,9 +12,10 @@ import { StarCharts } from './star-charts';
 
 /**
  * The contract module. A remote's section is loaded with `load()`, and a
- * loaded module sees only what it imports or what a global module exports.
- * A remote cannot import this module object, so `Tactical` is global.
- * BRIDGE_ENDPOINT stays inside: only the shell's classes read it.
+ * remote cannot import this module object, so the shell grants `Tactical` to
+ * each station's load with `{ imports: [Tactical] }`. The shell's root
+ * imports it, and no other module sees it. BRIDGE_ENDPOINT stays inside:
+ * only the shell's classes read it.
  */
 export const Tactical = defineModule({
   name: 'Tactical',
@@ -25,5 +26,4 @@ export const Tactical = defineModule({
     provide(COMMAND_LINK, { useClass: BridgeCommandLink }),
   ],
   exports: [NAV_CHARTS, STATION_TELEMETRY, COMMAND_LINK],
-  global: true,
 });

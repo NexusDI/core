@@ -6,7 +6,9 @@ import type {
 } from '@nexusdi/federation-contracts';
 import {
   FAKE_TELEMETRY,
-  stationRoot,
+  FakeShell,
+  grantedLoad,
+  STATION_GRANT,
 } from '@nexusdi/federation-contracts/testing';
 import { nexusTest } from '@nexusdi/vitest';
 import { describe, expect, test as base } from 'vitest';
@@ -52,11 +54,16 @@ const online = (reading: TelemetryReading | null): TelemetryState => ({
   reading,
 });
 
-const root = stationRoot(EngineeringStation);
-const test = nexusTest(base, root);
+/** A fresh shell per test with EngineeringStation loaded under the grant, as the shell loads it. */
+const test = nexusTest(base, FakeShell).extend<{ station: Nexus }>({
+  station: async ({ nexus }, serve) => {
+    await nexus.load(EngineeringStation, STATION_GRANT);
+    await serve(nexus);
+  },
+});
 
 describe('EngineeringStation', () => {
-  test('reads the idle ship in SI', ({ nexus }) => {
+  test('reads the idle ship in SI', ({ station: nexus }) => {
     expect(nexus.get(ENGINE_ROOM).gauges(online(idle))).toEqual([
       ['Reactor level', '0.00'],
       ['Electric output', '0.0 MW'],
@@ -66,7 +73,7 @@ describe('EngineeringStation', () => {
     ]);
   });
 
-  test('reads a powered ship, grouping thousands', ({ nexus }) => {
+  test('reads a powered ship, grouping thousands', ({ station: nexus }) => {
     expect(nexus.get(ENGINE_ROOM).gauges(online(powered))).toEqual([
       ['Reactor level', '0.75'],
       ['Electric output', '1,234.6 MW'],
@@ -76,11 +83,11 @@ describe('EngineeringStation', () => {
     ]);
   });
 
-  test('has no gauges before the first reading', ({ nexus }) => {
+  test('has no gauges before the first reading', ({ station: nexus }) => {
     expect(nexus.get(ENGINE_ROOM).gauges(online(null))).toBeNull();
   });
 
-  test('passes the feed through', ({ nexus }) => {
+  test('passes the feed through', ({ station: nexus }) => {
     const feed = nexus.get(FAKE_TELEMETRY);
     const { subscribe, state } = nexus.get(ENGINE_ROOM);
     const listener = () => {};
@@ -91,6 +98,11 @@ describe('EngineeringStation', () => {
   });
 
   test('passes Nexus.check with federation()', () => {
-    expect(() => Nexus.check(root, { plugins: [federation()] })).not.toThrow();
+    expect(() =>
+      Nexus.check(FakeShell, {
+        plugins: [federation()],
+        load: [grantedLoad(EngineeringStation)],
+      }),
+    ).not.toThrow();
   });
 });
