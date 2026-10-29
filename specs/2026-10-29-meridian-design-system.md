@@ -407,6 +407,7 @@ button keeps its shape, drops to `text-tertiary` and states why beside it, such 
 "Launch is locked until the check passes".
 
 Toggles render as physical switches: a 2-position rocker with the state word beside it.
+`Switch` (7.7) renders it.
 
 ### 7.5 Status
 
@@ -440,6 +441,24 @@ line and one primary button. A warning uses the same banner in `plate-raised` wi
 The page announces an alarm banner once, when it appears, in an `aria-live="assertive"`
 region. A warning uses `polite`.
 
+### 7.7 Schematic, HullCrop, Switch and StepList
+
+The site UX spec (`specs/2026-10-29-site-ux.md` section 9) adds four stateless components
+to the package:
+
+- `Schematic` renders the vector cutaway from the SVG markup it takes as a prop, with a
+  generated `<style>` block that sets each room's, door's and fixture's state by its
+  `data-room`, `data-door` or `data-fixture` attribute. It takes one `onClick` prop, which
+  the app handles by delegation. The package imports no geometry and no
+  `@nexusdi/meridian-systems`.
+- `HullCrop` renders a crop of the cutaway around one hull section and sets its
+  `view-transition-name` from a prop. The docs app wraps it in React's `<ViewTransition>`
+  (9.3).
+- `Switch` renders the rocker of 7.4 as `<input type="checkbox" role="switch">` with
+  `name` and `value`, and takes its state words as props.
+- `StepList` renders the step list of a sequence as an `<ol>` and marks the current step
+  with `aria-current="step"`.
+
 ## 8. Ship art
 
 One master plan drives every view (ship-systems 16.6): the decks and positions in
@@ -449,12 +468,12 @@ at run time, and marketing art, which is painted and lit once.
 
 ### 8.1 Views and their sources
 
-| View      | Where                                                         | Source                                                                                              | Format                            |
-| --------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------- |
-| hero      | front page top, feature pages, Academy hub, demo splash       | marketing art: a lit paint-over of the `sv01-hero` three-quarter render of `build_ship.py`          | AVIF and WebP, 1x and 2x          |
-| schematic | front-page cutaway, feature-page crops, docs concept pages    | vector: `ship_svg.py`'s side cutaway, with `data-room`, `data-door`, `data-fixture`                 | inline SVG                        |
-| deck map  | the MeridianOS deck view, Academy missions, front-page scenes | runtime art: the layers of 8.2, placed by `SHIP_GEOMETRY` from `@nexusdi/meridian-systems/geometry` | PixiJS v8 canvas plus a DOM layer |
-| icon      | favicon, navbar mark, Ship-note glyph, Academy badges         | vector: the top silhouette, hand-snapped to the pixel grid at each size                             | SVG, and PNG for the favicon      |
+| View      | Where                                                                          | Source                                                                                              | Format                            |
+| --------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- | --------------------------------- |
+| hero      | front page top, feature pages, Academy hub, demo splash                        | marketing art: a lit paint-over of the `sv01-hero` three-quarter render of `build_ship.py`          | AVIF and WebP, 1x and 2x          |
+| schematic | front-page cutaway, feature-page crops, docs concept pages                     | vector: `ship_svg.py`'s side cutaway, with `data-room`, `data-door`, `data-fixture`                 | inline SVG                        |
+| deck map  | the MeridianOS deck view, Academy missions, front-page scenes after 0.4 (11.2) | runtime art: the layers of 8.2, placed by `SHIP_GEOMETRY` from `@nexusdi/meridian-systems/geometry` | PixiJS v8 canvas plus a DOM layer |
+| icon      | favicon, navbar mark, Ship-note glyph, Academy badges                          | vector: the top silhouette, hand-snapped to the pixel grid at each size                             | SVG, and PNG for the favicon      |
 
 The lit painted exteriors are marketing art for the front page and the feature pages
 alone. Until the paint-over is done, the hero uses the mesh render as it is. The schematic
@@ -517,6 +536,10 @@ The schematic, the icon, and the conduits and overlay on the deck map are vector
 - Hull outlines draw in `hull-paint` at 1.5px. In the schematic, rooms fill with `screen`
   lifted 4% toward `hull-paint`, and fixtures draw as `seam` blocks. Room ids are stencil
   placards at the hatch, shown at 12 pixels per metre and above.
+- A schematic room shows its power state by its fill. A powered room fills with `lamp` at
+  12% over its `screen` fill, an unpowered room keeps the plain fill with its emissive
+  screens lit, and an alarmed room pulses an `alarm` fill at 12% (9.2). The site UX spec
+  section 4.3 sets these fills for the front page.
 - A conduit's kind shows by its line: power a solid 2px line, coolant a double line,
   atmosphere a line of round dots. Its hue shows its state: `data` flowing, `action` shed
   or throttled, `alarm` broken. Brightness shows the figure: a power conduit's `data`
@@ -578,6 +601,9 @@ docs-site 10.5 sets. Page navigations use cross-document view transitions
 across a navigation: `meridian-ship` (the hero or the schematic, so the ship stays in
 place from the front page to a feature page) and `meridian-article`. A
 browser without the API swaps with no animation.
+Next's client router makes most navigations on the docs site same-document, so the two
+names also animate through `<ViewTransition>` within the document, and the cross-document
+rule covers full page loads (site UX spec section 10).
 
 ### 9.4 The starfield
 
@@ -649,12 +675,10 @@ The front page opens on the hero: the painted Meridian against space, the headli
 the interactions of concept E: cut a conduit and see the broken link `Nexus.check` names,
 the power-up sequence for async startup, and the three faults (a provider offline, a
 closed hatch, an async provider that fails at startup). Each interaction runs the real
-core and prints its result in a terminal beside the ship. Where a scene fits a deck map,
-such as a fault in one hull section, it runs as a scripted scene on the map runtime of
-section 8, with the same art and light as the demo apps. A scene that needs all three
-decks at once, such as the power-up, uses the vector cutaway. The vector cutaway is also
-the first paint before the runtime loads and the view without JavaScript. The
-front-page UX spec assigns each scene. The power-up is the page's one
+core and prints its result in a terminal beside the ship. Every 0.4 front-page scene runs
+on the vector cutaway (site UX spec U4 and Q6). After the map runtime of section 8
+exists, a "Walk this section" control may open one hull section on the deck map, loaded
+only on that click. The vector cutaway is also the view without JavaScript. The power-up is the page's one
 orchestrated motion. On a phone the schematic shows one hull section at a time with a
 section picker, at 5 pixels per metre at least.
 
@@ -701,6 +725,8 @@ screens.
 - `styles.css` adds `.meridian-terminal`, `.meridian-button`, `.meridian-status`,
   `.meridian-alert` and `.meridian-holo`. The package exports `Terminal`, `Button`,
   `Status`, `Alert` and `HoloLabel` beside today's five components.
+- The package exports `Schematic`, `HullCrop`, `Switch` and `StepList` (7.7), and
+  `styles.css` adds their classes.
 - `apps/docs/app/global.css` drops the gradient on `html`, the glass and the blur, and
   maps the Tailwind gray steps onto the new neutral roles. `meridian-theme.ts` derives the
   Nextra primary from `action`. `layout.tsx` adds the condensed family, and
