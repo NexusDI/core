@@ -80,14 +80,14 @@ export class JumpDrive implements IFtlDrive, Disposable {
     const ship = this.state.snapshot();
     // An armed drive stays armed, so a second spool has nothing to queue. A
     // second router check would refuse it on a tick the router sheds it.
-    if (ship.setpoints.ftl.armed) return { tick: ship.tick + 1 };
+    if (ship.setpoints.ftl?.armed === true) return { tick: ship.tick + 1 };
     this.router.divert({ ...FTL_SPOOL_LOAD, demand: this.rating.power });
     return this.state.queue({ ftl: { armed: true } });
   }
 
   jump(to: string): QueuedCommand {
     if (!this.charts.has(to)) throw refuseFtl('jump', { argument: 'to' });
-    const { charge } = this.state.snapshot().ftl;
+    const charge = this.state.snapshot().ftl?.charge ?? 0;
     if (charge < this.rating.energy) {
       throw new FtlNotSpooledError({ charge, energy: this.rating.energy });
     }

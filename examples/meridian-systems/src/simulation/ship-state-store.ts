@@ -26,7 +26,6 @@ import type {
   LoggedChange,
   QueuedCommand,
   SetpointChange,
-  Setpoints,
 } from './commands';
 import {
   COMPARTMENT_IDS,
@@ -38,6 +37,7 @@ import {
   DOOR_IDS,
   type DoorId,
   type IShipState,
+  type ShipSetpoints,
   type ShipSnapshot,
 } from './contracts';
 import { checkDeckPlan } from './deck-plan-check';
@@ -84,7 +84,10 @@ export class ShipStateStore implements IShipState {
     const change = this.pending;
     if (!change) return this.current;
     this.pending = undefined;
-    const setpoints = mergeFrozen<Setpoints>(this.current.setpoints, change);
+    const setpoints = mergeFrozen<ShipSetpoints>(
+      this.current.setpoints,
+      change,
+    );
     this.entries.push(Object.freeze({ tick, change }));
     if (this.entries.length > LOG_SIZE) {
       this.entries.splice(0, this.entries.length - LOG_SIZE);

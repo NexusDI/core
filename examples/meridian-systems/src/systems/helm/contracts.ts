@@ -54,3 +54,12 @@ export interface IHelm {
 
 export const THRUSTERS = new Token<IThrusters>('Thrusters');
 export const HELM = new Token<IHelm>('Helm');
+
+declare module '../../simulation/contracts' {
+  interface ShipRecords {
+    readonly helm: HelmRecord;
+  }
+  interface ShipSetpoints {
+    readonly helm: HelmSetpoints;
+  }
+}

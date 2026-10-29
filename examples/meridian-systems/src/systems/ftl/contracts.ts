@@ -80,3 +80,16 @@ export const FTL_PHYSICS = new Token<IShipSystem>('FtlPhysics');
 export const FTL_POWER = new Token<IPowerConsumer>('FtlPower');
 /** The drive's commands, which `JumpDrive` registers with the desk. `FtlDrive` keeps them private. */
 export const FTL_COMMANDS = new Token<ICommandHandler>('FtlCommands');
+
+/**
+ * The drive's record and setpoints join the snapshot when a ship loads the
+ * drive, so a ship without it holds neither key.
+ */
+declare module '../../simulation/contracts' {
+  interface ShipRecords {
+    readonly ftl?: FtlRecord;
+  }
+  interface ShipSetpoints {
+    readonly ftl?: FtlSetpoints;
+  }
+}

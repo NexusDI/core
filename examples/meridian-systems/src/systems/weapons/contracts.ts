@@ -76,3 +76,12 @@ export interface IWeaponMount {
 }
 
 export const WEAPON_MOUNT = new Token<IWeaponMount>('WeaponMount');
+
+declare module '../../simulation/contracts' {
+  interface ShipRecords {
+    readonly weapons: WeaponsRecord;
+  }
+  interface ShipSetpoints {
+    readonly weapons: WeaponsSetpoints;
+  }
+}

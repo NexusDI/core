@@ -22,8 +22,8 @@ export const answerFtlSection = (drive: IFtlDrive): FtlSectionReply => ({
 
 /**
  * The FTL rating of each telemetry frame, read through the stream's request
- * scope `scope`: undefined while the frame's FTL record reads `offline`, and
- * from the first other status the rating of the drive bound to FTL_DRIVE.
+ * scope `scope`: undefined while the frame holds no FTL record or the record
+ * reads `offline`, and from the first other status the rating of the drive bound to FTL_DRIVE.
  * The stream's scope opened before the first FTL request loaded the drive,
  * so the read calls `scope.extend()` first. Without the extend, `get` throws
  * NEXUS_LOADED_AFTER_SCOPE. The extend and the read run once, and every
@@ -32,8 +32,8 @@ export const answerFtlSection = (drive: IFtlDrive): FtlSectionReply => ({
 export function ftlRating(scope: Pick<Scope, 'extend' | 'get'>): FrameRating {
   let rating: Promise<FtlRating> | undefined;
   return async (reading) => {
-    if (rating === undefined && reading.ftl.status === 'offline')
-      return undefined;
+    const status = reading.ftl?.status ?? 'offline';
+    if (rating === undefined && status === 'offline') return undefined;
     rating ??= scope.extend().then(() => scope.get(FTL_DRIVE).rating);
     return rating;
   };

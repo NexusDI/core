@@ -7,6 +7,7 @@ import { COMMAND_DESK } from '../src/simulation/commands';
 import {
   COMPARTMENT,
   DECK_PLAN,
+  SHIP_RECORDS,
   type SimOptions,
   TICK_LOOP,
 } from '../src/simulation/contracts';
@@ -36,6 +37,37 @@ describe('MeridianSystems', () => {
     );
     await using ship = await Nexus.create(shipRoot({ reads: [Telemetry] }));
     expect(ship.get(TELEMETRY)).toBeDefined();
+  });
+
+  test('collects the record of every system at startup through SHIP_RECORDS', ({
+    nexus: ship,
+  }) => {
+    const records = ship.get(SHIP_RECORDS);
+    expect(
+      records.flatMap((entry) => Object.keys(entry.records)).sort(),
+    ).toEqual([
+      'comms',
+      'coolant',
+      'drive',
+      'helm',
+      'lifeSupport',
+      'power',
+      'reactor',
+      'safety',
+      'weapons',
+    ]);
+    expect(
+      records.flatMap((entry) => Object.keys(entry.setpoints)).sort(),
+    ).toEqual([
+      'comms',
+      'drive',
+      'helm',
+      'lifeSupport',
+      'reactor',
+      'safety',
+      'shields',
+      'weapons',
+    ]);
   });
 
   it('builds on its own and gives one snapshot for one seed', async () => {

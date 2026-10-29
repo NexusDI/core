@@ -41,3 +41,12 @@ export interface IMainDrive {
 }
 
 export const MAIN_DRIVE = new Token<IMainDrive>('MainDrive');
+
+declare module '../../simulation/contracts' {
+  interface ShipRecords {
+    readonly drive: DriveRecord;
+  }
+  interface ShipSetpoints {
+    readonly drive: DriveSetpoints;
+  }
+}

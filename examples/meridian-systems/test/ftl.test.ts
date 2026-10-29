@@ -260,11 +260,11 @@ describe('the FTL drive', () => {
     expect(ship.has(FTL_DRIVE)).toBe(false);
     // The loop holds its six built-in systems again, so the name is free.
     loop.register({ name: 'FtlDrive', phase: 3, step: (ship) => ship })();
-    expect(loop.advance(1).ftl.status).toBe('offline');
+    expect(loop.advance(1).ftl?.status).toBe('offline');
 
     await ship.load(FtlDrive);
     const loaded = loop.advance(1);
-    expect(loaded.ftl.status).toBe('idle');
+    expect(loaded.ftl?.status).toBe('idle');
     expect(loaded.power.loads.map(({ id }) => id)).toContain('ftl-spool');
   });
 
@@ -304,7 +304,7 @@ describe('the FTL drive', () => {
     for (let tick = 76; tick <= 90; tick++) {
       const ship = loop.advance(1);
       expect(ship.tick).toBe(tick);
-      expect(ship.ftl.status).toBe('held');
+      expect(ship.ftl?.status).toBe('held');
       expect(spoolLoad(ship)).toMatchObject({ demand: 0, allocated: 0 });
       expect(ship.safety.alarms).toEqual([]);
     }
@@ -348,7 +348,7 @@ describe('the FTL drive', () => {
     expect(drive.spool()).toEqual({ tick: 201 });
     expect(state.log().map(({ tick }) => tick)).toEqual([1, 101]);
 
-    expect(loop.advance(99).ftl.charge).toBe(89_550_000_000);
+    expect(loop.advance(99).ftl?.charge).toBe(89_550_000_000);
     const full = loop.advance(1);
     expect(full.tick).toBe(300);
     expect(full.ftl).toEqual({

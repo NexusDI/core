@@ -4,6 +4,7 @@ import { COMMAND_HANDLERS } from '../../simulation/commands';
 import {
   DECK_PLAN,
   SHIP_FILES,
+  SHIP_RECORDS,
   SHIP_SYSTEMS,
 } from '../../simulation/contracts';
 import { POWER_CONSUMERS } from '../engineering/contracts';
@@ -22,6 +23,7 @@ import { LifeSupportCommands } from './life-support-commands';
 import { LifeSupportPhysics } from './life-support-physics';
 import { LifeSupportPower } from './life-support-power';
 import { readCalibration } from './read-calibration';
+import { lifeSupportRecord } from './life-support-record';
 
 /** The air of every compartment, stepped in phase 4, its probe, its analyzers and its panel. */
 export const LifeSupport = defineModule({
@@ -39,6 +41,10 @@ export const LifeSupport = defineModule({
     provide(SHIP_SYSTEMS, { useClass: LifeSupportPhysics }),
     provide(POWER_CONSUMERS, { useClass: LifeSupportPower }),
     provide(COMMAND_HANDLERS, { useClass: LifeSupportCommands }),
+    provide(SHIP_RECORDS, {
+      useFactory: lifeSupportRecord,
+      deps: [DECK_PLAN],
+    }),
   ],
   exports: [
     ATMOSPHERE_PROBE,
@@ -47,6 +53,7 @@ export const LifeSupport = defineModule({
     SHIP_SYSTEMS,
     POWER_CONSUMERS,
     COMMAND_HANDLERS,
+    SHIP_RECORDS,
   ],
 });
 

@@ -73,3 +73,12 @@ export const SUBSPACE_LINK_OPTIONS = new Token<SubspaceLinkOptions>(
   'SubspaceLinkOptions',
 );
 export const COMMS_ARRAY = new Token<ICommsArray>('CommsArray');
+
+declare module '../../simulation/contracts' {
+  interface ShipRecords {
+    readonly comms: CommsRecord;
+  }
+  interface ShipSetpoints {
+    readonly comms: CommsSetpoints;
+  }
+}

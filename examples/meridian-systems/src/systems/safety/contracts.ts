@@ -104,3 +104,12 @@ export const FIRE_SUPPRESSION = new Token<IFireSuppression>('FireSuppression');
 /** Every sink the master alarm tells. A module contributes one with `provide(ALARM_SINKS, ...)`. */
 export const ALARM_SINKS = new MultiToken<IAlarmSink>('AlarmSinks');
 export const MASTER_ALARM = new Token<IMasterAlarm>('MasterAlarm');
+
+declare module '../../simulation/contracts' {
+  interface ShipRecords {
+    readonly safety: SafetyRecord<CompartmentId>;
+  }
+  interface ShipSetpoints {
+    readonly safety: SafetySetpoints<CompartmentId, DoorId>;
+  }
+}

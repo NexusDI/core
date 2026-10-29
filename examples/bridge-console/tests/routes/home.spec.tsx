@@ -18,7 +18,7 @@ const home = await import('../../app/routes/home');
 /** The ship after a jump to Proxima-b. */
 const jumped: ShipReading = {
   ...shipAtStart,
-  ftl: { ...shipAtStart.ftl, sector: 'Proxima-b', jumped: 12 },
+  ftl: { status: 'idle', charge: 0, sector: 'Proxima-b', jumped: 12 },
 };
 
 describe('Home route', () => {

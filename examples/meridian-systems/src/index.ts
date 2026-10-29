@@ -34,7 +34,6 @@ export {
   type LoggedChange,
   type QueuedCommand,
   type SetpointChange,
-  type Setpoints,
   type ShipCommand,
 } from './simulation/commands';
 export {
@@ -59,14 +58,18 @@ export {
   PHASES,
   RNG,
   SHIP_FILES,
+  SHIP_RECORDS,
   SHIP_STATE,
   SHIP_SYSTEMS,
   SIM_CLOCK,
   SIM_OPTIONS,
   type ShipReading,
+  type ShipRecords,
+  type ShipSetpoints,
   type ShipSnapshot,
   type ShipSystemClass,
   type SimOptions,
+  type SystemRecord,
   TICK_LOOP,
   type TickContext,
   type TickListener,
@@ -114,12 +117,14 @@ export {
   type PowerRecord,
   type ReactorRating,
   type ReactorRecord,
+  type ReactorSetpoints,
   REACTOR,
+  type ShieldSetpoints,
   SHIELD_GRID,
 } from './systems/engineering/contracts';
 
-// The FTL drive, which a running ship adds with load(), its contract and
-// the command handler a stand-in drive registers with the desk.
+// The FTL drive, which a running ship adds with load(), its contract, and
+// the command handler and the record a stand-in drive registers.
 export {
   FTL_DRIVE,
   type FtlRating,
@@ -129,6 +134,7 @@ export {
   type IFtlDrive,
 } from './systems/ftl/contracts';
 export { FtlCommands } from './systems/ftl/ftl-commands';
+export { FTL_RECORD } from './systems/ftl/ftl-record';
 export { FtlDrive } from './systems/ftl/ftl-drive.module';
 
 // Helm.

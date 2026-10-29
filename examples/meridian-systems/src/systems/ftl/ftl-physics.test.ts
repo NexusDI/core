@@ -20,11 +20,12 @@ const tick: TickContext = {
   start,
 };
 
-/** The ship at the start with the drive's record at `idle`. */
-const idle: ShipSnapshot = {
+/** The ship at the start with the drive's record at `idle` and the drive unarmed. */
+const idle = {
   ...start,
-  ftl: { ...start.ftl, status: 'idle' },
-};
+  ftl: { status: 'idle', charge: 0, sector: 'Sol', jumped: null },
+  setpoints: { ...start.setpoints, ftl: { armed: false, jump: null } },
+} satisfies ShipSnapshot;
 
 /** The idle ship after a phase 1 that allocated the spool `allocated` W, armed. */
 function armed(allocated: number): ShipSnapshot {

@@ -72,7 +72,10 @@ function build(refuse = false) {
 /** Commits the store's snapshot with the spool holding `charge` J. */
 function charged(state: ShipStateStore, charge: number): void {
   const ship = state.snapshot();
-  state.commit({ ...ship, ftl: { ...ship.ftl, charge } });
+  state.commit({
+    ...ship,
+    ftl: { status: 'spooling', charge, sector: 'Sol', jumped: null },
+  });
 }
 
 describe('JumpDrive', () => {
