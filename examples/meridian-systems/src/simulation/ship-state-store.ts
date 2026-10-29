@@ -13,10 +13,7 @@ import type {
   LifeSupportSetpoints,
   PumpMode,
 } from '../systems/life-support/contracts';
-import {
-  LIFE_SUPPORT_DEVICES,
-  LIFE_SUPPORT_LOAD,
-} from '../systems/life-support/life-support-model';
+import { LIFE_SUPPORT_LOAD } from '../systems/life-support/life-support-model';
 import { MAIN_DRIVE_LOAD } from '../systems/propulsion/propulsion-model';
 import type {
   SafetyRecord,
@@ -43,6 +40,7 @@ import {
   type IShipState,
   type ShipSnapshot,
 } from './contracts';
+import { checkDeckPlan } from './deck-plan-check';
 
 /**
  * The most entries `log()` keeps. The store logs one entry per tick that
@@ -138,92 +136,6 @@ function mergeFrozen<T extends object>(base: T, change: DeepPartial<T>): T {
 }
 
 /**
- * Refuses a plan whose `equipment` lists an unknown device or one device
- * twice, a pump with no `pumpReservoir` or the reverse, or a reservoir that is
- * unknown or the pump's own room.
- */
-function checkEquipment(room: CompartmentPlan): void {
-  const devices = new Set<string>();
-  for (const device of room.equipment ?? []) {
-    if (!(LIFE_SUPPORT_DEVICES as readonly string[]).includes(device)) {
-      throw new Error(
-        `The deck plan gives compartment '${room.id}' an unknown device '${device}'.`,
-      );
-    }
-    if (devices.has(device)) {
-      throw new Error(
-        `The deck plan gives compartment '${room.id}' the device '${device}' twice.`,
-      );
-    }
-    devices.add(device);
-  }
-  const reservoir = room.pumpReservoir;
-  if (devices.has('pump') && reservoir === undefined) {
-    throw new Error(
-      `The deck plan gives compartment '${room.id}' a pump and no pumpReservoir.`,
-    );
-  }
-  if (reservoir === undefined) return;
-  if (!devices.has('pump')) {
-    throw new Error(
-      `The deck plan gives compartment '${room.id}' a pumpReservoir and no pump.`,
-    );
-  }
-  if (reservoir === room.id) {
-    throw new Error(`The deck plan pumps compartment '${room.id}' to itself.`);
-  }
-  if (!(COMPARTMENT_IDS as readonly string[]).includes(reservoir)) {
-    throw new Error(
-      `The deck plan pumps compartment '${room.id}' to an unknown compartment '${reservoir}'.`,
-    );
-  }
-}
-
-/** Refuses a flood charge that is not a positive finite number of moles. */
-function checkFloodCharge(room: CompartmentPlan): void {
-  const charge = room.floodCharge;
-  if (charge === undefined) return;
-  if (!Number.isFinite(charge) || charge <= 0) {
-    throw new Error(
-      `The deck plan gives compartment '${room.id}' a floodCharge of ${charge}. A charge is a positive finite number of moles.`,
-    );
-  }
-}
-
-/** A compartment id or `space`. */
-function isSide(id: string): boolean {
-  return id === 'space' || (COMPARTMENT_IDS as readonly string[]).includes(id);
-}
-
-/**
- * Refuses a deck whose doors differ from `DOOR_IDS`, or a door whose
- * `between` does not hold two distinct sides, each a compartment id or
- * `space`.
- */
-function checkDoors(deck: DeckPlan): void {
-  const seen = new Set<string>();
-  for (const door of deck.doors) {
-    if (!(DOOR_IDS as readonly string[]).includes(door.id)) {
-      throw new Error(`The deck plan names an unknown door '${door.id}'.`);
-    }
-    if (seen.has(door.id)) {
-      throw new Error(`The deck plan names door '${door.id}' twice.`);
-    }
-    seen.add(door.id);
-    const [a, b] = door.between;
-    const sides = door.between.length === 2 && a !== b;
-    if (!sides || !door.between.every(isSide)) {
-      throw new Error(
-        `The deck plan gives door '${door.id}' the sides ${JSON.stringify(door.between)}. A door joins two compartments, or one compartment and space.`,
-      );
-    }
-  }
-  for (const id of DOOR_IDS) {
-    if (!seen.has(id)) throw new Error(`The deck plan has no door '${id}'.`);
-  }
-}
-
-/**
  * Every door shut, and the flood valve and the drill flag of each room with
  * a flood charge off. No room burns and no alarm is active; each charged
  * room's flood count starts at 0.
@@ -304,30 +216,19 @@ function initialLifeSupport(
 }
 
 function initialSnapshot(deck: DeckPlan): ShipSnapshot {
+  checkDeckPlan(deck);
   const { temperature, pressure } = deck.initial;
-  const seen = new Set<string>();
-  for (const room of deck.compartments) {
-    if (!(COMPARTMENT_IDS as readonly string[]).includes(room.id)) {
-      throw new Error(
-        `The deck plan names an unknown compartment '${room.id}'.`,
-      );
-    }
-    if (seen.has(room.id)) {
-      throw new Error(`The deck plan names compartment '${room.id}' twice.`);
-    }
-    seen.add(room.id);
-    checkEquipment(room);
-    checkFloodCharge(room);
-  }
-  checkDoors(deck);
   const rooms = {} as Record<CompartmentId, CompartmentPlan>;
   const compartments = {} as Record<CompartmentId, CompartmentState>;
-  for (const id of COMPARTMENT_IDS) {
-    const room = deck.compartments.find((plan) => plan.id === id);
-    if (!room) throw new Error(`The deck plan has no compartment '${id}'.`);
+  for (const room of deck.compartments) {
+    const id = room.id as CompartmentId;
     rooms[id] = room;
+  }
+  for (const id of COMPARTMENT_IDS) {
     compartments[id] = Object.freeze({
-      moles: Object.freeze(molesAt(pressure, temperature, room.volume, AIR)),
+      moles: Object.freeze(
+        molesAt(pressure, temperature, rooms[id].volume, AIR),
+      ),
       temperature,
     });
   }

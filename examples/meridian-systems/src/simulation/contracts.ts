@@ -51,7 +51,7 @@ export const COMPARTMENT_IDS = [
 ] as const;
 export type CompartmentId = (typeof COMPARTMENT_IDS)[number];
 
-/** Every door of the ship. `ShipStateStore` checks the deck's doors against this list. */
+/** Every door of the ship. `checkDeckPlan` checks the deck's doors against this list. */
 export const DOOR_IDS = [
   'bridge-habitat',
   'habitat-reactor-bay',
@@ -109,9 +109,9 @@ export interface ShipReading extends Omit<ShipSnapshot, 'compartments'> {
  * One compartment of the deck: its volume, hull and crew, the life-support
  * devices it carries (`RoomPlan` documents each field) and its flood charge
  * (`FloodPlan`). The ids are strings because a JSON import types them so.
- * `ShipStateStore` checks them against `COMPARTMENT_IDS` and the devices
- * against `LIFE_SUPPORT_DEVICES`. It also checks the charge when the
- * container builds it.
+ * `checkDeckPlan` checks them against `COMPARTMENT_IDS` and the devices
+ * against `LIFE_SUPPORT_DEVICES`, and `ShipStateStore` runs the check when
+ * the container builds it.
  */
 export type CompartmentPlan = RoomPlan & FloodPlan;
 
@@ -120,7 +120,7 @@ export type { DoorPlan } from '../physics/doors';
 /** The shape of `deck/meridian.deck.json`. */
 export interface DeckPlan {
   readonly compartments: readonly CompartmentPlan[];
-  /** `ShipStateStore` checks the ids against `DOOR_IDS` and the sides against `COMPARTMENT_IDS`. */
+  /** `checkDeckPlan` checks the ids against `DOOR_IDS` and the sides against `COMPARTMENT_IDS`. */
   readonly doors: readonly DoorPlan[];
   readonly initial: {
     /** Kelvin. */
