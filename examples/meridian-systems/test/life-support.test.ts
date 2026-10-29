@@ -1,15 +1,18 @@
 import { Nexus } from '@nexusdi/core';
-import { describe, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { ShipLifeSupport } from '../src/systems/life-support/life-support.module';
 import { UnknownCompartmentError } from '../src/errors';
 import { OFF_GASSING } from '../src/systems/life-support/life-support-model';
 import { pressure, totalMoles } from '../src/physics/gas';
+import { BundledShipFiles } from '../src/simulation/bundled-ship-files';
 import { COMMAND_DESK } from '../src/simulation/commands';
 import {
   type CompartmentId,
   DECK_PLAN,
   type DeckPlan,
+  type IShipFiles,
+  SHIP_FILES,
   SHIP_STATE,
   type ShipSnapshot,
   TICK_LOOP,
@@ -22,7 +25,7 @@ import {
 
 import { shipRoot } from './ship-root';
 import { shipTest } from './fixtures';
-import { loadOf, online, throttle } from './support';
+import { caught, loadOf, online, SHIP_OPTIONS, throttle } from './support';
 
 /** The system modules whose tokens these cases read from the root. */
 const READS = [ShipLifeSupport];
@@ -199,5 +202,39 @@ describe('LifeSupport', () => {
     const hour = ship.get(TICK_LOOP).advance(7_200);
     expect(hour.compartments.habitat.temperature.toFixed(1)).toBe('292.6');
     expect(hour.power.shed).toEqual([]);
+  });
+});
+
+describe('the calibration read', () => {
+  it('fails startup with NEXUS_PROVIDER_FAILED when the ship files cannot read it, and names the file', async () => {
+    const failing: IShipFiles = {
+      read: async (name) => {
+        throw new Error(`The disk holds no ${name}.`);
+      },
+    };
+    const error = await caught(() =>
+      Nexus.create(shipRoot({ sim: { ...SHIP_OPTIONS, files: failing } })),
+    );
+    expect(error).toMatchObject({
+      code: 'NEXUS_PROVIDER_FAILED',
+      token: 'LifeSupportOptions',
+      cause: { message: 'The disk holds no sensors.calibration.json.' },
+    });
+  });
+
+  it('reads the calibration through the ship files the options name', async () => {
+    const read: string[] = [];
+    const bundled = new BundledShipFiles();
+    const recording: IShipFiles = {
+      read: (name) => {
+        read.push(name);
+        return bundled.read(name);
+      },
+    };
+    await using ship = await Nexus.create(
+      shipRoot({ sim: { ...SHIP_OPTIONS, files: recording } }),
+    );
+    expect(ship.get(SHIP_FILES)).toBe(recording);
+    expect(read).toEqual(['sensors.calibration.json']);
   });
 });

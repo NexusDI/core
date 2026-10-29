@@ -95,6 +95,8 @@ describe('Simulation.forRoot', () => {
   // The schema runs at create, and Nexus.create rejects with
   // NEXUS_PROVIDER_FAILED. The issues sit on error.cause, and the errors()
   // message does not show them yet (NexusDI/core#176).
+  const FILES = 'expected an object with a read(name) method';
+
   it.each([
     [{ seed: 1.5, dt: 0.5 }, 'seed', `${SEED}, got 1.5`],
     [{ seed: -1, dt: 0.5 }, 'seed', `${SEED}, got -1`],
@@ -105,6 +107,13 @@ describe('Simulation.forRoot', () => {
     [{ seed: 7, dt: -0.5 }, 'dt', `${DT}, got -0.5`],
     [{ seed: 7, dt: Number.POSITIVE_INFINITY }, 'dt', `${DT}, got Infinity`],
     [{ seed: 7 }, 'dt', `${DT}, got undefined`],
+    [{ seed: 7, dt: 0.5, files: 'x' }, 'files', `${FILES}, got "x"`],
+    [{ seed: 7, dt: 0.5, files: {} }, 'files', `${FILES}, got [object Object]`],
+    [
+      { seed: 7, dt: 0.5, files: { read: 1 } },
+      'files',
+      `${FILES}, got [object Object]`,
+    ],
   ])('refuses %o at create', async (options, field, message) => {
     const error = await caught(() =>
       Nexus.create(shipRoot({ sim: options as unknown as SimOptions })),
@@ -137,6 +146,7 @@ describe('Simulation.forRoot', () => {
   it.each([
     { seed: 0, dt: 0.001 },
     { seed: 4294967295, dt: 60 },
+    { seed: 7, dt: 0.5, files: undefined },
   ])('accepts %o', async (options) => {
     await using ship = await Nexus.create(shipRoot({ sim: options }));
     expect(ship.get(TICK_LOOP).advance(1).time).toBe(options.dt);

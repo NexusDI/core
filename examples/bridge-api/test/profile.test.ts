@@ -18,15 +18,16 @@ it('profiles the LifeSupportOptions factory as the async step of startup', async
   expect(report.graph?.root).toBe('OfflineMeridian');
   const [create] = report.runs;
   expect(create).toMatchObject({ kind: 'create', ok: true });
-  // readCalibration is async, so the container awaits the options before
-  // LifeSupport's physics, power and analyzer build on them.
+  // readCalibration is async and reads SHIP_FILES, so the container awaits
+  // the options one level after it builds the files, before LifeSupport's
+  // physics, power and analyzer build on them.
   const awaited = create.builds.filter((build) => build.async);
   expect(awaited).toEqual([
     expect.objectContaining({
       token: 'LifeSupportOptions',
       module: 'LifeSupport',
       lifetime: 'singleton',
-      level: 0,
+      level: 1,
       failed: false,
     }),
   ]);
@@ -54,15 +55,15 @@ it('profiles the charts download of Meridian beside the LifeSupportOptions facto
   const awaited = create.builds.filter((build) => build.async);
   expect(awaited).toEqual([
     expect.objectContaining({
-      token: 'LifeSupportOptions',
-      module: 'LifeSupport',
+      token: 'NavCharts',
+      module: 'Tactical',
       lifetime: 'singleton',
-      level: 0,
+      level: 1,
       failed: false,
     }),
     expect.objectContaining({
-      token: 'NavCharts',
-      module: 'Tactical',
+      token: 'LifeSupportOptions',
+      module: 'LifeSupport',
       lifetime: 'singleton',
       level: 1,
       failed: false,

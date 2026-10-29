@@ -63,6 +63,8 @@ Each Node entry builds the container from the environment and listens on `PORT`,
 
 Two more variables set up the simulation, and a tick is always 0.5 ship seconds. `SIM_MODE` is `live`, the default, or `manual`. `SIM_SEED` is a whole number from 0 to 4294967295, and defaults to 7. An empty variable counts as unset, and any other value stops the server with an error that names the variable and the values it takes.
 
+The Node servers read the ship's files from disk. `shipFromEnv` passes `files: new NodeShipFiles(shipFilesDir())` (`src/env/ship-files.ts`) to `Simulation.forRoot`, so the life-support calibration comes from `deck/sensors.calibration.json` in `@nexusdi/meridian-systems` through `node:fs/promises` when the ship starts. A missing or unreadable file stops the server with `NEXUS_PROVIDER_FAILED` for `LifeSupportOptions`, whose cause names the file. A Worker has no file system, so `src/entries/worker.ts` and `worker.offline.ts` pass no `files`, and the ship reads the copies the library bundles.
+
 ```sh
 npx nx dev @nexusdi/bridge-api
 npx nx run @nexusdi/bridge-api:build-deps
