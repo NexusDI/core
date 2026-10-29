@@ -26,9 +26,10 @@ export const loader = di.inject(
   async ({ log, request, charts, link }) => {
     log.record('docked');
     const ship = await link.snapshot().catch(() => null);
+    const ftl = ship?.ftl;
     const star =
-      ship !== null && ship.ftl.jumped !== null
-        ? ship.ftl.sector
+      ftl !== undefined && ftl.jumped !== null
+        ? ftl.sector
         : request.mission.target;
     return {
       mission: request.mission.id,

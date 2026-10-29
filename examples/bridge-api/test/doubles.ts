@@ -159,13 +159,15 @@ export class FakeJumpDrive implements IFtlDrive, Disposable {
 
   private step(ship: ShipSnapshot, { tick }: TickContext): ShipSnapshot {
     const { ftl, setpoints } = ship;
-    if (setpoints.ftl.jump !== null) {
+    const set = setpoints.ftl;
+    if (ftl === undefined || set === undefined) return ship;
+    if (set.jump !== null) {
       return Object.freeze({
         ...ship,
         ftl: Object.freeze({
           status: 'idle',
           charge: 0,
-          sector: setpoints.ftl.jump,
+          sector: set.jump,
           jumped: tick,
         }),
         setpoints: Object.freeze({
@@ -177,10 +179,10 @@ export class FakeJumpDrive implements IFtlDrive, Disposable {
     const write = (next: FtlRecord): ShipSnapshot =>
       Object.freeze({ ...ship, ftl: Object.freeze(next) });
     // The first unarmed step after the load writes idle, as the drive's does.
-    if (ftl.status === 'offline' && !setpoints.ftl.armed) {
+    if (ftl.status === 'offline' && !set.armed) {
       return write({ ...ftl, status: 'idle' });
     }
-    if (!setpoints.ftl.armed || ftl.status === 'charged') return ship;
+    if (!set.armed || ftl.status === 'charged') return ship;
     return write({ ...ftl, status: 'charged', charge: this.rating.energy });
   }
 }

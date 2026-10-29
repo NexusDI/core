@@ -1,30 +1,6 @@
 import { MultiToken, Token } from '@nexusdi/core';
 
-import type { CommsSetpoints } from '../systems/comms/contracts';
-import type { FtlSetpoints } from '../systems/ftl/contracts';
-import type { HelmSetpoints } from '../systems/helm/contracts';
-import type { LifeSupportSetpoints } from '../systems/life-support/contracts';
-import type { DriveSetpoints } from '../systems/propulsion/contracts';
-import type { SafetySetpoints } from '../systems/safety/contracts';
-import type { WeaponsSetpoints } from '../systems/weapons/contracts';
-
-import type { CompartmentId, DoorId } from './contracts';
-
-/** What the crew asks of each system. A system steps toward its setpoint each tick. */
-export interface Setpoints {
-  readonly reactor: {
-    /** The reactor level the crew asks for, 0 to 1. */
-    readonly throttle: number;
-  };
-  readonly shields: { readonly raised: boolean };
-  readonly lifeSupport: LifeSupportSetpoints<CompartmentId>;
-  readonly comms: CommsSetpoints;
-  readonly weapons: WeaponsSetpoints;
-  readonly drive: DriveSetpoints;
-  readonly helm: HelmSetpoints;
-  readonly ftl: FtlSetpoints;
-  readonly safety: SafetySetpoints<CompartmentId, DoorId>;
-}
+import type { ShipSetpoints } from './contracts';
 
 /**
  * `T` with every field optional at every level of plain objects. An array or
@@ -37,7 +13,7 @@ export type DeepPartial<T> = T extends readonly unknown[]
     : T;
 
 /** The setpoints one command changes. `SHIP_STATE` merges it over the current ones, level by level. */
-export type SetpointChange = DeepPartial<Setpoints>;
+export type SetpointChange = DeepPartial<ShipSetpoints>;
 
 /** The answer to a queued command. */
 export interface QueuedCommand {

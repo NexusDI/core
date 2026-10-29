@@ -35,6 +35,17 @@ export interface ReactorRecord {
   readonly tripped: boolean;
 }
 
+/** What the crew set for the reactor. */
+export interface ReactorSetpoints {
+  /** The reactor level the crew asks for, 0 to 1. */
+  readonly throttle: number;
+}
+
+/** What the crew set for the deflector shields. */
+export interface ShieldSetpoints {
+  readonly raised: boolean;
+}
+
 /** The fixed figures of a coolant loop and its radiators. */
 export interface CoolantRating {
   /** Coolant mass, in kg. */
@@ -151,3 +162,15 @@ export const SHIELD_GRID = new Token<IShieldGrid>('ShieldGrid');
  * consumer here and exports the token.
  */
 export const POWER_CONSUMERS = new MultiToken<IPowerConsumer>('PowerConsumers');
+
+declare module '../../simulation/contracts' {
+  interface ShipRecords {
+    readonly reactor: ReactorRecord;
+    readonly coolant: CoolantRecord;
+    readonly power: PowerRecord;
+  }
+  interface ShipSetpoints {
+    readonly reactor: ReactorSetpoints;
+    readonly shields: ShieldSetpoints;
+  }
+}

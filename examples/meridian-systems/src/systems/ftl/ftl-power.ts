@@ -16,16 +16,14 @@ export class FtlPower implements IPowerConsumer {
 
   constructor(private readonly rating: FtlRating = FTL_SPOOL) {}
 
+  /** A ship that holds no FTL record asks 0 W. */
   draw(ship: ShipSnapshot): PowerLoad {
-    return {
-      ...FTL_SPOOL_LOAD,
-      demand: ftlDemand(
-        ship.ftl,
-        ship.setpoints.ftl,
-        ship.reactor,
-        ship.coolant,
-        this.rating,
-      ),
-    };
+    const { ftl } = ship;
+    const setpoints = ship.setpoints.ftl;
+    const demand =
+      ftl === undefined || setpoints === undefined
+        ? 0
+        : ftlDemand(ftl, setpoints, ship.reactor, ship.coolant, this.rating);
+    return { ...FTL_SPOOL_LOAD, demand };
   }
 }

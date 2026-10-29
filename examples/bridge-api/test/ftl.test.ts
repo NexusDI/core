@@ -56,14 +56,14 @@ describe.each(FRAMEWORKS)('the telemetry stream on %s', (framework) => {
       );
       const first = await frameAt(stream, 0);
       expect(first.tick).toBe(0);
-      expect(first.ftl.status).toBe('offline');
+      expect(first.ftl?.status).toBe('offline');
       expect(first).not.toHaveProperty('ftlRating');
 
       expect((await post('/sections/ftl')).status).toBe(200);
       expect((await post('/sim/advance', json({ ticks: 1 }))).status).toBe(200);
       const loaded = await frameAt(stream, 1);
       expect(loaded.tick).toBe(1);
-      expect(loaded.ftl.status).toBe('idle');
+      expect(loaded.ftl?.status).toBe('idle');
       expect(loaded.ftlRating).toEqual({
         energy: 90_000_000_000,
         power: 900_000_000,
@@ -123,7 +123,7 @@ describe.each(FRAMEWORKS)('the simulated drive on %s', (framework) => {
         await fetch(`${bridge.url}/telemetry`, { signal: abort.signal }),
       );
       const first = await frameAt(stream, 0);
-      expect(first.ftl.status).toBe('offline');
+      expect(first.ftl?.status).toBe('offline');
       expect(first).not.toHaveProperty('ftlRating');
       expect(
         (await fetch(`${bridge.url}/sections/ftl`, { method: 'POST' })).status,
@@ -143,7 +143,7 @@ describe.each(FRAMEWORKS)('the simulated drive on %s', (framework) => {
         body: JSON.stringify({ ticks: 1 }),
       });
       const loaded = await frameAt(stream, 1);
-      expect(loaded.ftl.status).toBe('charged');
+      expect(loaded.ftl?.status).toBe('charged');
       expect(loaded.ftlRating?.power).toBe(0);
       abort.abort();
     } finally {

@@ -1,7 +1,11 @@
 import { defineModule, provide } from '@nexusdi/core';
 
 import { COMMAND_HANDLERS } from '../../simulation/commands';
-import { SHIP_SYSTEMS } from '../../simulation/contracts';
+import {
+  DECK_PLAN,
+  SHIP_RECORDS,
+  SHIP_SYSTEMS,
+} from '../../simulation/contracts';
 import { ShipLifeSupport } from '../life-support/life-support.module';
 
 import { BlastDoorControl } from './blast-door-control';
@@ -10,6 +14,7 @@ import { InertGasSuppression } from './inert-gas-suppression';
 import { MasterAlarm } from './master-alarm';
 import { SafetyCommands } from './safety-commands';
 import { SafetyPhysics } from './safety-physics';
+import { safetyRecord } from './safety-record';
 
 /** The doors, the fires, the floods and the alarms, stepped in phase 5, with their panels and the master alarm. */
 export const Safety = defineModule({
@@ -22,6 +27,7 @@ export const Safety = defineModule({
     provide(MASTER_ALARM, { useClass: MasterAlarm }),
     provide(SHIP_SYSTEMS, { useClass: SafetyPhysics }),
     provide(COMMAND_HANDLERS, { useClass: SafetyCommands }),
+    provide(SHIP_RECORDS, { useFactory: safetyRecord, deps: [DECK_PLAN] }),
   ],
   exports: [
     BLAST_DOORS,
@@ -29,5 +35,6 @@ export const Safety = defineModule({
     MASTER_ALARM,
     SHIP_SYSTEMS,
     COMMAND_HANDLERS,
+    SHIP_RECORDS,
   ],
 });

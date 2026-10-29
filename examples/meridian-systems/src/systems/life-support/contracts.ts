@@ -224,3 +224,12 @@ export const ATMOSPHERE_CONTROL = new Token<IAtmosphereControl>(
 export const LIFE_SUPPORT_OPTIONS = new Token<LifeSupportOptions>(
   'LifeSupportOptions',
 );
+
+declare module '../../simulation/contracts' {
+  interface ShipRecords {
+    readonly lifeSupport: LifeSupportRecord<CompartmentId>;
+  }
+  interface ShipSetpoints {
+    readonly lifeSupport: LifeSupportSetpoints<CompartmentId>;
+  }
+}

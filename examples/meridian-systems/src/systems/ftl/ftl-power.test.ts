@@ -9,12 +9,13 @@ import { FtlPower } from './ftl-power';
 
 const start = new ShipStateStore(deck satisfies DeckPlan).snapshot();
 
-/** The ship armed with the reactor at full. */
-const ready: ShipSnapshot = {
+/** The ship with the drive's record idle, armed, and the reactor at full. */
+const ready = {
   ...start,
   reactor: { ...start.reactor, level: 1 },
+  ftl: { status: 'idle', charge: 0, sector: 'Sol', jumped: null },
   setpoints: { ...start.setpoints, ftl: { armed: true, jump: null } },
-};
+} satisfies ShipSnapshot;
 
 describe('FtlPower', () => {
   it('draws 0 W at priority 7 on the ship at the start', () => {

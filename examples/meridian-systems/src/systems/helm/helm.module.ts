@@ -1,7 +1,7 @@
 import { defineModule, provide } from '@nexusdi/core';
 
 import { COMMAND_HANDLERS } from '../../simulation/commands';
-import { SHIP_SYSTEMS } from '../../simulation/contracts';
+import { SHIP_RECORDS, SHIP_SYSTEMS } from '../../simulation/contracts';
 import { POWER_CONSUMERS } from '../engineering/contracts';
 import { Propulsion } from '../propulsion/propulsion.module';
 import { Tactical } from '../tactical/tactical.module';
@@ -12,6 +12,7 @@ import { HelmControl } from './helm-control';
 import { HelmPhysics } from './helm-physics';
 import { HelmPower } from './helm-power';
 import { RcsThrusters } from './rcs-thrusters';
+import { HELM_RECORD } from './helm-record';
 
 /**
  * The thrusters and the helm, stepped in phase 2, with the thrusters' load on
@@ -27,6 +28,14 @@ export const Helm = defineModule({
     provide(SHIP_SYSTEMS, { useClass: HelmPhysics }),
     provide(POWER_CONSUMERS, { useClass: HelmPower }),
     provide(COMMAND_HANDLERS, { useClass: HelmCommands }),
+    provide(SHIP_RECORDS, { useValue: HELM_RECORD }),
   ],
-  exports: [THRUSTERS, HELM, SHIP_SYSTEMS, POWER_CONSUMERS, COMMAND_HANDLERS],
+  exports: [
+    THRUSTERS,
+    HELM,
+    SHIP_SYSTEMS,
+    POWER_CONSUMERS,
+    COMMAND_HANDLERS,
+    SHIP_RECORDS,
+  ],
 });

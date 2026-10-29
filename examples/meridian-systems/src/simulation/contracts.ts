@@ -2,28 +2,10 @@ import { MultiToken, Token } from '@nexusdi/core';
 
 import type { DoorPlan } from '../physics/doors';
 import type { Gas } from '../physics/gas';
-import type { CommsRecord } from '../systems/comms/contracts';
-import type {
-  CoolantRecord,
-  PowerRecord,
-  ReactorRecord,
-} from '../systems/engineering/contracts';
-import type { FtlRecord } from '../systems/ftl/contracts';
-import type { HelmRecord } from '../systems/helm/contracts';
-import type {
-  LifeSupportRecord,
-  RoomPlan,
-} from '../systems/life-support/contracts';
-import type { DriveRecord } from '../systems/propulsion/contracts';
-import type { FloodPlan, SafetyRecord } from '../systems/safety/contracts';
-import type { WeaponsRecord } from '../systems/weapons/contracts';
+import type { FloodPlan } from '../systems/safety/contracts';
+import type { RoomPlan } from '../systems/life-support/contracts';
 
-import type {
-  LoggedChange,
-  QueuedCommand,
-  SetpointChange,
-  Setpoints,
-} from './commands';
+import type { LoggedChange, QueuedCommand, SetpointChange } from './commands';
 
 export interface SimOptions {
   readonly seed: number;
@@ -67,26 +49,39 @@ export interface CompartmentState {
 }
 
 /**
- * The whole ship at one tick. The library owns this closed set of records,
- * and each later system adds its record here and its initial value in
- * `ShipStateStore`.
+ * The record of each system, by its key in the snapshot. Each system's
+ * `contracts.ts` adds its own records here, so the snapshot names no system.
  */
-export interface ShipSnapshot {
+// eslint-disable-next-line @typescript-eslint/no-empty-interface, @typescript-eslint/no-empty-object-type -- each system's contracts.ts adds its records.
+export interface ShipRecords {}
+
+/**
+ * What the crew asks of each system, by its key in the snapshot's
+ * setpoints. A system steps toward its setpoint each tick. Each system's
+ * `contracts.ts` adds its own setpoints here.
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-interface, @typescript-eslint/no-empty-object-type -- each system's contracts.ts adds its setpoints.
+export interface ShipSetpoints {}
+
+/**
+ * The whole ship at one tick: the kernel's tick, time and compartments, the
+ * record of each system and the setpoints.
+ */
+export interface ShipSnapshot extends ShipRecords {
   readonly tick: number;
   /** Ship seconds, `tick * dt`. */
   readonly time: number;
   readonly compartments: Readonly<Record<CompartmentId, CompartmentState>>;
-  readonly reactor: ReactorRecord;
-  readonly coolant: CoolantRecord;
-  readonly power: PowerRecord;
-  readonly lifeSupport: LifeSupportRecord<CompartmentId>;
-  readonly comms: CommsRecord;
-  readonly weapons: WeaponsRecord;
-  readonly drive: DriveRecord;
-  readonly helm: HelmRecord;
-  readonly ftl: FtlRecord;
-  readonly safety: SafetyRecord<CompartmentId>;
-  readonly setpoints: Setpoints;
+  readonly setpoints: ShipSetpoints;
+}
+
+/**
+ * One system's part of the snapshot at tick 0: its records and the setpoints
+ * the crew starts it at. A system module contributes one to `SHIP_RECORDS`.
+ */
+export interface SystemRecord {
+  readonly records: Partial<ShipRecords>;
+  readonly setpoints: Partial<ShipSetpoints>;
 }
 
 export interface CompartmentReading extends CompartmentState {
@@ -240,6 +235,7 @@ export const SIM_CLOCK = new Token<ISimClock>('SimClock');
 export const RNG = new Token<IRandomSource>('RandomSource');
 export const SHIP_STATE = new Token<IShipState>('ShipState');
 export const SHIP_SYSTEMS = new MultiToken<IShipSystem>('ShipSystems');
+export const SHIP_RECORDS = new MultiToken<SystemRecord>('ShipRecords');
 export const TICK_LOOP = new Token<ITickLoop>('TickLoop');
 export const DECK_PLAN = new Token<DeckPlan>('DeckPlan');
 export const SHIP_FILES = new Token<IShipFiles>('ShipFiles');
