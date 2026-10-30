@@ -8,7 +8,7 @@ package: '@nexusdi/x'
 
 ## `launch`
 
-The crew and the countdown are both optional.
+The crew and the countdown are both optional; `const crew = 4` sets neither.
 
 ```ts twoslash
 import { launch } from '@nexusdi/x';
@@ -68,3 +68,37 @@ saved.label;
 ## `Listener`
 
 A listener hears each signal.
+
+## `moor`
+
+Each berth holds a bay and a crew, and `const crew = 4` sets neither.
+
+```ts twoslash
+import { moor } from '@nexusdi/x';
+
+moor({ berths: ['spare'] });
+```
+
+## `MoorOptions`
+
+Each of `berths` is a name or `{ bay: 1, crew?: 2 }`.
+
+## `grow`
+
+```ts twoslash
+import { grow } from '@nexusdi/x';
+
+grow({ leaf: 'oak', branches: [{ leaf: 'ash' }] });
+```
+
+## `BranchOptions`
+
+`leaf` names the branch, and `branches` holds more of them.
+
+## `deep`
+
+```ts twoslash
+import { deep } from '@nexusdi/x';
+
+deep({ a: { b: { c: { d: {} } } } });
+```

@@ -32,7 +32,7 @@ import { stripFences, type DocsPage } from './site';
  *   `Config` or `Definition`, unless an exported callable of any library
  *   returns it. `defineModule()` returns a `ModuleDefinition`, so a
  *   `ModuleDefinition` is a value the library builds, and `load()` and
- *   devtools' `inspect()` take it as a module, never as options.
+ *   devtools' `inspect()` take it as a module. It is no options type.
  *
  * A lib `Partial`, `Readonly`, `Required`, `Pick` or `Omit` of an options
  * type is that options type, by its name: `Partial<LaunchOptions>` owes
@@ -41,14 +41,21 @@ import { stripFences, type DocsPage } from './site';
  * or under `node_modules` are no options type. Neither is a parameter typed
  * by a named alias without one of those suffixes and with no suffixed
  * member, even when its members are type literals: `observe(event:
- * TraceEvent)` receives data, and no caller writes a `TraceEvent`. A rest parameter's tuple alias is exempt, since it
- * only says how many arguments a call takes. A parameter
- * typed by a type parameter is read through its constraint, a rest
- * parameter through its tuple's elements, and a union through each member.
+ * TraceEvent)` receives data, and no caller writes a `TraceEvent`. A rest
+ * parameter's tuple alias is exempt, since it only says how many arguments
+ * a call takes. A parameter typed by a type parameter is read through its
+ * constraint, a rest parameter through its tuple's elements, and a union
+ * through each member.
  *
  * A key is every property of the type the package itself declares, the
  * inherited ones included, except a property typed `undefined` or `never`,
- * which a union member declares only to rule a sibling's key out.
+ * which a union member declares only to rule a sibling's key out. A
+ * property whose value is an options type, alone, in an array or as a union
+ * member, also owes that type's keys as a path under the same heading:
+ * `Nexus.check(root, { load: [{ module, imports }] })` owes
+ * `CheckOptions.load[].imports` under `## Nexus`. A nested type literal
+ * counts there whatever alias holds it, since the caller writes it inside
+ * the options. `oweTree` bounds the walk.
  *
  * Each key is owed under one or more `##` headings:
  *
@@ -62,8 +69,9 @@ import { stripFences, type DocsPage } from './site';
  * Named is the key in that section, which runs from the heading to the next
  * `##` after regions and reference directives expand, in one of two forms:
  *
- * - an identifier inside a code span of the section's prose, such as
- *   `` `imports` `` or `` `load(m, { imports })` ``;
+ * - a key in a code span of the section's prose, as `spannedIn` reads one:
+ *   the span is the key alone, or holds it in a key position, as in
+ *   `` `load(m, { imports })` `` or `` `options.imports` ``;
  * - a property the type checker binds to that key, on a line a reader sees
  *   of an executable fence in the section (compiled as `fence-programs.ts`
  *   compiles one), with no diagnostic in the statement or class member
@@ -73,18 +81,18 @@ import { stripFences, type DocsPage } from './site';
  * A bare word in prose does not count, since `imports` and `deps` are also
  * English. Neither does a key that is only spelled the same:
  * `defineModule({ imports })` in the `Nexus` example names
- * `ModuleConfig.imports`, never `LoadOptions.imports`. A code span is read
- * as text, with no type checker behind it, so a span spelling a key names
- * every key of that spelling the section owes. The caller drops each
- * entry's signature block, which names every key of an options type and
- * explains none.
+ * `ModuleConfig.imports`. It does not name `LoadOptions.imports`. A code
+ * span is read as text, with no type checker behind it, so a span holding a
+ * key in a key position names every key of that spelling the section owes.
+ * The caller drops each entry's signature block, which names every key of
+ * an options type and explains none.
  *
  * G10 owns a missing page and a missing heading, so a key whose heading is
  * absent is skipped here. Error classes of an exempt package are skipped as
  * G10 skips them, by `isErrorClass`: a class whose name ends in `Error`.
  *
  * The allowance is the ratchet: it records each key the pages do not name
- * yet as `"<heading>: <type>.<key>"`, per package, and an entry no longer
+ * yet as `"<heading>: <type>.<path>"`, per package, and an entry no longer
  * needed fails. An anonymous type is written as the callable and parameter
  * that take it: `"Nexus: Nexus#createScope(options).request"`.
  */
@@ -95,14 +103,21 @@ export interface OptionKey {
   heading: string;
   /** The options type: its name, or `<callable>(<parameter>)` for a literal. */
   type: string;
+  /** The property's own name, which a code span or a fence spells. */
   key: string;
+  /**
+   * The key's path from the options type: `imports`, or
+   * `load[].imports` for a key of a type literal an options property
+   * holds, `[]` marking each array on the way.
+   */
+  path: string;
   /** What owes it, for the finding: a callable's label, or the type itself. */
   via: string;
 }
 
 /** The allowance entry, and the identity of a key, as the file spells it. */
 export const optionKeyId = (each: OptionKey): string =>
-  `${each.heading}: ${each.type}.${each.key}`;
+  `${each.heading}: ${each.type}.${each.path}`;
 
 const SUFFIX = /(Options|Props|Config|Definition)$/;
 
@@ -122,7 +137,10 @@ function isLiteral(program: ts.Program, type: ts.Type): boolean {
   );
 }
 
-/** The parts of a parameter's type to read: union members, constraints, tuple elements. */
+/**
+ * The parts of a parameter's type to read: union members, constraints and
+ * tuple elements.
+ */
 function partsOf(
   checker: ts.TypeChecker,
   type: ts.Type,
@@ -245,7 +263,10 @@ function keysOf({ program, checker }: Reader, type: ts.Type): ts.Symbol[] {
   });
 }
 
-/** The named types every callable returns, awaited and split into union members. */
+/**
+ * The named types every callable returns, awaited and split into union
+ * members.
+ */
 function returnedBy(
   checker: ts.TypeChecker,
   callables: readonly Callable[],
@@ -311,6 +332,88 @@ function owedIn(
   );
 }
 
+/** The deepest path a nested key may have, in keys: `a.b.c.d`. */
+const MAX_DEPTH = 4;
+
+/** Where `oweTree` files each key it finds. */
+interface Owner {
+  heading: string;
+  type: string;
+  via: string;
+  owe: (each: OptionKey, property: ts.Symbol) => void;
+}
+
+/**
+ * The value types of a property to look into for nested keys: each union
+ * member, each array's element type, `undefined` dropped. The second item
+ * says whether an array was crossed.
+ */
+function valuesOf(
+  checker: ts.TypeChecker,
+  property: ts.Symbol,
+): [ts.Type, boolean][] {
+  const type = checker.getNonNullableType(checker.getTypeOfSymbol(property));
+  return (type.isUnion() ? type.types : [type]).flatMap(
+    (member): [ts.Type, boolean][] => {
+      if (!checker.isArrayType(member)) return [[member, false]];
+      const [element] = checker.getTypeArguments(member as ts.TypeReference);
+      if (!element) return [];
+      const inner = checker.getNonNullableType(element);
+      return (inner.isUnion() ? inner.types : [inner]).map((each) => [
+        each,
+        true,
+      ]);
+    },
+  );
+}
+
+/**
+ * Owes every key of an options type, and every key of an options type one
+ * of its properties holds, directly, in an array or as a union member, as
+ * a path under the same heading: `CheckOptions.load[].imports`. The walk
+ * stops at a type it is already inside, so a type that holds itself owes
+ * its keys once, and at `MAX_DEPTH` keys, which bounds a generic type
+ * whose every level is a new instantiation.
+ */
+function oweTree(
+  reader: Reader,
+  type: ts.Type,
+  owner: Owner,
+  prefix = '',
+  inside: ReadonlySet<ts.Symbol> = new Set(),
+  depth = 0,
+): void {
+  const symbol = nameOf(type);
+  const here = symbol ? new Set([...inside, symbol]) : inside;
+  for (const property of keysOf(reader, type)) {
+    const path = `${prefix}${property.getName()}`;
+    owner.owe(
+      {
+        heading: owner.heading,
+        type: owner.type,
+        key: property.getName(),
+        path,
+        via: owner.via,
+      },
+      property,
+    );
+    if (depth + 1 >= MAX_DEPTH) continue;
+    for (const [value, array] of valuesOf(reader.checker, property)) {
+      const name = nameOf(value);
+      if (name && here.has(name)) continue;
+      if (optionsName(reader, value) === null) continue;
+      oweTree(
+        reader,
+        value,
+        owner,
+        `${path}${array ? '[]' : ''}.`,
+        here,
+        depth + 1,
+      );
+    }
+  }
+}
+
 function owedBy(
   reader: Reader,
   exports: readonly SurfaceExport[],
@@ -354,16 +457,12 @@ function owedBy(
             name === 'literal'
               ? `${callable.label}(${parameter.getName()})`
               : name;
-          for (const property of keysOf(reader, part))
-            owe(
-              {
-                heading: callable.heading,
-                type,
-                key: property.getName(),
-                via: callable.label,
-              },
-              property,
-            );
+          oweTree(reader, part, {
+            heading: callable.heading,
+            type,
+            via: callable.label,
+            owe,
+          });
         }
       }
 
@@ -379,16 +478,12 @@ function owedBy(
       continue;
     const type = checker.getDeclaredTypeOfSymbol(each.symbol);
     for (const part of partsOf(checker, type, false))
-      for (const property of keysOf(reader, part))
-        owe(
-          {
-            heading: each.name,
-            type: each.name,
-            key: property.getName(),
-            via: each.name,
-          },
-          property,
-        );
+      oweTree(reader, part, {
+        heading: each.name,
+        type: each.name,
+        via: each.name,
+        owe,
+      });
   }
 
   return [...owed.values()].sort((left, right) =>
@@ -437,13 +532,30 @@ function boundBy(checker: ts.TypeChecker, node: ts.Node): ts.Declaration[] {
   return [];
 }
 
-/** The keys a section names in a code span of its prose. */
+const IDENTIFIER = /^[A-Za-z_$][\w$]*\??$/;
+
+/**
+ * An identifier in a key position inside a span: after `{`, `,` or `.`, or
+ * before `:` or `?:`.
+ */
+const KEY_POSITION =
+  /(?:[{,]\s*|\.)([A-Za-z_$][\w$]*)|([A-Za-z_$][\w$]*)\??\s*:/g;
+
+/**
+ * The keys a section names in a code span of its prose: a span that is the
+ * key alone (`` `imports` ``), or a key in a key position of a longer span
+ * (`` `load(m, { imports })` ``, `` `options.imports` ``,
+ * `` `imports: [Helm]` ``). `` `const crew = 4` `` names no key.
+ */
 function spannedIn(body: string): Set<string> {
-  return new Set(
-    [...stripFences(body).matchAll(/`([^`\n]+)`/g)].flatMap(
-      (match) => (match[1] as string).match(/[A-Za-z_$][\w$]*/g) ?? [],
-    ),
-  );
+  const keys = new Set<string>();
+  for (const match of stripFences(body).matchAll(/`([^`\n]+)`/g)) {
+    const span = (match[1] as string).trim();
+    if (IDENTIFIER.test(span)) keys.add(span.replace(/\?$/, ''));
+    for (const [, before, after] of span.matchAll(KEY_POSITION))
+      keys.add((before ?? after) as string);
+  }
+  return keys;
 }
 
 /** One package's keys, and the reference page that owes them. */
@@ -507,15 +619,15 @@ export function readOptionKeys(
       page: page.file,
       keys: (owed.get(name) ?? [])
         .filter((each) => spans.has(each.heading))
-        .map(({ heading, type, key, via }) => ({
-          heading,
-          type,
-          key,
-          via,
-          named:
-            (spans.get(heading)?.has(key) ?? false) ||
-            named.has(`${name}\n${optionKeyId({ heading, type, key, via })}`),
-        })),
+        .map(({ heading, type, key, path, via }) => {
+          const each = { heading, type, key, path, via };
+          return {
+            ...each,
+            named:
+              (spans.get(heading)?.has(key) ?? false) ||
+              named.has(`${name}\n${optionKeyId(each)}`),
+          };
+        }),
     };
   });
 }
@@ -543,7 +655,7 @@ export function checkOptionKeys(input: OptionKeysInput): string[] {
       if (allowed.has(id)) continue;
       const taker = each.via === each.type ? '' : ` that ${each.via} takes`;
       findings.push(
-        `${name}: '${each.key}', a key of ${each.type}${taker}, is not named under '## \`${each.heading}\`' in ${file}. Name it in a code span of that entry, or write it in an example the compiler checks against ${each.type}, or record "${id}" in doc-option-keys-allowance.json.`,
+        `${name}: '${each.path}', a key of ${each.type}${taker}, is not named under '## \`${each.heading}\`' in ${file}. Name it in a code span of that entry, or write it in an example the compiler checks against ${each.type}, or record "${id}" in doc-option-keys-allowance.json.`,
       );
     }
     unnamedBy.set(name, unnamed);

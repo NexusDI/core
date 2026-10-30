@@ -58,3 +58,35 @@ export interface Listener {
   /** Hears one signal. */
   hear(signal: Signal): void;
 }
+
+/** The options moor() takes, whose berths are written inline. */
+export interface MoorOptions {
+  readonly berths?: readonly (
+    { readonly bay: number; readonly crew?: number } | string
+  )[];
+}
+
+/** Moors a ship at its berths. */
+export function moor(options: MoorOptions): number {
+  return options.berths?.length ?? 0;
+}
+
+/** The options grow() takes, which hold more of themselves. */
+export interface BranchOptions {
+  readonly leaf?: string;
+  readonly branches?: readonly BranchOptions[];
+}
+
+/** Grows a branch. */
+export function grow(options: BranchOptions): number {
+  return options.branches?.length ?? 0;
+}
+
+/** Nests options deeper than the walk reads. */
+export function deep(options: {
+  readonly a?: {
+    readonly b?: { readonly c?: { readonly d?: { readonly e?: number } } };
+  };
+}): boolean {
+  return options.a !== undefined;
+}

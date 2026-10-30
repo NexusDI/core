@@ -46,11 +46,25 @@ describe('readOptionKeys', () => {
     const [read] = fixture('clean');
     expect(read?.page).toBe(PAGE);
     expect(read?.keys.map(optionKeyId)).toEqual([
+      'BranchOptions: BranchOptions.branches',
+      'BranchOptions: BranchOptions.leaf',
+      'deep: deep(options).a',
+      'deep: deep(options).a.b',
+      'deep: deep(options).a.b.c',
+      'deep: deep(options).a.b.c.d',
       'Dock: Dock#open(options).bay',
+      'grow: BranchOptions.branches',
+      'grow: BranchOptions.leaf',
       'launch: LaunchOptions.countdown',
       'launch: LaunchOptions.crew',
       'LaunchOptions: LaunchOptions.countdown',
       'LaunchOptions: LaunchOptions.crew',
+      'moor: MoorOptions.berths',
+      'moor: MoorOptions.berths[].bay',
+      'moor: MoorOptions.berths[].crew',
+      'MoorOptions: MoorOptions.berths',
+      'MoorOptions: MoorOptions.berths[].bay',
+      'MoorOptions: MoorOptions.berths[].crew',
       'Panel: PanelProps.label',
       'Panel: PanelProps.size',
       'PanelProps: PanelProps.label',
@@ -60,14 +74,27 @@ describe('readOptionKeys', () => {
     ]);
   });
 
+  it('owes the keys a nested type literal holds as a path, once around a cycle, and no deeper than four keys', () => {
+    const ids = fixture('clean')[0]?.keys.map(optionKeyId) ?? [];
+    expect(ids).toContain('moor: MoorOptions.berths[].bay');
+    expect(ids.filter((id) => id.startsWith('grow: '))).toEqual([
+      'grow: BranchOptions.branches',
+      'grow: BranchOptions.leaf',
+    ]);
+    expect(ids.filter((id) => id.startsWith('deep: ')).at(-1)).toBe(
+      'deep: deep(options).a.b.c.d',
+    );
+  });
+
   it('names a key by an object literal, a JSX attribute, a property read and a code span', () => {
     // `refit` takes Partial<LaunchOptions> and is named by an object
     // literal, `Panel` by a JSX attribute (size) and a property read
-    // (label), `PanelProps` by its code spans.
+    // (label), `PanelProps` by a key in a key position of a longer span,
+    // and `MoorOptions` by `{ bay: 1, crew?: 2 }`.
     expect(fixture('clean')[0]?.keys.filter((each) => !each.named)).toEqual([]);
   });
 
-  it('counts no key above a cut, in bare prose, in a statement that fails to compile, or in a literal the checker does not hold to the type', () => {
+  it('counts no key above a cut, in bare prose, in a span that holds it in no key position, in a statement that fails to compile, or in a literal the checker does not hold to the type', () => {
     expect(
       fixture('sabotaged')[0]
         ?.keys.filter((each) => !each.named)
@@ -76,6 +103,8 @@ describe('readOptionKeys', () => {
       'Dock: Dock#open(options).bay',
       'launch: LaunchOptions.countdown',
       'launch: LaunchOptions.crew',
+      'moor: MoorOptions.berths[].bay',
+      'moor: MoorOptions.berths[].crew',
     ]);
   });
 });
@@ -91,12 +120,13 @@ describe('checkOptionKeys', () => {
     "@nexusdi/x: 'crew', a key of LaunchOptions that launch takes, is not named under '## `launch`' in api-x.mdx",
     "@nexusdi/x: 'countdown', a key of LaunchOptions that launch takes, is not named under '## `launch`' in api-x.mdx",
     "@nexusdi/x: 'bay', a key of Dock#open(options) that Dock#open takes, is not named under '## `Dock`' in api-x.mdx",
+    "@nexusdi/x: 'berths[].crew', a key of MoorOptions that moor takes, is not named under '## `moor`' in api-x.mdx",
   ])('fails the sabotaged tree: %s', (phrase) => {
     const findings = checkOptionKeys({
       packages: fixture('sabotaged'),
       allowance: {},
     });
-    expect(findings).toHaveLength(3);
+    expect(findings).toHaveLength(5);
     expect(findings.some((finding) => finding.includes(phrase))).toBe(true);
   });
 
@@ -110,6 +140,8 @@ describe('checkOptionKeys', () => {
               'Dock: Dock#open(options).bay',
               'launch: LaunchOptions.countdown',
               'launch: LaunchOptions.crew',
+              'moor: MoorOptions.berths[].bay',
+              'moor: MoorOptions.berths[].crew',
             ],
           },
         },
