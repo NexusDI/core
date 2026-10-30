@@ -499,6 +499,150 @@ console.log(wired);
 
 <!-- #endregion load-grant-reasons -->
 
+<!-- #region load-grant-subtree -->
+
+```ts @import.meta.vitest
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+
+interface INavCharts {
+  plot(to: string): string;
+}
+interface IProbe {
+  scan(): string;
+}
+interface IPlugin {
+  run(): string;
+}
+const NAV_CHARTS = new Token<INavCharts>('NavCharts');
+const PROBE = new Token<IProbe>('Probe');
+const PLUGIN = new Token<IPlugin>('Plugin');
+
+class StarCharts implements INavCharts {
+  plot(to: string) {
+    return `course to ${to}`;
+  }
+}
+class DeepProbe implements IProbe {
+  static deps = [NAV_CHARTS] as const;
+  constructor(private readonly charts: INavCharts) {}
+  scan() {
+    return this.charts.plot('Kepler-442b');
+  }
+}
+class SurveyPlugin implements IPlugin {
+  static deps = [PROBE] as const;
+  constructor(private readonly probe: IProbe) {}
+  run() {
+    return `survey: ${this.probe.scan()}`;
+  }
+}
+
+const Tactical = defineModule({
+  name: 'Tactical',
+  providers: [provide(NAV_CHARTS, { useClass: StarCharts })],
+  exports: [NAV_CHARTS],
+});
+// The plugin's own helper module. It cannot import Tactical either.
+const Sensors = defineModule({
+  name: 'Sensors',
+  providers: [provide(PROBE, { useClass: DeepProbe })],
+  exports: [PROBE],
+});
+const Survey = defineModule({
+  name: 'Survey',
+  imports: [Sensors],
+  providers: [provide(PLUGIN, { useClass: SurveyPlugin })],
+  exports: [PLUGIN],
+});
+
+await using ship = await Nexus.create(
+  defineModule({ name: 'Meridian', imports: [Tactical] }),
+);
+await ship.load(Survey, { imports: [Tactical] });
+const report = ship.get(PLUGIN).run(); // -> 'survey: course to Kepler-442b'
+console.log(report);
+```
+
+<!-- #endregion load-grant-subtree -->
+
+<!-- #region load-grant-check -->
+
+```ts @import.meta.vitest
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
+
+interface INavCharts {
+  plot(to: string): string;
+}
+interface ISurveyDrone {
+  survey(): string;
+}
+const NAV_CHARTS = new Token<INavCharts>('NavCharts');
+const DRONE = new Token<ISurveyDrone>('SurveyDrone');
+
+class StarCharts implements INavCharts {
+  plot(to: string) {
+    return `course to ${to}`;
+  }
+}
+class ScoutDrone implements ISurveyDrone {
+  static deps = [NAV_CHARTS] as const;
+  constructor(private readonly charts: INavCharts) {}
+  survey() {
+    return this.charts.plot('Kepler-442b');
+  }
+}
+
+const Tactical = defineModule({
+  name: 'Tactical',
+  providers: [provide(NAV_CHARTS, { useClass: StarCharts })],
+  exports: [NAV_CHARTS],
+});
+const Survey = defineModule({
+  name: 'Survey',
+  providers: [provide(DRONE, { useClass: ScoutDrone })],
+  exports: [DRONE],
+});
+const Meridian = defineModule({ name: 'Meridian', imports: [Tactical] });
+
+// What Nexus.check throws, as the codes or reasons of its inner errors.
+const failures = (run: () => unknown): string[] => {
+  try {
+    run();
+  } catch (caught) {
+    if (!isNexusError(caught, 'NEXUS_BLUEPRINT_INVALID')) throw caught;
+    return caught.errors.map((inner) =>
+      isNexusError(inner, 'NEXUS_LOAD_GRANT') ? inner.reason : inner.code,
+    );
+  }
+  return [];
+};
+
+// No grant: check throws, and nothing was built.
+const bare = failures(() => Nexus.check(Meridian, { load: [Survey] })); // -> ['NEXUS_MISSING_PROVIDER']
+console.log(bare);
+
+// With the grant, check returns a CheckReport at once.
+const report = Nexus.check(Meridian, {
+  load: [{ module: Survey, imports: [Tactical] }],
+});
+const unchecked = report.unchecked.length; // -> 0
+console.log(unchecked);
+
+// A grant error comes back inside NEXUS_BLUEPRINT_INVALID too.
+const Fresh = defineModule({ name: 'Fresh' });
+const granted = [{ module: Survey, imports: [Fresh] }];
+const refused = failures(() => Nexus.check(Meridian, { load: granted })); // -> ['not-in-graph']
+console.log(refused);
+```
+
+<!-- #endregion load-grant-check -->
+
 <!-- #region lazy-route -->
 
 ```ts @import.meta.vitest

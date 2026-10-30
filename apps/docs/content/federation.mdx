@@ -42,7 +42,7 @@ The contract lives in its own package, which the shell and every remote depend o
 
 The shell provides the contract tokens from a contract module, `Tactical` here. Since a remote cannot directly import the shell's `Tactical` object, the shell grants the module to the section in the [`load()`](/load/): `ship.load(Cartography, { imports: [Tactical] })`. This makes the exports of `Tactical` available to `Cartography` and to each module of its subtree that the graph did not hold, as if they had imported the module directly. `Tactical` needs no `global: true`, and no other module of the shell sees a change.
 
-A grant is wiring, with no isolation. Because a remote runs within the shell's process, it can access any resource the shell's code can reach. For more details on how grants work, see [Granting Host Modules to a Loaded Module](/load/#granting-host-modules-to-a-loaded-module).
+A grant is wiring, with no isolation. Because a remote runs within the shell's process, it can access any resource the shell's code can reach. For more details on how grants work, see [Giving a Loaded Plugin Access to Host Services](/load/#giving-a-loaded-plugin-access-to-host-services).
 
 ```ts file=examples/meridian/src/pages/federation.md region=load-section
 

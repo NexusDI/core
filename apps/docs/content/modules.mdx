@@ -66,7 +66,7 @@ A global module suits a provider that most modules need and no module owns, such
 
 ### Modules and Runtime Loading
 
-A global module belongs to the static graph, and `load()` refuses one. When a host loads a module, the host names which of its modules the loaded module sees for that load: `ship.load(Survey, { imports: [Tactical] })`. `Survey` sees the exports of `Tactical`, and no other part of the module graph changes. For more details on how this works, see [Granting Host Modules to a Loaded Module](/load/#granting-host-modules-to-a-loaded-module).
+A global module belongs to the static graph, and `load()` refuses one. When a host loads a module, the host names which of its modules the loaded module sees for that load: `ship.load(Survey, { imports: [Tactical] })`. `Survey` sees the exports of `Tactical`, and no other part of the module graph changes. For more details on how this works, see [Giving a Loaded Plugin Access to Host Services](/load/#giving-a-loaded-plugin-access-to-host-services).
 
 ## Swapping Implementations
 
