@@ -1,4 +1,4 @@
-import { basename, dirname, join } from 'node:path';
+import { basename } from 'node:path';
 
 import ts from 'typescript';
 
@@ -6,11 +6,10 @@ import {
   callablesOf,
   exportsOf,
   isErrorClass,
-  surfaceProgram,
-  type ExtraFile,
   type SurfacePackage,
 } from './api-surface';
-import { executable, hiddenLines, referencePageOf } from './reference-site';
+import { fencePrograms, forEachShownNode } from './fence-programs';
+import { referencePageOf } from './reference-site';
 import type { DocsPage } from './site';
 
 /**
@@ -28,14 +27,10 @@ import type { DocsPage } from './site';
  * one signature is G10's.
  *
  * Exercised is an overload some call on the package's reference page
- * resolves to, by the type checker. The call sits in an executable fence:
- * a `twoslash` fence or one marked `executed`, as G10 defines them, in `ts`
- * or `tsx`. Every such fence on every reference page compiles as its own
- * module in one program beside the libraries' sources, under the site's
- * compiler options with the `dom` lib (`surfaceProgram`). A fence's
- * `// @filename:` lines split it into files the way Twoslash splits one. A
- * call counts when it sits on a line a reader sees (`hiddenLines`), the
- * compiler reports no diagnostic inside it, and
+ * resolves to, by the type checker. The call sits in an executable fence,
+ * compiled as `fence-programs.ts` compiles one. A call counts when it sits
+ * on a line a reader sees (`hiddenLines`), the compiler reports no
+ * diagnostic inside it, and
  * `checker.getResolvedSignature` returns a signature whose declaration is the
  * overload's. A call, a `new`, a decorator, a tagged template and a JSX
  * element are each a call.
@@ -118,70 +113,6 @@ function overloadsOf(
   return found;
 }
 
-/** One file of a fence, with the line of the fence body each of its lines is. */
-interface FenceFile extends ExtraFile {
-  lines: number[];
-}
-
-/** One executable fence, split into its files. */
-interface Fence {
-  package: string;
-  files: FenceFile[];
-  /** The lines of the fence body a reader does not see. */
-  hidden: ReadonlySet<number>;
-}
-
-const AUGMENTS = /^\s*declare\s+(module\s+['"]|global\b)/m;
-
-const FILENAME = /^\s*\/\/\s*@filename:\s*(\S+)\s*$/;
-
-/**
- * The files of every executable `ts` and `tsx` fence on a package's page,
- * each under a directory of its own beside the page, so a relative import
- * resolves from the page and no two fences share a module.
- */
-function fenceFiles(root: string, pkg: string, page: DocsPage): Fence[] {
-  const fences: Fence[] = [];
-  page.fences.forEach((fence) => {
-    if (!['ts', 'tsx'].includes(fence.lang)) return;
-    if (!executable(fence.meta, fence.lang)) return;
-    const dir = join(
-      root,
-      dirname(page.file),
-      `.fence-${basename(page.file)}-${fence.line}`,
-    );
-    const hidden = hiddenLines(fence.body);
-    let current: { name: string; text: string[]; lines: number[] } = {
-      name: `example.${fence.lang}`,
-      text: [],
-      lines: [],
-    };
-    const parts = [current];
-    fence.body.split('\n').forEach((line, at) => {
-      const named = FILENAME.exec(line);
-      if (named) {
-        current = { name: named[1] as string, text: [], lines: [] };
-        parts.push(current);
-        return;
-      }
-      current.text.push(line);
-      current.lines.push(at);
-    });
-    fences.push({
-      package: pkg,
-      hidden,
-      files: parts
-        .filter((part) => part.text.some((line) => line.trim() !== ''))
-        .map((part) => ({
-          path: join(dir, part.name),
-          text: part.text.join('\n'),
-          lines: part.lines,
-        })),
-    });
-  });
-  return fences;
-}
-
 type CallLike =
   | ts.CallExpression
   | ts.NewExpression
@@ -198,41 +129,6 @@ const isCallLike = (node: ts.Node): node is CallLike =>
   ts.isJsxOpeningElement(node) ||
   ts.isJsxSelfClosingElement(node);
 
-/** The declarations the visible, error-free calls of one file resolve to. */
-function resolvedIn(
-  program: ts.Program,
-  fence: Fence,
-  file: FenceFile,
-): Set<ts.Declaration> {
-  const checker = program.getTypeChecker();
-  const source = program.getSourceFile(file.path);
-  const resolved = new Set<ts.Declaration>();
-  if (!source) return resolved;
-  const diagnostics = [
-    ...program.getSyntacticDiagnostics(source),
-    ...program.getSemanticDiagnostics(source),
-  ];
-  const visit = (node: ts.Node): void => {
-    if (isCallLike(node)) {
-      const start = node.getStart(source);
-      const line = source.getLineAndCharacterOfPosition(start).line;
-      const failed = diagnostics.some(
-        ({ start: at }) =>
-          at !== undefined && at >= start && at < node.getEnd(),
-      );
-      if (!fence.hidden.has(file.lines[line] ?? -1) && !failed) {
-        const declaration = checker
-          .getResolvedSignature(node)
-          ?.getDeclaration();
-        if (declaration) resolved.add(declaration);
-      }
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(source);
-  return resolved;
-}
-
 /**
  * Each package's overloads and whether its reference page calls each one.
  * `root` is the workspace root the pages' paths are relative to.
@@ -243,51 +139,35 @@ export function readOverloads(
   packages: readonly SurfacePackage[],
   exempt: ReadonlyMap<string, string>,
 ): PackageOverloads[] {
-  const owners = packages.map((pkg) => ({
-    pkg,
-    page: referencePageOf(pages, pkg.name),
-  }));
-  const fences = owners.flatMap(({ pkg, page }) =>
-    page ? fenceFiles(root, pkg.name, page) : [],
+  const pageOf = new Map(
+    packages.map((pkg) => [pkg.name, referencePageOf(pages, pkg.name)]),
   );
-  // A fence that augments a module or the global scope changes the types
-  // every other fence in its program sees, so it compiles alone, the way
-  // Twoslash compiles every fence. The rest share one program.
-  const alone = fences.filter((fence) =>
-    fence.files.some(({ text }) => AUGMENTS.test(text)),
-  );
-  const shared = fences.filter((fence) => !alone.includes(fence));
-  const programs = [shared, ...alone.map((fence) => [fence])].map((group) => ({
-    program: surfaceProgram(
-      packages,
-      group.flatMap((fence) => fence.files),
-    ),
-    group,
-  }));
-  const [main] = programs as [(typeof programs)[number]];
+  const programs = fencePrograms(root, pageOf, packages);
 
-  return owners.map(({ pkg, page }) => {
+  return packages.map((pkg) => {
     const exemptHere = exempt.has(pkg.name);
-    const overloads = overloadsOf(main.program, pkg, exemptHere);
+    const overloads = overloadsOf(programs[0].program, pkg, exemptHere);
     const called = new Set<string>();
-    for (const { program, group } of programs) {
-      const keys =
-        program === main.program
-          ? overloads
-          : overloadsOf(program, pkg, exemptHere);
-      for (const fence of group)
+    for (const [at, { program, fences }] of programs.entries()) {
+      const keys = at === 0 ? overloads : overloadsOf(program, pkg, exemptHere);
+      const checker = program.getTypeChecker();
+      for (const fence of fences)
         if (fence.package === pkg.name)
           for (const file of fence.files)
-            for (const declaration of resolvedIn(program, fence, file)) {
-              const key = keys.get(declaration);
+            forEachShownNode(program, fence, file, (node, failed) => {
+              if (failed || !isCallLike(node)) return;
+              const declaration = checker
+                .getResolvedSignature(node)
+                ?.getDeclaration();
+              const key = declaration && keys.get(declaration);
               if (key !== undefined) called.add(key);
-            }
+            });
     }
     return {
       name: pkg.name,
-      page: page?.file ?? null,
-      overloads: [...overloads]
-        .map(([, key]) => ({ key, exercised: called.has(key) }))
+      page: pageOf.get(pkg.name)?.file ?? null,
+      overloads: [...overloads.values()]
+        .map((key) => ({ key, exercised: called.has(key) }))
         .sort((left, right) => left.key.localeCompare(right.key)),
     };
   });

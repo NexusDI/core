@@ -11,7 +11,8 @@ import {
   type SurfaceExport,
   type SurfacePackage,
 } from './api-surface';
-import { headingName, hiddenLines, referencePageOf } from './reference-site';
+import { fencePrograms, forEachShownNode } from './fence-programs';
+import { headingName, referencePageOf } from './reference-site';
 import { stripFences, type DocsPage } from './site';
 
 /**
@@ -50,13 +51,22 @@ import { stripFences, type DocsPage } from './site';
  *   documents under the class's heading (`Nexus#load` under `## Nexus`);
  * - an exported options type owes its own keys under its own heading.
  *
- * Named is the key spelled as a whole word in that section's code: inside a
- * code span of the prose, or on a line a reader sees of any fence in the
- * section (`hiddenLines`), after regions and reference directives expand.
- * The section runs from the heading to the next `##`. A bare word in prose
- * does not count, since `imports` and `deps` are also English. The caller
- * drops each entry's signature block, which names every key of an options
- * type and explains none.
+ * Named is the key in that section, which runs from the heading to the next
+ * `##` after regions and reference directives expand, in one of two forms:
+ *
+ * - an identifier inside a code span of the section's prose, such as
+ *   `` `imports` `` or `` `load(m, { imports })` ``;
+ * - a property the type checker binds to that key, on a line a reader sees
+ *   of an executable fence in the section (compiled as `fence-programs.ts`
+ *   compiles one), with no diagnostic on it: a key written in an object
+ *   literal or a JSX attribute checked against the type, or a property read.
+ *
+ * A bare word in prose does not count, since `imports` and `deps` are also
+ * English. Neither does a key that is only spelled the same:
+ * `defineModule({ imports })` in the `Nexus` example names
+ * `ModuleConfig.imports`, never `LoadOptions.imports`. The caller drops each
+ * entry's signature block, which names every key of an options type and
+ * explains none.
  *
  * G10 owns a missing page and a missing heading, so a key whose heading is
  * absent is skipped here. Error classes of an exempt package are skipped as
@@ -163,24 +173,21 @@ function optionsName(reader: Reader, type: ts.Type): string | null {
 }
 
 /** The keys of an options type the package declares. */
-function keysOf({ program, checker }: Reader, type: ts.Type): string[] {
-  return checker
-    .getPropertiesOfType(type)
-    .filter((property) => {
-      const name = property.getName();
-      if (name.startsWith('__') || name.startsWith('#')) return false;
-      const declarations = property.declarations ?? [];
-      if (
-        declarations.length === 0 ||
-        declarations.every((declaration) =>
-          isForeignDeclaration(program, declaration),
-        )
+function keysOf({ program, checker }: Reader, type: ts.Type): ts.Symbol[] {
+  return checker.getPropertiesOfType(type).filter((property) => {
+    const name = property.getName();
+    if (name.startsWith('__') || name.startsWith('#')) return false;
+    const declarations = property.declarations ?? [];
+    if (
+      declarations.length === 0 ||
+      declarations.every((declaration) =>
+        isForeignDeclaration(program, declaration),
       )
-        return false;
-      const own = checker.getNonNullableType(checker.getTypeOfSymbol(property));
-      return !(own.flags & ts.TypeFlags.Never);
-    })
-    .map((property) => property.getName());
+    )
+      return false;
+    const own = checker.getNonNullableType(checker.getTypeOfSymbol(property));
+    return !(own.flags & ts.TypeFlags.Never);
+  });
 }
 
 /** The named types every callable returns, awaited and split into union members. */
@@ -217,16 +224,17 @@ function surfaceOf(
   };
 }
 
-/**
- * Every key each package's reference page owes, sorted by its id. A type
- * any package's callable returns is no options type in any package, so
- * `@nexusdi/devtools` taking core's `ModuleDefinition` owes none of its keys.
- */
-export function readOptionKeys(
+/** One key, the declarations that spell it, and whether the page names it. */
+interface Owed extends OptionKey {
+  declarations: ReadonlySet<ts.Declaration>;
+}
+
+/** The keys each package owes, read from one program. */
+function owedIn(
   program: ts.Program,
   packages: readonly SurfacePackage[],
   exempt: ReadonlyMap<string, string>,
-): { name: string; keys: OptionKey[] }[] {
+): Map<string, Owed[]> {
   const checker = program.getTypeChecker();
   const surfaces = packages.map((pkg) => ({
     name: pkg.name,
@@ -240,23 +248,27 @@ export function readOptionKeys(
       surfaces.flatMap(({ callables }) => callables),
     ),
   };
-
-  return surfaces.map(({ name, exports, callables }) => ({
-    name,
-    keys: owedBy(reader, exports, callables),
-  }));
+  return new Map(
+    surfaces.map(({ name, exports, callables }) => [
+      name,
+      owedBy(reader, exports, callables),
+    ]),
+  );
 }
 
 function owedBy(
   reader: Reader,
   exports: readonly SurfaceExport[],
   callables: readonly Callable[],
-): OptionKey[] {
+): Owed[] {
   const { checker } = reader;
-  const owed = new Map<string, OptionKey>();
-  const owe = (each: OptionKey): void => {
+  const owed = new Map<string, Owed>();
+  const owe = (each: OptionKey, property: ts.Symbol): void => {
     const id = optionKeyId(each);
-    if (!owed.has(id)) owed.set(id, each);
+    const found = owed.get(id) ?? { ...each, declarations: new Set() };
+    for (const declaration of property.declarations ?? [])
+      (found.declarations as Set<ts.Declaration>).add(declaration);
+    owed.set(id, found);
   };
 
   for (const callable of callables)
@@ -278,8 +290,16 @@ function owedBy(
             name === 'literal'
               ? `${callable.label}(${parameter.getName()})`
               : name;
-          for (const key of keysOf(reader, part))
-            owe({ heading: callable.heading, type, key, via: callable.label });
+          for (const property of keysOf(reader, part))
+            owe(
+              {
+                heading: callable.heading,
+                type,
+                key: property.getName(),
+                via: callable.label,
+              },
+              property,
+            );
         }
       }
 
@@ -295,8 +315,16 @@ function owedBy(
       continue;
     const type = checker.getDeclaredTypeOfSymbol(each.symbol);
     for (const part of partsOf(checker, type, false))
-      for (const key of keysOf(reader, part))
-        owe({ heading: each.name, type: each.name, key, via: each.name });
+      for (const property of keysOf(reader, part))
+        owe(
+          {
+            heading: each.name,
+            type: each.name,
+            key: property.getName(),
+            via: each.name,
+          },
+          property,
+        );
   }
 
   return [...owed.values()].sort((left, right) =>
@@ -304,26 +332,132 @@ function owedBy(
   );
 }
 
-/** The code a section shows a reader: its code spans and its fences' seen lines. */
-function sectionCode(body: string, fences: DocsPage['fences']): string {
-  const spans = [...stripFences(body).matchAll(/`([^`\n]+)`/g)].map(
-    (match) => match[1] as string,
-  );
-  const lines = fences.flatMap((fence) => {
-    const hidden = hiddenLines(fence.body);
-    return fence.body.split('\n').filter((_, at) => !hidden.has(at));
-  });
-  return [...spans, ...lines].join('\n');
+/** The object literal or JSX attributes a property name sits in, if any. */
+function holderOf(node: ts.Identifier): ts.Expression | undefined {
+  const { parent } = node;
+  if (
+    (ts.isPropertyAssignment(parent) ||
+      ts.isShorthandPropertyAssignment(parent) ||
+      ts.isMethodDeclaration(parent) ||
+      ts.isGetAccessorDeclaration(parent) ||
+      ts.isSetAccessorDeclaration(parent)) &&
+    parent.name === node &&
+    ts.isObjectLiteralExpression(parent.parent)
+  )
+    return parent.parent;
+  if (ts.isJsxAttribute(parent) && parent.name === node)
+    return parent.parent as ts.JsxAttributes;
+  return undefined;
 }
 
-const names = (code: string, key: string): boolean =>
-  new RegExp(
-    `(^|[^\\w$])${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^\\w$])`,
-  ).test(code);
+/**
+ * The declarations of the property a name in a fence spells, as the
+ * checker binds it: a key written in an object literal or a JSX attribute
+ * binds to the property of the type the literal is checked against, and a
+ * property read (`options.imports`) to the property it reads.
+ */
+function boundBy(checker: ts.TypeChecker, node: ts.Node): ts.Declaration[] {
+  if (!ts.isIdentifier(node)) return [];
+  const holder = holderOf(node);
+  if (holder) {
+    const contextual = checker.getContextualType(holder);
+    if (!contextual) return [];
+    const type = checker.getNonNullableType(contextual);
+    return (type.isUnion() ? type.types : [type]).flatMap(
+      (member) =>
+        checker.getPropertyOfType(member, node.text)?.declarations ?? [],
+    );
+  }
+  if (ts.isPropertyAccessExpression(node.parent) && node.parent.name === node)
+    return checker.getSymbolAtLocation(node)?.declarations ?? [];
+  return [];
+}
+
+/** The keys a section names in a code span of its prose. */
+function spannedIn(body: string): Set<string> {
+  return new Set(
+    [...stripFences(body).matchAll(/`([^`\n]+)`/g)].flatMap(
+      (match) => (match[1] as string).match(/[A-Za-z_$][\w$]*/g) ?? [],
+    ),
+  );
+}
+
+/** One package's keys, and the reference page that owes them. */
+export interface PackageOptionKeys {
+  name: string;
+  /** The reference page, workspace relative, or null when it has none. */
+  page: string | null;
+  keys: (OptionKey & { named: boolean })[];
+}
+
+/**
+ * Every key each package's reference page owes, sorted by its id, and
+ * whether the page names it. A type any package's callable returns is no
+ * options type in any package, so `@nexusdi/devtools` taking core's
+ * `ModuleDefinition` owes none of its keys. `root` is the workspace root
+ * the pages' paths are relative to.
+ */
+export function readOptionKeys(
+  root: string,
+  pages: readonly DocsPage[],
+  packages: readonly SurfacePackage[],
+  exempt: ReadonlyMap<string, string>,
+): PackageOptionKeys[] {
+  const pageOf = new Map(
+    packages.map((pkg) => [pkg.name, referencePageOf(pages, pkg.name)]),
+  );
+  const programs = fencePrograms(root, pageOf, packages);
+  const owed = owedIn(programs[0].program, packages, exempt);
+  const named = new Set<string>();
+
+  for (const [at, { program, fences }] of programs.entries()) {
+    const here = at === 0 ? owed : owedIn(program, packages, exempt);
+    const checker = program.getTypeChecker();
+    for (const fence of fences) {
+      const candidates = (here.get(fence.package) ?? []).filter(
+        (each) => each.heading === fence.section,
+      );
+      if (candidates.length === 0) continue;
+      for (const file of fence.files)
+        forEachShownNode(program, fence, file, (node, failed) => {
+          if (failed) return;
+          const bound = boundBy(checker, node);
+          for (const each of candidates)
+            if (bound.some((declaration) => each.declarations.has(declaration)))
+              named.add(`${fence.package}\n${optionKeyId(each)}`);
+        });
+    }
+  }
+
+  return packages.map(({ name }) => {
+    const page = pageOf.get(name);
+    if (!page) return { name, page: null, keys: [] };
+    const spans = new Map(
+      page.sections.map((section) => [
+        headingName(section.heading.text),
+        spannedIn(section.body),
+      ]),
+    );
+    return {
+      name,
+      page: page.file,
+      keys: (owed.get(name) ?? [])
+        .filter((each) => spans.has(each.heading))
+        .map(({ heading, type, key, via }) => ({
+          heading,
+          type,
+          key,
+          via,
+          named:
+            (spans.get(heading)?.has(key) ?? false) ||
+            named.has(`${name}\n${optionKeyId({ heading, type, key, via })}`),
+        })),
+    };
+  });
+}
 
 export interface OptionKeysInput {
-  pages: DocsPage[];
-  packages: { name: string; keys: OptionKey[] }[];
+  packages: PackageOptionKeys[];
   allowance: Record<string, { unnamed: string[] }>;
 }
 
@@ -331,28 +465,21 @@ export function checkOptionKeys(input: OptionKeysInput): string[] {
   const findings: string[] = [];
   const unnamedBy = new Map<string, Set<string>>();
 
-  for (const { name, keys } of input.packages) {
-    const page = referencePageOf(input.pages, name);
-    if (!page) continue;
-    const file = basename(page.file);
-    const sections = new Map(
-      page.sections.map((section) => [
-        headingName(section.heading.text),
-        sectionCode(section.body, section.fences),
-      ]),
-    );
+  for (const { name, page, keys } of input.packages) {
+    // G10 reports a package with no reference page.
+    if (page === null) continue;
+    const file = basename(page);
     const unnamed = new Set<string>();
     const allowed = new Set(input.allowance[name]?.unnamed ?? []);
 
     for (const each of keys) {
-      const code = sections.get(each.heading);
-      if (code === undefined || names(code, each.key)) continue;
+      if (each.named) continue;
       const id = optionKeyId(each);
       unnamed.add(id);
       if (allowed.has(id)) continue;
       const taker = each.via === each.type ? '' : ` that ${each.via} takes`;
       findings.push(
-        `${name}: '${each.key}', a key of ${each.type}${taker}, is not named under '## \`${each.heading}\`' in ${file}. Name it in a code span or an example of that entry, or record "${id}" in doc-option-keys-allowance.json.`,
+        `${name}: '${each.key}', a key of ${each.type}${taker}, is not named under '## \`${each.heading}\`' in ${file}. Name it in a code span of that entry, or write it in an example the compiler checks against ${each.type}, or record "${id}" in doc-option-keys-allowance.json.`,
       );
     }
     unnamedBy.set(name, unnamed);
