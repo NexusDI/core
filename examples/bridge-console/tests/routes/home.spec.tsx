@@ -3,6 +3,7 @@ import type { ShipReading } from '@nexusdi/meridian-systems';
 import { describe, expect, vi } from 'vitest';
 
 import { WATCH_LOG } from '../../app/di/contracts';
+import { UnchartedStarError } from '@nexusdi/meridian-systems';
 import type { INavCharts } from '@nexusdi/meridian-systems/charts';
 import {
   FailingSnapshotLink,
@@ -28,7 +29,9 @@ class RefusingCharts implements INavCharts {
     return to === 'Proxima-b' || to === 'Kepler-442b';
   }
   plot(to: string) {
-    if (!this.has(to)) throw new Error(`${to} is not charted`);
+    if (!this.has(to)) {
+      throw new UnchartedStarError({ star: to, charted: this.stars() });
+    }
     return { to, heading: 42 };
   }
   stars() {
@@ -114,10 +117,41 @@ describe('Home route', () => {
       name: /plot a course/i,
     });
     fireEvent.change(input, { target: { value: 'V' } });
-    expect(await screen.findByText('V is not charted')).toBeDefined();
+    expect(
+      await screen.findByText("No star is charted as 'V'.", { exact: false }),
+    ).toBeDefined();
+    expect(
+      screen.getByText(
+        'Fix: plot a course to a charted star: Kepler-442b, Proxima-b.',
+        { exact: false },
+      ),
+    ).toBeDefined();
     fireEvent.change(input, { target: { value: 'Proxima-b' } });
     expect(
       await screen.findByText('heading 42', { exact: false, selector: 'span' }),
+    ).toBeDefined();
+  });
+
+  test('shows the refusal, not a 500, for a sector the console does not chart', async ({
+    renderRoute,
+  }) => {
+    const elsewhere: ShipReading = {
+      ...shipAtStart,
+      ftl: { status: 'idle', charge: 0, sector: 'Vega', jumped: 3 },
+    };
+    await renderRoute(home, {
+      path: '/',
+      overrides: withLink(linkAt(elsewhere)),
+      browser: withCharts(FixedCharts),
+    });
+    expect(
+      await screen.findByText("No star is charted as 'Vega'.", {
+        exact: false,
+        selector: 'p',
+      }),
+    ).toBeDefined();
+    expect(
+      screen.getByText('Fix: plot a course', { exact: false, selector: 'p' }),
     ).toBeDefined();
   });
 });

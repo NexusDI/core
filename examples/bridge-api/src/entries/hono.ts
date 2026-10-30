@@ -23,6 +23,7 @@ import { answerAlarms } from '../bridge/alarms';
 import { answerAudit } from '../bridge/audit';
 import { answerAtmosphere } from '../bridge/atmosphere';
 import { answerCommand } from '../bridge/commands';
+import { answerCourse } from '../bridge/course';
 import { compartmentOf } from '../bridge/compartment-of';
 import { answerFtlSection, ftlRating } from '../bridge/ftl';
 import { readJson } from '../bridge/json-body';
@@ -107,8 +108,8 @@ export function createBridge(
     '/course/:to',
     di.inject({ charts: NAV_CHARTS, log: FLIGHT_LOG }, ({ charts, log }, c) => {
       const to = c.req.param('to') ?? '';
-      log.record(`plotting ${to}`);
-      return c.json({ course: charts.plot(to), entries: log.entries() });
+      const answer = answerCourse(charts, log, to);
+      return c.json(answer.body, answer.status);
     }),
   );
   bridge.get(

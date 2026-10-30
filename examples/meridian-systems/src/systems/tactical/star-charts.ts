@@ -1,5 +1,5 @@
 import charts from '../../../deck/charts.json' with { type: 'json' };
-import { RelayError } from '../../errors';
+import { RelayError, UnchartedStarError } from '../../errors';
 import type { ISubspaceLink } from '../comms/contracts';
 
 import type { Course, INavCharts } from './contracts';
@@ -67,7 +67,10 @@ export class StarCharts implements INavCharts {
   }
 
   plot(to: string): Course {
-    return { to, heading: this.has(to) ? this.headings[to] : 0 };
+    if (!this.has(to)) {
+      throw new UnchartedStarError({ star: to, charted: this.stars() });
+    }
+    return { to, heading: this.headings[to] };
   }
 
   stars(): readonly string[] {

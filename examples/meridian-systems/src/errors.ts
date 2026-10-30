@@ -119,6 +119,19 @@ export class RelayError extends errorBase<'MERIDIAN_RELAY', RelayFields>(
   DOCS,
 ) {}
 
+interface UnchartedStarFields {
+  /** The star the request named. */
+  readonly star: string;
+  /** The stars the charts hold, in chart order. */
+  readonly charted: readonly string[];
+}
+
+/** The charts were asked to plot a star they do not hold. */
+export class UnchartedStarError extends errorBase<
+  'MERIDIAN_UNCHARTED',
+  UnchartedStarFields
+>('MERIDIAN_UNCHARTED', 'UnchartedStarError', DOCS) {}
+
 declare module '@nexusdi/core' {
   interface NexusErrorByCode {
     MERIDIAN_POWER_BUDGET: PowerBudgetError;
@@ -127,5 +140,6 @@ declare module '@nexusdi/core' {
     MERIDIAN_INTERLOCK: InterlockError;
     MERIDIAN_FTL_NOT_SPOOLED: FtlNotSpooledError;
     MERIDIAN_RELAY: RelayError;
+    MERIDIAN_UNCHARTED: UnchartedStarError;
   }
 }

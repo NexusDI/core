@@ -369,7 +369,7 @@ SHIP_RECORDS      COMMS_RECORD    a value
 
 ### Tactical and the Charts
 
-The helm plots courses from `NAV_CHARTS`, an `INavCharts` whose `has(to)` answers whether the charts hold a heading for `to`, and whose `plot(to)` answers `{ to, heading }`, with heading 0 for a star the charts lack. A key of `Object.prototype`, such as `constructor` or `__proto__`, is no star, and an entry of a table that is not a finite number reads as uncharted. A downloaded table never reaches that check with such a key or entry, since `StarCharts.download` refuses it with `RelayError` at startup. `Tactical`, in `src/systems/tactical/tactical.module.ts`, binds `NAV_CHARTS` with the factory `StarCharts.chart` and the dependency `optional(SUBSPACE_LINK)`. With a link the factory returns `StarCharts.download(link)`, which receives the relay's `charts` channel, and the container awaits that promise one level after it builds the link. Without a link the factory returns, at once, a `StarCharts` over `BUNDLED_CHARTS`, the table in `deck/charts.json` that `@nexusdi/meridian-systems/charts` exports, and does no I/O. `Tactical` imports no module and reads the global `SubspaceLink` when the root has one, so one module serves both ships. `@nexusdi/meridian-systems/charts` exports `StarCharts` and `BUNDLED_CHARTS` and holds no simulation code, so the bridge console plots over the bundled table with no simulation in its bundle. On the offline ship, and on a relay that serves the bundled table, `NAV_CHARTS.plot('Kepler-442b')` answers heading 42.
+The helm plots courses from `NAV_CHARTS`, an `INavCharts` whose `has(to)` answers whether the charts hold a heading for `to`, and whose `plot(to)` answers `{ to, heading }` and throws `UnchartedStarError` for a star the charts lack. A key of `Object.prototype`, such as `constructor` or `__proto__`, is no star, and an entry of a table that is not a finite number reads as uncharted. A downloaded table never reaches that check with such a key or entry, since `StarCharts.download` refuses it with `RelayError` at startup. `Tactical`, in `src/systems/tactical/tactical.module.ts`, binds `NAV_CHARTS` with the factory `StarCharts.chart` and the dependency `optional(SUBSPACE_LINK)`. With a link the factory returns `StarCharts.download(link)`, which receives the relay's `charts` channel, and the container awaits that promise one level after it builds the link. Without a link the factory returns, at once, a `StarCharts` over `BUNDLED_CHARTS`, the table in `deck/charts.json` that `@nexusdi/meridian-systems/charts` exports, and does no I/O. `Tactical` imports no module and reads the global `SubspaceLink` when the root has one, so one module serves both ships. `@nexusdi/meridian-systems/charts` exports `StarCharts` and `BUNDLED_CHARTS` and holds no simulation code, so the bridge console plots over the bundled table with no simulation in its bundle. On the offline ship, and on a relay that serves the bundled table, `NAV_CHARTS.plot('Kepler-442b')` answers heading 42.
 
 ### The Ship With and Without a Relay
 
@@ -800,6 +800,23 @@ Fix: check that the relay is up and reachable at relayUrl, or raise relayTimeout
 ```
 
 For a table the ship cannot read, the text reads "The subspace relay answered the charts channel with a table the ship cannot read. The table must be a JSON object that maps each star name to a finite heading." Its fix is "check what the relay serves on that channel." To clear the `timeout`, bring the relay up or raise `relayTimeout`. To clear the `malformed`, make the relay serve the table in the shape above. A status outside 200 to 299 still throws a plain `Error`, `The relay answered <status> for <channel>.`
+
+<a id="MERIDIAN_UNCHARTED"></a>
+
+### MERIDIAN_UNCHARTED
+
+`UnchartedStarError` says that the charts were asked to plot a star they do not hold. `StarCharts.plot` throws it. `star` holds the name the request gave, and `charted` lists the stars the charts hold, in chart order. A key of `Object.prototype`, such as `constructor`, is no star. The text of `shipText` cuts a star name to its first 32 characters, since the name comes from a request path.
+
+The one-line message and the text of `shipText`:
+
+```text
+[MERIDIAN_UNCHARTED] star=Vega charted=Kepler-442b,Proxima-b,TRAPPIST-1e. https://github.com/NexusDI/core/tree/main/examples/meridian-systems#MERIDIAN_UNCHARTED
+
+No star is charted as 'Vega'.
+Fix: plot a course to a charted star: Kepler-442b, Proxima-b, TRAPPIST-1e.
+```
+
+To clear it, plot a course to one of the stars `charted` lists. `bridge-api` answers it with 404 on `/course/:to`. `HelmControl` and `FtlDrive` check `has` first, so a course or jump to an uncharted star fails with `MERIDIAN_BAD_COMMAND`.
 
 ## Testing the Ship
 

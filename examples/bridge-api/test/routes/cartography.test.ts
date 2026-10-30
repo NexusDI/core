@@ -59,19 +59,35 @@ test('the audit interceptor sees every plot', async ({ nexus }) => {
 describe.each(FRAMEWORKS)('the course route on %s', (framework) => {
   const call = calls[framework];
 
-  test.each(['constructor', '__proto__'])(
-    'GET /course/%s answers heading 0 on the offline ship, whose charts do not hold it',
+  const charted = 'Kepler-442b, Proxima-b, TRAPPIST-1e';
+
+  test.each(['Vega', 'constructor', '__proto__'])(
+    'GET /course/%s answers 404 with the refusal on the offline ship, whose charts do not hold it',
     async (to) => {
       await using ship = await Nexus.create(OfflineMeridian, {
         plugins: bridgePlugins(),
       });
       expect(await call(ship, 'GET', `/course/${to}`)).toEqual({
-        status: 200,
+        status: 404,
         body: {
-          course: { to, heading: 0 },
-          entries: [`survey-7: plotting ${to}`],
+          code: 'MERIDIAN_UNCHARTED',
+          message: `No star is charted as '${to}'.`,
+          fix: `plot a course to a charted star: ${charted}.`,
         },
       });
     },
   );
+
+  test('GET /course/Kepler-442b still answers the course', async () => {
+    await using ship = await Nexus.create(OfflineMeridian, {
+      plugins: bridgePlugins(),
+    });
+    expect(await call(ship, 'GET', '/course/Kepler-442b')).toEqual({
+      status: 200,
+      body: {
+        course: { to: 'Kepler-442b', heading: 42 },
+        entries: ['survey-7: plotting Kepler-442b'],
+      },
+    });
+  });
 });

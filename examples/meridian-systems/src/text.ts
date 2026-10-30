@@ -7,6 +7,7 @@ import type {
   InterlockError,
   PowerBudgetError,
   RelayError,
+  UnchartedStarError,
   UnknownCompartmentError,
 } from './errors';
 
@@ -106,4 +107,8 @@ export const shipText = {
           message: `The subspace relay answered the ${error.channel} channel with a table the ship cannot read. The table must be ${error.expected}.`,
           fix: 'check what the relay serves on that channel.',
         },
+  MERIDIAN_UNCHARTED: (error: UnchartedStarError) => ({
+    message: `No star is charted as '${shownId(error.star)}'.`,
+    fix: `plot a course to a charted star: ${error.charted.join(', ')}.`,
+  }),
 } satisfies ErrorTextPack;
