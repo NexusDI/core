@@ -131,7 +131,7 @@ describe('SafetyPhysics', () => {
     const ship = habitatAt(start, 100_000);
     const physics = new SafetyPhysics(plan, probe);
     expect(physics.step(ship, context(start)).safety.alarms).toEqual([
-      { code: 'DECOMPRESSION', subject: 'habitat' },
+      { code: 'DECOMPRESSION', subject: 'habitat', acknowledged: false },
     ]);
     expect(physics.step(ship, context(ship)).safety.alarms).toEqual([]);
   });
@@ -145,6 +145,7 @@ describe('SafetyPhysics', () => {
     expect(next.safety.alarms).toContainEqual({
       code: 'FIRE',
       subject: 'habitat',
+      acknowledged: false,
     });
   });
 
@@ -157,7 +158,11 @@ describe('SafetyPhysics', () => {
     const ship = idle();
     const next = new SafetyPhysics(plan, broken).step(ship, context(ship));
     expect(next.safety.alarms).toEqual(
-      COMPARTMENT_IDS.map((id) => ({ code: 'SENSOR_FAULT', subject: id })),
+      COMPARTMENT_IDS.map((id) => ({
+        code: 'SENSOR_FAULT',
+        subject: id,
+        acknowledged: false,
+      })),
     );
   });
 });

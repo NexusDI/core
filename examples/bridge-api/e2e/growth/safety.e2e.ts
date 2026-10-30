@@ -120,7 +120,9 @@ describe.each(FRAMEWORKS)('safety on %s', (framework) => {
       await advance(url, 1, 1);
       const lit = await readShip(url);
       expect(lit.safety.fires.habitat).toBe(0.05);
-      expect(lit.safety.alarms).toEqual([{ code: 'FIRE', subject: 'habitat' }]);
+      expect(lit.safety.alarms).toEqual([
+        { code: 'FIRE', subject: 'habitat', acknowledged: false },
+      ]);
       expect(lit.setpoints.safety.drills.habitat).toBe(false);
 
       // The fire burns at 1 from tick 39.

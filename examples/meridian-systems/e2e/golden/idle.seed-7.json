@@ -346,7 +346,8 @@
           "engineering": false,
           "ftl-core": false,
           "main-drive": false
-        }
+        },
+        "acknowledge": false
       },
       "shields": {
         "raised": false
@@ -741,7 +742,8 @@
           "engineering": false,
           "ftl-core": false,
           "main-drive": false
-        }
+        },
+        "acknowledge": false
       },
       "shields": {
         "raised": false
@@ -1136,7 +1138,8 @@
           "engineering": false,
           "ftl-core": false,
           "main-drive": false
-        }
+        },
+        "acknowledge": false
       },
       "shields": {
         "raised": false

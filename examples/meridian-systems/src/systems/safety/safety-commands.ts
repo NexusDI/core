@@ -13,6 +13,8 @@ import {
   FIRE_SUPPRESSION,
   type IBlastDoors,
   type IFireSuppression,
+  type IMasterAlarm,
+  MASTER_ALARM,
   SAFETY_ACTIONS,
   SAFETY_SYSTEM,
 } from './contracts';
@@ -26,13 +28,14 @@ export const refuseSafety = commandRefusal(SAFETY_SYSTEM, SAFETY_ACTIONS);
  * panel reads a string.
  */
 export class SafetyCommands implements ICommandHandler {
-  static deps = [BLAST_DOORS, FIRE_SUPPRESSION] as const;
+  static deps = [BLAST_DOORS, FIRE_SUPPRESSION, MASTER_ALARM] as const;
 
   readonly system = SAFETY_SYSTEM;
 
   constructor(
     private readonly doors: IBlastDoors,
     private readonly suppression: IFireSuppression,
+    private readonly alarm: IMasterAlarm,
   ) {}
 
   handle(command: ShipCommand): QueuedCommand {
@@ -49,6 +52,8 @@ export class SafetyCommands implements ICommandHandler {
         return this.suppression.drill(
           textArgument(command, 'compartment', refuseSafety),
         );
+      case 'acknowledge':
+        return this.alarm.acknowledge();
       default:
         throw refuseSafety(command.action, 'action');
     }

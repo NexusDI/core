@@ -1,8 +1,11 @@
 import { all } from '@nexusdi/core';
 
 import { callAll } from '../../simulation/call-all';
+import type { QueuedCommand } from '../../simulation/commands';
 import {
+  type IShipState,
   type ITickLoop,
+  SHIP_STATE,
   type ShipSnapshot,
   TICK_LOOP,
 } from '../../simulation/contracts';
@@ -12,27 +15,34 @@ import {
   type Alarm,
   type IAlarmSink,
   type IMasterAlarm,
+  type RecordedAlarm,
 } from './contracts';
+
+/** The alarm a sink hears, without the crew's mark. */
+function plain({ code, subject }: Alarm): Alarm {
+  return { code, subject };
+}
 
 function key(alarm: Alarm): string {
   return `${alarm.code}:${alarm.subject}`;
 }
 
 /**
- * Tells every alarm sink what each tick raised and cleared. It listens to
- * the loop in `onInit`, so a container built with `onInit: false` gives an
- * alarm that never hears a tick.
+ * Tells every alarm sink what each tick raised and cleared, and queues the
+ * crew's acknowledge. It listens to the loop in `onInit`, so a container
+ * built with `onInit: false` gives an alarm that never hears a tick.
  */
 export class MasterAlarm implements IMasterAlarm, Disposable {
   // all(ALARM_SINKS) reads Safety's own providers plus the contributions of
   // every module that names ALARM_SINKS in its exports.
-  static deps = [TICK_LOOP, all(ALARM_SINKS)] as const;
+  static deps = [TICK_LOOP, SHIP_STATE, all(ALARM_SINKS)] as const;
 
-  private last: readonly Alarm[] = [];
+  private last: readonly RecordedAlarm[] = [];
   private stopListening: (() => void) | undefined;
 
   constructor(
     private readonly loop: ITickLoop,
+    private readonly state: IShipState,
     private readonly sinks: readonly IAlarmSink[],
   ) {}
 
@@ -40,8 +50,12 @@ export class MasterAlarm implements IMasterAlarm, Disposable {
     this.stopListening = this.loop.listen((ship) => this.dispatch(ship));
   }
 
-  active(): readonly Alarm[] {
+  active(): readonly RecordedAlarm[] {
     return this.last;
+  }
+
+  acknowledge(): QueuedCommand {
+    return this.state.queue({ safety: { acknowledge: true } });
   }
 
   [Symbol.dispose](): void {
@@ -57,10 +71,10 @@ export class MasterAlarm implements IMasterAlarm, Disposable {
   private dispatch(ship: ShipSnapshot): void {
     const before = new Set(this.last.map(key));
     const now = new Set(ship.safety.alarms.map(key));
-    const gone = this.last.filter((alarm) => !now.has(key(alarm)));
-    const raised = ship.safety.alarms.filter(
-      (alarm) => !before.has(key(alarm)),
-    );
+    const gone = this.last.filter((alarm) => !now.has(key(alarm))).map(plain);
+    const raised = ship.safety.alarms
+      .filter((alarm) => !before.has(key(alarm)))
+      .map(plain);
     this.last = ship.safety.alarms;
     const calls = [
       ...gone.map(

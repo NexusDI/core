@@ -9,6 +9,7 @@ import {
 import { FusionReactor } from '../src/systems/engineering/fusion-reactor';
 import { PlasmaRouter } from '../src/systems/engineering/plasma-router';
 import { ATMOSPHERE_SENSOR } from '../src/systems/life-support/contracts';
+import type { IAlarmBoard } from '../src/systems/safety/contracts';
 
 /**
  * Wiring the compiler refuses. Each case sits under `@ts-expect-error`, so
@@ -33,3 +34,8 @@ export const stringSeed = [
   // @ts-expect-error seed is a number
   Simulation.forRoot({ seed: '7', dt: 0.5 }),
 ];
+
+/** The narrow board lists alarms and has no way to acknowledge them. */
+export const boardCannotAcknowledge = (board: IAlarmBoard) =>
+  // @ts-expect-error IAlarmBoard has active() alone
+  board.acknowledge();

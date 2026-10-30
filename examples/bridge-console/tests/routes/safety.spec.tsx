@@ -77,8 +77,8 @@ const shipAt190: ShipReading = {
       'reactor-bay': 1234.5678901234567,
     },
     alarms: [
-      { code: 'FIRE', subject: 'reactor-bay' },
-      { code: 'LOAD_SHED', subject: 'life-support' },
+      { code: 'FIRE', subject: 'reactor-bay', acknowledged: false },
+      { code: 'LOAD_SHED', subject: 'life-support', acknowledged: false },
     ],
   },
   setpoints: {

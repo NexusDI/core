@@ -93,7 +93,7 @@ describe.each(FRAMEWORKS)('the door commands on %s', (framework) => {
 describe.each(FRAMEWORKS)('the safety commands on %s', (framework) => {
   const call = calls[framework];
   const SAFETY =
-    'open and close with a door of bridge-habitat, habitat-airlock, airlock-outer, bridge-chart-room, bridge-computer-core, habitat-quarters, habitat-comms-relay, airlock-shuttle-bay, shuttle-bay-outer, shuttle-bay-drone-bay, drone-bay-outer, habitat-engineering, engineering-capacitor-room, engineering-ftl-core, engineering-reactor-bay or reactor-bay-main-drive, and flood and drill with a compartment of bridge, habitat, reactor-bay, chart-room, computer-core, quarters, comms-relay, capacitor-room, engineering, ftl-core or main-drive';
+    'open and close with a door of bridge-habitat, habitat-airlock, airlock-outer, bridge-chart-room, bridge-computer-core, habitat-quarters, habitat-comms-relay, airlock-shuttle-bay, shuttle-bay-outer, shuttle-bay-drone-bay, drone-bay-outer, habitat-engineering, engineering-capacitor-room, engineering-ftl-core, engineering-reactor-bay or reactor-bay-main-drive, and flood and drill with a compartment of bridge, habitat, reactor-bay, chart-room, computer-core, quarters, comms-relay, capacitor-room, engineering, ftl-core or main-drive, and acknowledge with no argument';
   const refused = (action: string, argument: 'door' | 'compartment') => ({
     status: 400,
     body: {

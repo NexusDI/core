@@ -10,6 +10,7 @@ import {
   type NexusExpress,
 } from '@nexusdi/express';
 import {
+  ALARM_BOARD,
   COMMAND_DESK,
   DECK_PLAN,
   FTL_DRIVE,
@@ -24,6 +25,7 @@ import express, {
   type Request,
 } from 'express';
 
+import { answerAlarms } from '../bridge/alarms';
 import { answerAtmosphere } from '../bridge/atmosphere';
 import { answerCommand } from '../bridge/commands';
 import { compartmentOf } from '../bridge/compartment-of';
@@ -105,6 +107,12 @@ export function createBridge(
         res.json(readShip(state.snapshot(), deck));
       },
     ),
+  );
+  bridge.get(
+    '/alarms',
+    di.inject({ board: ALARM_BOARD }, ({ board }, _req, res) => {
+      res.json(answerAlarms(board));
+    }),
   );
   bridge.get('/compartments/:id/atmosphere', async (req, res) => {
     const answer = answerAtmosphere(await di.scope(req));

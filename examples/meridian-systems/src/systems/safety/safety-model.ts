@@ -15,6 +15,7 @@ import type { AtmosphereReading, RoomPlan } from '../life-support/contracts';
 import type {
   Alarm,
   AlarmCode,
+  RecordedAlarm,
   FloodPlan,
   SafetyRecord,
   SafetySetpoints,
@@ -147,7 +148,7 @@ export interface SafetyInput<
   /** The ship as `applyQueued` committed it before any system stepped. */
   readonly start: {
     readonly compartments: Readonly<Record<Id, Air>>;
-    readonly alarms: readonly Alarm[];
+    readonly alarms: readonly RecordedAlarm[];
   };
   /** Each room's air after phase 4. */
   readonly compartments: Readonly<Record<Id, Air>>;
@@ -318,6 +319,8 @@ function runFloods<Id extends string, Door extends string>(
   return { flooded: Object.freeze(flooded), done };
 }
 
+const alarmKey = (alarm: Alarm) => `${alarm.code}:${alarm.subject}`;
+
 /** Whether `code` stood active for `subject` at the start of the tick. */
 function activeAt(
   alarms: readonly Alarm[],
@@ -439,7 +442,12 @@ export function stepSafety<Id extends string, Door extends string>(
     sealed,
     false,
   ) as Readonly<Record<Door, boolean>>;
+  const acknowledged = new Set(
+    input.start.alarms.filter((alarm) => alarm.acknowledged).map(alarmKey),
+  );
+  const acknowledge = input.setpoints.acknowledge;
   const unchanged =
+    !acknowledge &&
     drills === input.setpoints.drills &&
     valves === input.setpoints.floods &&
     doors === input.setpoints.doors;
@@ -449,10 +457,17 @@ export function stepSafety<Id extends string, Door extends string>(
     safety: Object.freeze({
       fires: Object.freeze(fires),
       flooded: floods.flooded,
-      alarms: Object.freeze(alarms.map((alarm) => Object.freeze(alarm))),
+      alarms: Object.freeze(
+        alarms.map((alarm) =>
+          Object.freeze({
+            ...alarm,
+            acknowledged: acknowledge || acknowledged.has(alarmKey(alarm)),
+          }),
+        ),
+      ),
     }),
     setpoints: unchanged
       ? input.setpoints
-      : Object.freeze({ doors, floods: valves, drills }),
+      : Object.freeze({ doors, floods: valves, drills, acknowledge: false }),
   });
 }

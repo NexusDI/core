@@ -300,7 +300,7 @@ describe('the weapons', () => {
     expect(held.setpoints.weapons).toEqual({ armed: true, range: 0 });
     expect(held.power.shed).toEqual(['railgun']);
     expect(held.safety.alarms).toEqual([
-      { code: 'LOAD_SHED', subject: 'railgun' },
+      { code: 'LOAD_SHED', subject: 'railgun', acknowledged: false },
     ]);
     expect(held.reactor.electric).toBe(726_000_000);
   });
@@ -363,6 +363,7 @@ describe('the weapons', () => {
     expect(again.safety.alarms).toContainEqual({
       code: 'LOAD_SHED',
       subject: 'ftl-spool',
+      acknowledged: false,
     });
     expect(loadOf(again, 'railgun')?.allocated).toBe(300_000_000);
   });

@@ -78,8 +78,8 @@ const shed: ShipReading = {
   safety: {
     ...shipAtStart.safety,
     alarms: [
-      { code: 'LOAD_SHED', subject: 'thrusters' },
-      { code: 'LOAD_SHED', subject: 'main-drive' },
+      { code: 'LOAD_SHED', subject: 'thrusters', acknowledged: false },
+      { code: 'LOAD_SHED', subject: 'main-drive', acknowledged: false },
     ],
   },
   setpoints: steering,
@@ -96,7 +96,7 @@ const turning: ShipReading = {
   ),
   safety: {
     ...shipAtStart.safety,
-    alarms: [{ code: 'LOAD_SHED', subject: 'main-drive' }],
+    alarms: [{ code: 'LOAD_SHED', subject: 'main-drive', acknowledged: false }],
   },
   helm: { attitude: 0.0003788, rate: 0.0007576, torque: 5_000_000 },
 };

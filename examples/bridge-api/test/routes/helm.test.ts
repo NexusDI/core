@@ -79,8 +79,8 @@ describe.each(FRAMEWORKS)('the helm commands on %s', (framework) => {
     });
     expect(shed.power.shed).toEqual(['thrusters', 'main-drive']);
     expect(shed.safety.alarms).toEqual([
-      { code: 'LOAD_SHED', subject: 'thrusters' },
-      { code: 'LOAD_SHED', subject: 'main-drive' },
+      { code: 'LOAD_SHED', subject: 'thrusters', acknowledged: false },
+      { code: 'LOAD_SHED', subject: 'main-drive', acknowledged: false },
     ]);
 
     await advance(nexus, 1);
@@ -98,7 +98,7 @@ describe.each(FRAMEWORKS)('the helm commands on %s', (framework) => {
     });
     expect(turning.power.shed).toEqual(['main-drive']);
     expect(turning.safety.alarms).toEqual([
-      { code: 'LOAD_SHED', subject: 'main-drive' },
+      { code: 'LOAD_SHED', subject: 'main-drive', acknowledged: false },
     ]);
     expect(
       nexus

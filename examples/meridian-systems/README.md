@@ -250,9 +250,9 @@ A crew member opens the airlock's inner door, and the ship must refuse while the
 ```text
 BLAST_DOORS       BlastDoorControl     deps [SHIP_STATE]
 FIRE_SUPPRESSION  InertGasSuppression  deps [SHIP_STATE]
-MASTER_ALARM      MasterAlarm          deps [TICK_LOOP, all(ALARM_SINKS)]
+MASTER_ALARM      MasterAlarm          deps [TICK_LOOP, SHIP_STATE, all(ALARM_SINKS)]
 SHIP_SYSTEMS      SafetyPhysics        deps [DECK_PLAN, ATMOSPHERE_PROBE]
-COMMAND_HANDLERS  SafetyCommands       deps [BLAST_DOORS, FIRE_SUPPRESSION]
+COMMAND_HANDLERS  SafetyCommands       deps [BLAST_DOORS, FIRE_SUPPRESSION, MASTER_ALARM]
 SHIP_RECORDS      safetyRecord         factory, deps [DECK_PLAN]
 ```
 
@@ -284,17 +284,19 @@ The binding wraps the panel `SafetyCommands` holds, so a desk command passes the
 { "system": "safety", "action": "flood", "compartment": "habitat" }
 { "system": "safety", "action": "open", "door": "habitat-airlock" }
 { "system": "safety", "action": "close", "door": "habitat-airlock" }
+{ "system": "safety", "action": "acknowledge" }
 ```
 
 - `drill` calls `FIRE_SUPPRESSION.drill(compartment)`, which lights a drill fire in the room on the next tick when its air burns. No room of the seeded ship reaches the 330 K a fire needs to light by chance, so a crew on the seeded ship sees a fire only after a drill.
 - `flood` calls `FIRE_SUPPRESSION.flood(compartment)`, which opens the room's flood valve, and the valve releases the room's charge of N₂ over 10 s.
 - `open` and `close` take a string `door` and call the door panel.
+- `acknowledge` takes no argument and calls `MASTER_ALARM.acknowledge()`, which queues the crew's mark for the next tick.
 
-`drill` and `flood` take a room with a flood charge: every compartment but the airlock and the two bays. The airlock has none, so the panel refuses it with `reason: 'argument'`. A missing or non-string argument throws `argument` before the panel runs, so an interceptor on a panel reads a string, and an unknown action throws `action`. The error's `expected` reads "open and close with a door of bridge-habitat, habitat-airlock, airlock-outer, bridge-chart-room, bridge-computer-core, habitat-quarters, habitat-comms-relay, airlock-shuttle-bay, shuttle-bay-outer, shuttle-bay-drone-bay, drone-bay-outer, habitat-engineering, engineering-capacitor-room, engineering-ftl-core, engineering-reactor-bay or reactor-bay-main-drive, and flood and drill with a compartment of bridge, habitat, reactor-bay, chart-room, computer-core, quarters, comms-relay, capacitor-room, engineering, ftl-core or main-drive".
+`drill` and `flood` take a room with a flood charge: every compartment but the airlock and the two bays. The airlock has none, so the panel refuses it with `reason: 'argument'`. A missing or non-string argument throws `argument` before the panel runs, so an interceptor on a panel reads a string, and an unknown action throws `action`. The error's `expected` reads "open and close with a door of bridge-habitat, habitat-airlock, airlock-outer, bridge-chart-room, bridge-computer-core, habitat-quarters, habitat-comms-relay, airlock-shuttle-bay, shuttle-bay-outer, shuttle-bay-drone-bay, drone-bay-outer, habitat-engineering, engineering-capacitor-room, engineering-ftl-core, engineering-reactor-bay or reactor-bay-main-drive, and flood and drill with a compartment of bridge, habitat, reactor-bay, chart-room, computer-core, quarters, comms-relay, capacitor-room, engineering, ftl-core or main-drive, and acknowledge with no argument".
 
 ### The Master Alarm and Its Sinks
 
-Each tick, the safety step writes the active alarms into `safety.alarms`. `MasterAlarm` tells every `IAlarmSink` what changed. It listens to the loop in `onInit` and compares each committed tick's alarms with the set it last dispatched, keyed by `code` and `subject`. It clears the alarms that went, in their old order, then raises the new ones, in the record's order. A sink hears `raise(alarm, tick)` with the first tick that held the alarm, and `clear(alarm, tick)` with the first tick that did not. A sink that throws leaves the others served, and `advance()` throws its error after the committed tick, as it does for any listener. `MASTER_ALARM.active()` answers the alarms of the last tick. The alarm stops listening in `Symbol.dispose`.
+Each tick, the safety step writes the active alarms into `safety.alarms`. `MasterAlarm` tells every `IAlarmSink` what changed. It listens to the loop in `onInit` and compares each committed tick's alarms with the set it last dispatched, keyed by `code` and `subject`. It clears the alarms that went, in their old order, then raises the new ones, in the record's order. A sink hears `raise(alarm, tick)` with the first tick that held the alarm, and `clear(alarm, tick)` with the first tick that did not. A sink that throws leaves the others served, and `advance()` throws its error after the committed tick, as it does for any listener. `MASTER_ALARM.active()` answers the alarms of the last tick, each with its `acknowledged` mark, and `MASTER_ALARM.acknowledge()` queues the acknowledge for the next tick. The alarm stops listening in `Symbol.dispose`.
 
 `ALARM_SINKS` is a multi token, and an app contributes a sink with `provide(ALARM_SINKS, { useClass: ... })`. `all(ALARM_SINKS)` in `MasterAlarm` reads Safety's own providers plus every module's exported contributions. Safety imports nothing from the app, so a module that contributes a sink exports `ALARM_SINKS` and sits anywhere in the graph, with no `global: true`. `bridge-api`'s `AlarmPanel` is one such module, and `test/safety.test.ts` defines another around a recording sink. Every telemetry frame carries `safety.alarms`, so the library binds no sink of its own.
 
@@ -325,8 +327,8 @@ The step is idle with every door shut, no fire, no room above 330 K, no drill an
 
 The snapshot carries the safety records:
 
-- `safety`: `fires`, the intensity `φ` of each compartment with 0 for no fire, and `flooded`, the moles the running flood of each charged room has released. Its `alarms` hold each alarm as `{ code, subject }`, with the subject the compartment, or for an engineering alarm the shed load's id or `reactor`.
-- `setpoints.safety`: `doors`, and `floods` and `drills` keyed by the charged rooms. At tick 0 every door is shut, and every valve and drill flag is false.
+- `safety`: `fires`, the intensity `φ` of each compartment with 0 for no fire, and `flooded`, the moles the running flood of each charged room has released. Its `alarms` hold each alarm as `{ code, subject, acknowledged }`, with the subject the compartment, or for an engineering alarm the shed load's id or `reactor`.
+- `setpoints.safety`: `doors`, `floods` and `drills` keyed by the charged rooms, and `acknowledge`, a one-shot flag the next tick clears. At tick 0 every door is shut, and every valve and drill flag is false.
 
 ### The Airlock Drill
 

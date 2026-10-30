@@ -262,11 +262,13 @@
       "alarms": [
         {
           "code": "LOAD_SHED",
-          "subject": "thrusters"
+          "subject": "thrusters",
+          "acknowledged": false
         },
         {
           "code": "LOAD_SHED",
-          "subject": "main-drive"
+          "subject": "main-drive",
+          "acknowledged": false
         }
       ]
     },
@@ -395,7 +397,8 @@
           "engineering": false,
           "ftl-core": false,
           "main-drive": false
-        }
+        },
+        "acknowledge": false
       },
       "shields": {
         "raised": false
@@ -790,7 +793,8 @@
           "engineering": false,
           "ftl-core": false,
           "main-drive": false
-        }
+        },
+        "acknowledge": false
       },
       "shields": {
         "raised": false
@@ -1185,7 +1189,8 @@
           "engineering": false,
           "ftl-core": false,
           "main-drive": false
-        }
+        },
+        "acknowledge": false
       },
       "shields": {
         "raised": false
@@ -1580,7 +1585,8 @@
           "engineering": false,
           "ftl-core": false,
           "main-drive": false
-        }
+        },
+        "acknowledge": false
       },
       "shields": {
         "raised": false

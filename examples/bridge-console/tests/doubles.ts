@@ -167,6 +167,7 @@ export const shipAtStart: ShipReading = {
       doors: each(DOOR_IDS, false),
       floods: each(CHARGED, false),
       drills: each(CHARGED, false),
+      acknowledge: false,
     },
     shields: { raised: false },
     weapons: { armed: false, range: null },
