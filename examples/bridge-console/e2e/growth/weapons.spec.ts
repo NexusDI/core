@@ -1,7 +1,7 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
 
 import { expect, problems, test } from '../support';
-import { advance, bridgeApi, gauge } from './ship';
+import { advance, bridgeApi, frame, gauge, queuedAt } from './ship';
 
 test('fires the railgun from /systems/weapons', async ({ page, request }) => {
   const seen = problems(page);
@@ -24,25 +24,22 @@ test('fires the railgun from /systems/weapons', async ({ page, request }) => {
   await expect(gauge(weapons, 'Armed')).toHaveText('No');
   await expect(gauge(weapons, 'Capacitor charge')).toHaveText('0.0 MJ');
   await page.getByRole('button', { name: 'Fire', exact: true }).click();
-  await expect(answer).toHaveText(`Queued for tick ${tick + 1}`);
+  await expect(answer).toHaveText(queuedAt(tick + 1));
 
-  await advance(request, 1);
-  await page.reload();
+  await frame(page, await advance(request, 1));
   await expect(gauge(weapons, 'Status')).toHaveText('charging');
   await expect(gauge(weapons, 'Capacitor charge')).toHaveText('150.0 MJ');
   await expect(gauge(weapons, 'Capacitor power')).toHaveText('300.0 MW');
   await expect(gauge(weapons, 'Shot waiting')).toHaveText('10,000 m');
 
-  await advance(request, 1);
-  await page.reload();
+  await frame(page, await advance(request, 1));
   await expect(gauge(weapons, 'Shots fired')).toHaveText('1');
   await expect(gauge(weapons, 'Hits')).toHaveText('1');
   await expect(gauge(weapons, 'Last shot')).toHaveText(
     `hit at 10,000 m, tick ${tick + 2}`,
   );
 
-  await advance(request, 4);
-  await page.reload();
+  await frame(page, await advance(request, 4));
   await expect(gauge(weapons, 'Status')).toHaveText('charged');
   await expect(gauge(weapons, 'Capacitor charge')).toHaveText('400.0 MJ');
   await expect(gauge(weapons, 'Capacitor power')).toHaveText('0.0 MW');

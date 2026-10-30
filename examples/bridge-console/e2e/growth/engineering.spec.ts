@@ -2,6 +2,7 @@ import type { ShipReading } from '@nexusdi/meridian-systems';
 
 import { GROWTH_PORTS } from '../../playwright.servers.mts';
 import { expect, problems, test } from '../support';
+import { queuedAt } from './ship';
 
 /** The bridge API the growth config starts. */
 const bridgeApi = `http://127.0.0.1:${GROWTH_PORTS.api}`;
@@ -34,6 +35,6 @@ test('refuses the shields at the idle reactor, then queues the throttle', async 
   // answer by its text.
   await expect(
     page.getByRole('status').filter({ hasText: 'Queued for tick' }),
-  ).toHaveText(`Queued for tick ${tick + 1}`);
+  ).toHaveText(queuedAt(tick + 1));
   expect(seen).toEqual([]);
 });

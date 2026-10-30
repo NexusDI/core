@@ -1,6 +1,7 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
 
 import type { CommandAnswer } from '../di/contracts';
+import { useShipReading } from '../hooks/use-ship-reading';
 import type { Route } from './+types/airlock';
 import { snapshotLoader } from './snapshot-loader.server';
 import { AirlockControls } from './systems/airlock-controls';
@@ -70,14 +71,17 @@ function AirlockGauges({ ship }: { ship: ShipReading }) {
 }
 
 export default function Airlock({
-  loaderData: ship,
+  loaderData,
   actionData,
 }: Route.ComponentProps) {
+  const ship = useShipReading(loaderData);
   return (
-    <SystemPage answer={actionData}>
+    <SystemPage answer={actionData} ship={ship}>
       {ship === null ? <SnapshotOffline /> : <AirlockGauges ship={ship} />}
       <ControlSection title="Pump and vent">
-        <AirlockControls />
+        <AirlockControls
+          pump={loaderData?.setpoints.lifeSupport.pumps.airlock ?? 'off'}
+        />
       </ControlSection>
       <ControlSection title="Door control">
         <CommandSelect
@@ -93,3 +97,6 @@ export default function Airlock({
     </SystemPage>
   );
 }
+
+/** The page's error boundary: an action that throws leaves the nav and shows the snapshot offline. */
+export { SystemErrorBoundary as ErrorBoundary } from './systems/system-page';

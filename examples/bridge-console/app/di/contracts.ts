@@ -18,8 +18,21 @@ export interface IWatchLog {
 export const WATCH_LOG = new Token<IWatchLog>('WatchLog');
 
 /**
+ * The reply when the link cannot reach bridge-api: a refusal with status 503
+ * whose message names the address and whose fix names the dev target.
+ */
+export interface BridgeOffline {
+  readonly accepted: false;
+  readonly status: 503;
+  readonly code: 'BRIDGE_OFFLINE';
+  readonly message: string;
+  readonly fix: string;
+}
+
+/**
  * What bridge-api answers a command: the tick that applies it and, when the
- * request's flight log holds entries, those entries, or its refusal.
+ * request's flight log holds entries, those entries, or its refusal. A
+ * bridge-api the link cannot reach answers `BridgeOffline`.
  */
 export type CommandAnswer =
   | {
@@ -39,7 +52,8 @@ export type CommandAnswer =
       readonly code: string;
       readonly message: string;
       readonly fix?: string;
-    };
+    }
+  | BridgeOffline;
 
 /** The console's link to bridge-api, over HTTP. */
 export interface IBridgeLink {
@@ -59,14 +73,17 @@ export interface IBridgeLink {
    * serves none.
    */
   graph(): Promise<NexusGraph | null>;
-  /** Posts `cmd` to `POST /commands`. Any status but 202, 400 and 409 rejects. */
+  /**
+   * Posts `cmd` to `POST /commands`. Any status but 202, 400 and 409 rejects.
+   * A network error answers `BridgeOffline`.
+   */
   command(cmd: ShipCommand): Promise<CommandAnswer>;
   /**
    * Posts to `POST /sections/ftl`, which loads the FTL drive, and gives the
    * drive's rating. From then on `command` reaches the `ftl` system. Any
-   * status but 200 rejects.
+   * status but 200 rejects. A network error answers `BridgeOffline`.
    */
-  loadFtl(): Promise<FtlRating>;
+  loadFtl(): Promise<FtlRating | BridgeOffline>;
 }
 export const BRIDGE_LINK = new Token<IBridgeLink>('BridgeLink');
 

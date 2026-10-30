@@ -1,7 +1,7 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
 
 import { expect, problems, test } from '../support';
-import { advance, bridgeApi, gauge } from './ship';
+import { advance, bridgeApi, frame, gauge, queuedAt } from './ship';
 
 test('hails from /systems/comms on the offline ship', async ({
   page,
@@ -27,11 +27,10 @@ test('hails from /systems/comms on the offline ship', async ({
       .getByRole('status')
       .filter({ hasText: 'Queued for tick' })
       .locator('p'),
-  ).toHaveText(`Queued for tick ${tick + 1}`);
+  ).toHaveText(queuedAt(tick + 1));
 
   // The queued hail waits for a link the ship lacks, so the array stays silent.
-  await advance(request, 10);
-  await page.reload();
+  await frame(page, await advance(request, 10));
   await expect(gauge(gauges, 'Status')).toHaveText('no subspace link');
   await expect(gauge(gauges, 'Hail queued')).toHaveText('Yes');
   await expect(gauge(gauges, 'Last hail sent')).toHaveText('none');

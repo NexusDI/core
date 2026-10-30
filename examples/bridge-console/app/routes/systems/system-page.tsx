@@ -5,10 +5,12 @@
  * and its action from `systemAction` in system-action.server.ts.
  */
 import type { ReactNode } from 'react';
+import type { ShipReading } from '@nexusdi/meridian-systems';
 import { Form } from 'react-router';
 
 import { Button, Section } from '../../components';
 import type { CommandAnswer } from '../../di/contracts';
+import { type AnswerBand, useShipCommand } from '../../hooks/use-ship-command';
 
 /** A list of named gauges, each a name and its rounded value, with `label` as its accessible name. */
 export function Gauges({
@@ -53,13 +55,18 @@ export function ItemList({
   );
 }
 
-/** The section a page shows in place of its gauges when the ship snapshot fails. */
+/** The section a page shows in place of its gauges when the ship snapshot fails, and as its route's error boundary. */
 export function SnapshotOffline() {
   return (
     <Section>
       <p>Ship snapshot offline</p>
     </Section>
   );
+}
+
+/** The error boundary of every system route, rendered inside the layout's outlet. */
+export function SystemErrorBoundary() {
+  return <SnapshotOffline />;
 }
 
 /** A section of the page's controls under a level-two heading `title`. */
@@ -78,50 +85,72 @@ export function ControlSection({
   );
 }
 
+/** A tick with its thousands grouped, as every page shows ticks. */
+const tick = (value: number) => value.toLocaleString('en-US');
+
 /**
- * The answer to the last command: its tick and one line per flight-log entry
- * the command recorded, or the refusal and its fix.
+ * The band for the last command: the tick it queues for, and once a reading
+ * reaches that tick the tick it applied at, with one line per flight-log
+ * entry and the system's notice and fix. A refusal shows its code, its
+ * message and its fix.
  */
-function LastAnswer({ answer }: { answer: CommandAnswer }) {
-  if (answer.accepted)
+function LastAnswer({ band }: { band: AnswerBand }) {
+  if (band.state === 'refused')
     return (
-      <div role="status">
-        <p>{`Queued for tick ${answer.tick}`}</p>
-        {answer.flightLog === undefined ? null : (
-          <ul>
-            {answer.flightLog.map((entry, index) => (
-              <li key={index}>{entry}</li>
-            ))}
-          </ul>
-        )}
+      <div role="alert">
+        <p>{`${band.code}: ${band.message}`}</p>
+        {band.fix === undefined ? null : <p>{`Fix: ${band.fix}`}</p>}
       </div>
     );
+  const queued = `Queued for tick ${tick(band.tick)}.`;
   return (
-    <div role="alert">
-      <p>{answer.message}</p>
-      {answer.fix === undefined ? null : <p>{`Fix: ${answer.fix}`}</p>}
+    <div role="status">
+      <p>
+        {band.state === 'applied'
+          ? `${queued} Applied at tick ${tick(band.appliedAt)}.`
+          : queued}
+      </p>
+      {band.notice === undefined ? null : (
+        <>
+          <p>{band.notice.message}</p>
+          {band.notice.fix === undefined ? null : (
+            <p>{`Fix: ${band.notice.fix}`}</p>
+          )}
+        </>
+      )}
+      {band.flightLog === undefined ? null : (
+        <ul>
+          {band.flightLog.map((entry, index) => (
+            <li key={index}>{entry}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
 
 /**
- * A system page: its gauges and controls in `children`, then the answer to
+ * A system page: its gauges and controls in `children`, then the band for
  * the last command once the action returns one. `answer` is the route's
- * `actionData`, undefined until the reader posts a form.
+ * `actionData`, undefined until the reader posts a form. `ship` is the live
+ * reading, null while the stream is offline, and turns the band to applied.
  */
 export function SystemPage({
   answer,
+  ship,
   children,
 }: {
   answer: CommandAnswer | undefined;
+  ship: ShipReading | null;
   children: ReactNode;
 }) {
+  const band = useShipCommand(answer, ship);
   return (
     <>
       {children}
-      {answer === undefined ? null : (
+      {band === undefined ? null : (
         <Section>
-          <LastAnswer answer={answer} />
+          <LastAnswer band={band} />
         </Section>
       )}
     </>

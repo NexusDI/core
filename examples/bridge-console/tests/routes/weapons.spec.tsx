@@ -295,7 +295,7 @@ describe('the fire form', () => {
     const command = vi.spyOn(scope.get(BRIDGE_LINK), 'command');
     fireEvent.click(screen.getByRole('button', { name: 'Fire' }));
     expect((await screen.findByRole('status')).textContent).toBe(
-      'Queued for tick 1',
+      'Queued for tick 1.',
     );
     expect(command).toHaveBeenCalledOnce();
     expect(command.mock.calls[0]?.[0]).toStrictEqual({
@@ -336,7 +336,7 @@ describe('the fire form', () => {
     await renderPage(renderRoute, withLink(Refusing));
     fireEvent.click(screen.getByRole('button', { name: 'Fire' }));
     expect((await screen.findByRole('alert')).textContent).toBe(
-      'The railgun load needs 300 MW, and the router has 0 MW free beside the loads above it.Fix: raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
+      'MERIDIAN_POWER_BUDGET: The railgun load needs 300 MW, and the router has 0 MW free beside the loads above it.Fix: raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
     );
   });
 });

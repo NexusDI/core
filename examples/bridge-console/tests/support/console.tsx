@@ -19,8 +19,8 @@ import { test as base } from 'vitest';
 
 import { BridgeClient } from '../../app/di/bridge.client';
 import { BridgeConsole } from '../../app/di/bridge.server';
-import { BRIDGE_LINK } from '../../app/di/contracts';
-import { FakeBridgeLink, fakeBridgeLink } from '../doubles';
+import { BRIDGE_LINK, TELEMETRY_CLIENT } from '../../app/di/contracts';
+import { FakeBridgeLink, FakeTelemetry, fakeBridgeLink } from '../doubles';
 import { serve } from './nexus-server';
 
 type StubRoute = Parameters<typeof createRoutesStub>[0][number];
@@ -49,6 +49,8 @@ export interface RenderOptions extends ScopeOptions {
   readonly at?: string;
   /** Changes the client container the page renders under. */
   readonly browser?: NexusSetupStep;
+  /** A parent route component that renders `route` through its Outlet, such as the page's nav. */
+  readonly layout?: StubRoute['Component'];
 }
 
 /** The fixtures `renderRoute` and `openScope` add to `nexusTest`. */
@@ -59,7 +61,7 @@ interface ConsoleFixtures {
   renderRoute(
     route: RouteModule,
     options: RenderOptions,
-  ): Promise<{ scope: Scope; browser: Nexus }>;
+  ): Promise<{ scope: Scope; browser: Nexus; telemetry: FakeTelemetry }>;
 }
 
 /** The `renderRoute` fixture's function, for the page helper a test file writes. */
@@ -133,21 +135,30 @@ export const test = nexusTest(base, BridgeConsole, {
   renderRoute: async ({ openScope }, provide) => {
     const browsers: Nexus[] = [];
     await provide(
-      async (route, { path, at = path, browser, ...scopeOptions }) => {
+      async (route, { path, at = path, browser, layout, ...scopeOptions }) => {
         const scope = await openScope(scopeOptions);
-        const builder = createTestingContainer(BridgeClient);
+        // The page follows a stream the test drives, as the browser's
+        // EventSource would deliver it.
+        const telemetry = new FakeTelemetry();
+        const builder = createTestingContainer(BridgeClient).override(
+          TELEMETRY_CLIENT,
+          { useValue: telemetry },
+        );
         const client = await (browser?.(builder) ?? builder).create();
         browsers.push(client);
+        const page = {
+          path,
+          Component: route.default,
+          loader: route.loader,
+          action: route.action,
+          ErrorBoundary: route.ErrorBoundary,
+          HydrateFallback: Loading,
+        };
         const Stub = createRoutesStub(
           [
-            {
-              path,
-              Component: route.default,
-              loader: route.loader,
-              action: route.action,
-              ErrorBoundary: route.ErrorBoundary,
-              HydrateFallback: Loading,
-            },
+            layout === undefined
+              ? page
+              : { Component: layout, children: [page] },
           ],
           contextOf(scope),
         );
@@ -156,7 +167,7 @@ export const test = nexusTest(base, BridgeConsole, {
             <Stub initialEntries={[at]} />
           </NexusProvider>,
         );
-        return { scope, browser: client };
+        return { scope, browser: client, telemetry };
       },
     );
     await Promise.all(browsers.map((ship) => ship[Symbol.asyncDispose]()));

@@ -1,11 +1,17 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import type { Scope } from '@nexusdi/core';
 import type { ShipReading } from '@nexusdi/meridian-systems';
 import type { NexusSetupStep } from '@nexusdi/vitest';
+import { Link, Outlet } from 'react-router';
 import { describe, expect, vi } from 'vitest';
 
-import { BRIDGE_LINK } from '../../app/di/contracts';
-import { FailingSnapshotLink, linkAt, shipAtStart } from '../doubles';
+import { BRIDGE_LINK, type CommandAnswer } from '../../app/di/contracts';
+import {
+  FailingSnapshotLink,
+  FakeBridgeLink,
+  linkAt,
+  shipAtStart,
+} from '../doubles';
 import {
   contextOf,
   test,
@@ -31,7 +37,7 @@ async function renderPage(
     overrides,
   });
   await screen.findByRole('button', { name: 'Set throttle' });
-  return page.scope;
+  return page;
 }
 
 describe('the engineering route', () => {
@@ -47,7 +53,7 @@ describe('the engineering route', () => {
     await renderPage(renderRoute);
     fireEvent.click(screen.getByRole('button', { name: 'Set throttle' }));
     expect((await screen.findByRole('status')).textContent).toBe(
-      'Queued for tick 1',
+      'Queued for tick 1.',
     );
   });
 
@@ -58,7 +64,7 @@ describe('the engineering route', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Raise shields' }));
     expect(
       await screen.findByText(
-        'The shields load needs 200 MW, and the router has 0 MW free beside the loads above it.',
+        'MERIDIAN_POWER_BUDGET: The shields load needs 200 MW, and the router has 0 MW free beside the loads above it.',
       ),
     ).toBeDefined();
     expect(
@@ -186,5 +192,147 @@ describe('the engineering gauges', () => {
     expect(await screen.findByText('Ship snapshot offline')).toBeDefined();
     expect(screen.queryByLabelText('Engineering gauges')).toBeNull();
     expect(screen.getByRole('button', { name: 'Set throttle' })).toBeDefined();
+  });
+});
+
+describe('the engineering page after a command', () => {
+  test('shows the new value and turns the answer to applied when a frame reaches its tick', async ({
+    renderRoute,
+  }) => {
+    const { telemetry } = await renderPage(renderRoute);
+    fireEvent.click(screen.getByRole('button', { name: 'Set throttle' }));
+    expect((await screen.findByRole('status')).textContent).toBe(
+      'Queued for tick 1.',
+    );
+    expect(await gauges()).toEqual(['0.00', '0.0 MW', '500.0 K', '0.0 MW']);
+    act(() =>
+      telemetry.push({
+        ...shipAtStart,
+        tick: 1,
+        reactor: { ...shipAtStart.reactor, level: 0.5 },
+      }),
+    );
+    expect(await gauges()).toEqual(['0.50', '0.0 MW', '500.0 K', '0.0 MW']);
+    expect(screen.getByRole('status').textContent).toBe(
+      'Queued for tick 1. Applied at tick 1.',
+    );
+  });
+
+  test('keeps the queued line while frames stay before its tick', async ({
+    renderRoute,
+  }) => {
+    class Later extends FakeBridgeLink {
+      override async command(): Promise<CommandAnswer> {
+        return { accepted: true, tick: 1205 };
+      }
+    }
+    const { telemetry } = await renderPage(renderRoute, withLink(Later));
+    fireEvent.click(screen.getByRole('button', { name: 'Set throttle' }));
+    expect((await screen.findByRole('status')).textContent).toBe(
+      'Queued for tick 1,205.',
+    );
+    act(() => telemetry.push({ ...shipAtStart, tick: 1204 }));
+    expect(screen.getByRole('status').textContent).toBe(
+      'Queued for tick 1,205.',
+    );
+    act(() => telemetry.push({ ...shipAtStart, tick: 1205 }));
+    expect(screen.getByRole('status').textContent).toBe(
+      'Queued for tick 1,205. Applied at tick 1,205.',
+    );
+  });
+
+  test('shows the notice and its fix under the queued line', async ({
+    renderRoute,
+  }) => {
+    class Noticing extends FakeBridgeLink {
+      override async command(): Promise<CommandAnswer> {
+        return {
+          accepted: true,
+          tick: 1,
+          notice: { code: 'X', message: 'It waits.', fix: 'Start it.' },
+        };
+      }
+    }
+    await renderPage(renderRoute, withLink(Noticing));
+    fireEvent.click(screen.getByRole('button', { name: 'Set throttle' }));
+    expect((await screen.findByRole('status')).textContent).toBe(
+      'Queued for tick 1.It waits.Fix: Start it.',
+    );
+  });
+
+  test('shows the offline reply beside the form and keeps the forms', async ({
+    renderRoute,
+  }) => {
+    class Offline extends FakeBridgeLink {
+      override async command(): Promise<CommandAnswer> {
+        return {
+          accepted: false,
+          status: 503,
+          code: 'BRIDGE_OFFLINE',
+          message: 'The bridge is unreachable at http://bridge/.',
+          fix: 'Start bridge-api.',
+        };
+      }
+    }
+    await renderPage(renderRoute, withLink(Offline));
+    fireEvent.click(screen.getByRole('button', { name: 'Set throttle' }));
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'BRIDGE_OFFLINE: The bridge is unreachable at http://bridge/.Fix: Start bridge-api.',
+    );
+    expect(screen.getByRole('button', { name: 'Set throttle' })).toBeDefined();
+  });
+
+  test('keeps the nav and shows the snapshot offline when the action throws', async ({
+    renderRoute,
+  }) => {
+    class Throwing extends FakeBridgeLink {
+      override async command(): Promise<CommandAnswer> {
+        throw new Error('bridge-api answered 500 for /commands');
+      }
+    }
+    await renderRoute(engineering, {
+      path: '/systems/engineering',
+      overrides: withLink(Throwing),
+      layout: () => (
+        <>
+          <nav>
+            <Link to="/">Home</Link>
+          </nav>
+          <Outlet />
+        </>
+      ),
+    });
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Set throttle' }),
+    );
+    expect(await screen.findByText('Ship snapshot offline')).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Home' })).toBeDefined();
+  });
+});
+
+describe('the throttle form', () => {
+  const planned = (throttle: number): ShipReading => ({
+    ...shipAtStart,
+    setpoints: { ...shipAtStart.setpoints, reactor: { throttle } },
+  });
+
+  test('starts at the snapshot throttle', async ({ renderRoute }) => {
+    await renderPage(renderRoute, withLink(linkAt(planned(0.4))));
+    expect((screen.getByLabelText('Throttle') as HTMLInputElement).value).toBe(
+      '0.4',
+    );
+  });
+
+  test('keeps what the reader typed when a frame arrives', async ({
+    renderRoute,
+  }) => {
+    const { telemetry } = await renderPage(
+      renderRoute,
+      withLink(linkAt(planned(0.4))),
+    );
+    const field = screen.getByLabelText('Throttle') as HTMLInputElement;
+    fireEvent.change(field, { target: { value: '0.7' } });
+    act(() => telemetry.push({ ...planned(0.9), tick: 5 }));
+    expect(field.value).toBe('0.7');
   });
 });

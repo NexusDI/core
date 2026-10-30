@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import type { ShipReading } from '@nexusdi/meridian-systems';
 import { BUNDLED_CHARTS } from '@nexusdi/meridian-systems/charts';
 import type { NexusSetupStep } from '@nexusdi/vitest';
@@ -187,6 +187,37 @@ describe('the load button', () => {
   });
 });
 
+describe('the load button after a frame', () => {
+  test('shows the loaded drive from the revalidated snapshot at the frame tick', async ({
+    renderRoute,
+  }) => {
+    const unloaded: ShipReading = { ...shipAtStart, tick: 40 };
+    const loaded: ShipReading = { ...spooling, tick: 40 };
+    let isLoaded = false;
+    class LoadingLink extends FakeBridgeLink {
+      override async snapshot() {
+        return isLoaded ? loaded : unloaded;
+      }
+      override async loadFtl() {
+        isLoaded = true;
+        return super.loadFtl();
+      }
+    }
+    const { telemetry } = await renderRoute(ftl, {
+      path: '/systems/ftl',
+      overrides: withLink(LoadingLink),
+    });
+    await screen.findByRole('button', { name: 'Spool drive' });
+    act(() => telemetry.push({ ...unloaded }));
+    expect(await gauges('FTL gauges')).toEqual(['not loaded']);
+    fireEvent.click(screen.getByRole('button', { name: 'Load drive' }));
+    await screen.findByText(/Drive loaded/);
+    await vi.waitFor(async () =>
+      expect((await gauges('FTL gauges'))[0]).toBe('spooling'),
+    );
+  });
+});
+
 describe('the spool button', () => {
   test('posts the spool to the ftl system and shows the tick it queues for', async ({
     renderRoute,
@@ -195,7 +226,7 @@ describe('the spool button', () => {
     const command = vi.spyOn(scope.get(BRIDGE_LINK), 'command');
     fireEvent.click(screen.getByRole('button', { name: 'Spool drive' }));
     expect((await screen.findByRole('status')).textContent).toBe(
-      'Queued for tick 1',
+      'Queued for tick 1.',
     );
     expect(command).toHaveBeenCalledExactlyOnceWith({
       system: 'ftl',
@@ -219,7 +250,7 @@ describe('the spool button', () => {
     await renderPage(renderRoute, withLink(Refusing));
     fireEvent.click(screen.getByRole('button', { name: 'Spool drive' }));
     expect((await screen.findByRole('alert')).textContent).toBe(
-      'The ftl-spool load needs 900 MW, and the router has 0 MW free beside the loads above it.Fix: raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
+      'MERIDIAN_POWER_BUDGET: The ftl-spool load needs 900 MW, and the router has 0 MW free beside the loads above it.Fix: raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
     );
   });
 
@@ -241,7 +272,7 @@ describe('the spool button', () => {
     await renderPage(renderRoute, withLink(Unloaded));
     fireEvent.click(screen.getByRole('button', { name: 'Spool drive' }));
     expect((await screen.findByRole('alert')).textContent).toBe(
-      "No ship system is named 'ftl'. The desk serves comms, engineering, helm, life-support, safety and weapons.Fix: send the command to one of the systems above.",
+      "MERIDIAN_BAD_COMMAND: No ship system is named 'ftl'. The desk serves comms, engineering, helm, life-support, safety and weapons.Fix: send the command to one of the systems above.",
     );
   });
 });
@@ -266,7 +297,7 @@ describe('the jump button', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Jump' }));
     expect((await screen.findByRole('status')).textContent).toBe(
-      'Queued for tick 1',
+      'Queued for tick 1.',
     );
     expect(command).toHaveBeenCalledExactlyOnceWith({
       system: 'ftl',
@@ -290,7 +321,35 @@ describe('the jump button', () => {
     await renderPage(renderRoute, withLink(Refusing));
     fireEvent.click(screen.getByRole('button', { name: 'Jump' }));
     expect((await screen.findByRole('alert')).textContent).toBe(
-      'The FTL drive holds 0 GJ of the 90 GJ a jump needs.Fix: spool the drive and wait until it holds the full charge, then jump.',
+      'MERIDIAN_FTL_NOT_SPOOLED: The FTL drive holds 0 GJ of the 90 GJ a jump needs.Fix: spool the drive and wait until it holds the full charge, then jump.',
     );
+  });
+});
+
+describe('the drive load when bridge-api is unreachable', () => {
+  test('shows the offline reply and keeps the load button live', async ({
+    renderRoute,
+  }) => {
+    class Offline extends FakeBridgeLink {
+      override async loadFtl() {
+        return {
+          accepted: false,
+          status: 503,
+          code: 'BRIDGE_OFFLINE',
+          message: 'The bridge is unreachable at http://bridge/.',
+          fix: 'Start bridge-api.',
+        } as const;
+      }
+    }
+    await renderPage(renderRoute, withLink(Offline));
+    fireEvent.click(screen.getByRole('button', { name: 'Load drive' }));
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'BRIDGE_OFFLINE: The bridge is unreachable at http://bridge/.Fix: Start bridge-api.',
+    );
+    expect(
+      screen
+        .getByRole('button', { name: 'Load drive' })
+        .hasAttribute('disabled'),
+    ).toBe(false);
   });
 });

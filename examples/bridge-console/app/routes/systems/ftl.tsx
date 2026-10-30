@@ -4,6 +4,7 @@ import { Form } from 'react-router';
 import { Button } from '../../components';
 import { fixed, megawatts } from '../../fixed';
 import { snapshotLoader } from '../snapshot-loader.server';
+import { useShipReading } from '../../hooks/use-ship-reading';
 import type { Route } from './+types/ftl';
 import { allocated } from './allocated';
 import { type FtlAnswer, ftlAction } from './system-action.server';
@@ -85,14 +86,12 @@ function LoadDrive({ loaded }: { loaded: FtlRating | undefined }) {
   );
 }
 
-export default function Ftl({
-  loaderData: ship,
-  actionData,
-}: Route.ComponentProps) {
+export default function Ftl({ loaderData, actionData }: Route.ComponentProps) {
+  const ship = useShipReading(loaderData);
   const loaded = actionData?.accepted === 'loaded' ? actionData : undefined;
   const answer = actionData?.accepted === 'loaded' ? undefined : actionData;
   return (
-    <SystemPage answer={answer}>
+    <SystemPage answer={answer} ship={ship}>
       {ship === null ? <SnapshotOffline /> : <FtlGauges ship={ship} />}
       <LoadDrive loaded={loaded?.rating} />
       <ControlSection title="Spool">
@@ -108,3 +107,6 @@ export default function Ftl({
     </SystemPage>
   );
 }
+
+/** The page's error boundary: an action that throws leaves the nav and shows the snapshot offline. */
+export { SystemErrorBoundary as ErrorBoundary } from './system-page';

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { fileURLToPath } from 'node:url';
 import { ESLint } from 'eslint';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 const cwd = fileURLToPath(new URL('..', import.meta.url));
 
@@ -15,6 +15,12 @@ async function ruleIds(code: string, filePath: string) {
 }
 
 describe('the MeridianOS seam', () => {
+  // The first lint loads eslint and the config, which takes over 5 s under
+  // load. One warm-up carries that, so no case does.
+  beforeAll(async () => {
+    await ruleIds('export const warm = 1;\n', 'app/components/Probe.tsx');
+  }, 60_000);
+
   it('rejects a component that imports @nexusdi/react', async () => {
     const ids = await ruleIds(
       "import { useService } from '@nexusdi/react';\nexport const x = useService;\n",

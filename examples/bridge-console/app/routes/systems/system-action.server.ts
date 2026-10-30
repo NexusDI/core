@@ -112,11 +112,15 @@ export type FtlAnswer =
  * `POST /sections/ftl`, which loads the drive. Every other command goes to
  * `POST /commands` for the `ftl` system, with the star of a jump read from
  * the `to` field, and comes back as the queued tick or the backend's refusal.
+ * A bridge-api the link cannot reach answers `BridgeOffline` to either.
  */
 export function ftlAction(): (args: ActionFunctionArgs) => Promise<FtlAnswer> {
-  return linkAction<FtlAnswer>(async (link, form) =>
-    form.get('command') === 'load'
-      ? { accepted: 'loaded', rating: await link.loadFtl() }
-      : link.command(commandFrom(form, 'ftl', { to: 'text' })),
-  );
+  return linkAction<FtlAnswer>(async (link, form) => {
+    if (form.get('command') !== 'load')
+      return link.command(commandFrom(form, 'ftl', { to: 'text' }));
+    const loaded = await link.loadFtl();
+    return 'accepted' in loaded
+      ? loaded
+      : { accepted: 'loaded', rating: loaded };
+  });
 }

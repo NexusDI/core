@@ -1,7 +1,7 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
 
 import { expect, problems, test } from '../support';
-import { bridgeApi, gauge, reading } from './ship';
+import { bridgeApi, gauge, reading, queuedAt } from './ship';
 
 test('brings life support online and reads the heated habitat on /systems/life-support', async ({
   page,
@@ -24,11 +24,11 @@ test('brings life support online and reads the heated habitat on /systems/life-s
   await page.goto('/systems/engineering');
   await page.getByLabel('Throttle').fill('0.01');
   await page.getByRole('button', { name: 'Set throttle' }).click();
-  await expect(queued).toHaveText(`Queued for tick ${tick + 1}`);
+  await expect(queued).toHaveText(queuedAt(tick + 1));
 
   await page.goto('/systems/life-support');
   await page.getByRole('button', { name: 'Bring life support online' }).click();
-  await expect(queued).toHaveText(`Queued for tick ${tick + 1}`);
+  await expect(queued).toHaveText(queuedAt(tick + 1));
 
   const advance = await request.post(`${bridgeApi}/sim/advance`, {
     data: { ticks: 600 },

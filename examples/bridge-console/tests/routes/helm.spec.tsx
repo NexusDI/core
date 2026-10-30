@@ -300,7 +300,7 @@ describe('the course button', () => {
     const command = vi.spyOn(scope.get(BRIDGE_LINK), 'command');
     fireEvent.click(screen.getByRole('button', { name: 'Plot course' }));
     expect((await screen.findByRole('status')).textContent).toBe(
-      'Queued for tick 1',
+      'Queued for tick 1.',
     );
     expect(command).toHaveBeenCalledOnce();
     expect(command.mock.calls[0]?.[0]).toStrictEqual({
@@ -312,19 +312,19 @@ describe('the course button', () => {
 });
 
 describe('the burn button', () => {
-  test('posts the level and shows the tick it queues for', async ({
+  test('posts the snapshot burn level and shows the tick it queues for', async ({
     renderRoute,
   }) => {
     const scope = await renderPage(renderRoute);
     const command = vi.spyOn(scope.get(BRIDGE_LINK), 'command');
     fireEvent.click(screen.getByRole('button', { name: 'Burn' }));
     expect((await screen.findByRole('status')).textContent).toBe(
-      'Queued for tick 1',
+      'Queued for tick 1.',
     );
     expect(command.mock.calls[0]?.[0]).toStrictEqual({
       system: 'helm',
       action: 'burn',
-      level: 1,
+      level: 0,
     });
   });
 
@@ -354,7 +354,24 @@ describe('the burn button', () => {
     await renderPage(renderRoute, withLink(Refusing));
     fireEvent.click(screen.getByRole('button', { name: 'Burn' }));
     expect((await screen.findByRole('alert')).textContent).toBe(
-      'helm burn cannot use the level argument. It takes course with a charted star to steer for and burn with a level from 0 to 1.Fix: send the arguments in the ranges above.',
+      'MERIDIAN_BAD_COMMAND: helm burn cannot use the level argument. It takes course with a charted star to steer for and burn with a level from 0 to 1.Fix: send the arguments in the ranges above.',
     );
+  });
+});
+
+describe('the burn form', () => {
+  test('starts at the snapshot burn level', async ({ renderRoute }) => {
+    await renderPage(
+      renderRoute,
+      withLink(
+        linkAt({
+          ...shipAtStart,
+          setpoints: { ...shipAtStart.setpoints, drive: { throttle: 0.25 } },
+        }),
+      ),
+    );
+    expect(
+      (screen.getByLabelText('Burn level') as HTMLInputElement).value,
+    ).toBe('0.25');
   });
 });
