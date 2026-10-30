@@ -56,6 +56,11 @@
       "test": "NEXUS_REACT_SECTION_FAILED names the section, carries the load error and words a fix line, while the fallback reads the raw load error"
     },
     {
+      "feature": "react() TransientInRender with its fix line",
+      "file": "bridge-console/tests/contracts/react.contract.test.tsx",
+      "test": "NEXUS_REACT_TRANSIENT_IN_RENDER names the transient survey drone in render on both console graphs, with a fix line, and the singleton reads clean"
+    },
+    {
       "feature": "NEXUS_CONTRACT_VERSION with its fix line",
       "file": "federation-contracts/src/contracts.contract.test.ts",
       "test": "NEXUS_CONTRACT_VERSION names the contract, both versions and a fix line from the federation text"
