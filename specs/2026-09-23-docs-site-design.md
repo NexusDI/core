@@ -3224,9 +3224,10 @@ the `@nexusdi/core@0.4.0-rc.0` tag. Each case below follows the code.
 19. Unexported contributions. A multi-token contribution in a module that does not export
     the token reaches no collector outside that module. When no provider of that module
     reads the token through `all()` or `lazy(all())` and the module is not the root,
-    `Nexus.create`, `Nexus.check` and `load()` reject with `NEXUS_BLUEPRINT_INVALID`
-    holding `NEXUS_UNREAD_CONTRIBUTION` (`libs/core/src/blueprint/unread.ts`). The check
-    skips a token that a `compile.provider` hook pins. `/multi-providers/` shows it.
+    `Nexus.create` and `load()` reject, and `Nexus.check` throws, with
+    `NEXUS_BLUEPRINT_INVALID` holding `NEXUS_UNREAD_CONTRIBUTION`
+    (`libs/core/src/blueprint/unread.ts`). The check skips a token that a
+    `compile.provider` hook pins. `/multi-providers/` shows it.
 20. `override()`. `OverrideDefinition` takes `useClass` or `useValue`
     (`libs/core/src/definitions/provide.ts`), and `override()` takes `useFactory` through a
     second overload (`libs/testing/src/index.ts`). No form takes `useExisting`. `/testing/`
