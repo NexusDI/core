@@ -703,6 +703,244 @@ describe('createTestingContainer', () => {
     });
   });
 
+  describe('override with { lazy: true }', () => {
+    interface IFtlDrive {
+      jump(to: string): string;
+    }
+    interface INavigator {
+      readonly drive: IFtlDrive;
+    }
+    const FTL_DRIVE = new Token<IFtlDrive>('FtlDrive');
+    const NAVIGATOR = new Token<INavigator>('Navigator');
+    class JumpDrive implements IFtlDrive {
+      jump(to: string) {
+        return `spooled and jumped to ${to}`;
+      }
+    }
+    class SimulatedDrive implements IFtlDrive {
+      jump(to: string) {
+        return `simulated jump to ${to}`;
+      }
+    }
+    class Navigator implements INavigator {
+      constructor(readonly drive: IFtlDrive) {}
+    }
+    const FtlDrive = defineModule({
+      name: 'FtlDrive',
+      providers: [
+        provide(FTL_DRIVE, { useClass: JumpDrive }),
+        provide(NAVIGATOR, {
+          useFactory: (drive) => new Navigator(drive),
+          deps: [FTL_DRIVE],
+        }),
+      ],
+      exports: [FTL_DRIVE, NAVIGATOR],
+    });
+    const Root = defineModule({ name: 'Root' });
+    const lazily = () =>
+      createTestingContainer(Root).override(
+        FTL_DRIVE,
+        { useClass: SimulatedDrive },
+        { lazy: true },
+      );
+    const unused = {
+      code: 'NEXUS_BLUEPRINT_INVALID',
+      errors: [{ code: 'NEXUS_OVERRIDE_UNUSED', token: 'FtlDrive' }],
+    };
+
+    it('applies the override when load() adds a provider of the token', async () => {
+      await using ship = await lazily().create();
+      await ship.load(FtlDrive);
+      expect(ship.get(FTL_DRIVE)).toBeInstanceOf(SimulatedDrive);
+    });
+
+    it('accepts a lazy override that no load() uses', async () => {
+      await using ship = await lazily().create();
+      expect(ship.has(FTL_DRIVE)).toBe(false);
+    });
+
+    it('applies a lazy override at create when the graph already holds the token', async () => {
+      await using ship = await createTestingContainer(
+        defineModule({ name: 'Root', imports: [FtlDrive] }),
+      )
+        .override(FTL_DRIVE, { useClass: SimulatedDrive }, { lazy: true })
+        .create();
+      expect(ship.get(FTL_DRIVE)).toBeInstanceOf(SimulatedDrive);
+    });
+
+    it('keeps NEXUS_OVERRIDE_UNUSED at create for a non-lazy override of an absent token', async () => {
+      const error = await rejected(
+        createTestingContainer(Root)
+          .override(FTL_DRIVE, { useClass: SimulatedDrive })
+          .create(),
+      );
+      expect(error).toMatchObject(unused);
+    });
+
+    it('makes a later non-lazy override of the same token strict again', async () => {
+      const error = await rejected(
+        lazily().override(FTL_DRIVE, { useClass: SimulatedDrive }).create(),
+      );
+      expect(error).toMatchObject(unused);
+    });
+
+    it('makes the override lazy when a lazy override follows a non-lazy one of the same token', async () => {
+      await using ship = await createTestingContainer(Root)
+        .override(FTL_DRIVE, { useClass: SimulatedDrive })
+        .override(FTL_DRIVE, { useClass: SimulatedDrive }, { lazy: true })
+        .create();
+      expect(ship.has(FTL_DRIVE)).toBe(false);
+    });
+
+    it('leaves the builder it was called on strict', async () => {
+      const base = createTestingContainer(Root);
+      base.override(FTL_DRIVE, { useClass: SimulatedDrive }, { lazy: true });
+      const error = await rejected(
+        base.override(FTL_DRIVE, { useClass: SimulatedDrive }).create(),
+      );
+      expect(error).toMatchObject(unused);
+    });
+
+    it('applies the override to the dependents a load builds', async () => {
+      await using ship = await lazily().create();
+      await ship.load(FtlDrive);
+      expect(ship.get(NAVIGATOR).drive).toBeInstanceOf(SimulatedDrive);
+    });
+
+    describe('with a MultiToken', () => {
+      const CHECKS = new MultiToken<string>('Checks');
+      const REPORT = new Token<readonly string[]>('Report');
+      const collector = provide(REPORT, {
+        useFactory: (checks) => checks,
+        deps: [all(CHECKS)],
+      });
+
+      it('rejects NEXUS_LOAD_CONTRIBUTION for a lazy MultiToken override when the loaded module exports a contribution', async () => {
+        const Probe = defineModule({
+          name: 'Probe',
+          providers: [provide(CHECKS, { useValue: 'real' })],
+          exports: [CHECKS],
+        });
+        await using ship = await createTestingContainer(Root)
+          .override(CHECKS, { useValue: 'fake' }, { lazy: true })
+          .create();
+        expect(await rejected(ship.load(Probe))).toMatchObject({
+          code: 'NEXUS_LOAD_CONTRIBUTION',
+          module: 'Probe',
+          token: 'Checks',
+        });
+      });
+
+      it('replaces a private contribution a load adds in place for a lazy MultiToken override', async () => {
+        const Probe = defineModule({
+          name: 'Probe',
+          providers: [provide(CHECKS, { useValue: 'real' }), collector],
+          exports: [REPORT],
+        });
+        await using ship = await createTestingContainer(Root)
+          .override(CHECKS, { useValue: 'fake' }, { lazy: true })
+          .create();
+        await ship.load(Probe);
+        expect(ship.get(REPORT)).toEqual(['fake']);
+        expect(ship.get(CHECKS)).toEqual([]);
+      });
+
+      it('reads one entry for a loaded module with two private contributions', async () => {
+        const Probe = defineModule({
+          name: 'Probe',
+          providers: [
+            provide(CHECKS, { useValue: 'real' }),
+            provide(CHECKS, { useValue: 'real too' }),
+            collector,
+          ],
+          exports: [REPORT],
+        });
+        await using ship = await createTestingContainer(Root)
+          .override(CHECKS, { useValue: 'fake' }, { lazy: true })
+          .create();
+        await ship.load(Probe);
+        expect(ship.get(REPORT)).toEqual(['fake']);
+      });
+
+      it('reads one entry per loaded module that contributes', async () => {
+        const OTHER = new Token<readonly string[]>('OtherReport');
+        const First = defineModule({
+          name: 'First',
+          providers: [provide(CHECKS, { useValue: 'real' }), collector],
+          exports: [REPORT],
+        });
+        const Second = defineModule({
+          name: 'Second',
+          providers: [
+            provide(CHECKS, { useValue: 'real too' }),
+            provide(CHECKS, { useValue: 'and again' }),
+            provide(OTHER, {
+              useFactory: (checks) => checks,
+              deps: [all(CHECKS)],
+            }),
+          ],
+          exports: [OTHER],
+        });
+        await using ship = await createTestingContainer(Root)
+          .override(CHECKS, { useValue: 'fake' }, { lazy: true })
+          .create();
+        await ship.load(First);
+        await ship.load(Second);
+        expect(ship.get(REPORT)).toEqual(['fake']);
+        expect(ship.get(OTHER)).toEqual(['fake']);
+      });
+
+      it('replaces in place at a second load after a lazy first load', async () => {
+        const OTHER = new Token<readonly string[]>('OtherReport');
+        const First = defineModule({
+          name: 'First',
+          providers: [provide(CHECKS, { useValue: 'real' }), collector],
+          exports: [REPORT],
+        });
+        const Second = defineModule({
+          name: 'Second',
+          providers: [
+            provide(CHECKS, { useValue: 'real too' }),
+            provide(OTHER, {
+              useFactory: (checks) => checks,
+              deps: [all(CHECKS)],
+            }),
+          ],
+          exports: [OTHER],
+        });
+        await using ship = await createTestingContainer(Root)
+          .override(CHECKS, { useValue: 'fake' }, { lazy: true })
+          .create();
+        await ship.load(First);
+        await ship.load(Second);
+        expect(ship.get(REPORT)).toEqual(['fake']);
+        expect(ship.get(OTHER)).toEqual(['fake']);
+        expect(ship.get(CHECKS)).toEqual([]);
+      });
+
+      it('keeps the pin create chose for a MultiToken override at a later load', async () => {
+        const Held = defineModule({
+          name: 'Held',
+          providers: [provide(CHECKS, { useValue: 'held' })],
+          exports: [CHECKS],
+        });
+        const Probe = defineModule({
+          name: 'Probe',
+          providers: [provide(CHECKS, { useValue: 'real' }), collector],
+          exports: [REPORT],
+        });
+        await using ship = await createTestingContainer(
+          defineModule({ name: 'Root', imports: [Held] }),
+        )
+          .override(CHECKS, { useValue: 'fake' })
+          .create();
+        await ship.load(Probe);
+        expect(ship.get(REPORT)).toEqual(['fake']);
+        expect(ship.get(CHECKS)).toEqual(['fake']);
+      });
+    });
+  });
+
   it('passes the caller plugins after its own', async () => {
     const seen: string[] = [];
     await createTestingContainer(Meridian)
