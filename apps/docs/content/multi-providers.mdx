@@ -19,13 +19,13 @@ To solve this, the library defines a token that acts as an extension point. The 
 
 ## The `MultiToken`
 
-To create a multi-provider, use the `MultiToken` class. This signals to NexusDI that the token is designed to collect multiple values and not resolve to a single one.
+To create a multi-provider, use the `MultiToken` class. This signals to NexusDI that the token is designed to collect multiple values.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=multi-token
 
 ```
 
-Any number of modules can call `provide(DIAGNOSTICS, ...)` to add a contribution. A contribution can be a class (like `ReactorDiagnostic` above) or a value (like the hull check). Contributions requiring dependencies use a factory.
+Any number of modules can call `provide(DIAGNOSTICS, ...)` to add a contribution. A contribution can be a class (like `ReactorDiagnostic` above) or a value (like the hull check). A contribution with dependencies takes them through its class's `static deps` or a factory's `deps`.
 
 When you call `ship.get(DIAGNOSTICS)`, NexusDI returns the contributions as an array. The walk is the depth-first pass `Nexus.create` makes over the module graph. `all()` lists the contributions in the order the walk first meets their modules, starting at the root and following each module's `imports` in order, and within a module in `providers` order.
 
@@ -33,9 +33,9 @@ When you call `ship.get(DIAGNOSTICS)`, NexusDI returns the contributions as an a
 
 ## Consuming Contributions with `all()`
 
-Because a `MultiToken` represents a collection, you cannot use it as a standard dependency. You must use the `all()` modifier in your `static deps` list.
+Because a `MultiToken` represents a collection, you cannot use it as a standard dependency. You must use the `all()` modifier in the dependency list.
 
-Valid forms for multi-tokens include `all(TOKEN)` and `lazy(all(TOKEN))`. Using `lazy(TOKEN)`, `optional(TOKEN)`, `optional(all(TOKEN))`, or a bare `MultiToken` is invalid. These will cause `Nexus.create` to reject with `NEXUS_BLUEPRINT_INVALID`, wrapping a `NEXUS_INVALID_PROVIDER` error.
+Valid forms for multi-tokens include `all(TOKEN)` and `lazy(all(TOKEN))`. `lazy(TOKEN)`, `optional(TOKEN)`, `optional(all(TOKEN))` and a bare `MultiToken` are invalid. Each makes `Nexus.create` to reject with `NEXUS_BLUEPRINT_INVALID`, wrapping a `NEXUS_INVALID_PROVIDER` error.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=panel
 
@@ -43,10 +43,10 @@ Valid forms for multi-tokens include `all(TOKEN)` and `lazy(all(TOKEN))`. Using 
 
 `all(TOKEN)` tells NexusDI to resolve every visible contribution to that token and pass them to the constructor as an array. In the example above, `Engineering` contributes the reactor diagnostic and `Tactical` contributes the hull check, each module exports `DIAGNOSTICS`, and `StatusBoard` in `Meridian` reads both. The same panel takes `optional(SUBSPACE_LINK)`, which resolves to `undefined` while no module provides a link.
 
-```mermaid caption="Engineering and Tactical each contribute to DIAGNOSTICS, and DiagnosticsPanel in Meridian reads both through all()."
+```mermaid caption="Engineering and Tactical each contribute to DIAGNOSTICS, and StatusBoard in Meridian reads both through all()."
 flowchart LR
-  ReactorDiagnostic -->|all| DiagnosticsPanel:::accent
-  hullDiagnostic -->|all| DiagnosticsPanel
+  ReactorDiagnostic -->|all| StatusBoard:::accent
+  hullDiagnostic -->|all| StatusBoard
 ```
 
 **Try it:** Save the region as `panel.ts` and run it. It prints `reactor green, hull green`. Add a `Comms` module that provides and exports `SUBSPACE_LINK` with a `useValue` whose `send(report)` returns `'sent: ' + report`, import it into `Meridian`, and run it again: the panel prints `sent: reactor green, hull green`. Take `Comms` out of `Meridian`'s imports and the panel prints `reactor green, hull green` again.
@@ -72,11 +72,11 @@ A collector reads its own module's contributions plus everything published by ot
 
 ### Multiple Collectors
 
-Multiple collectors of the same token across different modules see the same list, apart from each one's own private contributions. In the region above, `HealthService` and `DeckReport` are in different modules, yet both read `reactor` and `hull`. A plugin module's exported contributions (`NexusPlugin.modules`) are in that list, as any other module's are.
+Multiple collectors of the same token across different modules see the same list, apart from each one's own private contributions. In the region above, `HealthService` and `DeckReport` are in different modules, yet both read `reactor` and `hull`. A plugin can add modules to the container through `NexusPlugin.modules`. Those modules' exported contributions are in the list, after the root's own imports.
 
 ### Inert Exports
 
-Exporting a token from a module that provides no contribution to it is legal. The contributions from its imports still reach the collector, and the export does not trigger a `NEXUS_INVALID_EXPORT`. A re-export of a module is just as inert. In the region below, `Bridge` exports the token and `Engineering`, has no contribution of its own, and the root still receives the one contribution that `Engineering` publishes.
+Exporting a token from a module that provides no contribution to it is legal. The contributions from its imports still reach the collector, and the export does not trigger a `NEXUS_INVALID_EXPORT`. A re-export of a module is just as inert. In the region below, `Bridge` has no contribution of its own and exports both the token and `Engineering`. The root still receives the one contribution that `Engineering` publishes.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=export-only
 
@@ -98,15 +98,15 @@ The list follows the module walk. A module is visited once, where it is first en
 
 ## Private Contributions
 
-If a module contributes to a token but does not export it, that contribution remains private. It is visible only within that module (or by a root `get()`).
+If a module contributes to a token but does not export it, that contribution remains private. It is visible only within that module. A root `get()` also sees it when that module is the root.
 
-For a non-root module to maintain a private contribution, it must provide its own reader via `all()` or `lazy(all())`. Otherwise, NexusDI detects a contribution that no provider reads and rejects with `NEXUS_UNREAD_CONTRIBUTION`.
+For a non-root module to keep a private contribution, it must provide its own reader via `all()` or `lazy(all())`. Otherwise, NexusDI detects a contribution that no provider reads and rejects with `NEXUS_UNREAD_CONTRIBUTION`.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=unexported
 
 ```
 
-In this example, `Tactical` contributes a hull check but has no `exports` and no provider of its own. Consequently, nothing reads the contribution, and the panel in `Meridian` sees only what `Engineering` exports. `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and the first entry of its `errors` list is `NEXUS_UNREAD_CONTRIBUTION`.
+In this example, `Tactical` contributes a hull check but has no `exports`, and no provider in `Tactical` reads `DIAGNOSTICS`. Nothing can read the contribution, so `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and the first entry of its `errors` list is `NEXUS_UNREAD_CONTRIBUTION`.
 
 There are three fixes, in this order:
 
@@ -114,7 +114,7 @@ There are three fixes, in this order:
 2. Add `DIAGNOSTICS` to the `exports` of `Tactical` to publish it.
 3. Remove the contribution.
 
-The compiler raises this error when: the module is not the root, it does not export the token, no provider in the module binds the token via `all()` or `lazy(all())`, and the token is not pinned. `get(TOKEN, { module })` and a plugin's `view.visible()` can see private contributions, but they do not count as readers because the compiler cannot guarantee these calls will execute. [NEXUS_UNREAD_CONTRIBUTION](/errors/NEXUS_UNREAD_CONTRIBUTION/) lists the conditions and the lookups that do not count as readers.
+The compiler raises this error when: the module is not the root, it does not export the token, and no provider in the module binds the token via `all()` or `lazy(all())`. (A token that a test or plugin pins to one contribution is exempt.) `get(TOKEN, { module })` can see private contributions, but they do not count as readers because the compiler cannot guarantee these calls will execute. [NEXUS_UNREAD_CONTRIBUTION](/errors/NEXUS_UNREAD_CONTRIBUTION/) lists the conditions and the lookups that do not count as readers.
 
 **Try it:** Save the region as `private.ts` and run it. It prints `NEXUS_BLUEPRINT_INVALID` and then `NEXUS_UNREAD_CONTRIBUTION`. Add `exports: [DIAGNOSTICS]` to `Tactical` and run it again: `Nexus.create` succeeds, and the region prints `null` twice because there is no error to read. Remove `exports` from `Tactical` and the error returns.
 
@@ -128,7 +128,7 @@ To resolve this without forcing every handler to use `lazy()`, the bus can resol
 
 ```
 
-**SubspaceBus** accepts `lazy(all(HANDLERS))` and executes the thunk inside `publish()` after `Nexus.create` has completed. **AlertHandler** depends on `EVENT_BUS` and publishes a new bulletin upon hearing `hull breach`. Consequently, `LogHandler` processes the nested `all hands` bulletin before the `hull breach` bulletin.
+`SubspaceBus` takes `lazy(all(HANDLERS))` and calls the thunk inside `publish()`, after `Nexus.create` has finished. `AlertHandler` depends on `EVENT_BUS` and publishes a new bulletin when it handles `hull breach`. Consequently, `LogHandler` processes the nested `all hands` bulletin before the `hull breach` bulletin.
 
 **Try it:** Save the region as `bus.ts` and run it. It prints `[ 'all hands', 'hull breach' ]`. Change `SubspaceBus`'s deps to `[all(HANDLERS)] as const`, its parameter to `IHandler[]` and the loop to `for (const each of this.handlers)`, and run it again: `Nexus.create` rejects, and the region below shows what you see. The region registers `errors()` from `@nexusdi/errors` (`npm install @nexusdi/errors@next`), which adds a `Fix:` line under each error message. Change them back when you are done.
 
@@ -136,9 +136,9 @@ To resolve this without forcing every handler to use `lazy()`, the bus can resol
 
 ```
 
-Save this region as `bus-cycle.ts` and run it. It prints `NEXUS_BLUEPRINT_INVALID` and then `NEXUS_CIRCULAR_DEPENDENCY`. The `all -> required` line indicates that the bus's `all()` dependency is the cycle point. The `true` result confirms the `Fix:` line suggests `lazy(all(Handlers))`. The error's `kinds` field lists how each step of the cycle depends on the next, and `all -> required` reads the same way.
+Save this region as `bus-cycle.ts` and run it. It prints `NEXUS_BLUEPRINT_INVALID`, `NEXUS_CIRCULAR_DEPENDENCY`, `all -> required` and `true`. The error's `kinds` field lists how each step of the cycle depends on the next: the bus reaches `AlertHandler` through `all()`, and `AlertHandler` reaches the bus through a required dependency. `true` confirms that the `Fix:` line suggests `lazy(all(Handlers))`.
 
-The thunk is atomic; it checks every contribution before building any of them. If any contribution is not ready, the thunk throws `NEXUS_NOT_READY`. The error's `target` is the multi token, and `contributor` names the first unavailable contribution encountered, such as `ShieldGrid (module Engineering)`. If a thunk is called from a dispose method and encounters a disposed contribution, it throws `NEXUS_DISPOSED`. [Collectors Their Contributors Call](/lazy/#collectors-their-contributors-call) describes the thunk and these two errors, with a region for each.
+The thunk is all or nothing, and it throws `NEXUS_NOT_READY` or `NEXUS_DISPOSED` when a contribution is not live. [Collectors Their Contributors Call](/lazy/#collectors-their-contributors-call) describes the thunk and these two errors.
 
 ## Next Step
 
