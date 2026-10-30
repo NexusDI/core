@@ -114,12 +114,12 @@ const LICENSE_LINK = 'https://github.com/NexusDI/core/blob/main/LICENSE';
 /** The release candidate notice, in the words core's and the root's Installation use. */
 const RC_NOTICE =
   /^> (\d+\.\d+) is (?:currently )?(?:in )?(?:a )?release candidate\b/i;
-const DOCTEST = 'ts @import.meta.vitest';
+export const DOCTEST = 'ts @import.meta.vitest';
 /** A doctest that runs at module level (doc-examples' module-fences.ts). */
 const MODULE_DOCTEST = 'ts @import.meta.vitest @module';
-const isDoctest = (info: string): boolean =>
+export const isDoctest = (info: string): boolean =>
   info === DOCTEST || info === MODULE_DOCTEST;
-const CLAIM = '// -> ';
+export const CLAIM = '// -> ';
 const BOLD_LINE = /^\*\*[^*]+\*\*$/;
 const HERO_TAGLINE = /^\s*<p>(.+)<\/p>\s*$/;
 
@@ -139,7 +139,7 @@ interface Parsed {
   readonly fenced: readonly boolean[];
 }
 
-function parse(source: string): Parsed {
+export function parse(source: string): Parsed {
   const lines = source.split('\n');
   const fences: Fence[] = [];
   const fenced = lines.map(() => false);
@@ -279,8 +279,9 @@ export function bannedProse(source: string): string[] {
 export function bannedRaw(
   source: string,
   constants: ReadonlySet<string> = new Set(),
+  patterns: readonly Pattern[] = BANNED,
 ): string[] {
-  return hits(source, BANNED, constants);
+  return hits(source, patterns, constants);
 }
 
 function isPrerelease(version: string): boolean {
@@ -723,17 +724,25 @@ function checkLicense(parsed: Parsed, faults: Fault[]): void {
     });
 }
 
-/** A ts block that is no doctest, and a mermaid block npm prints as code. */
-function fenceFaults(file: string, parsed: Parsed): Fault[] {
+/** A ts block that is no doctest. */
+export function tsBlockFaults(file: string, parsed: Parsed): Fault[] {
   const faults: Fault[] = [];
   for (const fence of parsed.fences) {
-    const at = `${file}:${fence.start + 1}`;
     if (!isDoctest(fence.info) && /^(ts|typescript)\b/.test(fence.info))
       faults.push({
         rule: 'doctests',
-        message: `${at}: a \`\`\`${fence.info} block is not a doctest; use \`\`\`${DOCTEST}`,
+        message: `${file}:${fence.start + 1}: a \`\`\`${fence.info} block is not a doctest; use \`\`\`${DOCTEST}`,
       });
-    else if (/^mermaid\b/.test(fence.info))
+  }
+  return faults;
+}
+
+/** A ts block that is no doctest, and a mermaid block npm prints as code. */
+function fenceFaults(file: string, parsed: Parsed): Fault[] {
+  const faults = tsBlockFaults(file, parsed);
+  for (const fence of parsed.fences) {
+    const at = `${file}:${fence.start + 1}`;
+    if (/^mermaid\b/.test(fence.info))
       faults.push({
         rule: 'doctests',
         message: `${at}: npm prints a mermaid block as code`,
@@ -815,6 +824,24 @@ function checkDoctests(
     faults.push(...regionFileFaults(doc.file, parse(doc.source)));
 }
 
+/** Each doctest that binds a class where an interface token belongs. */
+export function doctestInterfaceFirstFaults(fences: readonly Fence[]): Fault[] {
+  const faults: Fault[] = [];
+  for (const fence of fences) {
+    const body = fence.body.join('\n');
+    const found = [
+      ...interfaceFirstHits(body),
+      ...(/\bToken<\s*any\s*>/.test(body) ? ['Token<any>'] : []),
+    ];
+    if (found.length > 0)
+      faults.push({
+        rule: 'interface-first',
+        message: `README.md:${fence.start + 1}: binds a class where an interface token belongs (${found.join(', ')}). Give the service an interface and a Token<IFoo>, and bind the class with useClass.`,
+      });
+  }
+  return faults;
+}
+
 /**
  * Examples bind a `Token<IFoo>` with `provide(TOKEN, { useClass })` and list
  * tokens in deps, never one class straight to another. core's first doctest
@@ -830,18 +857,7 @@ function checkInterfaceFirst(
   if (kind === 'root' || kind === 'cli') return;
   const doctests = parsed.fences.filter((f) => isDoctest(f.info));
   const checked = kind === 'core' ? doctests.slice(1) : doctests;
-  for (const fence of checked) {
-    const body = fence.body.join('\n');
-    const found = [
-      ...interfaceFirstHits(body),
-      ...(/\bToken<\s*any\s*>/.test(body) ? ['Token<any>'] : []),
-    ];
-    if (found.length > 0)
-      faults.push({
-        rule: 'interface-first',
-        message: `README.md:${fence.start + 1}: binds a class where an interface token belongs (${found.join(', ')}). Give the service an interface and a Token<IFoo>, and bind the class with useClass.`,
-      });
-  }
+  faults.push(...doctestInterfaceFirstFaults(checked));
   const first = doctests[0];
   if (
     kind === 'sub-package' &&
