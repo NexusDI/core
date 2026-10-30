@@ -9,12 +9,9 @@ import {
   checkExportCoverage,
   type CoverageInput,
 } from './docs/doc-export-coverage';
-import {
-  loadLibraries,
-  loadReferenceOptions,
-  loadRegionExpander,
-} from './docs/loaders';
-import { CONTENT, FIXTURES } from './docs/paths';
+import { loadLibraries } from './docs/loaders';
+import { FIXTURES } from './docs/paths';
+import { ERROR_EXEMPT, readReferenceSite } from './docs/reference-site';
 import { parsePage, readSite, type DocsPage } from './docs/site';
 
 /**
@@ -47,78 +44,9 @@ const ALLOWANCE = join(
   'doc-export-coverage-allowance.json',
 );
 
-/** The fence opening a block, as the region loader and this file read one. */
-const FENCE = /^(\s*)(`{3,})(.*)$/;
-
-/**
- * The page's source with its regions and reference directives expanded, as
- * the build expands them, and each fence the author wrote as executable
- * marked so.
- *
- * The region loader turns `ts file=… region=…` into a plain `ts`, so a
- * fence the package's own tests run looks, after expansion, like a fence
- * nothing checks. Expansion fills bodies and neither adds nor removes a
- * fence, so the written and the expanded fences pair by position, and each
- * expanded opener whose written twin carried `twoslash` or `file=` gains an
- * `executed` word. The reference loader runs after, and every fence it emits
- * is `ts twoslash`; each entry's signature block is dropped, since a
- * signature names its export without calling it.
- */
-function expandedPage(
-  path: string,
-  expandRegions: (source: string, root: string, file: string) => string,
-  expandReferences: (source: string) => string,
-): string {
-  const raw = readFileSync(path, 'utf8');
-  const expanded = expandRegions(raw, workspaceRoot, path);
-  const openers = (text: string) => {
-    const found: number[] = [];
-    let open = false;
-    text.split('\n').forEach((line, at) => {
-      if (!FENCE.test(line)) return;
-      if (!open) found.push(at);
-      open = !open;
-    });
-    return found;
-  };
-  const writtenLines = raw.split('\n');
-  const expandedLines = expanded.split('\n');
-  const written = openers(raw);
-  const opened = openers(expanded);
-  if (written.length !== opened.length)
-    throw new Error(
-      `${path}: expanding regions changed the fence count from ${written.length} to ${opened.length}`,
-    );
-  written.forEach((line, at) => {
-    const info = (FENCE.exec(writtenLines[line] ?? '')?.[3] ?? '').trim();
-    if (/(^|\s)(twoslash|file=)/.test(info)) {
-      const target = opened[at] as number;
-      expandedLines[target] = `${expandedLines[target]} executed`;
-    }
-  });
-  // An entry's signature fence declares its own name, so it would count as
-  // calling every export. The entry's example fence is what demonstrates one.
-  return expandReferences(expandedLines.join('\n')).replace(
-    /<div className="[\w-]+-api-entry__signature">[\s\S]*?<\/div>/g,
-    '',
-  );
-}
-
 /** The real input: the site's pages, every library's exports and the allowance. */
 async function workspaceInput(): Promise<CoverageInput> {
-  const expandRegions = await loadRegionExpander();
-  const options = await loadReferenceOptions();
-  const { expandReferences } =
-    await import('@nexusdi/doc-examples/mdx-reference-loader');
-  const pages = readSite(CONTENT).map((page) =>
-    parsePage(
-      page.file,
-      page.slug,
-      expandedPage(join(workspaceRoot, page.file), expandRegions, (source) =>
-        expandReferences(source, workspaceRoot, page.file, options),
-      ),
-    ),
-  );
+  const pages = await readReferenceSite();
   const packages = (await loadLibraries())(workspaceRoot).map((library) => ({
     name: library.name,
     entries: readPackageExports(
@@ -129,34 +57,7 @@ async function workspaceInput(): Promise<CoverageInput> {
   return {
     pages,
     packages,
-    // An error class is documented by its code's page under /errors/, which
-    // /api-errors/ lists (spec section 22, item 9), in core and in every
-    // first-party package that raises one.
-    exempt: new Map([
-      ...[
-        '@nexusdi/core',
-        '@nexusdi/decorators',
-        '@nexusdi/devtools',
-        '@nexusdi/federation',
-        '@nexusdi/interceptors',
-        '@nexusdi/react',
-        '@nexusdi/testing',
-      ].map((name): [string, string] => [
-        name,
-        'Each error class has a code page under /errors/, and /api-errors/ lists them.',
-      ]),
-      // A web adapter's one error class is the one it hands its framework,
-      // and only the adapter constructs it.
-      ...[
-        '@nexusdi/express',
-        '@nexusdi/fastify',
-        '@nexusdi/hono',
-        '@nexusdi/react-router',
-      ].map((name): [string, string] => [
-        name,
-        'NexusHttpError carries no code: its cause is the NexusDI error, whose code has a page under /errors/.',
-      ]),
-    ]),
+    exempt: ERROR_EXEMPT,
     allowance: JSON.parse(readFileSync(ALLOWANCE, 'utf8')) as Record<
       string,
       { unexercised: string[] }

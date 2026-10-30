@@ -1,0 +1,42 @@
+---
+title: '@nexusdi/x'
+kind: reference
+package: '@nexusdi/x'
+---
+
+# `@nexusdi/x`
+
+## `launch`
+
+The crew and the countdown are both optional.
+
+```ts twoslash
+import { launch } from '@nexusdi/x';
+const crew = 4;
+// ---cut---
+launch('Meridian', { countdown: true });
+```
+
+## `defineShip`
+
+```ts twoslash
+import { defineShip } from '@nexusdi/x';
+
+defineShip('frigate');
+```
+
+## `Dock`
+
+```ts twoslash
+import { Dock } from '@nexusdi/x';
+
+new Dock();
+```
+
+## `LaunchOptions`
+
+`crew` and `countdown` are both optional.
+
+## `ShipDefinition`
+
+A ship, as defineShip() returns it.

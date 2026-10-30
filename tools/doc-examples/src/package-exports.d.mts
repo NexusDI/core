@@ -28,6 +28,16 @@ export declare function resolve(
   checker: ts.TypeChecker,
 ): ts.Symbol;
 
+/** One entry of a package's exports map that names a source file. */
+export interface SourceEntry {
+  /** The specifier a reader writes, such as `@nexusdi/core/text`. */
+  specifier: string;
+  /** The absolute path of the file the `@nexusdi/source` condition names. */
+  file: string;
+}
+
+export declare function entriesOf(packageJson: string): SourceEntry[];
+
 export declare function readPackageExports(
   packageJson: string,
 ): Map<string, ExportInfo[]>;

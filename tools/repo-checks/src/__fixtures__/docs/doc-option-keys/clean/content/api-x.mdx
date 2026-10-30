@@ -1,0 +1,42 @@
+---
+title: '@nexusdi/x'
+kind: reference
+package: '@nexusdi/x'
+---
+
+# `@nexusdi/x`
+
+## `launch`
+
+`crew` sets how many board.
+
+```ts twoslash
+import { launch } from '@nexusdi/x';
+
+launch('Meridian', { countdown: true });
+```
+
+## `defineShip`
+
+```ts twoslash
+import { defineShip } from '@nexusdi/x';
+
+defineShip('frigate');
+```
+
+## `Dock`
+
+```ts twoslash
+import { Dock, defineShip } from '@nexusdi/x';
+
+new Dock().open({ bay: 3 });
+new Dock().dock(defineShip('frigate'));
+```
+
+## `LaunchOptions`
+
+`crew` and `countdown` are both optional.
+
+## `ShipDefinition`
+
+A ship, as defineShip() returns it.
