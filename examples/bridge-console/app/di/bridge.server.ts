@@ -1,4 +1,6 @@
-import { defineModule } from '@nexusdi/core';
+import { defineModule, type NexusPlugin } from '@nexusdi/core';
+import { errors } from '@nexusdi/errors';
+import { react } from '@nexusdi/react';
 
 import { BridgeLink } from './bridge-link.module';
 import { Tactical } from './tactical.module';
@@ -20,3 +22,11 @@ export const BridgeConsole = defineModule({
     }),
   ],
 });
+
+/**
+ * The plugins of the server container, in development only: errors() words
+ * the fix lines and react() rejects a transient token read in render.
+ */
+export const bridgeServerPlugins: readonly NexusPlugin[] = import.meta.env.DEV
+  ? [errors(), react()]
+  : [];
