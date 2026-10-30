@@ -118,15 +118,19 @@ describe('comms on the offline ship', () => {
 });
 
 describe('comms on the relay graph', () => {
-  it('downloads the charts once at build and never during a tick', async () => {
+  it('opens the link and downloads the charts once at build, and never during a tick', async () => {
     const fetched = stubRelay();
     await using ship = await Nexus.create(relayGraph());
-    expect(fetched).toEqual(['https://relay.test/charts?frequency=1420']);
+    expect(fetched).toEqual([
+      // The charts factory runs in the build, and onInit runs after it.
+      'https://relay.test/charts?frequency=1420',
+      'https://relay.test/handshake?frequency=1420',
+    ]);
     expect(ship.get(COMMS_ARRAY).linked).toBe(true);
     throttle(ship.get(COMMAND_DESK), 0.01);
     hail(ship.get(COMMAND_DESK));
     ship.get(TICK_LOOP).advance(10);
-    expect(fetched).toHaveLength(1);
+    expect(fetched).toHaveLength(2);
   });
 
   it('sends a hail at tick 1 with 5 MW and takes the reply at tick 5', async () => {

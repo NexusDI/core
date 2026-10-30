@@ -353,10 +353,10 @@ A ship far from the fleet may or may not hold a link to the fleet's relay. A ser
 SUBSPACE_LINK     SubspaceRelay   deps [SUBSPACE_LINK_OPTIONS]
 ```
 
-`Comms`, in `src/systems/comms/comms.module.ts`, takes no options. It binds the array and makes four contributions:
+`Comms`, in `src/systems/comms/comms.module.ts`, takes no options and imports `Engineering` for the reactor the array reads. It binds the array and makes four contributions:
 
 ```text
-COMMS_ARRAY       PhasedArray     deps [SHIP_STATE, optional(SUBSPACE_LINK)]
+COMMS_ARRAY       PhasedArray     deps [SHIP_STATE, REACTOR, optional(SUBSPACE_LINK)]
 SHIP_SYSTEMS      CommsPhysics    deps [COMMS_ARRAY]
 POWER_CONSUMERS   CommsPower      deps [COMMS_ARRAY]
 COMMAND_HANDLERS  CommsCommands   deps [COMMS_ARRAY]
@@ -365,7 +365,7 @@ SHIP_RECORDS      COMMS_RECORD    a value
 
 `Comms` exports all five tokens, and `SubspaceLink` exports `SUBSPACE_LINK`. A graph with no `SubspaceLink` binds no `SUBSPACE_LINK`, so `PhasedArray` reads `undefined`, and its `linked` flag is false for the life of the ship. `SubspaceLink` is global, so `PhasedArray` finds the link wherever `Comms` sits, and the root decides whether the ship has one.
 
-`SubspaceRelay` calls `fetch` for `<relayUrl>/charts?frequency=1420` and rejects a response that is not ok. The request carries `AbortSignal.timeout(relayTimeout)`, 5000 ms by default, which covers the whole exchange, from the connection to the last byte of the body. A relay that stays silent past it makes the link throw `RelayError` with reason `timeout`, and `StarCharts.download` throws the same error with reason `malformed` when the answer is not a plain JSON object that maps each star name to a finite heading. A `null`, an array, a heading that is not a number, and a star name that `Object.prototype` holds, such as `__proto__` or `constructor`, all fail that check. Both errors stop `Nexus.create`: the container wraps the failed `NAV_CHARTS` factory in `NEXUS_PROVIDER_FAILED` and keeps the `MERIDIAN_RELAY` error as its `cause`. `SubspaceRelay` is the one file under `src/` that calls `fetch`, and the library's ESLint config refuses the global in every other file. A tick does no I/O: `PhasedArray` reads whether the link exists at construction, and no tick calls the link.
+`SubspaceRelay` calls `fetch` for `<relayUrl>/charts?frequency=1420` and rejects a response that is not ok. The request carries `AbortSignal.timeout(relayTimeout)`, 5000 ms by default, which covers the whole exchange, from the connection to the last byte of the body. A relay that stays silent past it makes the link throw `RelayError` with reason `timeout`, and `StarCharts.download` throws the same error with reason `malformed` when the answer is not a plain JSON object that maps each star name to a finite heading. A `null`, an array, a heading that is not a number, and a star name that `Object.prototype` holds, such as `__proto__` or `constructor`, all fail that check. Both errors stop `Nexus.create`: the container wraps the failed `NAV_CHARTS` factory in `NEXUS_PROVIDER_FAILED` and keeps the `MERIDIAN_RELAY` error as its `cause`. `SubspaceRelay` is the one file under `src/` that calls `fetch`, and the library's ESLint config refuses the global in every other file. `SubspaceRelay` also posts to `<relayUrl>/handshake?frequency=1420` in its `onInit`, which core runs after it has built the whole graph, so the handshake follows the `NAV_CHARTS` download. A relay that refuses the handshake or stays silent fails `Nexus.create` with `NEXUS_PROVIDER_FAILED`. On dispose `PhasedArray` calls `ISubspaceLink.signOff({ tick, output })`, which posts the report to `<relayUrl>/signoff?frequency=1420`. The array reads `REACTOR` and signs off only while the reactor's output is above 0, since the sign-off needs power, so core disposes the array and the link before the reactor scrams. A relay that is gone does not stop the disposal. A tick does no I/O: `PhasedArray` reads whether the link exists at construction, and no tick calls the link.
 
 ### Tactical and the Charts
 
@@ -788,7 +788,7 @@ To clear it, spool the drive and advance the ship until `ftl.charge` reaches `en
 
 ### MERIDIAN_RELAY
 
-`RelayError` says that the subspace relay gave no answer in time, or answered a table the ship cannot read. `channel` holds the relay channel the ship asked for, `charts` today. `reason` is `timeout` when the relay stayed silent past `relayTimeout`, and `malformed` when the answer is not a plain JSON object that maps each star name to a finite heading. `expected` holds what the ship needed, in words. `SubspaceRelay` throws the `timeout` and `StarCharts.download` throws the `malformed`, both while `Nexus.create` builds `NAV_CHARTS`, so the ship never starts. The container reports the failed factory as `NEXUS_PROVIDER_FAILED` and keeps the `MERIDIAN_RELAY` error as its `cause`.
+`RelayError` says that the subspace relay gave no answer in time, or answered a table the ship cannot read. `channel` holds the relay channel the ship asked for: `charts`, `handshake` or `signoff`. `reason` is `timeout` when the relay stayed silent past `relayTimeout`, and `malformed` when the answer is not a plain JSON object that maps each star name to a finite heading. `expected` holds what the ship needed, in words. `SubspaceRelay` throws the `timeout` from `receive`, `onInit` and `signOff`, and `StarCharts.download` throws the `malformed`. A failure in `receive` or `onInit` comes while `Nexus.create` builds `NAV_CHARTS` or runs the relay's `onInit`, so the ship never starts. A failure in `signOff` comes during disposal, which the array catches, so the ship still powers down. The container reports the failed factory as `NEXUS_PROVIDER_FAILED` and keeps the `MERIDIAN_RELAY` error as its `cause`.
 
 The one-line message and the text of `shipText` for a relay that gave no answer:
 

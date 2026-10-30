@@ -35,10 +35,20 @@ export interface CommsSetpoints {
   readonly hail: boolean;
 }
 
+/** What the ship tells the relay as it signs off. */
+export interface SignOffReport {
+  /** The tick the ship disposed at. */
+  readonly tick: number;
+  /** The reactor's electric output then, in W. */
+  readonly output: number;
+}
+
 /** A channel to the fleet's subspace relay. */
 export interface ISubspaceLink {
   /** Downloads the relay's `channel` and answers its JSON body. */
   receive<T>(channel: string): Promise<T>;
+  /** Tells the relay the ship is going offline. */
+  signOff(report: SignOffReport): Promise<void>;
 }
 
 /** The frequency the link asks for when the options set none: the 21 cm hydrogen line, in MHz. */

@@ -20,6 +20,7 @@ import {
   SHIP_STATE,
   type ShipReading,
   type ShipSnapshot,
+  type SignOffReport,
   type TelemetrySink,
   TICK_LOOP,
   type TickContext,
@@ -100,10 +101,20 @@ export class RecordingAlarmSink implements IAlarmSink {
   }
 }
 
-/** A subspace link that answers the bundled charts, so a linked ship starts with no network. */
+/**
+ * A subspace link that answers the bundled charts and the handshake, so a
+ * linked ship starts with no network. It keeps each sign-off for a test to read.
+ */
 export class FixedLink implements ISubspaceLink {
+  readonly signOffs: SignOffReport[] = [];
+  async onInit(): Promise<void> {
+    // The handshake needs no answer.
+  }
   async receive<T>(): Promise<T> {
     return BUNDLED_CHARTS as T;
+  }
+  async signOff(report: SignOffReport): Promise<void> {
+    this.signOffs.push(report);
   }
 }
 
