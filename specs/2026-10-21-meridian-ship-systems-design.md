@@ -13,7 +13,7 @@ Depends on:
 
 - `specs/2026-10-21-demo-apps-design.md` and `specs/plans/2026-10-21-demo-apps.md` on this
   branch. Section 11 lists the amendments this spec makes to both.
-- `specs/2026-09-23-docs-site-design.md` on `origin/spec/docs-site`, section 7.1 (the
+- `specs/2026-09-23-docs-site-design.md`, section 7.1 (the
   Meridian vocabulary), section 7.3 (interface-first), section 7.4 (no humour) and
   section 7.7 (the deny list). Section 10 of this spec proposes rows for 7.1.
 - The code on `origin/release/0.4` at `38313a4b`. Every claim about a package below was

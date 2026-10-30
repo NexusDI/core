@@ -10,7 +10,7 @@ theme files. The demo apps under `examples/` adopt the package in their own UX s
 
 Depends on:
 
-- `specs/2026-09-23-docs-site-design.md` on `origin/spec/docs-site`: section 2 (decisions 9,
+- `specs/2026-09-23-docs-site-design.md`: section 2 (decisions 9,
   10 and 24), section 8 (the tokens), section 9 (the background module) and section 10.5
   (view transitions). Section 3 of this spec lists what it replaces there.
 - `specs/2026-10-21-meridian-ship-systems-design.md` on `release/0.4`: section 16 (the ship
