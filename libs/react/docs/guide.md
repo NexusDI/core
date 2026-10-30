@@ -105,6 +105,7 @@ const Cartography = defineModule({
 
 let attempts = 0;
 const failures: unknown[] = [];
+const handed: unknown[] = [];
 // The first import fails, as a remote that is down would.
 const CartographySection = lazySection('cartography', async () => {
   attempts += 1;
@@ -119,7 +120,8 @@ function StarMap() {
     useService(NAV_CHARTS).plot('Kepler-442b').to,
   );
 }
-function SectionFailed({ retry }: { error: unknown; retry(): void }) {
+function SectionFailed({ error, retry }: { error: unknown; retry(): void }) {
+  handed.push(error);
   return createElement('button', { onClick: retry }, 'Retry');
 }
 
@@ -147,6 +149,9 @@ await act(async () => retry.click());
 const shown = (await screen.findByText('Kepler-442b')).textContent; // -> 'Kepler-442b'
 const tries = attempts; // -> 2
 const reported = failures.length; // -> 1
+// The fallback and onError receive one SectionError, with the load error as its cause.
+const same = handed[0] === failures[0]; // -> true
+const cause = ((failures[0] as Error).cause as Error).message; // -> 'remote unreachable'
 cleanup();
 await ship[Symbol.asyncDispose]();
 ```

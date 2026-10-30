@@ -1,4 +1,5 @@
 import { isNexusError } from '@nexusdi/core';
+import type { SectionConflictError, SectionError } from '@nexusdi/react';
 
 /** The code of a NexusError, or the class name of any other thrown value. */
 function codeOf(error: unknown): string {
@@ -18,22 +19,30 @@ const messageOf = (error: unknown): string => {
 
 /**
  * The fallback a station's SectionBoundary renders for a failed load. It
- * shows the error's code and message, and its retry button loads the
- * section again.
+ * shows the code of the SectionError, then the code and message of its
+ * cause, the load error. A section conflict has no cause, so it shows the
+ * conflict's code and message. Its retry button loads the section again.
  */
 export function SectionFailed({
   error,
   retry,
 }: {
-  error: unknown;
+  error: SectionError | SectionConflictError;
   retry(): void;
 }) {
+  const cause = error.cause;
+  const hasCause = error.code === 'NEXUS_REACT_SECTION_FAILED';
   return (
     <div role="alert" data-testid="section-failed">
       <p>
-        The section failed to load: <code>{codeOf(error)}</code>
+        The section failed to load: <code>{error.code}</code>
       </p>
-      <pre>{messageOf(error)}</pre>
+      {hasCause ? (
+        <p>
+          The cause: <code>{codeOf(cause)}</code>
+        </p>
+      ) : null}
+      <pre>{messageOf(hasCause ? cause : error)}</pre>
       <button type="button" onClick={retry}>
         Retry
       </button>

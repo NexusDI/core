@@ -76,13 +76,13 @@ Core 0.4 scopes do not nest, so a `ScopeProvider` under another scope, or under 
 
 ```
 
-On a load failure, the boundary calls `onError` once and renders `errorFallback` with `error` and `retry`:
+On a load failure, the boundary calls `onError` once and renders `errorFallback` with `error` and `retry`. There `error` is the `SectionError`, and the load error is its `cause`. `onError` receives the same object:
 
 ```ts file=libs/react/docs/guide.md region=section-retry
 
 ```
 
-`retry()` runs the loader again. It helps with a failed import, and it repeats a `BlueprintError` until the section or the app's own modules change. For each load failure, React's `onCaughtError` and its console log receive a [`NEXUS_REACT_SECTION_FAILED`](/errors/NEXUS_REACT_SECTION_FAILED/) error, which names the section and holds the load error as its `cause`. Without `errorFallback`, the boundary rethrows the load error to your own error boundary. Two `lazySection` calls with one name and different modules fail with `NEXUS_REACT_SECTION_CONFLICT`, which React logs as itself. An edit to a section's module file in development reloads the page once, and a second edit of that module within 10 seconds of the reload shows the conflict error.
+`retry()` runs the loader again. It helps with a failed import, and it repeats a `BlueprintError` until the section or the app's own modules change. For each load failure, React's `onCaughtError` and its console log receive a [`NEXUS_REACT_SECTION_FAILED`](/errors/NEXUS_REACT_SECTION_FAILED/) error, which names the section and holds the load error as its `cause`. Without `errorFallback`, the boundary rethrows that `SectionError` to your own error boundary. Two `lazySection` calls with one name and different modules fail with `NEXUS_REACT_SECTION_CONFLICT`, which React logs as itself. An edit to a section's module file in development reloads the page once, and a second edit of that module within 10 seconds of the reload shows the conflict error.
 
 Unmounting a boundary leaves the module loaded, because core 0.4 has no unload. Keep what should end with the section, such as a live socket, `scoped` under a `ScopeProvider` inside the boundary.
 

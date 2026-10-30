@@ -208,8 +208,11 @@ export function lazySection(
 export function SectionBoundary(props: {
   section: LazySection;
   fallback?: ReactNode;
-  errorFallback?: ComponentType<{ error: unknown; retry(): void }>;
-  onError?(error: unknown): void;
+  errorFallback?: ComponentType<{
+    error: SectionError | SectionConflictError;
+    retry(): void;
+  }>;
+  onError?(error: SectionError | SectionConflictError): void;
   children?: ReactNode;
 }): ReactElement;
 
@@ -606,7 +609,9 @@ The boundary tells these apart from errors thrown by the section's own component
 section's promise rejects with a `SectionError` (`NEXUS_REACT_SECTION_FAILED`) whose
 `cause` is the load error, or with a `SectionConflictError` as itself, and the boundary
 keeps the errors it made in a private map. React's `onCaughtError` receives that error,
-so its console log names the section and the cause. The boundary rethrows a component
+so its console log names the section and the cause. `onError` and `errorFallback` receive
+the same object: the `SectionError` with the load error as its `cause`, or the
+`SectionConflictError`. The boundary rethrows a component
 error from its render, so that error reaches the app's own error boundary above. The
 section boundary handles the load, and the app handles its components' errors.
 
@@ -614,13 +619,21 @@ On a load failure it calls `onError(error)` once, clears the store entry, and re
 `errorFallback` with `{ error, retry }`. `retry()` re-renders the boundary, which starts
 a fresh loader and `load()`. A retry helps with a failed import or a failed factory.
 It repeats the same `BlueprintError` until the remote or the shell changes, and the
-docs say so. Without `errorFallback`, the boundary rethrows the load error to the app's
-error boundary.
+docs say so. Without `errorFallback`, the boundary rethrows that same `SectionError` to
+the app's error boundary, so `onError`, the app's boundary and React's `onCaughtError`
+all see one object, and `onCaughtError` reports it once for each boundary that catches
+it. A failure reaches React only
+after one of the boundary's components has committed. That commit clears the store
+entry and calls `onError`, so `onError` fires once per failure for each boundary, before
+React's `onCaughtError`. A remount, `retry()` or an app-boundary reset then loads again.
+One case remains: a load that a render React discarded started fails unobserved. The
+next boundary shows that failure once, with its `onError`, then clears it.
 
 Error text: core's `BlueprintError` message is one line with the code, the count and a
 docs link, followed by each inner error's one-line message (core §9, D15). Registering
 `errors()` or `devtools()` gives the full text. `errorFallback` components should branch
-on `isNexusError(error, 'NEXUS_BLUEPRINT_INVALID')` and read `error.errors[i].code`.
+on `isNexusError(error.cause, 'NEXUS_BLUEPRINT_INVALID')` and read
+`error.cause.errors[i].code`.
 Both work across two copies of core in a federated page (core D21), where `instanceof`
 fails.
 

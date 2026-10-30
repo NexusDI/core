@@ -9,8 +9,16 @@ import {
 } from '@nexusdi/core';
 import { trace } from '@nexusdi/devtools';
 import { createTestingContainer } from '@nexusdi/testing';
-import { act, render, screen } from '@testing-library/react';
-import { StrictMode, type ReactNode } from 'react';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import {
+  Component,
+  StrictMode,
+  Suspense,
+  startTransition,
+  use,
+  type ReactNode,
+} from 'react';
+import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -45,7 +53,8 @@ function Heading() {
 function Failed({ error, retry }: { error: unknown; retry(): void }) {
   return (
     <button type="button" onClick={retry}>
-      {(error as Error).message}
+      {((error as Error).cause as Error | undefined)?.message ??
+        (error as Error).message}
     </button>
   );
 }
@@ -326,7 +335,9 @@ describe('SectionBoundary', () => {
     const button = await screen.findByRole('button');
     expect(button.textContent).toBe('remote down');
     expect(onError).toHaveBeenCalledTimes(1);
-    expect(onError.mock.calls[0]?.[0]).toBe(down);
+    const [reported] = onError.mock.calls[0] ?? [];
+    expect(isNexusError(reported, 'NEXUS_REACT_SECTION_FAILED')).toBe(true);
+    expect(reported).toMatchObject({ section: 'navigation', cause: down });
     await act(async () => button.click());
     expect(await screen.findByText('42')).toBeTruthy();
     expect(attempt).toBe(2);
@@ -350,7 +361,9 @@ describe('SectionBoundary', () => {
         </NexusProvider>
       </Boundary>,
     );
-    expect((await screen.findByRole('alert')).textContent).toBe('remote down');
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'remote down',
+    );
     view.unmount();
   });
 
@@ -385,25 +398,42 @@ describe('SectionBoundary', () => {
     view.unmount();
   });
 
-  it('hands onError and errorFallback the load error itself, a string included', async () => {
+  it('hands onError, errorFallback and React the same SectionError, a string cause included', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await using ship = await Nexus.create([]);
     const { seen, Capture } = capture();
-    const onError = vi.fn();
-    const view = await mount(
-      <NexusProvider container={ship}>
-        <SectionBoundary
-          section={lazySection('navigation', () => Promise.reject('offline'))}
-          errorFallback={Capture}
-          onError={onError}
-        >
-          <Heading />
-        </SectionBoundary>
-      </NexusProvider>,
-    );
+    const order: string[] = [];
+    const onError = vi.fn((_error: unknown) => order.push('onError'));
+    const caught: unknown[] = [];
+    let view!: ReturnType<typeof render>;
+    await act(async () => {
+      view = render(
+        <NexusProvider container={ship}>
+          <SectionBoundary
+            section={lazySection('navigation', () => Promise.reject('offline'))}
+            errorFallback={Capture}
+            onError={onError}
+          >
+            <Heading />
+          </SectionBoundary>
+        </NexusProvider>,
+        {
+          onCaughtError: (error) => {
+            order.push('caught');
+            caught.push(error);
+          },
+        },
+      );
+    });
     await screen.findByText('failed');
-    expect(seen.error).toBe('offline');
-    expect(onError).toHaveBeenCalledExactlyOnceWith('offline');
+    expect(order).toEqual(['onError', 'caught']);
+    expect(isNexusError(seen.error, 'NEXUS_REACT_SECTION_FAILED')).toBe(true);
+    expect(seen.error).toMatchObject({
+      section: 'navigation',
+      cause: 'offline',
+    });
+    expect(onError).toHaveBeenCalledExactlyOnceWith(seen.error);
+    expect(caught).toEqual([seen.error]);
     view.unmount();
   });
 
@@ -437,10 +467,12 @@ describe('SectionBoundary', () => {
     view.unmount();
   });
 
-  it('hands the app boundary the load error itself without errorFallback', async () => {
+  it('hands onError the very SectionError the boundary rethrows without errorFallback', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await using ship = await Nexus.create([]);
     const down = new Error('remote down');
+    const order: string[] = [];
+    const onError = vi.fn((_error: unknown) => order.push('onError'));
     const caught: unknown[] = [];
     let view!: ReturnType<typeof render>;
     await act(async () => {
@@ -451,17 +483,444 @@ describe('SectionBoundary', () => {
               section={lazySection('navigation', async () => {
                 throw down;
               })}
+              onError={onError}
             >
               <Heading />
             </SectionBoundary>
           </NexusProvider>
         </Boundary>,
-        { onCaughtError: (error) => caught.push(error) },
+        {
+          onCaughtError: (error) => {
+            order.push('caught');
+            caught.push(error);
+          },
+        },
       );
     });
     await screen.findByRole('alert');
-    expect(caught.at(-1)).toBe(down);
-    for (const error of caught) expect(error).toBeInstanceOf(Error);
+    expect(order).toEqual(['onError', 'caught']);
+    expect(onError).toHaveBeenCalledTimes(1);
+    const [reported] = onError.mock.calls[0] ?? [];
+    expect(isNexusError(reported, 'NEXUS_REACT_SECTION_FAILED')).toBe(true);
+    expect(reported).toMatchObject({ section: 'navigation', cause: down });
+    expect(caught).toHaveLength(1);
+    expect(caught[0]).toBe(reported);
+    view.unmount();
+  });
+
+  it('starts a fresh load when the app boundary resets after a rethrown failure, once per failure under StrictMode', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await using ship = await Nexus.create([]);
+    let attempt = 0;
+    const section = lazySection('navigation', async () => {
+      attempt += 1;
+      if (attempt === 1) throw new Error('remote down');
+      return Navigation;
+    });
+    const onError = vi.fn();
+    class Resettable extends Component<
+      { children?: ReactNode },
+      { error: unknown }
+    > {
+      override state: { error: unknown } = { error: null };
+      static getDerivedStateFromError(error: unknown) {
+        return { error };
+      }
+      override render() {
+        if (this.state.error === null) return this.props.children;
+        return (
+          <button type="button" onClick={() => this.setState({ error: null })}>
+            Reset
+          </button>
+        );
+      }
+    }
+    const view = await mount(
+      <StrictMode>
+        <Resettable>
+          <NexusProvider container={ship}>
+            <SectionBoundary section={section} onError={onError}>
+              <Heading />
+            </SectionBoundary>
+          </NexusProvider>
+        </Resettable>
+      </StrictMode>,
+    );
+    const reset = await screen.findByRole('button');
+    expect(onError).toHaveBeenCalledTimes(1);
+    await act(async () => reset.click());
+    expect(await screen.findByText('42')).toBeTruthy();
+    expect(attempt).toBe(2);
+    expect(onError).toHaveBeenCalledTimes(1);
+    view.unmount();
+  });
+
+  it('rethrows the same SectionError, with no second onError, when errorFallback goes away while it shows', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await using ship = await Nexus.create([]);
+    const down = new Error('remote down');
+    const section = lazySection('navigation', async () => {
+      throw down;
+    });
+    const onError = vi.fn();
+    const { seen, Capture } = capture();
+    const tree = (errorFallback?: typeof Capture) => (
+      <Boundary>
+        <NexusProvider container={ship}>
+          <SectionBoundary
+            section={section}
+            errorFallback={errorFallback}
+            onError={onError}
+          >
+            <Heading />
+          </SectionBoundary>
+        </NexusProvider>
+      </Boundary>
+    );
+    const view = await mount(tree(Capture));
+    await screen.findByText('failed');
+    await remount(view, tree());
+    await screen.findByRole('alert');
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(seen.error);
+    expect(screen.getByRole('alert').textContent).toBe(
+      (seen.error as Error).message,
+    );
+    view.unmount();
+  });
+
+  it('surfaces a load failure to the app boundary when a transition render yields', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await using ship = await Nexus.create([]);
+    const down = new Error('remote down');
+    let loads = 0;
+    const section = lazySection('navigation', async () => {
+      loads += 1;
+      throw down;
+    });
+    const onError = vi.fn();
+    function Slow() {
+      const end = Date.now() + 3;
+      while (Date.now() < end) continue;
+      return null;
+    }
+    const flags = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
+    const acting = flags.IS_REACT_ACT_ENVIRONMENT;
+    flags.IS_REACT_ACT_ENVIRONMENT = false;
+    const caught: unknown[] = [];
+    const host = document.createElement('div');
+    document.body.append(host);
+    const root = createRoot(host, {
+      onCaughtError: (error) => caught.push(error),
+    });
+    try {
+      startTransition(() =>
+        root.render(
+          <div>
+            <Boundary>
+              <NexusProvider container={ship}>
+                <SectionBoundary section={section} onError={onError}>
+                  <Heading />
+                </SectionBoundary>
+              </NexusProvider>
+            </Boundary>
+            {Array.from({ length: 20 }, (_, i) => (
+              <Slow key={i} />
+            ))}
+          </div>,
+        ),
+      );
+      await waitFor(
+        () => {
+          expect(host.querySelector('[role="alert"]')).not.toBeNull();
+        },
+        { timeout: 3000 },
+      );
+      expect(host.querySelector('[role="alert"]')?.textContent).toContain(
+        'remote down',
+      );
+      expect(caught).toHaveLength(1);
+      expect(isNexusError(caught[0], 'NEXUS_REACT_SECTION_FAILED')).toBe(true);
+      expect(loads).toBe(1);
+    } finally {
+      flags.IS_REACT_ACT_ENVIRONMENT = acting;
+      root.unmount();
+      host.remove();
+    }
+  });
+
+  it.each([
+    ['without errorFallback', undefined],
+    ['with errorFallback', Failed],
+  ])(
+    'calls each onError once for two boundaries on one failing handle, %s',
+    async (_name, errorFallback) => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      await using ship = await Nexus.create([]);
+      const section = lazySection('navigation', async () => {
+        throw new Error('remote down');
+      });
+      const first = vi.fn();
+      const second = vi.fn();
+      const view = await mount(
+        <Boundary>
+          <NexusProvider container={ship}>
+            <SectionBoundary
+              section={section}
+              errorFallback={errorFallback}
+              onError={first}
+            >
+              <Heading />
+            </SectionBoundary>
+            <SectionBoundary
+              section={section}
+              errorFallback={errorFallback}
+              onError={second}
+            >
+              <Heading />
+            </SectionBoundary>
+          </NexusProvider>
+        </Boundary>,
+      );
+      if (errorFallback === undefined) await screen.findByRole('alert');
+      else await screen.findAllByRole('button');
+      await waitFor(() => expect(first).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(second).toHaveBeenCalledTimes(1));
+      view.unmount();
+    },
+  );
+
+  it.each([
+    ['without errorFallback', undefined],
+    ['with errorFallback', Failed],
+  ])(
+    'clears a load that fails after its boundary unmounted, so a remount loads again, %s',
+    async (_name, errorFallback) => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      await using ship = await Nexus.create([]);
+      let calls = 0;
+      let rejectFirst: (error: unknown) => void = () => undefined;
+      const section = lazySection('navigation', () => {
+        calls += 1;
+        if (calls > 1) return Promise.resolve(Navigation);
+        return new Promise<ModuleRef>((_, reject) => {
+          rejectFirst = reject;
+        });
+      });
+      const onError = vi.fn();
+      const tree = (show: boolean) => (
+        <Boundary>
+          <NexusProvider container={ship}>
+            {show ? (
+              <SectionBoundary
+                section={section}
+                errorFallback={errorFallback}
+                onError={onError}
+                fallback={<p>Loading</p>}
+              >
+                <Heading />
+              </SectionBoundary>
+            ) : (
+              <p>elsewhere</p>
+            )}
+          </NexusProvider>
+        </Boundary>
+      );
+      const view = await mount(tree(true));
+      await screen.findByText('Loading');
+      await remount(view, tree(false));
+      await act(async () => rejectFirst(new Error('remote down')));
+      await remount(view, tree(true));
+      expect(await screen.findByText('42')).toBeTruthy();
+      expect(calls).toBe(2);
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError.mock.calls[0]?.[0]).toMatchObject({
+        section: 'navigation',
+      });
+      view.unmount();
+    },
+  );
+
+  it('clears a retried load that fails after its boundary unmounted, so a remount loads again', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await using ship = await Nexus.create([]);
+    let calls = 0;
+    let rejectSecond: (error: unknown) => void = () => undefined;
+    const section = lazySection('navigation', () => {
+      calls += 1;
+      if (calls === 1) return Promise.reject(new Error('remote down'));
+      if (calls === 2)
+        return new Promise<ModuleRef>((_, reject) => {
+          rejectSecond = reject;
+        });
+      return Promise.resolve(Navigation);
+    });
+    const onError = vi.fn();
+    const tree = (show: boolean) => (
+      <NexusProvider container={ship}>
+        {show ? (
+          <SectionBoundary
+            section={section}
+            errorFallback={Failed}
+            onError={onError}
+            fallback={<p>Loading</p>}
+          >
+            <Heading />
+          </SectionBoundary>
+        ) : (
+          <p>elsewhere</p>
+        )}
+      </NexusProvider>
+    );
+    const view = await mount(tree(true));
+    const button = await screen.findByRole('button');
+    await act(async () => button.click());
+    await screen.findByText('Loading');
+    expect(calls).toBe(2);
+    await remount(view, tree(false));
+    await act(async () => rejectSecond(new Error('still down')));
+    await remount(view, tree(true));
+    expect(await screen.findByText('42')).toBeTruthy();
+    expect(calls).toBe(3);
+    expect(onError).toHaveBeenCalledTimes(2);
+    view.unmount();
+  });
+
+  it.each([
+    ['without errorFallback', false],
+    ['with errorFallback', true],
+  ])(
+    'reports one failure once while a transition is held by a suspending sibling, %s',
+    async (_name, withFallback) => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      await using ship = await Nexus.create([]);
+      const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+      let loads = 0;
+      const section = lazySection('navigation', () => {
+        loads += 1;
+        const attempt = loads;
+        return new Promise<ModuleRef>((resolve, reject) =>
+          setTimeout(
+            () =>
+              attempt === 1
+                ? reject(new Error('remote down'))
+                : resolve(Navigation),
+            20,
+          ),
+        );
+      });
+      const onError = vi.fn();
+      const caught: unknown[] = [];
+      let reset = () => undefined as void;
+      class App extends Component<
+        { children?: ReactNode },
+        { error: unknown }
+      > {
+        override state: { error: unknown } = { error: null };
+        static getDerivedStateFromError(error: unknown) {
+          return { error };
+        }
+        override render() {
+          reset = () => this.setState({ error: null });
+          return this.state.error === null ? (
+            this.props.children
+          ) : (
+            <p>app-error</p>
+          );
+        }
+      }
+      const held = new Promise<void>((resolve) => setTimeout(resolve, 150));
+      function Held() {
+        use(held);
+        return null;
+      }
+      const FallbackView = () => <em>section-fallback</em>;
+      const page = (route: 'home' | 'ship') => (
+        <NexusProvider container={ship}>
+          <App>
+            <Suspense fallback={<i>outer-loading</i>}>
+              {route === 'home' ? (
+                <span>home</span>
+              ) : (
+                <>
+                  <Held />
+                  <SectionBoundary
+                    section={section}
+                    onError={onError}
+                    errorFallback={withFallback ? FallbackView : undefined}
+                    fallback={<i>loading</i>}
+                  >
+                    <Heading />
+                  </SectionBoundary>
+                </>
+              )}
+            </Suspense>
+          </App>
+        </NexusProvider>
+      );
+      const flags = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
+      const acting = flags.IS_REACT_ACT_ENVIRONMENT;
+      flags.IS_REACT_ACT_ENVIRONMENT = false;
+      const host = document.createElement('div');
+      document.body.append(host);
+      const root = createRoot(host, {
+        onCaughtError: (error) => caught.push(error),
+      });
+      try {
+        root.render(page('home'));
+        await waitFor(() => expect(host.textContent).toBe('home'));
+        startTransition(() => root.render(page('ship')));
+        await wait(400);
+        expect(loads).toBe(1);
+        expect(onError).toHaveBeenCalledTimes(1);
+        expect(onError.mock.calls[0]?.[0]).toMatchObject({
+          section: 'navigation',
+          cause: { message: 'remote down' },
+        });
+        expect(caught).toHaveLength(1);
+        expect(caught[0]).toBe(onError.mock.calls[0]?.[0]);
+        if (withFallback) {
+          expect(host.textContent).toContain('section-fallback');
+        } else {
+          expect(host.textContent).toBe('app-error');
+          reset();
+          await waitFor(() => expect(host.textContent).toBe('42'), {
+            timeout: 3000,
+          });
+          expect(loads).toBe(2);
+          expect(onError).toHaveBeenCalledTimes(1);
+        }
+      } finally {
+        flags.IS_REACT_ACT_ENVIRONMENT = acting;
+        root.unmount();
+        host.remove();
+      }
+    },
+  );
+
+  it('hands onError the SectionConflictError the fallback gets on a conflict', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await using ship = await Nexus.create([]);
+    const Other = defineModule({ name: 'Other', providers: [] });
+    const { seen, Capture } = capture();
+    const onError = vi.fn();
+    const tree = (module: ModuleRef) => (
+      <NexusProvider container={ship}>
+        <SectionBoundary
+          section={lazySection('navigation', async () => module)}
+          errorFallback={Capture}
+          onError={onError}
+        >
+          <Heading />
+        </SectionBoundary>
+      </NexusProvider>
+    );
+    const view = await mount(tree(Navigation));
+    await screen.findByText('42');
+    await remount(view, tree(Other));
+    await screen.findByText('failed');
+    expect(isNexusError(seen.error, 'NEXUS_REACT_SECTION_CONFLICT')).toBe(true);
+    expect(onError).toHaveBeenCalledExactlyOnceWith(seen.error);
     view.unmount();
   });
 
@@ -493,7 +952,10 @@ describe('SectionBoundary', () => {
       </NexusProvider>,
     );
     await screen.findByText('failed');
-    expect(isNexusError(seen.error, 'NEXUS_BLUEPRINT_INVALID')).toBe(true);
+    expect(isNexusError(seen.error, 'NEXUS_REACT_SECTION_FAILED')).toBe(true);
+    expect(
+      isNexusError((seen.error as Error).cause, 'NEXUS_BLUEPRINT_INVALID'),
+    ).toBe(true);
     view.unmount();
   });
 

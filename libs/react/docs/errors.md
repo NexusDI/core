@@ -170,7 +170,9 @@ import { createElement } from 'react';
 const Cartography = lazySection('cartography', async () => {
   throw new Error('remote unreachable');
 });
-function Failed() {
+let handed: unknown;
+function Failed({ error }: { error: unknown }) {
+  handed = error;
   return createElement('p', null, 'Cartography is offline.');
 }
 
@@ -192,6 +194,8 @@ const error = logged;
 const failed = isNexusError(error, 'NEXUS_REACT_SECTION_FAILED');
 const section = failed ? error.section : ''; // -> 'cartography'
 const cause = failed ? (error.cause as Error).message : ''; // -> 'remote unreachable'
+// The fallback receives the same SectionError.
+const same = handed === error; // -> true
 cleanup();
 await ship[Symbol.asyncDispose]();
 ```

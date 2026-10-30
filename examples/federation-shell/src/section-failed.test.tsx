@@ -5,6 +5,7 @@ import {
   isNexusError,
   provide,
 } from '@nexusdi/core';
+import { SectionConflictError, SectionError } from '@nexusdi/react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
@@ -35,31 +36,63 @@ function missingProvider(): unknown {
   return caught(() => Nexus.check(Station));
 }
 
-/** The text of the `<code>` element in the fallback `error` renders. */
-function codeShown(error: unknown): string | null | undefined {
+/** The SectionError a failed load hands the fallback, with `cause` as its load error. */
+const failed = (cause: unknown) =>
+  new SectionError(
+    { section: 'cartography' },
+    { cause, text: "Section 'cartography' failed to load." },
+  );
+
+/** The text of each `<code>` element in the fallback `error` renders. */
+function codesShown(error: SectionError | SectionConflictError): string[] {
   render(<SectionFailed error={error} retry={() => {}} />);
-  return screen.getByRole('alert').querySelector('code')?.textContent;
+  return [...screen.getByRole('alert').querySelectorAll('code')].map(
+    (code) => code.textContent ?? '',
+  );
 }
 
 describe('SectionFailed', () => {
-  it('shows the code of a NexusError', () => {
-    const error = missingProvider();
-    if (!isNexusError(error)) throw new Error('Expected a NexusError.');
-    expect(codeShown(error)).toBe(error.code);
+  it('shows the section error code, then the code and message of a NexusError cause', () => {
+    const cause = missingProvider();
+    if (!isNexusError(cause)) throw new Error('Expected a NexusError.');
+    expect(codesShown(failed(cause))).toEqual([
+      'NEXUS_REACT_SECTION_FAILED',
+      cause.code,
+    ]);
+    expect(screen.getByRole('alert').textContent).toContain(cause.message);
   });
 
-  it('shows the class name of a plain error, whatever code it carries', () => {
+  it('shows the class name and message of a plain error cause, whatever code it carries', () => {
     class DiskFull extends Error {
       readonly code = 'ENOSPC';
     }
-    expect(codeShown(new DiskFull('no space'))).toBe('DiskFull');
+    expect(codesShown(failed(new DiskFull('no space')))).toEqual([
+      'NEXUS_REACT_SECTION_FAILED',
+      'DiskFull',
+    ]);
+    expect(screen.getByRole('alert').textContent).toContain('no space');
   });
 
-  it('shows Error for an object with no prototype', () => {
-    expect(codeShown(Object.create(null))).toBe('Error');
+  it('shows Error for a cause that is an object with no prototype', () => {
+    expect(codesShown(failed(Object.create(null)))).toEqual([
+      'NEXUS_REACT_SECTION_FAILED',
+      'Error',
+    ]);
   });
 
-  it('shows Error for a thrown value that is no object', () => {
-    expect(codeShown('boom')).toBe('Error');
+  it('shows Error for a cause that is no object', () => {
+    expect(codesShown(failed('boom')).at(1)).toBe('Error');
+    expect(screen.getByRole('alert').textContent).toContain('boom');
+  });
+
+  it('shows the code and message of a conflict', () => {
+    const conflict = new SectionConflictError(
+      { section: 'cartography' },
+      { text: 'Two section modules are loaded under one name.' },
+    );
+    expect(codesShown(conflict)).toEqual(['NEXUS_REACT_SECTION_CONFLICT']);
+    expect(screen.getByRole('alert').textContent).toContain(
+      'Two section modules',
+    );
   });
 });

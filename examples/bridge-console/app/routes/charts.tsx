@@ -1,4 +1,9 @@
-import { lazySection, SectionBoundary } from '@nexusdi/react';
+import {
+  lazySection,
+  SectionBoundary,
+  type SectionConflictError,
+  type SectionError,
+} from '@nexusdi/react';
 import { lazy, Suspense } from 'react';
 
 import { Button } from '../components';
@@ -14,7 +19,12 @@ const StarMap = lazy(() =>
 
 const unrolling = <p>Unrolling the star map</p>;
 
-function ChartsOffline({ retry }: { error: unknown; retry(): void }) {
+function ChartsOffline({
+  retry,
+}: {
+  error: SectionError | SectionConflictError;
+  retry(): void;
+}) {
   return (
     <p>
       The star map did not load.{' '}

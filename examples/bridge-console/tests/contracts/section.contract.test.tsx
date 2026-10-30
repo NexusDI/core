@@ -3,7 +3,7 @@ import { lazySection, NexusProvider, SectionBoundary } from '@nexusdi/react';
 import { act, render, screen } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 
-it('NEXUS_REACT_SECTION_FAILED names the section, carries the load error and words a fix line, while the fallback reads the raw load error', async () => {
+it('NEXUS_REACT_SECTION_FAILED names the section, carries the load error and words a fix line, and the fallback and onError receive that same error', async () => {
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
   await using ship = await Nexus.create([]);
   const down = new Error('remote down');
@@ -40,9 +40,9 @@ it('NEXUS_REACT_SECTION_FAILED names the section, carries the load error and wor
   expect(isNexusError(error, 'NEXUS_REACT_SECTION_FAILED')).toBe(true);
   expect(error).toMatchObject({ section: 'cartography', cause: down });
   expect((error as Error).message).toMatch(/^ *Fix: .+$/m);
-  // Today the fallback and onError receive the load error itself.
+  // The fallback and onError receive that same SectionError.
   expect(seen.length).toBeGreaterThan(0);
-  expect(seen.every((value) => value === down)).toBe(true);
-  expect(onError).toHaveBeenCalledExactlyOnceWith(down);
+  expect(seen.every((value) => value === error)).toBe(true);
+  expect(onError).toHaveBeenCalledExactlyOnceWith(error);
   view.unmount();
 });

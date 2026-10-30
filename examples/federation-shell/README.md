@@ -18,7 +18,7 @@ module's exports:
 
 At startup the shell reads `/remotes.json`, a list of `{ name, entry }`, and registers it
 with the Module Federation runtime. The shell build emits `remotes.json` from the station table (`src/stations.ts`), with the development ports. A
-station that fails to load renders `SectionFailed` with the error code and message, and
+station that fails to load renders `SectionFailed` with the `SectionError` code, then the code and message of the load error in its `cause`, and
 its retry button loads the section again. The contract lives in
 `examples/federation-contracts`, which the shell owns.
 

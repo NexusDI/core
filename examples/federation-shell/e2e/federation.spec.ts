@@ -84,6 +84,7 @@ test('fails the drift build with NEXUS_CONTRACT_VERSION, and again on retry', as
   await page.goto(`${drift}/charts`);
   const failed = page.getByTestId('section-failed');
   const text = `meridian/NavCharts is needed at ${driftVersion}, and the provider has ${MERIDIAN_CONTRACT_VERSION}.`;
+  await expect(failed).toContainText('NEXUS_REACT_SECTION_FAILED');
   await expect(failed).toContainText('NEXUS_CONTRACT_VERSION');
   await expect(failed).toContainText(text);
 
@@ -108,6 +109,7 @@ test('fails the unshared build with NEXUS_CORE_NOT_SHARED', async ({
   const seen = problems(page);
   await page.goto(`${unshared}/charts`);
   const failed = page.getByTestId('section-failed');
+  await expect(failed).toContainText('NEXUS_REACT_SECTION_FAILED');
   await expect(failed).toContainText('NEXUS_CORE_NOT_SHARED');
   await expect(failed).toContainText(
     'the module CartographyStation was made by another copy of @nexusdi/core',
