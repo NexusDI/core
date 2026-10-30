@@ -2083,7 +2083,9 @@ with `NEXUS_BLUEPRINT_INVALID` holding `NEXUS_UNREAD_CONTRIBUTION` for `DIAGNOST
 the last objective creates a container with `Engineering` as its root and expects
 `reactor` in its `get(DIAGNOSTICS)`. The last objective passes on the seed too, since the
 root is exempt from the check. It guards where `ReactorDiagnostic` lives, and the start
-and panel objectives guard the export.
+and panel objectives guard the export. The start objective's failure message is the
+mission's own. The console shows core's text for the same error, "ReactorDiagnostic
+contributes to Diagnostics in Engineering, and no provider can read it."
 
 Seven decoys fail:
 
@@ -2091,8 +2093,8 @@ Seven decoys fail:
   since that lookup does not count as a reader.
 - `exports: [DIAGNOSTICS]` on `Meridian` keeps it, since a module with no contribution of
   its own publishes nothing and `Engineering` still keeps its own private.
-- `exports: [Engineering]` on `Tactical` keeps it, since a module re-export publishes no
-  contribution.
+- `imports: [Engineering]` and `exports: [Engineering]` on `Tactical` keep it, since a
+  module re-export publishes no contribution.
 - `all(DIAGNOSTICS)` added to the deps of `QuantumComputer` starts the ship and fails the
   panel objective with "DiagnosticsPanel saw one diagnostic of two."
 - The contribution deleted from `Engineering` starts the ship and fails the panel
@@ -3222,9 +3224,9 @@ the `@nexusdi/core@0.4.0-rc.0` tag. Each case below follows the code.
 19. Unexported contributions. A multi-token contribution in a module that does not export
     the token reaches no collector outside that module. When no provider of that module
     reads the token through `all()` or `lazy(all())` and the module is not the root,
-    `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID` holding
-    `NEXUS_UNREAD_CONTRIBUTION` (`libs/core/src/blueprint/unread.ts`). `/multi-providers/`
-    shows it.
+    `Nexus.create`, `Nexus.check` and `load()` reject with `NEXUS_BLUEPRINT_INVALID`
+    holding `NEXUS_UNREAD_CONTRIBUTION` (`libs/core/src/blueprint/unread.ts`). The check
+    skips a token that a `compile.provider` hook pins. `/multi-providers/` shows it.
 20. `override()`. `OverrideDefinition` takes `useClass` or `useValue`
     (`libs/core/src/definitions/provide.ts`), and `override()` takes `useFactory` through a
     second overload (`libs/testing/src/index.ts`). No form takes `useExisting`. `/testing/`
