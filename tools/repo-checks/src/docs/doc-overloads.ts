@@ -39,7 +39,7 @@ import type { DocsPage } from './site';
  * An overload is keyed by its label and its declaration as the source
  * writes it, whitespace collapsed: `lazy<T>(dep: All<T>): LazyAll<T>`. The
  * label is the callable's (`lazy`, `new Token`, `Nexus.create`,
- * `Nexus#get`), so a key reads in a diff and survives a reorder.
+ * `Nexus#get`), so a key reads in a diff and stays the same after a reorder.
  *
  * The allowance is the ratchet: it records the overloads the pages do not
  * call yet, per package, and an entry that is no longer needed fails.
