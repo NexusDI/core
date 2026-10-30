@@ -151,7 +151,7 @@ The adapter disposes the container only when it built it:
 
 ## Load a Section on Its First Request
 
-`di.load(Navigation)` returns a middleware that loads a module once and extends the request's scope. A section that cannot import a host module by name takes the load imports as the second argument, `di.load(Navigation, { imports: [Tactical] })`, and sees the exports of `Tactical`. [Adding Modules After Startup](/load/#importing-host-modules-into-a-loaded-module) covers the rules of a load import.
+`di.load(Navigation)` returns a middleware that loads a module once and extends the request's scope. A section that cannot import a host module by name takes the load imports as the second argument, `di.load(Navigation, { imports: [Tactical] })`, and sees the exports of `Tactical`. [Adding Modules After Startup](/load/#giving-a-loaded-plugin-access-to-host-services) covers the rules of a load import.
 
 ## Next Steps
 

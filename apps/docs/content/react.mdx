@@ -70,7 +70,7 @@ Core 0.4 scopes do not nest, so a `ScopeProvider` under another scope, or under 
 
 ## Load a Section with `SectionBoundary`
 
-`lazySection(name, loader, options?)` declares a code-split module at module level, and `SectionBoundary` loads it into the container on its first browser render, then renders its children. A section that cannot import a host module by name passes the load imports in `options`, as in `lazySection('navigation', loader, { imports: [Tactical] })`, and the load sees the exports of `Tactical` ([the rules of a load import](/load/#importing-host-modules-into-a-loaded-module)). The load runs once per container and section name, and on the server and during hydration the boundary renders `fallback`:
+`lazySection(name, loader, options?)` declares a code-split module at module level, and `SectionBoundary` loads it into the container on its first browser render, then renders its children. A section that cannot import a host module by name passes the load imports in `options`, as in `lazySection('navigation', loader, { imports: [Tactical] })`, and the load sees the exports of `Tactical` ([the rules of a load import](/load/#giving-a-loaded-plugin-access-to-host-services)). The load runs once per container and section name, and on the server and during hydration the boundary renders `fallback`:
 
 ```ts file=examples/meridian/src/pages/react.md region=section-fallback
 
