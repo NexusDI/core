@@ -4,7 +4,11 @@ import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
 import { readAllowance } from './docs/allowance';
-import { checkOverloads, readOverloads } from './docs/doc-overloads';
+import {
+  checkOverloads,
+  normalizeSignature,
+  readOverloads,
+} from './docs/doc-overloads';
 import { FIXTURES } from './docs/paths';
 import {
   ERROR_EXEMPT,
@@ -39,6 +43,35 @@ type Allowance = Record<string, { unexercised: string[] }>;
 
 const PING_ALL = 'ping(beacons: readonly Beacon[]): string[]';
 const SEND_ALL = 'Relay#send(to: readonly string[]): number';
+
+describe('normalizeSignature', () => {
+  it.each([
+    [
+      'a type literal with and without its last semicolon',
+      '(shape: { a: string; b: number; }): void',
+      '(shape: { a: string; b: number }): void',
+    ],
+    [
+      'type parameters on one line and wrapped with a trailing comma',
+      `<
+  T,
+  R extends PromiseLike<T>,
+>(token: T): R`,
+      '<T, R extends PromiseLike<T>>(token: T): R',
+    ],
+    [
+      'parameters wrapped with a trailing comma',
+      `(
+  token: Token<T>,
+  options?: { readonly module?: ModuleRef },
+): T`,
+      '(token: Token<T>, options?: { readonly module?: ModuleRef }): T',
+    ],
+  ])('reads %s as one key', (_, wrapped, flat) => {
+    expect(normalizeSignature(wrapped)).toBe(normalizeSignature(flat));
+    expect(normalizeSignature(flat)).toBe(flat);
+  });
+});
 
 describe('readOverloads', () => {
   it('keys every overload of an overloaded callable by its label and declaration', () => {

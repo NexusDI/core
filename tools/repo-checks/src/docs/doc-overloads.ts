@@ -58,11 +58,22 @@ export interface PackageOverloads {
   overloads: OverloadCoverage[];
 }
 
-const collapse = (text: string): string =>
+/**
+ * A signature's source text in one form whatever its formatting, so a
+ * prettier reflow leaves its key alone: whitespace runs become one space, a
+ * `;` or `,` before a closing bracket goes, a space inside `(`, `<` and `[`
+ * goes, and a brace keeps one space inside it. `{ a: string; b: number; }`
+ * and a multi-line `<T, R,>` both read the way one line writes them.
+ */
+export const normalizeSignature = (text: string): string =>
   text
     .replace(/\s+/g, ' ')
+    .replace(/\s*[;,]\s*(?=[)\]}>])/g, ' ')
     .replace(/([(<[]) /g, '$1')
     .replace(/ ([)>\]])/g, '$1')
+    .replace(/\{\s*/g, '{ ')
+    .replace(/\s*\}/g, ' }')
+    .replace(/\{ \}/g, '{}')
     .trim();
 
 /** A signature as its declaration writes it, or as the checker prints it. */
@@ -88,7 +99,7 @@ function printed(checker: ts.TypeChecker, signature: ts.Signature): string {
         undefined,
         ts.TypeFormatFlags.NoTruncation,
       );
-  return collapse(`${typeParameters}(${parameters}): ${returns}`);
+  return normalizeSignature(`${typeParameters}(${parameters}): ${returns}`);
 }
 
 /** Each overload of a package's overloaded callables, by its declaration. */
