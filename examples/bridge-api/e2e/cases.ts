@@ -85,6 +85,24 @@ export const cases: readonly Case[] = [
       }),
   },
   {
+    name: 'lists the audited chart call and the comms log on GET /audit',
+    run: (leg) =>
+      withBridge(leg, async ({ url }) => {
+        await asMission(url, '/course/Kepler-442b', 'survey-7');
+        const hail = await fetch(`${url}/commands`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ system: 'comms', action: 'hail' }),
+        });
+        leg.check('hail status', hail.status, 202);
+        const res = await fetch(`${url}/audit`);
+        leg.check('audit', await res.json(), {
+          calls: ['plot Kepler-442b'],
+          comms: ['hail queued for tick 1'],
+        });
+      }),
+  },
+  {
     name: 'gives 50 concurrent requests 50 scopes and no shared flight log',
     run: (leg) =>
       withBridge(leg, async ({ url, count }) => {

@@ -26,6 +26,7 @@ import express, {
 } from 'express';
 
 import { answerAlarms } from '../bridge/alarms';
+import { answerAudit } from '../bridge/audit';
 import { answerAtmosphere } from '../bridge/atmosphere';
 import { answerCommand } from '../bridge/commands';
 import { compartmentOf } from '../bridge/compartment-of';
@@ -36,7 +37,13 @@ import type { BridgeOptions } from '../bridge/options';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from '../bridge/sim-ticks';
 import { telemetryReadable } from '../bridge/telemetry-readable';
 import { SSE_HEADERS } from '../bridge/telemetry-stream';
-import { FLIGHT_LOG, NAV_CHARTS, SIM_DRIVER } from '../ship/contracts';
+import {
+  AUDIT_LOG,
+  COMMS_LOG,
+  FLIGHT_LOG,
+  NAV_CHARTS,
+  SIM_DRIVER,
+} from '../ship/contracts';
 
 /**
  * A hook for the e2e and runtime-test routes: it adds routes right after the
@@ -113,6 +120,15 @@ export function createBridge(
     di.inject({ board: ALARM_BOARD }, ({ board }, _req, res) => {
       res.json(answerAlarms(board));
     }),
+  );
+  bridge.get(
+    '/audit',
+    di.inject(
+      { audit: AUDIT_LOG, comms: COMMS_LOG },
+      ({ audit, comms }, _req, res) => {
+        res.json(answerAudit(audit, comms));
+      },
+    ),
   );
   bridge.get('/compartments/:id/atmosphere', async (req, res) => {
     const answer = answerAtmosphere(await di.scope(req));

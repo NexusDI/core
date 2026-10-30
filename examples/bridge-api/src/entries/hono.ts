@@ -20,6 +20,7 @@ import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 
 import { answerAlarms } from '../bridge/alarms';
+import { answerAudit } from '../bridge/audit';
 import { answerAtmosphere } from '../bridge/atmosphere';
 import { answerCommand } from '../bridge/commands';
 import { compartmentOf } from '../bridge/compartment-of';
@@ -29,7 +30,13 @@ import { MISSION_HEADER, requestOf } from '../bridge/mission';
 import type { BridgeOptions } from '../bridge/options';
 import { parseTicks, SIM_BODY_LIMIT, TICKS_REFUSED } from '../bridge/sim-ticks';
 import { SSE_HEADERS, telemetryStream } from '../bridge/telemetry-stream';
-import { FLIGHT_LOG, NAV_CHARTS, SIM_DRIVER } from '../ship/contracts';
+import {
+  AUDIT_LOG,
+  COMMS_LOG,
+  FLIGHT_LOG,
+  NAV_CHARTS,
+  SIM_DRIVER,
+} from '../ship/contracts';
 
 /**
  * A hook for the e2e and runtime-test routes: it adds routes right after the
@@ -114,6 +121,12 @@ export function createBridge(
     '/alarms',
     di.inject({ board: ALARM_BOARD }, ({ board }, c) =>
       c.json(answerAlarms(board)),
+    ),
+  );
+  bridge.get(
+    '/audit',
+    di.inject({ audit: AUDIT_LOG, comms: COMMS_LOG }, ({ audit, comms }, c) =>
+      c.json(answerAudit(audit, comms)),
     ),
   );
   bridge.get('/compartments/:id/atmosphere', async (c) => {

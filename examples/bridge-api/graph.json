@@ -222,7 +222,8 @@
       "imports": [],
       "grants": [],
       "exports": [
-        "p58"
+        "p58",
+        "p59"
       ]
     },
     {
@@ -234,7 +235,7 @@
       ],
       "grants": [],
       "exports": [
-        "p59"
+        "p60"
       ]
     },
     {
@@ -244,7 +245,7 @@
       "imports": [],
       "grants": [],
       "exports": [
-        "p60"
+        "p61"
       ]
     },
     {
@@ -267,7 +268,7 @@
       ],
       "grants": [],
       "exports": [
-        "p68"
+        "p72"
       ]
     }
   ],
@@ -1041,6 +1042,19 @@
     },
     {
       "id": "p59",
+      "token": "CommsLog",
+      "module": "m14",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "unresolved": [],
+      "implementation": "CommsRecorder",
+      "internal": false
+    },
+    {
+      "id": "p60",
       "token": "AlarmSinks",
       "module": "m15",
       "lifetime": "singleton",
@@ -1053,7 +1067,7 @@
       "internal": false
     },
     {
-      "id": "p60",
+      "id": "p61",
       "token": "SimDriver",
       "module": "m16",
       "lifetime": "singleton",
@@ -1066,7 +1080,7 @@
       "internal": false
     },
     {
-      "id": "p61",
+      "id": "p62",
       "token": "DriverOptions",
       "module": "m16",
       "lifetime": null,
@@ -1079,7 +1093,7 @@
       "internal": false
     },
     {
-      "id": "p62",
+      "id": "p63",
       "token": "NavAudit",
       "module": "m17",
       "lifetime": "singleton",
@@ -1092,7 +1106,7 @@
       "internal": false
     },
     {
-      "id": "p63",
+      "id": "p64",
       "token": "FlightRecorder",
       "module": "m17",
       "lifetime": "singleton",
@@ -1105,7 +1119,7 @@
       "internal": false
     },
     {
-      "id": "p64",
+      "id": "p65",
       "token": "PressureInterlock",
       "module": "m17",
       "lifetime": "singleton",
@@ -1118,7 +1132,33 @@
       "internal": false
     },
     {
-      "id": "p65",
+      "id": "p66",
+      "token": "HailLog",
+      "module": "m17",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "unresolved": [],
+      "implementation": "HailLog",
+      "internal": false
+    },
+    {
+      "id": "p67",
+      "token": "LinkRetry",
+      "module": "m17",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "unresolved": [],
+      "implementation": "LinkRetry",
+      "internal": false
+    },
+    {
+      "id": "p68",
       "token": "RequestScopes",
       "module": "m17",
       "lifetime": null,
@@ -1131,7 +1171,20 @@
       "internal": false
     },
     {
-      "id": "p66",
+      "id": "p69",
+      "token": "LinkRetryOptions",
+      "module": "m17",
+      "lifetime": null,
+      "kind": "value",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "unresolved": [],
+      "implementation": null,
+      "internal": false
+    },
+    {
+      "id": "p70",
       "token": "interceptors registry",
       "module": "m17",
       "lifetime": "singleton",
@@ -1144,7 +1197,7 @@
       "internal": false
     },
     {
-      "id": "p67",
+      "id": "p71",
       "token": "interceptors guard",
       "module": "m17",
       "lifetime": "singleton",
@@ -1157,7 +1210,7 @@
       "internal": false
     },
     {
-      "id": "p68",
+      "id": "p72",
       "token": "FtlDrive",
       "module": "m18",
       "lifetime": "singleton",
@@ -1170,7 +1223,7 @@
       "internal": false
     },
     {
-      "id": "p69",
+      "id": "p73",
       "token": "FtlPhysics",
       "module": "m18",
       "lifetime": "singleton",
@@ -1183,7 +1236,7 @@
       "internal": false
     },
     {
-      "id": "p70",
+      "id": "p74",
       "token": "FtlPower",
       "module": "m18",
       "lifetime": "singleton",
@@ -1196,7 +1249,7 @@
       "internal": false
     },
     {
-      "id": "p71",
+      "id": "p75",
       "token": "FtlCommands",
       "module": "m18",
       "lifetime": "singleton",
@@ -1560,7 +1613,7 @@
     },
     {
       "from": "p30",
-      "to": "p59",
+      "to": "p60",
       "kind": "all"
     },
     {
@@ -1729,103 +1782,128 @@
       "kind": "required"
     },
     {
-      "from": "p59",
+      "from": "p60",
       "to": "p58",
       "kind": "required"
     },
     {
-      "from": "p60",
+      "from": "p61",
       "to": "p5",
       "kind": "required"
     },
     {
-      "from": "p60",
+      "from": "p61",
       "to": "p8",
       "kind": "required"
     },
     {
-      "from": "p60",
-      "to": "p61",
-      "kind": "required"
-    },
-    {
-      "from": "p62",
-      "to": "p58",
+      "from": "p61",
+      "to": "p62",
       "kind": "required"
     },
     {
       "from": "p63",
-      "to": "p65",
+      "to": "p58",
       "kind": "required"
     },
     {
       "from": "p64",
+      "to": "p68",
+      "kind": "required"
+    },
+    {
+      "from": "p65",
       "to": "p2",
       "kind": "required"
     },
     {
-      "from": "p64",
+      "from": "p65",
       "to": "p3",
       "kind": "required"
     },
     {
       "from": "p66",
-      "to": "p62",
+      "to": "p59",
       "kind": "required"
     },
     {
-      "from": "p66",
-      "to": "p63",
+      "from": "p67",
+      "to": "p59",
       "kind": "required"
     },
     {
-      "from": "p66",
-      "to": "p64",
-      "kind": "required"
-    },
-    {
-      "from": "p68",
-      "to": "p5",
-      "kind": "required"
-    },
-    {
-      "from": "p68",
-      "to": "p2",
-      "kind": "required"
-    },
-    {
-      "from": "p68",
-      "to": "p40",
-      "kind": "required"
-    },
-    {
-      "from": "p68",
-      "to": "p14",
-      "kind": "required"
-    },
-    {
-      "from": "p68",
-      "to": "p6",
-      "kind": "required"
-    },
-    {
-      "from": "p68",
+      "from": "p67",
       "to": "p69",
       "kind": "required"
     },
     {
-      "from": "p68",
-      "to": "p70",
+      "from": "p70",
+      "to": "p63",
       "kind": "required"
     },
     {
-      "from": "p68",
-      "to": "p71",
+      "from": "p70",
+      "to": "p64",
       "kind": "required"
     },
     {
-      "from": "p71",
-      "to": "p68",
+      "from": "p70",
+      "to": "p65",
+      "kind": "required"
+    },
+    {
+      "from": "p70",
+      "to": "p66",
+      "kind": "required"
+    },
+    {
+      "from": "p70",
+      "to": "p67",
+      "kind": "required"
+    },
+    {
+      "from": "p72",
+      "to": "p5",
+      "kind": "required"
+    },
+    {
+      "from": "p72",
+      "to": "p2",
+      "kind": "required"
+    },
+    {
+      "from": "p72",
+      "to": "p40",
+      "kind": "required"
+    },
+    {
+      "from": "p72",
+      "to": "p14",
+      "kind": "required"
+    },
+    {
+      "from": "p72",
+      "to": "p6",
+      "kind": "required"
+    },
+    {
+      "from": "p72",
+      "to": "p73",
+      "kind": "required"
+    },
+    {
+      "from": "p72",
+      "to": "p74",
+      "kind": "required"
+    },
+    {
+      "from": "p72",
+      "to": "p75",
+      "kind": "required"
+    },
+    {
+      "from": "p75",
+      "to": "p72",
       "kind": "lazy"
     }
   ],
