@@ -120,12 +120,11 @@ export async function startBlueprint(
     root.owned.push(...built.owned);
   } catch (error) {
     root.run = undefined;
-    // walk.ts assigns provider ids purely by position in the walk, and each
-    // compile call redoes the walk from scratch. A failed run's ids were
-    // never committed to root.blueprint, so the next load's compile can
-    // reassign one of them to an unrelated provider. touched holds only the
-    // ids this run introduced, so clearing their asyncFlags entries here
-    // never removes a flag a committed provider owns.
+    // A held record keeps its id across loads, but a failed run's ids were
+    // never committed to root.blueprint: the next load starts from the same
+    // nextIds and may give one of them to another provider. touched holds
+    // only the ids this run introduced, so clearing their asyncFlags entries
+    // here never removes a flag a committed provider owns.
     for (const id of touched) root.asyncFlags.delete(id);
     for (const value of registered) root.ownership.unregisterValue(value);
     throw await rollBack(

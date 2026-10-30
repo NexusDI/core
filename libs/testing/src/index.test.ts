@@ -260,6 +260,42 @@ describe('createTestingContainer', () => {
     expect(ship.get(SubspaceLink)).toBeInstanceOf(LoopbackLink);
   });
 
+  it('keeps the ids of a stubbed module across a load', async () => {
+    const Comms = defineModule({
+      name: 'Comms',
+      providers: [SubspaceLink],
+      exports: [SubspaceLink],
+    });
+    const CommsStub = defineModule({
+      name: 'CommsStub',
+      providers: [provide(SubspaceLink, { useValue: new SubspaceLink() })],
+      exports: [SubspaceLink],
+    });
+    const Cargo = defineModule({ name: 'Cargo' });
+    const seen: string[][] = [];
+    const capture: NexusPlugin = {
+      name: 'test:capture-ids',
+      apiVersion: 1,
+      compile: {
+        check: (view) =>
+          seen.push([
+            ...view.modules.map((m) => m.id),
+            ...view.providers.map((p) => p.id),
+          ]),
+      },
+    };
+    const ship = await createTestingContainer(
+      defineModule({ name: 'Root', imports: [Comms] }),
+    )
+      .overrideModule(Comms, CommsStub)
+      .create({ plugins: [capture] });
+    const link = ship.get(SubspaceLink);
+    await ship.load(Cargo);
+    const [before, after] = [seen[0], seen[seen.length - 1]];
+    for (const id of before) expect(after).toContain(id);
+    expect(ship.get(SubspaceLink)).toBe(link);
+  });
+
   it('replaces every forRoot() instance of a configurable base module', async () => {
     const OPTIONS = new Token<number>('Frequency');
     const Comms = defineModule({
