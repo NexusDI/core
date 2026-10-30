@@ -78,6 +78,53 @@ await ship[Symbol.asyncDispose]();
 
 <!-- #endregion scope-key -->
 
+<!-- #region use-service-all -->
+
+```ts @import.meta.vitest
+import { MultiToken, Nexus, defineModule, provide } from '@nexusdi/core';
+import { NexusProvider, useService } from '@nexusdi/react';
+import { cleanup, render, screen } from '@testing-library/react';
+import { createElement } from 'react';
+
+interface IDiagnostic {
+  readonly name: string;
+}
+const DIAGNOSTICS = new MultiToken<IDiagnostic>('Diagnostics');
+
+const ship = await Nexus.create(
+  defineModule({
+    name: 'Meridian',
+    providers: [
+      provide(DIAGNOSTICS, { useValue: { name: 'hull' } }),
+      provide(DIAGNOSTICS, { useValue: { name: 'shields' } }),
+    ],
+  }),
+);
+
+function DiagnosticsPanel() {
+  return createElement(
+    'p',
+    null,
+    useService(DIAGNOSTICS)
+      .map((each) => each.name)
+      .join(', '),
+  );
+}
+
+render(
+  createElement(
+    NexusProvider,
+    { container: ship },
+    createElement(DiagnosticsPanel),
+  ),
+);
+const panel = (await screen.findByText('hull, shields')).textContent; // -> 'hull, shields'
+cleanup();
+await ship[Symbol.asyncDispose]();
+```
+
+<!-- #endregion use-service-all -->
+
 <!-- #region section-retry -->
 
 ```ts @import.meta.vitest

@@ -1,19 +1,12 @@
 {
   "@nexusdi/core": {
     "unexercised": [
-      "Scope#get<T>(token: MultiToken<T>, options?: LookupOptions): T[]",
-      "lazy<T>(dep: All<T>): LazyAll<T>",
       "provide<C extends Ctor>(cls: C, ...options: ClassOptions<C>): Provider<InstanceType<C>>"
     ]
   },
   "@nexusdi/interceptors": {
     "unexercised": [
       "interceptor<const D extends readonly Dep[], R extends Interceptor | PromiseLike<Interceptor>>(token: InterceptorToken, definition: FactoryDefinition<D, R>): InterceptorEntry"
-    ]
-  },
-  "@nexusdi/react": {
-    "unexercised": [
-      "useService<T>(token: MultiToken<T>, options?: LookupOptions): readonly T[]"
     ]
   },
   "@nexusdi/testing": {

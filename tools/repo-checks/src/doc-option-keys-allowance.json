@@ -1,10 +1,6 @@
 {
   "@nexusdi/core": {
     "unnamed": [
-      "CheckOptions: CheckOptions.load",
-      "CheckOptions: CheckOptions.load[].imports",
-      "CheckOptions: CheckOptions.load[].module",
-      "CheckOptions: CheckOptions.plugins",
       "ConfigurableModuleConfig: ConfigurableModuleConfig.exports",
       "ConfigurableModuleConfig: ConfigurableModuleConfig.global",
       "ConfigurableModuleConfig: ConfigurableModuleConfig.imports",
@@ -17,22 +13,14 @@
       "FactoryDefinition: FactoryDefinition.lifetime",
       "ForRootAsyncConfig: ForRootAsyncConfig.deps",
       "ForRootAsyncConfig: ForRootAsyncConfig.useFactory",
-      "LoadOptions: LoadOptions.imports",
       "LookupOptions: LookupOptions.module",
       "ModuleConfig: ModuleConfig.exports",
       "ModuleConfig: ModuleConfig.global",
       "ModuleConfig: ModuleConfig.imports",
       "ModuleConfig: ModuleConfig.name",
       "ModuleConfig: ModuleConfig.providers",
-      "Nexus: CheckOptions.load[].imports",
-      "Nexus: CheckOptions.load[].module",
-      "Nexus: CheckOptions.plugins",
-      "Nexus: CreateOptions.plugins",
-      "Nexus: LoadOptions.imports",
-      "Nexus: LookupOptions.module",
       "Nexus: Nexus#createScope(options).request",
       "Nexus: RootConfig.exports",
-      "Nexus: RootConfig.imports",
       "Nexus: RootConfig.providers",
       "NexusErrorOptions: NexusErrorOptions.hidden",
       "NexusErrorOptions: NexusErrorOptions.text",
@@ -79,9 +67,6 @@
       "DevtoolsOptions: DevtoolsOptions.text",
       "DevtoolsOptions: DevtoolsOptions.trace",
       "InspectOptions: InspectOptions.annotate",
-      "InspectOptions: InspectOptions.load",
-      "InspectOptions: InspectOptions.load[].imports",
-      "InspectOptions: InspectOptions.load[].module",
       "InspectOptions: InspectOptions.plugins",
       "InspectOptions: InspectOptions.text",
       "ProfileOptions: ProfileOptions.live",
@@ -92,19 +77,13 @@
       "devtools: DevtoolsOptions.text",
       "devtools: DevtoolsOptions.trace",
       "inspect: InspectOptions.annotate",
-      "inspect: InspectOptions.load",
-      "inspect: InspectOptions.load[].module",
       "inspect: InspectOptions.plugins",
       "inspect: InspectOptions.text",
       "profile: ProfileOptions.live",
       "profile: ProfileOptions.maxRuns",
       "profile: ProfileOptions.scopes",
       "profileStartup: RootConfig.exports",
-      "profileStartup: RootConfig.imports",
       "profileStartup: RootConfig.providers",
-      "profileStartup: profileStartup(options).load",
-      "profileStartup: profileStartup(options).load[].imports",
-      "profileStartup: profileStartup(options).load[].module",
       "profileStartup: profileStartup(options).plugins",
       "profileStartup: profileStartup(options).profiler",
       "profileTable: profileTable(options).run",
@@ -126,7 +105,6 @@
   },
   "@nexusdi/express": {
     "unnamed": [
-      "NexusExpress: LoadOptions.imports",
       "nexus: NexusExpressOptions.log",
       "nexus: NexusExpressOptions.request",
       "nexus: NexusExpressOptions.scopes"
@@ -134,18 +112,13 @@
   },
   "@nexusdi/fastify": {
     "unnamed": [
-      "NexusFastify: LoadOptions.imports",
       "nexus: NexusFastifyOptions.log",
       "nexus: NexusFastifyOptions.request",
       "nexus: NexusFastifyOptions.scopes"
     ]
   },
   "@nexusdi/hono": {
-    "unnamed": [
-      "NexusHono: LoadOptions.imports",
-      "nexus: NexusHonoOptions.log",
-      "nexus: NexusHonoOptions.scopes"
-    ]
+    "unnamed": ["nexus: NexusHonoOptions.log", "nexus: NexusHonoOptions.scopes"]
   },
   "@nexusdi/interceptors": {
     "unnamed": [
@@ -199,7 +172,6 @@
   },
   "@nexusdi/react-router": {
     "unnamed": [
-      "NexusRouter: LoadOptions.imports",
       "nexus: NexusRouterOptions.log",
       "nexus: NexusRouterOptions.request",
       "nexus: NexusRouterOptions.scopes"

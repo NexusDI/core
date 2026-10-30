@@ -19,6 +19,8 @@ A request-scoped service needs one scope per request, disposed when the response
 
 <!-- reference @nexusdi/react-router#NexusRouter -->
 
+`di.load(module, { imports })` returns a section middleware that loads the module once. `imports` lists host modules already in the graph, which the loaded module sees as if it imported them. A grant is wiring, and it is no isolation or security boundary.
+
 ## `NexusRouterOptions`
 
 <!-- reference @nexusdi/react-router#NexusRouterOptions -->

@@ -153,6 +153,57 @@ entry.imports[0] === Engineering; // -> true
 
 <!-- #endregion split-load-entry -->
 
+## Granting a load
+
+`load(module, { imports })` lets the loaded module see the exports of host modules already in the graph, as if it imported them. `Nexus.check(root, { load: [{ module, imports }] })` takes the same grant.
+
+<!-- #region load-import -->
+
+```ts @import.meta.vitest
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+
+interface IHullSensors {
+  readonly range: number;
+}
+interface IScoutProbe {
+  readonly range: number;
+}
+const SENSORS = new Token<IHullSensors>('HullSensors');
+const SCOUT_PROBE = new Token<IScoutProbe>('ScoutProbe');
+class ArraySensors implements IHullSensors {
+  readonly range = 40;
+}
+class ScoutProbe implements IScoutProbe {
+  static deps = [SENSORS] as const;
+  constructor(private readonly sensors: IHullSensors) {}
+  get range() {
+    return this.sensors.range;
+  }
+}
+
+const Sensors = defineModule({
+  name: 'Sensors',
+  providers: [provide(SENSORS, { useClass: ArraySensors })],
+  exports: [SENSORS],
+});
+const Survey = defineModule({
+  name: 'Survey',
+  providers: [provide(SCOUT_PROBE, { useClass: ScoutProbe })],
+  exports: [SCOUT_PROBE],
+});
+const Meridian = defineModule({ name: 'Meridian', imports: [Sensors] });
+
+const report = Nexus.check(Meridian, {
+  load: [{ module: Survey, imports: [Sensors] }],
+});
+report.unchecked.length; // -> 0
+await using ship = await Nexus.create(Meridian);
+await ship.load(Survey, { imports: [Sensors] });
+ship.get(SCOUT_PROBE).range; // -> 40
+```
+
+<!-- #endregion load-import -->
+
 ## Async options
 
 `forRootAsync({ useFactory, deps })` computes a module's options at startup.
