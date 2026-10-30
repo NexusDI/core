@@ -134,6 +134,9 @@ export function parseGraph(value: unknown): NexusGraph {
       wrongType(`${path}.implementation`);
     const internal = boolean(p, 'internal', path);
     const notes = strings(p, 'notes', path);
+    // Graph files written before unresolved existed omit the field.
+    const unresolved =
+      p['unresolved'] === undefined ? [] : strings(p, 'unresolved', path);
     return {
       id,
       token,
@@ -143,6 +146,7 @@ export function parseGraph(value: unknown): NexusGraph {
       eager,
       async,
       notes,
+      unresolved,
       implementation,
       internal,
     };

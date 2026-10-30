@@ -1,4 +1,4 @@
-import { REQUEST, type BlueprintView } from '@nexusdi/core';
+import { REQUEST, displayName, type BlueprintView } from '@nexusdi/core';
 
 /** A line of text a plugin attaches to one provider in the graph. */
 export interface GraphNote {
@@ -57,6 +57,14 @@ export interface NexusGraph {
      * the order each annotator returned them. Empty when none names it.
      */
     notes: string[];
+    /**
+     * The display names of the optional deps and properties that bound to
+     * no provider, such as an optional() dep with no provider, from core's
+     * ProviderView.unresolved.
+     * A graph file written before the field existed has none; parseGraph
+     * reads it as [].
+     */
+    unresolved: string[];
     /**
      * A class provider's class name; null for factory, value and alias
      * providers, and for an anonymous class.
@@ -128,6 +136,7 @@ export function graphOf(
               ? null
               : false,
       notes: [...(notes.get(p.id) ?? [])],
+      unresolved: p.unresolved.map((u) => displayName(u.written)),
       implementation:
         p.implementation === null || p.implementation.name === ''
           ? null

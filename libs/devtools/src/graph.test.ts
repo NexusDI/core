@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { Nexus, Token, defineModule, lazy, provide } from '@nexusdi/core';
+import {
+  Nexus,
+  Token,
+  defineModule,
+  lazy,
+  optional,
+  provide,
+} from '@nexusdi/core';
 
 import { rejected, thrown } from '../test-support/catch.js';
 import { fuelLineNotes } from '../test-support/third-party-annotator.js';
@@ -43,6 +50,21 @@ const BRIDGE_NOTES = {
 };
 
 describe('graph', () => {
+  it('lists the deps that bound to no provider in unresolved', async () => {
+    class PhasedArray {
+      constructor(readonly link: SubspaceLink | undefined) {}
+    }
+    const Meridian = defineModule({
+      name: 'Meridian',
+      providers: [provide(PhasedArray, { deps: [optional(SubspaceLink)] })],
+    });
+    const view = graph(await Nexus.create(Meridian, { plugins: [devtools()] }));
+    expect(view.providers.map((p) => [p.token, p.unresolved])).toEqual([
+      ['PhasedArray', ['SubspaceLink']],
+      ['REQUEST', []],
+    ]);
+  });
+
   it('returns the compiled graph as plain JSON', async () => {
     const Comms = defineModule({
       name: 'Comms',
@@ -94,6 +116,7 @@ describe('graph', () => {
           eager: true,
           async: false,
           notes: [],
+          unresolved: [],
           implementation: 'ReactorCore',
           internal: false,
         },
@@ -106,6 +129,7 @@ describe('graph', () => {
           eager: true,
           async: false,
           notes: [],
+          unresolved: [],
           implementation: 'ShipComputer',
           internal: false,
         },
@@ -118,6 +142,7 @@ describe('graph', () => {
           eager: true,
           async: true,
           notes: [],
+          unresolved: [],
           implementation: null,
           internal: false,
         },
@@ -130,6 +155,7 @@ describe('graph', () => {
           eager: true,
           async: null,
           notes: [],
+          unresolved: [],
           implementation: null,
           internal: false,
         },
@@ -142,6 +168,7 @@ describe('graph', () => {
           eager: true,
           async: false,
           notes: [],
+          unresolved: [],
           implementation: 'SubspaceLink',
           internal: false,
         },
@@ -154,6 +181,7 @@ describe('graph', () => {
           eager: true,
           async: false,
           notes: [],
+          unresolved: [],
           implementation: null,
           internal: true,
         },

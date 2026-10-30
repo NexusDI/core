@@ -25,6 +25,7 @@ const GOOD: NexusGraph = {
       eager: true,
       async: false,
       notes: [],
+      unresolved: [],
       implementation: 'StellarCharts',
       internal: false,
     },
@@ -37,6 +38,7 @@ const GOOD: NexusGraph = {
       eager: true,
       async: false,
       notes: [],
+      unresolved: [],
       implementation: null,
       internal: true,
     },
@@ -100,6 +102,28 @@ describe('parseGraph', () => {
     expect(graph.modules[0]?.grants).toEqual([]);
   });
 
+  it('keeps the unresolved deps of a provider', () => {
+    const [first, ...rest] = GOOD.providers;
+    const open = {
+      ...GOOD,
+      providers: [{ ...first, unresolved: ['SubspaceLink'] }, ...rest],
+    } as NexusGraph;
+    expect(parseGraph(JSON.parse(JSON.stringify(open)))).toEqual(open);
+  });
+
+  it('reads a provider with no unresolved field, as rc.2 graph files have, as unresolved: []', () => {
+    const old = { ...GOOD.providers[0], unresolved: undefined };
+    const graph = parseGraph(
+      JSON.parse(
+        JSON.stringify({
+          ...GOOD,
+          providers: [old, ...GOOD.providers.slice(1)],
+        }),
+      ),
+    );
+    expect(graph.providers[0]?.unresolved).toEqual([]);
+  });
+
   it('returns a copy that shares no array with its input', () => {
     const input = JSON.parse(JSON.stringify(GOOD)) as NexusGraph;
     const graph = parseGraph(input);
@@ -127,6 +151,7 @@ describe('parseGraph', () => {
       withProvider(0, { implementation: undefined }),
       'providers[0].implementation',
     ],
+    [withProvider(0, { unresolved: [1] }), 'providers[0].unresolved[0]'],
     [withProvider(1, { internal: undefined }), 'providers[1].internal'],
     [withProvider(1, { internal: 'yes' }), 'providers[1].internal'],
     [

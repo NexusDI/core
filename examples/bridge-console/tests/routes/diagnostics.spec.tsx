@@ -26,6 +26,7 @@ const provider = (fields: Partial<Provider>): Provider => ({
   eager: false,
   async: false,
   notes: [],
+  unresolved: [],
   implementation: null,
   internal: false,
   ...fields,
