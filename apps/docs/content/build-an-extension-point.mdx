@@ -6,9 +6,9 @@ description: Build a library that collects contributions from the modules that u
 
 # Building an Extension Point
 
-Many libraries need to execute logic that the application supplies, such as health checks, validation rules, or event handlers. To achieve this without the library knowing about the application's concrete modules, the library provides a way for those modules to "plug in" their own logic.
+Many libraries need to execute logic that the application supplies, such as health checks or event handlers. So that the library needs no knowledge of the application's concrete modules, the library provides a way for those modules to "plug in" their own logic.
 
-This pattern uses a `MultiToken` and a collector module. The library owns the token, and the application modules contribute to it. Because the library cannot import application modules, the application must publish its contributions by exporting the token from the contributing module. [Multi-Providers](/multi-providers/) explains the underlying rules and the order of the resulting list. This guide demonstrates how to build both the library and application sides of an extension point called `HEALTH_CHECKS`.
+The library uses a `MultiToken` and a collector module. The library owns the token, and the application modules contribute to it. Because the library cannot import application modules, the application must publish its contributions by exporting the token from the contributing module. [Multi-Providers](/multi-providers/) explains the underlying rules and the order of the resulting list. This guide demonstrates how to build both the library and application sides of an extension point called `HEALTH_CHECKS`.
 
 ## Defining the Library Interface
 
@@ -36,7 +36,7 @@ For example, `ReactorCheck` takes `REACTOR`, which the `Engineering` module prov
 
 A circular dependency occurs when a contribution depends on the collector, while the collector depends on all contributions. For example, if a health check reports its status back to the `HEALTH_MONITOR`, but the monitor takes `all(HEALTH_CHECKS)`, `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID` holding `NEXUS_CIRCULAR_DEPENDENCY`.
 
-The library can break this cycle by using `lazy(all(HEALTH_CHECKS))`. So no contributor writes `lazy()`. The library then calls the returned thunk inside a method after `Nexus.create` has finished. [Contributors That Call the Collector](/multi-providers/#contributors-that-call-the-collector) illustrates the cycle, and [Lazy Dependencies and Cycles](/lazy/) explains how to handle the thunk.
+The library can break this cycle by using `lazy(all(HEALTH_CHECKS))`. Then no contributor writes `lazy()`. The library then calls the returned thunk inside a method after `Nexus.create` has finished. [Contributors That Call the Collector](/multi-providers/#contributors-that-call-the-collector) illustrates the cycle, and [Lazy Dependencies and Cycles](/lazy/) explains how to handle the thunk.
 
 ```ts file=examples/meridian/src/pages/build-an-extension-point.md region=lazy-library
 
@@ -86,7 +86,7 @@ The `options` include `setup`, `create`, and `containerScope` (`'test'` or `'fil
 
 ```
 
-The setup above replaces `REACTOR` with `FakeReactor` and leaves `HEALTH_CHECKS` alone. `Nexus.check(Meridian)` in a CI test returns a `CheckReport` without building any providers, and it throws `NEXUS_BLUEPRINT_INVALID` if a module forgot to export its contributions.
+The setup above replaces `REACTOR` with `FakeReactor` and leaves `HEALTH_CHECKS` alone. `Nexus.check(Meridian)` in a CI test returns a `CheckReport` without building any providers, and it throws `NEXUS_BLUEPRINT_INVALID` when a module keeps a contribution private and no provider in that module reads it.
 
 `override(HEALTH_CHECKS, ...)` pins the token. Every collector reads only one record, and the unread-contribution check is skipped for that token. Wiring tests should avoid overriding the token, as doing so hides the missing export the test is there to find:
 
