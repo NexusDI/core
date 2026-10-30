@@ -1,5 +1,6 @@
 import { Nexus } from '@nexusdi/core';
 import * as tools from '@nexusdi/devtools';
+import { SHIP_SYSTEMS } from '@nexusdi/meridian-systems';
 import { createTestingContainer } from '@nexusdi/testing';
 import { describe, expect, it } from 'vitest';
 
@@ -90,6 +91,17 @@ describe.each(FRAMEWORKS)('GET /profile on %s', (framework) => {
       plugins: bridgePlugins(),
     });
     expect((await call(ship, 'GET', '/profile')).status).toBe(404);
+  });
+
+  it('introspect brings a black box that records the startup', async () => {
+    const introspection = introspect(tools);
+    await using ship = await Nexus.create(OfflineMeridian, {
+      plugins: [...bridgePlugins(), ...introspection.plugins],
+    });
+    ship.get(SHIP_SYSTEMS);
+    expect(introspection.plugins).toContain(introspection.box.plugin);
+    expect(introspection.box.trace().length).toBeGreaterThan(0);
+    expect(introspection.box.stamps().length).toBeGreaterThan(0);
   });
 
   it('answers the table and the critical path of startup when it is on', async () => {

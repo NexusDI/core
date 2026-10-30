@@ -2,7 +2,7 @@ import { defineModule, NEXUS_PLUGIN_API, provide, Token } from '@nexusdi/core';
 import { inspect, type NexusGraph } from '@nexusdi/devtools';
 import { describe, expect, it } from 'vitest';
 
-import { shipNotes } from '../src/notes';
+import { isShipSystemClass, shipNotes } from '../src/notes';
 import {
   type IShipSystem,
   SHIP_SYSTEMS,
@@ -187,5 +187,23 @@ describe('shipNotes', () => {
     const Root = defineModule({ name: 'Root', imports: [Bridge] });
     const graph = inspect(Root, { annotate: [shipNotes] });
     expect(graph.providers.flatMap((provider) => provider.notes)).toEqual([]);
+  });
+});
+
+describe('isShipSystemClass', () => {
+  it('accepts a class whose static phase is one of PHASES', () => {
+    class Phased {
+      static readonly phase = 3;
+    }
+    expect(isShipSystemClass(Phased)).toBe(true);
+  });
+
+  it.each([
+    ['a class without a phase', class {}],
+    ['a phase out of range', Object.assign(class {}, { phase: 7 })],
+    ['a value', { phase: 1 }],
+    ['null', null],
+  ])('refuses %s', (_label, impl) => {
+    expect(isShipSystemClass(impl)).toBe(false);
   });
 });

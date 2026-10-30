@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 import { answerCommand } from '../src/bridge/commands';
 import { refusalOf, SHIP_TEXT } from '../src/bridge/refusal';
+import { systemPhaseText } from '../src/ship/black-box.plugin';
 import { FakeFlightLog } from './doubles';
 
 /** A desk whose submit() calls `answer`. */
@@ -134,8 +135,8 @@ describe('answerCommand', () => {
 });
 
 describe('refusalOf', () => {
-  it('reads the ship text and the interceptor text from SHIP_TEXT', () => {
-    expect(SHIP_TEXT).toEqual([shipText, interceptorsText]);
+  it('reads the ship, interceptor and system phase text from SHIP_TEXT', () => {
+    expect(SHIP_TEXT).toEqual([shipText, interceptorsText, systemPhaseText]);
   });
 
   it('words an InterlockError with the difference and the limit', () => {
