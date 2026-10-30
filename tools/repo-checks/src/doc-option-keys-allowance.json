@@ -2,6 +2,8 @@
   "@nexusdi/core": {
     "unnamed": [
       "CheckOptions: CheckOptions.load",
+      "CheckOptions: CheckOptions.load[].imports",
+      "CheckOptions: CheckOptions.load[].module",
       "CheckOptions: CheckOptions.plugins",
       "ConfigurableModuleConfig: ConfigurableModuleConfig.exports",
       "ConfigurableModuleConfig: ConfigurableModuleConfig.global",
@@ -22,6 +24,8 @@
       "ModuleConfig: ModuleConfig.imports",
       "ModuleConfig: ModuleConfig.name",
       "ModuleConfig: ModuleConfig.providers",
+      "Nexus: CheckOptions.load[].imports",
+      "Nexus: CheckOptions.load[].module",
       "Nexus: CheckOptions.plugins",
       "Nexus: CreateOptions.plugins",
       "Nexus: LoadOptions.imports",
@@ -76,6 +80,8 @@
       "DevtoolsOptions: DevtoolsOptions.trace",
       "InspectOptions: InspectOptions.annotate",
       "InspectOptions: InspectOptions.load",
+      "InspectOptions: InspectOptions.load[].imports",
+      "InspectOptions: InspectOptions.load[].module",
       "InspectOptions: InspectOptions.plugins",
       "InspectOptions: InspectOptions.text",
       "ProfileOptions: ProfileOptions.live",
@@ -87,6 +93,7 @@
       "devtools: DevtoolsOptions.trace",
       "inspect: InspectOptions.annotate",
       "inspect: InspectOptions.load",
+      "inspect: InspectOptions.load[].module",
       "inspect: InspectOptions.plugins",
       "inspect: InspectOptions.text",
       "profile: ProfileOptions.live",
@@ -96,10 +103,14 @@
       "profileStartup: RootConfig.imports",
       "profileStartup: RootConfig.providers",
       "profileStartup: profileStartup(options).load",
+      "profileStartup: profileStartup(options).load[].imports",
+      "profileStartup: profileStartup(options).load[].module",
       "profileStartup: profileStartup(options).plugins",
       "profileStartup: profileStartup(options).profiler",
       "profileTable: profileTable(options).run",
       "profileTable: profileTable(options).top",
+      "toChromeTrace: toChromeTrace(options).cpuProfile.offsetMs",
+      "toChromeTrace: toChromeTrace(options).cpuProfile.profile",
       "toChromeTrace: toChromeTrace(options).trackGroup",
       "toDot: RenderOptions.view",
       "toMermaid: RenderOptions.view"
@@ -139,6 +150,9 @@
   "@nexusdi/interceptors": {
     "unnamed": [
       "InterceptorsOptions: InterceptorsOptions.bindings",
+      "InterceptorsOptions: InterceptorsOptions.bindings[].class",
+      "InterceptorsOptions: InterceptorsOptions.bindings[].methods",
+      "InterceptorsOptions: InterceptorsOptions.bindings[].token",
       "InterceptorsOptions: InterceptorsOptions.exempt",
       "InterceptorsOptions: InterceptorsOptions.global",
       "InterceptorsOptions: InterceptorsOptions.imports",
@@ -152,6 +166,8 @@
       "interceptor: interceptor(definition).lifetime",
       "interceptor: interceptor(definition).useValue",
       "interceptors: InterceptorsOptions.bindings",
+      "interceptors: InterceptorsOptions.bindings[].class",
+      "interceptors: InterceptorsOptions.bindings[].token",
       "interceptors: InterceptorsOptions.exempt",
       "interceptors: InterceptorsOptions.global",
       "interceptors: InterceptorsOptions.providers"
@@ -212,11 +228,17 @@
     "unnamed": [
       "NexusFixturesOptions: NexusFixturesOptions.containerScope",
       "NexusFixturesOptions: NexusFixturesOptions.create",
+      "NexusFixturesOptions: NexusFixturesOptions.create.onInit",
+      "NexusFixturesOptions: NexusFixturesOptions.create.plugins",
       "NexusFixturesOptions: NexusFixturesOptions.setup",
       "nexusFixtures: NexusFixturesOptions.containerScope",
       "nexusFixtures: NexusFixturesOptions.create",
+      "nexusFixtures: NexusFixturesOptions.create.onInit",
+      "nexusFixtures: NexusFixturesOptions.create.plugins",
       "nexusTest: NexusFixturesOptions.containerScope",
-      "nexusTest: NexusFixturesOptions.create"
+      "nexusTest: NexusFixturesOptions.create",
+      "nexusTest: NexusFixturesOptions.create.onInit",
+      "nexusTest: NexusFixturesOptions.create.plugins"
     ]
   }
 }
