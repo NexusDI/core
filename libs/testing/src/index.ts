@@ -51,19 +51,36 @@ export interface ModuleOverrideOptions {
   readonly lazy?: boolean;
 }
 
+/** The options `override()` takes. */
+export interface OverrideOptions {
+  /**
+   * Lets the override stay unused at `create()`. The first `ship.load()`
+   * that adds a provider of the token applies it. A later non-lazy
+   * `override()` of the same token makes it strict again.
+   */
+  readonly lazy?: boolean;
+}
+
 /**
  * Collects replacements for a module graph and builds a container with them.
  * Each method returns a new builder and leaves the one it was called on as it
  * was, so a `beforeEach` can share a base builder.
  */
 export interface TestingContainerBuilder {
-  /** Replaces every provider of `token` with a value or a class, typed like provide(). */
+  /**
+   * Replaces every provider of `token` with a value or a class, typed like
+   * provide(). `{ lazy: true }` lets a later load() be the first use.
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the class constraint provide() uses
   override<T, C extends new (...args: any) => NoInfer<T>>(
     token: InjectionToken<T> | MultiToken<T>,
     definition: OverrideDefinition<T, C>,
+    options?: OverrideOptions,
   ): TestingContainerBuilder;
-  /** Replaces every provider of `token` with a factory, typed like provide(). */
+  /**
+   * Replaces every provider of `token` with a factory, typed like provide().
+   * `{ lazy: true }` lets a later load() be the first use.
+   */
   override<
     T,
     const D extends readonly Dep[],
@@ -73,6 +90,7 @@ export interface TestingContainerBuilder {
       ? PromiseTokenMessage
       : InjectionToken<T> | MultiToken<T>,
     definition: FactoryDefinition<D, R>,
+    options?: OverrideOptions,
   ): TestingContainerBuilder;
   /**
    * Walks `stub` wherever the walk meets `module`, including every forRoot()
@@ -93,6 +111,7 @@ interface BuilderState {
   readonly providers: ReadonlyMap<unknown, ProviderEntry>;
   readonly modules: ReadonlyMap<ModuleDefinition, ModuleDefinition>;
   readonly lazyModules: ReadonlySet<ModuleDefinition>;
+  readonly lazyTokens: ReadonlySet<unknown>;
 }
 
 const register = provide as (
@@ -114,13 +133,21 @@ function definitionOf(ref: ModuleRef): ModuleDefinition {
 
 function builder(state: BuilderState): TestingContainerBuilder {
   return {
-    override(token: unknown, definition: unknown): TestingContainerBuilder {
+    override(
+      token: unknown,
+      definition: unknown,
+      options: OverrideOptions = {},
+    ): TestingContainerBuilder {
+      const lazyTokens = new Set(state.lazyTokens);
+      if (options.lazy === true) lazyTokens.add(token);
+      else lazyTokens.delete(token);
       return builder({
         ...state,
         providers: new Map([
           ...state.providers,
           [token, register(token, definition)],
         ]),
+        lazyTokens,
       });
     },
     overrideModule(
@@ -150,6 +177,7 @@ function builder(state: BuilderState): TestingContainerBuilder {
                 providers: state.providers,
                 modules: state.modules,
                 lazyModules: state.lazyModules,
+                lazyTokens: state.lazyTokens,
                 onInit,
               }),
               ...plugins,
@@ -177,5 +205,6 @@ export function createTestingContainer(
     providers: new Map(),
     modules: new Map(),
     lazyModules: new Set(),
+    lazyTokens: new Set(),
   });
 }

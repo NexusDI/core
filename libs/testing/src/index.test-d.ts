@@ -70,4 +70,20 @@ describe('TestingContainerBuilder', () => {
     // @ts-expect-error lazy is a boolean
     builder.overrideModule(Comms, CommsStub, { lazy: 'yes' });
   });
+
+  it('takes a lazy flag on override', () => {
+    expectTypeOf(
+      builder.override(NAV_CHARTS, { useValue: charts }, { lazy: true }),
+    ).toEqualTypeOf<TestingContainerBuilder>();
+    builder.override(ReactorCore, { useClass: FakeReactor }, { lazy: true });
+    builder.override(
+      NAV_CHARTS,
+      { useFactory: () => charts, deps: [] },
+      { lazy: true },
+    );
+    // @ts-expect-error lazy is a boolean
+    builder.override(NAV_CHARTS, { useValue: charts }, { lazy: 'yes' });
+    // @ts-expect-error lazy is a boolean
+    builder.override(NAV_CHARTS, { useFactory: () => charts }, { lazy: 'yes' });
+  });
 });

@@ -22,6 +22,11 @@ export interface TestingState {
    * know which modules will load, so these are never reported unused.
    */
   readonly lazyModules: ReadonlySet<ModuleDefinition>;
+  /**
+   * Token overrides a later load() may be the first to use. create cannot
+   * know which tokens a load adds, so these are never reported unused.
+   */
+  readonly lazyTokens: ReadonlySet<unknown>;
   readonly onInit: boolean;
 }
 
@@ -68,6 +73,8 @@ interface Matches {
   readonly modules: Map<ModuleDefinition, ModuleDefinition>;
   /** MultiTokens whose one replacement this compile already pinned. */
   readonly pinned: Set<unknown>;
+  /** MultiToken → the modules whose first contribution a load already replaced. */
+  readonly replacedAt: Map<unknown, Set<string>>;
   /** Canonical token → the overrides with its key, from the first compile.provider call. */
   overrides: Map<AnyToken, Override> | undefined;
 }
@@ -87,6 +94,7 @@ const noMatches = (context: CompileContext | undefined): Matches => ({
   tokens: new Set(),
   modules: new Map(),
   pinned: new Set(),
+  replacedAt: new Map(),
   overrides: undefined,
 });
 
@@ -122,6 +130,8 @@ function overridesOf(
  */
 export function testingPlugin(state: TestingState): NexusPlugin {
   let matches = noMatches(undefined);
+  /** MultiTokens this plugin pinned at an earlier compile. */
+  const pinnedBefore = new Set<unknown>();
   const matchesOf = (context: CompileContext): Matches => {
     if (matches.context !== context) matches = noMatches(context);
     return matches;
@@ -144,6 +154,13 @@ export function testingPlugin(state: TestingState): NexusPlugin {
         }
         return undefined;
       },
+      /**
+       * Swaps the provider for the override. A MultiToken override pins at
+       * create, and at a load only for a token pinned before, so a load
+       * never publishes the contribution it adds. At a load the first
+       * contribution of a module is replaced and the module's others are
+       * dropped, so the token reads one entry per module, as at create.
+       */
       provider(provider, context) {
         const current = matchesOf(context);
         const hit = overridesOf(state, current, context).get(provider.token);
@@ -153,13 +170,22 @@ export function testingPlugin(state: TestingState): NexusPlugin {
         if (!(provider.token instanceof MultiToken))
           return { with: entry, label: 'override' };
         if (current.pinned.has(provider.token)) return undefined;
+        // A pin made at a load would publish a contribution to every module.
+        if (context.phase === 'load' && !pinnedBefore.has(provider.token)) {
+          const modules = current.replacedAt.get(provider.token) ?? new Set();
+          current.replacedAt.set(provider.token, modules);
+          if (modules.has(provider.module)) return { remove: true };
+          modules.add(provider.module);
+          return { with: entry, label: 'override' };
+        }
         current.pinned.add(provider.token);
+        pinnedBefore.add(provider.token);
         return { with: entry, pin: true, label: 'override' };
       },
       check(view, report) {
         if (view.phase === 'create') {
           for (const token of state.providers.keys())
-            if (!matches.tokens.has(token))
+            if (!matches.tokens.has(token) && !state.lazyTokens.has(token))
               report(overrideUnused(displayName(token)));
           for (const original of state.modules.keys())
             if (
