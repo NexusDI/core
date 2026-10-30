@@ -5,7 +5,6 @@ import { Button } from '../../components';
 import type { CommandAnswer } from '../../di/contracts';
 import { megawatts } from '../../fixed';
 import { snapshotLoader } from '../snapshot-loader.server';
-import { useShipReading } from '../../hooks/use-ship-reading';
 import type { Route } from './+types/comms';
 import { allocated } from './allocated';
 import { systemAction } from './system-action.server';
@@ -13,8 +12,7 @@ import {
   ControlSection,
   Gauges,
   ItemList,
-  SnapshotOffline,
-  SystemPage,
+  LiveSystemPage,
 } from './system-page';
 
 /** The page's error boundary: an action that throws leaves the nav and shows the snapshot offline. */
@@ -64,10 +62,12 @@ export default function Comms({
   loaderData,
   actionData,
 }: Route.ComponentProps) {
-  const ship = useShipReading(loaderData);
   return (
-    <SystemPage answer={actionData} ship={ship}>
-      {ship === null ? <SnapshotOffline /> : <CommsGauges ship={ship} />}
+    <LiveSystemPage
+      snapshot={loaderData}
+      answer={actionData}
+      gauges={(ship) => <CommsGauges ship={ship} />}
+    >
       <ControlSection title="Hail">
         <Form method="post">
           <Button type="submit" name="command" value="hail">
@@ -75,6 +75,6 @@ export default function Comms({
           </Button>
         </Form>
       </ControlSection>
-    </SystemPage>
+    </LiveSystemPage>
   );
 }

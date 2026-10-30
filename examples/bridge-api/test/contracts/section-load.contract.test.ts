@@ -2,7 +2,7 @@ import { isNexusError, Nexus, type TraceEvent } from '@nexusdi/core';
 import { trace } from '@nexusdi/devtools';
 import { FTL_DRIVE } from '@nexusdi/meridian-systems';
 import { nodeScopes } from '@nexusdi/node';
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 
 import { servers } from '../../e2e/servers';
 import { OfflineMeridian } from '../../src/ship/meridian.module';
@@ -10,6 +10,10 @@ import { bridgePlugins } from '../../src/ship/plugins';
 import { calls, scopedShip } from '../route-helpers';
 import { events } from '../sse';
 import type { TelemetryFrame } from '../../src/ship/contracts';
+
+// The cases build ships on every framework and load the drive 20 times at
+// once, which takes longer than the 5 s default on a busy CI runner.
+vi.setConfig({ testTimeout: 30_000 });
 
 it('twenty concurrent POST /sections/ftl build the FTL drive once and each answers 200', async () => {
   const traced: TraceEvent[] = [];

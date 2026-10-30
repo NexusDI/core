@@ -102,7 +102,7 @@ export class ReactorOrders implements IReactorOrders {
 
 /** Reads the main drive's allocation off this remote's copy of STATION_TELEMETRY. */
 @Injectable({ deps: [STATION_TELEMETRY] })
-export class BurnBoard implements IBurnBoard {
+class BurnBoard implements IBurnBoard {
   readonly subscribe: IStationTelemetry['subscribe'];
   readonly state: IStationTelemetry['state'];
 

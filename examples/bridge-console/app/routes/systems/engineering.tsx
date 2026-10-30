@@ -4,7 +4,6 @@ import { Section } from '../../components';
 import type { CommandAnswer } from '../../di/contracts';
 import { fixed, megawatts } from '../../fixed';
 import { snapshotLoader } from '../snapshot-loader.server';
-import { useShipReading } from '../../hooks/use-ship-reading';
 import type { Route } from './+types/engineering';
 import { allocated } from './allocated';
 import { systemAction } from './system-action.server';
@@ -12,8 +11,7 @@ import {
   ControlSection,
   Gauges,
   LevelForm,
-  SnapshotOffline,
-  SystemPage,
+  LiveSystemPage,
   ToggleForm,
 } from './system-page';
 
@@ -52,10 +50,12 @@ export default function Engineering({
   loaderData,
   actionData,
 }: Route.ComponentProps) {
-  const ship = useShipReading(loaderData);
   return (
-    <SystemPage answer={actionData} ship={ship}>
-      {ship === null ? <SnapshotOffline /> : <EngineeringGauges ship={ship} />}
+    <LiveSystemPage
+      snapshot={loaderData}
+      answer={actionData}
+      gauges={(ship) => <EngineeringGauges ship={ship} />}
+    >
       <ControlSection title="Reactor">
         <LevelForm
           command="throttle"
@@ -72,6 +72,6 @@ export default function Engineering({
           off="Lower shields"
         />
       </ControlSection>
-    </SystemPage>
+    </LiveSystemPage>
   );
 }

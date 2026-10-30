@@ -11,6 +11,7 @@ import { Form } from 'react-router';
 import { Button, Section } from '../../components';
 import type { CommandAnswer } from '../../di/contracts';
 import { type AnswerBand, useShipCommand } from '../../hooks/use-ship-command';
+import { useShipReading } from '../../hooks/use-ship-reading';
 
 /** A list of named gauges, each a name and its rounded value, with `label` as its accessible name. */
 export function Gauges({
@@ -154,6 +155,33 @@ export function SystemPage({
         </Section>
       )}
     </>
+  );
+}
+
+/**
+ * A system page over the live reading of `snapshot`, the loader's data: the
+ * `gauges` of the reading, or the snapshot-offline section while the reading
+ * is null, then the page's controls in `children` and the band for the last
+ * command. `children` may be a function of the reading for controls that
+ * list its rooms or doors. `answer` is the route's `actionData`.
+ */
+export function LiveSystemPage({
+  snapshot,
+  answer,
+  gauges,
+  children,
+}: {
+  snapshot: ShipReading | null;
+  answer: CommandAnswer | undefined;
+  gauges: (ship: ShipReading) => ReactNode;
+  children: ReactNode | ((ship: ShipReading | null) => ReactNode);
+}) {
+  const ship = useShipReading(snapshot);
+  return (
+    <SystemPage answer={answer} ship={ship}>
+      {ship === null ? <SnapshotOffline /> : gauges(ship)}
+      {typeof children === 'function' ? children(ship) : children}
+    </SystemPage>
   );
 }
 

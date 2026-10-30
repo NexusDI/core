@@ -3,7 +3,6 @@ import type { ShipReading } from '@nexusdi/meridian-systems';
 import type { CommandAnswer } from '../../di/contracts';
 import { fixed, megawatts } from '../../fixed';
 import { snapshotLoader } from '../snapshot-loader.server';
-import { useShipReading } from '../../hooks/use-ship-reading';
 import type { Route } from './+types/weapons';
 import { allocated } from './allocated';
 import { systemAction } from './system-action.server';
@@ -11,8 +10,7 @@ import {
   ControlSection,
   Gauges,
   NumberForm,
-  SnapshotOffline,
-  SystemPage,
+  LiveSystemPage,
 } from './system-page';
 
 /** Sends the submitted form to bridge-api as a weapons command. */
@@ -64,10 +62,12 @@ export default function Weapons({
   loaderData,
   actionData,
 }: Route.ComponentProps) {
-  const ship = useShipReading(loaderData);
   return (
-    <SystemPage answer={actionData} ship={ship}>
-      {ship === null ? <SnapshotOffline /> : <WeaponsGauges ship={ship} />}
+    <LiveSystemPage
+      snapshot={loaderData}
+      answer={actionData}
+      gauges={(ship) => <WeaponsGauges ship={ship} />}
+    >
       <ControlSection title="Fire">
         <NumberForm
           command="fire"
@@ -80,7 +80,7 @@ export default function Weapons({
           defaultValue={10_000}
         />
       </ControlSection>
-    </SystemPage>
+    </LiveSystemPage>
   );
 }
 

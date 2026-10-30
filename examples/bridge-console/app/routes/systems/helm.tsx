@@ -3,7 +3,6 @@ import type { ShipReading } from '@nexusdi/meridian-systems';
 import type { CommandAnswer } from '../../di/contracts';
 import { bearing, fixed, megawatts, turnRate } from '../../fixed';
 import { snapshotLoader } from '../snapshot-loader.server';
-import { useShipReading } from '../../hooks/use-ship-reading';
 import type { Route } from './+types/helm';
 import { allocated } from './allocated';
 import { systemAction } from './system-action.server';
@@ -11,8 +10,7 @@ import {
   ControlSection,
   Gauges,
   LevelForm,
-  SnapshotOffline,
-  SystemPage,
+  LiveSystemPage,
 } from './system-page';
 import { StarSelect } from './star-select';
 
@@ -75,17 +73,17 @@ function DriveGauges({ ship }: { ship: ShipReading }) {
 }
 
 export default function Helm({ loaderData, actionData }: Route.ComponentProps) {
-  const ship = useShipReading(loaderData);
   return (
-    <SystemPage answer={actionData} ship={ship}>
-      {ship === null ? (
-        <SnapshotOffline />
-      ) : (
+    <LiveSystemPage
+      snapshot={loaderData}
+      answer={actionData}
+      gauges={(ship) => (
         <>
           <HelmGauges ship={ship} />
           <DriveGauges ship={ship} />
         </>
       )}
+    >
       <ControlSection title="Course">
         <StarSelect command="course" button="Plot course" />
       </ControlSection>
@@ -97,7 +95,7 @@ export default function Helm({ loaderData, actionData }: Route.ComponentProps) {
           defaultValue={loaderData?.setpoints.drive.throttle ?? 1}
         />
       </ControlSection>
-    </SystemPage>
+    </LiveSystemPage>
   );
 }
 

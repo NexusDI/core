@@ -1,7 +1,6 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
 
 import type { CommandAnswer } from '../di/contracts';
-import { useShipReading } from '../hooks/use-ship-reading';
 import type { Route } from './+types/airlock';
 import { snapshotLoader } from './snapshot-loader.server';
 import { AirlockControls } from './systems/airlock-controls';
@@ -11,8 +10,7 @@ import {
   CommandSelect,
   ControlSection,
   Gauges,
-  SnapshotOffline,
-  SystemPage,
+  LiveSystemPage,
 } from './systems/system-page';
 
 /** The doors that bound the airlock, in the order the deck lists them. */
@@ -74,10 +72,12 @@ export default function Airlock({
   loaderData,
   actionData,
 }: Route.ComponentProps) {
-  const ship = useShipReading(loaderData);
   return (
-    <SystemPage answer={actionData} ship={ship}>
-      {ship === null ? <SnapshotOffline /> : <AirlockGauges ship={ship} />}
+    <LiveSystemPage
+      snapshot={loaderData}
+      answer={actionData}
+      gauges={(ship) => <AirlockGauges ship={ship} />}
+    >
       <ControlSection title="Pump and vent">
         <AirlockControls
           pump={loaderData?.setpoints.lifeSupport.pumps.airlock ?? 'off'}
@@ -94,7 +94,7 @@ export default function Airlock({
           ]}
         />
       </ControlSection>
-    </SystemPage>
+    </LiveSystemPage>
   );
 }
 

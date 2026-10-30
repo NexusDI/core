@@ -134,6 +134,9 @@
     "examples/bridge-console/playwright.config.mts",
     "examples/bridge-console/playwright.e2e-growth.config.mts",
     "libs/vitest/test-support/nexus-request.ts",
+    // examples/meridian-systems/test/wiring.test-d.ts holds type tests that
+    // only the project's typecheck target reads.
+    "examples/meridian-systems/test/**/*.test-d.ts",
     "libs/core/src/**/*.test-d.ts",
     "libs/errors/src/**/*.test-d.ts",
     "libs/testing/src/**/*.test-d.ts",
@@ -320,6 +323,13 @@
     {
       "file": "examples/bridge-api/src/ship/plugins.ts",
       "exports": ["graphPlugins"],
+    },
+    // RelayMeridian is the export `nexusdi profile
+    // src/ship/relay-meridian.ts#RelayMeridian` reads by name, in the bridge
+    // API's profile target. No module imports it.
+    {
+      "file": "examples/bridge-api/src/ship/relay-meridian.ts",
+      "exports": ["RelayMeridian"],
     },
     {
       "file": "apps/docs/tools/deploy/docs-changed.mjs",

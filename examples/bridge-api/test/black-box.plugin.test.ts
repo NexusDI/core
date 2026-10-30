@@ -21,7 +21,7 @@ import {
 } from '../src/ship/black-box.plugin';
 import { OfflineMeridian } from '../src/ship/meridian.module';
 import { bridgePlugins } from '../src/ship/plugins';
-import { findCode } from './contracts/fix-line';
+import { findCode } from '@nexusdi/meridian-systems/test/fix-line';
 
 /** A ship system that declares no static phase. */
 class Phaseless implements IShipSystem {

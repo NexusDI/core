@@ -143,14 +143,24 @@ describe('the bridge link', () => {
 
   it('encodes the destination in the path', async () => {
     await using bridge = await linkTo(base);
-    // No chart holds 'Proxima b', so bridge-api answers 404 on the path.
-    await expect(bridge.link.course('Proxima b')).rejects.toThrow(
-      'bridge-api answered 404 for /course/Proxima%20b',
-    );
+    // No chart holds 'Proxima b', so bridge-api answers 404 with the refusal.
+    expect(await bridge.link.course('Proxima b')).toMatchObject({
+      code: 'MERIDIAN_UNCHARTED',
+      message: "No star is charted as 'Proxima b'.",
+    });
     expect(paths.at(-1)).toBe('/course/Proxima%20b');
   });
 
-  it("rejects with the backend's status when it answers 404", async () => {
+  it("returns the backend's refusal, with its fix, for an uncharted star", async () => {
+    await using bridge = await linkTo(base);
+    expect(await bridge.link.course('Vega')).toEqual({
+      code: 'MERIDIAN_UNCHARTED',
+      message: "No star is charted as 'Vega'.",
+      fix: 'plot a course to a charted star: Kepler-442b, Proxima-b, TRAPPIST-1e.',
+    });
+  });
+
+  it('rejects with the status when a 404 carries no refusal', async () => {
     await using bridge = await linkTo(`${base}uncharted/`);
     await expect(bridge.link.course('Kepler-442b')).rejects.toThrow(
       'bridge-api answered 404 for /uncharted/course/Kepler-442b',
@@ -158,10 +168,10 @@ describe('the bridge link', () => {
   });
 
   it('cancels the body of a course answer it rejects', async () => {
-    await using answer = answerWith(404);
+    await using answer = answerWith(500);
     await using bridge = await linkTo(base);
     await expect(bridge.link.course('Kepler-442b')).rejects.toThrow(
-      'bridge-api answered 404 for /course/Kepler-442b',
+      'bridge-api answered 500 for /course/Kepler-442b',
     );
     expect(answer.cancelled).toBe(true);
   });

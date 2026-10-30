@@ -1,7 +1,8 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, vi } from 'vitest';
 
-import { loaderArgs, test } from '../support/console';
+import { FakeBridgeLink } from '../doubles';
+import { loaderArgs, test, withLink } from '../support/console';
 
 vi.mock('../../app/nexus.server', () => import('../support/nexus-server'));
 
@@ -42,5 +43,33 @@ describe('the course route', () => {
       await screen.findByText('survey-9: plotting Kepler-442b'),
     ).toBeDefined();
     expect(screen.getByText('survey-9: docked')).toBeDefined();
+  });
+
+  describe('for a star the charts do not hold', () => {
+    class RefusingLink extends FakeBridgeLink {
+      override async course() {
+        return {
+          code: 'MERIDIAN_UNCHARTED',
+          message: "No star is charted as 'Vega'.",
+          fix: 'plot a course to a charted star: Kepler-442b.',
+        };
+      }
+    }
+    test('shows the refusal under an alert', async ({ renderRoute }) => {
+      await renderRoute(course, {
+        path: '/course/:to',
+        at: '/course/Vega',
+        mission: 'survey-9',
+        overrides: withLink(RefusingLink),
+      });
+      const alert = await screen.findByRole('alert');
+      expect(alert.textContent).toContain(
+        "MERIDIAN_UNCHARTED: No star is charted as 'Vega'.",
+      );
+      expect(alert.textContent).toContain(
+        'Fix: plot a course to a charted star: Kepler-442b.',
+      );
+      expect(screen.queryByText('The bridge did not answer.')).toBeNull();
+    });
   });
 });

@@ -28,10 +28,10 @@ describe('answerBand', () => {
     });
   });
 
-  it('records the tick of the reading that applied it', () => {
+  it('reads the applied tick from the answer of the desk', () => {
     expect(answerBand(queued, at(1300))).toMatchObject({
       state: 'applied',
-      appliedAt: 1300,
+      appliedAt: 1205,
     });
   });
 
@@ -91,5 +91,45 @@ describe('useShipCommand', () => {
     expect(result.current?.state).toBe('queued');
     rerender({ ship: at(1205) });
     expect(result.current?.state).toBe('applied');
+  });
+
+  it('keeps the applied tick as later frames arrive', () => {
+    const { result, rerender } = renderHook(
+      ({ ship }) => useShipCommand(queued, ship),
+      { initialProps: { ship: at(1300) } },
+    );
+    rerender({ ship: at(1301) });
+    expect(result.current).toMatchObject({ state: 'applied', appliedAt: 1205 });
+  });
+
+  it('stays applied when the stream goes offline', () => {
+    const { result, rerender } = renderHook(
+      ({ ship }: { ship: typeof shipAtStart | null }) =>
+        useShipCommand(queued, ship),
+      { initialProps: { ship: at(1205) as typeof shipAtStart | null } },
+    );
+    rerender({ ship: null });
+    expect(result.current).toMatchObject({ state: 'applied', appliedAt: 1205 });
+  });
+
+  it('starts queued again for a new answer', () => {
+    const next: CommandAnswer = { accepted: true, tick: 2000 };
+    const { result, rerender } = renderHook(
+      ({
+        answer,
+        ship,
+      }: {
+        answer: CommandAnswer;
+        ship: typeof shipAtStart | null;
+      }) => useShipCommand(answer, ship),
+      {
+        initialProps: {
+          answer: queued,
+          ship: at(1205) as typeof shipAtStart | null,
+        },
+      },
+    );
+    rerender({ answer: next, ship: null });
+    expect(result.current?.state).toBe('queued');
   });
 });

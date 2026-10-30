@@ -117,7 +117,7 @@ class LinkRetry implements Interceptor {
 }
 
 /** The retry the ship runs by default: three calls, 100 ms apart. */
-export const DEFAULT_LINK_RETRY: LinkRetryOptions = {
+const DEFAULT_LINK_RETRY: LinkRetryOptions = {
   attempts: 3,
   delayMs: 100,
 };

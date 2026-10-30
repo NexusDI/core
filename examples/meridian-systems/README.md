@@ -32,7 +32,7 @@ Each ship system contributes one `IShipSystem`, with a `name` and a `phase` from
 
 Each system with a record contributes one `SystemRecord`, `{ records, setpoints }`, to `SHIP_RECORDS` from its `<system>-record.ts`, and `ShipStateStore` builds the tick-0 snapshot from `all(SHIP_RECORDS)`. `ShipRecords` and `ShipSetpoints` are interfaces that each system's `contracts.ts` augments, so a new system adds its record with no edit to the store or the snapshot type. No contribution reads `SHIP_STATE`, so the store takes a plain `all()`. The FTL drive loads after startup and registers its record with `SHIP_STATE.register()` (the FTL Drive section below).
 
-The tokens follow the interface-first rule: each interface has a token named for its role, and the module binds a class to each service token with `useClass`. `src/index.ts` exports the tokens, their interfaces and the six error classes, and keeps the other classes internal. An app registers `PressureInterlock` with the interceptors plugin itself, so `@nexusdi/meridian-systems/interlock` exports that class.
+The tokens follow the interface-first rule: each interface has a token named for its role, and the module binds a class to each service token with `useClass`. `src/index.ts` exports the tokens, their interfaces and the seven error classes, and keeps the other classes internal. An app registers `PressureInterlock` with the interceptors plugin itself, so `@nexusdi/meridian-systems/interlock` exports that class.
 
 | Token                   | Interface             | Bound to                   | Bound in                   |
 | ----------------------- | --------------------- | -------------------------- | -------------------------- |
@@ -690,9 +690,9 @@ The library's ESLint config keeps the simulation reproducible. A file under `src
 
 ## The Errors the Ship Raises
 
-The library raises six codes of its own through core's `errorBase`, and augments `NexusErrorByCode` with each, so `isNexusError(error, 'MERIDIAN_POWER_BUDGET')` narrows to the class. Each one-line message ends with a link to its section below.
+The library raises seven codes of its own through core's `errorBase`, and augments `NexusErrorByCode` with each, so `isNexusError(error, 'MERIDIAN_POWER_BUDGET')` narrows to the class. Each one-line message ends with a link to its section below.
 
-`@nexusdi/meridian-systems/text` exports `shipText`, the text pack of the six codes. `explain(error, { text: [shipText] })` from `@nexusdi/errors` returns the message and the fix, and `bridge-api` answers a refused command with them. Without the pack, an error keeps core's one-line message. `shipText` formats its numbers with its own `formatNumber`, so the text is the same on every host and locale.
+`@nexusdi/meridian-systems/text` exports `shipText`, the text pack of the seven codes. `explain(error, { text: [shipText] })` from `@nexusdi/errors` returns the message and the fix, and `bridge-api` answers a refused command with them. Without the pack, an error keeps core's one-line message. `shipText` formats its numbers with its own `formatNumber`, so the text is the same on every host and locale.
 
 `errors({ text: [shipText] })` hands the pack to core's `formatError` hook, and core calls that hook only for the errors core raises and the errors a plugin passes to `context.format`. Core never formats a `MERIDIAN_*` error that a ship service throws, so a server words each refusal with `explain()`, as `bridge-api`'s `refusalOf` does, and no refusal body depends on the plugin.
 

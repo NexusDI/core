@@ -22,6 +22,8 @@ import {
   BRIDGE_LINK,
   type BridgeOffline,
   type CommandAnswer,
+  type CourseAnswer,
+  type CourseRefusal,
   type IBridgeLink,
 } from './contracts';
 
@@ -49,9 +51,22 @@ class BridgeApiLink implements IBridgeLink {
     private readonly request: NexusRequest,
     private readonly options: { readonly url: string },
   ) {}
-  async course(to: string) {
-    const res = await this.#get(`course/${encodeURIComponent(to)}`);
-    return (await res.json()) as {
+  async course(to: string): Promise<CourseAnswer> {
+    const url = new URL(`course/${encodeURIComponent(to)}`, this.options.url);
+    const res = await this.#fetch(url);
+    if (res.status === 404) {
+      const refusal = (await res
+        .json()
+        .catch(() => null)) as Partial<CourseRefusal> | null;
+      if (
+        typeof refusal?.code === 'string' &&
+        typeof refusal.message === 'string'
+      ) {
+        return refusal as CourseRefusal;
+      }
+      throw new Error(`bridge-api answered 404 for ${url.pathname}`);
+    }
+    return (await (await this.#ok(res, url)).json()) as {
       course: Course;
       entries: readonly string[];
     };
