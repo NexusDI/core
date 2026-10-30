@@ -8,7 +8,7 @@ errorClass: OverrideError
 
 # NEXUS_OVERRIDE_UNUSED
 
-`createTestingContainer(root).create()` reports `NEXUS_OVERRIDE_UNUSED` when an `override(TOKEN, ...)` call names a token that no provider in the module graph binds, or an `overrideModule(module, stub)` call names a module that the graph never imports. The testing container runs the full compiler, so an override that replaces nothing fails the test at `create` and the test never runs against a graph it does not describe. `create()` rejects with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) holding the error, and no call raises `NEXUS_OVERRIDE_UNUSED` bare. The check runs at `create()` only. An `overrideModule(module, stub, { lazy: true })` call is exempt, because a later `ship.load()` may bring the module in.
+`createTestingContainer(root).create()` reports `NEXUS_OVERRIDE_UNUSED` when an `override(TOKEN, ...)` call names a token that no provider in the module graph binds, or an `overrideModule(module, stub)` call names a module that the graph never imports. The testing container runs the full compiler, so an override that replaces nothing fails the test at `create` and the test never runs against a graph it does not describe. `create()` rejects with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) holding the error, and no call raises `NEXUS_OVERRIDE_UNUSED` bare. The check runs at `create()` only. An `override(token, definition, { lazy: true })` or `overrideModule(module, stub, { lazy: true })` call is exempt, because a later `ship.load()` may add the provider or the module.
 
 ## Reproduce `NEXUS_OVERRIDE_UNUSED`
 
@@ -22,7 +22,7 @@ Try it: run `npm install @nexusdi/core@next` and `npm install -D @nexusdi/testin
 
 ## Fix `NEXUS_OVERRIDE_UNUSED`
 
-`NEXUS_OVERRIDE_UNUSED` goes away when the root passed to `createTestingContainer` imports the module that provides the overridden token, or when the test drops the override. An override for a module that a later `ship.load()` adds belongs on `overrideModule(module, stub, { lazy: true })`.
+`NEXUS_OVERRIDE_UNUSED` goes away when the root passed to `createTestingContainer` imports the module that provides the overridden token, or when the test drops the override. An override for a provider or a module that a later `ship.load()` adds takes `{ lazy: true }`.
 
 ```ts file=examples/meridian/src/errors/NEXUS_OVERRIDE_UNUSED.md region=fix
 
