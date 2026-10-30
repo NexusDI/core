@@ -30,7 +30,7 @@ import type { DocsPage } from './site';
  * resolves to, by the type checker. The call sits in an executable fence,
  * compiled as `fence-programs.ts` compiles one. A call counts when it sits
  * on a line a reader sees (`hiddenLines`), the compiler reports no
- * diagnostic inside it, and
+ * diagnostic inside the statement or class member that holds it, and
  * `checker.getResolvedSignature` returns a signature whose declaration is the
  * overload's. A call, a `new`, a decorator, a tagged template and a JSX
  * element are each a call.

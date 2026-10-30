@@ -30,8 +30,8 @@ import { Relay } from '@nexusdi/x';
 
 const relay = new Relay();
 relay.send('Helm');
-// @errors: 2769
-relay.send([1, 2]);
+// @errors: 2304
+relay.send(['Helm', nope]);
 ```
 
 ```ts

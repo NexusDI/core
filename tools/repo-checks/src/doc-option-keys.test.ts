@@ -65,12 +65,16 @@ describe('readOptionKeys', () => {
     ]);
   });
 
-  it('counts no key above a cut, in bare prose, or in a literal the checker does not hold to the type', () => {
+  it('counts no key above a cut, in bare prose, in a statement that fails to compile, or in a literal the checker does not hold to the type', () => {
     expect(
       fixture('sabotaged')[0]
         ?.keys.filter((each) => !each.named)
         .map(optionKeyId),
-    ).toEqual(['Dock: Dock#open(options).bay', 'launch: LaunchOptions.crew']);
+    ).toEqual([
+      'Dock: Dock#open(options).bay',
+      'launch: LaunchOptions.countdown',
+      'launch: LaunchOptions.crew',
+    ]);
   });
 });
 
@@ -83,13 +87,14 @@ describe('checkOptionKeys', () => {
 
   it.each([
     "@nexusdi/x: 'crew', a key of LaunchOptions that launch takes, is not named under '## `launch`' in api-x.mdx",
+    "@nexusdi/x: 'countdown', a key of LaunchOptions that launch takes, is not named under '## `launch`' in api-x.mdx",
     "@nexusdi/x: 'bay', a key of Dock#open(options) that Dock#open takes, is not named under '## `Dock`' in api-x.mdx",
   ])('fails the sabotaged tree: %s', (phrase) => {
     const findings = checkOptionKeys({
       packages: fixture('sabotaged'),
       allowance: {},
     });
-    expect(findings).toHaveLength(2);
+    expect(findings).toHaveLength(3);
     expect(findings.some((finding) => finding.includes(phrase))).toBe(true);
   });
 
@@ -101,6 +106,7 @@ describe('checkOptionKeys', () => {
           '@nexusdi/x': {
             unnamed: [
               'Dock: Dock#open(options).bay',
+              'launch: LaunchOptions.countdown',
               'launch: LaunchOptions.crew',
             ],
           },
