@@ -1,9 +1,9 @@
 import { join } from 'node:path';
 
+import { workspaceRoot } from '@nx/devkit';
 import { describe, expect, it } from 'vitest';
 
 import { readAllowance } from './docs/allowance';
-import { surfaceProgram } from './docs/api-surface';
 import {
   checkOptionKeys,
   optionKeyId,
@@ -31,30 +31,32 @@ const tree = (name: string): DocsPage[] =>
 
 const X = surfacePackageOf(join(FIXTURE, 'package.fixture.json'));
 
-const fixtureKeys = () => readOptionKeys(surfaceProgram([X]), [X], new Map());
+const fixture = (name: string) =>
+  readOptionKeys(workspaceRoot, tree(name), [X], new Map());
 
 const ALLOWANCE = join(import.meta.dirname, 'doc-option-keys-allowance.json');
 
 type Allowance = Record<string, { unnamed: string[] }>;
 
+const PAGE =
+  'tools/repo-checks/src/__fixtures__/docs/doc-option-keys/clean/content/api-x.mdx';
+
 describe('readOptionKeys', () => {
   it('owes each key under the heading of every export that takes it, and under its own type', () => {
-    expect(fixtureKeys()).toEqual([
+    expect(fixture('clean')).toEqual([
       {
         name: '@nexusdi/x',
+        page: PAGE,
         keys: [
-          expect.objectContaining({ heading: 'Dock', via: 'Dock#open' }),
-          expect.objectContaining({ heading: 'launch', key: 'countdown' }),
-          expect.objectContaining({ heading: 'launch', key: 'crew' }),
-          expect.objectContaining({
-            heading: 'LaunchOptions',
-            key: 'countdown',
-          }),
-          expect.objectContaining({ heading: 'LaunchOptions', key: 'crew' }),
+          expect.objectContaining({ via: 'Dock#open', named: true }),
+          expect.objectContaining({ heading: 'launch', named: true }),
+          expect.objectContaining({ heading: 'launch', named: true }),
+          expect.objectContaining({ heading: 'LaunchOptions', named: true }),
+          expect.objectContaining({ heading: 'LaunchOptions', named: true }),
         ],
       },
     ]);
-    expect(fixtureKeys()[0]?.keys.map(optionKeyId)).toEqual([
+    expect(fixture('clean')[0]?.keys.map(optionKeyId)).toEqual([
       'Dock: Dock#open(options).bay',
       'launch: LaunchOptions.countdown',
       'launch: LaunchOptions.crew',
@@ -62,16 +64,20 @@ describe('readOptionKeys', () => {
       'LaunchOptions: LaunchOptions.crew',
     ]);
   });
+
+  it('counts no key above a cut, in bare prose, or in a literal the checker does not hold to the type', () => {
+    expect(
+      fixture('sabotaged')[0]
+        ?.keys.filter((each) => !each.named)
+        .map(optionKeyId),
+    ).toEqual(['Dock: Dock#open(options).bay', 'launch: LaunchOptions.crew']);
+  });
 });
 
 describe('checkOptionKeys', () => {
   it('passes a clean tree', () => {
     expect(
-      checkOptionKeys({
-        pages: tree('clean'),
-        packages: fixtureKeys(),
-        allowance: {},
-      }),
+      checkOptionKeys({ packages: fixture('clean'), allowance: {} }),
     ).toEqual([]);
   });
 
@@ -80,8 +86,7 @@ describe('checkOptionKeys', () => {
     "@nexusdi/x: 'bay', a key of Dock#open(options) that Dock#open takes, is not named under '## `Dock`' in api-x.mdx",
   ])('fails the sabotaged tree: %s', (phrase) => {
     const findings = checkOptionKeys({
-      pages: tree('sabotaged'),
-      packages: fixtureKeys(),
+      packages: fixture('sabotaged'),
       allowance: {},
     });
     expect(findings).toHaveLength(2);
@@ -91,8 +96,7 @@ describe('checkOptionKeys', () => {
   it('passes the sabotaged tree with each gap in the allowance', () => {
     expect(
       checkOptionKeys({
-        pages: tree('sabotaged'),
-        packages: fixtureKeys(),
+        packages: fixture('sabotaged'),
         allowance: {
           '@nexusdi/x': {
             unnamed: [
@@ -108,30 +112,24 @@ describe('checkOptionKeys', () => {
   it('fails an allowance entry that is no longer needed', () => {
     expect(
       checkOptionKeys({
-        pages: tree('clean'),
-        packages: fixtureKeys(),
+        packages: fixture('clean'),
         allowance: {
           '@nexusdi/x': { unnamed: ['launch: LaunchOptions.crew'] },
         },
       }),
     ).toEqual([
-      expect.stringContaining(
-        '"launch: LaunchOptions.crew" is named now, or no key by that name is owed; remove it from doc-option-keys-allowance.json',
-      ),
+      '@nexusdi/x: "launch: LaunchOptions.crew" is named now, or no key by that name is owed; remove it from doc-option-keys-allowance.json',
     ]);
   });
 
   it('fails an allowance entry for a package with no reference page', () => {
     expect(
       checkOptionKeys({
-        pages: tree('clean'),
-        packages: fixtureKeys(),
+        packages: fixture('clean'),
         allowance: { '@nexusdi/y': { unnamed: [] } },
       }),
     ).toEqual([
-      expect.stringContaining(
-        'doc-option-keys-allowance.json names @nexusdi/y, which is no library with a reference page',
-      ),
+      'doc-option-keys-allowance.json names @nexusdi/y, which is no library with a reference page; remove the entry',
     ]);
   });
 
@@ -147,13 +145,12 @@ describe('checkOptionKeys', () => {
   });
 
   it('holds on apps/docs', async () => {
-    const packages = await surfacePackages();
     expect(
       checkOptionKeys({
-        pages: await readReferenceSite((page) => page.kind === 'reference'),
         packages: readOptionKeys(
-          surfaceProgram(packages),
-          packages,
+          workspaceRoot,
+          await readReferenceSite((page) => page.kind === 'reference'),
+          await surfacePackages(),
           ERROR_EXEMPT,
         ),
         allowance: readAllowance<Allowance>(ALLOWANCE),

@@ -30,7 +30,8 @@ defineShip('frigate');
 ```ts twoslash
 import { Dock } from '@nexusdi/x';
 
-new Dock();
+const layout = { bay: 3 };
+new Dock().open(layout);
 ```
 
 ## `LaunchOptions`

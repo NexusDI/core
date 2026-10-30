@@ -39,7 +39,7 @@ A new library needs its page with `kind: reference` and `package: '@nexusdi/<pkg
 
 A new key on an options type, or a new overload on an export that already has an entry, needs its own line on the reference page:
 
-- `doc-option-keys`: each key of an options type an export takes is named in a code span or an example under that export's heading, and each key of an exported `*Options`, `*Props`, `*Config` or `*Definition` type under the type's own heading. A gap goes in `doc-option-keys-allowance.json` as `"<heading>: <type>.<key>"`.
+- `doc-option-keys`: each key of an options type an export takes is named under that export's heading, in a code span or in an example the compiler checks against that type (`defineModule({ imports })` does not name `LoadOptions.imports`), and each key of an exported `*Options`, `*Props`, `*Config` or `*Definition` type under the type's own heading. A gap goes in `doc-option-keys-allowance.json` as `"<heading>: <type>.<key>"`.
 - `doc-overloads`: each overload of a callable has a call in a `twoslash` fence or a `file=` region on the reference page that the compiler resolves to that overload. A gap goes in `doc-overloads-allowance.json`, keyed by the overload's declaration.
 
 The guards that fail otherwise: `doc-export-coverage` (the page, the headings and the examples), `doc-option-keys` (the option keys), `doc-overloads` (an example per overload), `doc-reference` (the docblock summary), `doc-behaviour` (the `describe`, and no internal name on a rail) and `doc-behaviour-run` (every sentence a run reported).
