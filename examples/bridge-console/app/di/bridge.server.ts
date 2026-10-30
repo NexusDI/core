@@ -7,6 +7,9 @@ import { Tactical } from './tactical.module';
 import { TelemetryClient } from './telemetry-client.module';
 import { Watch } from './watch.module';
 
+/** Where the console looks for bridge-api without `BRIDGE_API_URL`: its default port. */
+export const DEFAULT_BRIDGE_API_URL = 'http://127.0.0.1:3000/';
+
 /**
  * The server graph. It holds no runtime code from bridge-api: the console
  * reaches the backend at BRIDGE_API_URL over HTTP only.
@@ -18,7 +21,7 @@ export const BridgeConsole = defineModule({
     Watch,
     TelemetryClient,
     BridgeLink.forRoot({
-      url: process.env.BRIDGE_API_URL ?? 'http://127.0.0.1:4211/',
+      url: process.env.BRIDGE_API_URL ?? DEFAULT_BRIDGE_API_URL,
     }),
   ],
 });

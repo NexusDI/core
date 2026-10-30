@@ -2,6 +2,7 @@ import { optional } from '@nexusdi/core';
 
 import { type IReactorCore, REACTOR } from '../engineering/contracts';
 import type { QueuedCommand } from '../../simulation/commands';
+import { NO_SUBSPACE_LINK_NOTICE } from '../../text';
 import { type IShipState, SHIP_STATE } from '../../simulation/contracts';
 
 import {
@@ -44,7 +45,11 @@ export class PhasedArray implements ICommsArray {
     }
   }
 
+  /** Queues the hail. An array with no link adds a notice that the hail waits. */
   hail(): QueuedCommand {
-    return this.state.queue({ comms: { hail: true } });
+    const queued = this.state.queue({ comms: { hail: true } });
+    return this.linked
+      ? queued
+      : { ...queued, notice: NO_SUBSPACE_LINK_NOTICE };
   }
 }

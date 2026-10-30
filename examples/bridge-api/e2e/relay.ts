@@ -1,25 +1,25 @@
 import { once } from 'node:events';
-import { createServer } from 'node:http';
+import { createServer, type RequestListener } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 import { BUNDLED_CHARTS } from '@nexusdi/meridian-systems/charts';
 
 /**
- * A local subspace relay: serves GET /charts with the bundled table and counts
- * the downloads, accepts POST /handshake at startup, and keeps each POST
- * /signoff body.
+ * The handler of a local subspace relay: it serves GET /charts with the
+ * bundled table and counts the downloads, accepts POST /handshake at startup,
+ * and keeps each POST /signoff body. The e2e suites and the dev-relay script
+ * listen with it.
  */
-export async function startRelay(): Promise<{
-  url: string;
+export function createRelay(): {
+  handle: RequestListener;
   downloads(): number;
   handshakes(): number;
   signOffs(): unknown[];
-  close(): Promise<void>;
-}> {
+} {
   let downloads = 0;
   let handshakes = 0;
   const signOffs: unknown[] = [];
-  const server = createServer((req, res) => {
+  const handle: RequestListener = (req, res) => {
     if (req.url?.startsWith('/charts')) {
       downloads += 1;
       res
@@ -42,14 +42,32 @@ export async function startRelay(): Promise<{
       return;
     }
     res.writeHead(404).end();
-  }).listen(0, '127.0.0.1');
+  };
+  return {
+    handle,
+    downloads: () => downloads,
+    handshakes: () => handshakes,
+    signOffs: () => signOffs,
+  };
+}
+
+/** A relay on a free local port, with its counters. */
+export async function startRelay(): Promise<{
+  url: string;
+  downloads(): number;
+  handshakes(): number;
+  signOffs(): unknown[];
+  close(): Promise<void>;
+}> {
+  const relay = createRelay();
+  const server = createServer(relay.handle).listen(0, '127.0.0.1');
   await once(server, 'listening');
   const { port } = server.address() as AddressInfo;
   return {
     url: `http://127.0.0.1:${port}`,
-    downloads: () => downloads,
-    handshakes: () => handshakes,
-    signOffs: () => signOffs,
+    downloads: relay.downloads,
+    handshakes: relay.handshakes,
+    signOffs: relay.signOffs,
     close: async () => {
       server.closeAllConnections();
       server.close();

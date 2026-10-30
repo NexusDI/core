@@ -68,6 +68,16 @@ const BAD_COMMAND: Readonly<
 };
 
 /**
+ * The notice a hail carries when the ship binds no `SUBSPACE_LINK`. The
+ * command is accepted, and the comms system reports where the hail waits.
+ */
+export const NO_SUBSPACE_LINK_NOTICE = {
+  code: 'MERIDIAN_NO_SUBSPACE_LINK',
+  message:
+    'The ship binds no SUBSPACE_LINK, so the hail waits under "no subspace link".',
+} as const;
+
+/**
  * The text of the `MERIDIAN_*` codes. Register it with
  * `errors({ text: [shipText] })`, or pass it to
  * `explain(error, { text: [shipText] })`; without it those errors keep

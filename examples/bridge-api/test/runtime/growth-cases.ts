@@ -78,6 +78,14 @@ function send(
   return post(fetch, command.action, '/commands', command, status, expected);
 }
 
+/** The notice a hail on the offline ship carries, with the fix of bridge-api's table. */
+const NO_LINK_NOTICE = {
+  code: 'MERIDIAN_NO_SUBSPACE_LINK',
+  message:
+    'The ship binds no SUBSPACE_LINK, so the hail waits under "no subspace link".',
+  fix: 'Start the relay with `npx nx run @nexusdi/bridge-api:dev-relay` and set RELAY_URL to its address, or run `npx nx run @nexusdi/bridge-api:dev`, which starts both.',
+};
+
 /** Opens door `id` and checks that the interlock refuses it. */
 async function refused(fetch: BridgeFetch, id: string): Promise<void> {
   const res = await fetch('/commands', json(door('open', id)));
@@ -252,10 +260,10 @@ export const offlineHail: GrowthCase = {
   name: 'a hail on the offline ship reports no subspace link and keeps its queue',
   async run(fetch) {
     const hail = command('comms', 'hail');
-    await send(fetch, hail, 202, { tick: 1 });
+    await send(fetch, hail, 202, { tick: 1, notice: NO_LINK_NOTICE });
 
     expectOfflineArray(await advanceTo(fetch, 20, 20), 20);
-    await send(fetch, hail, 202, { tick: 21 });
+    await send(fetch, hail, 202, { tick: 21, notice: NO_LINK_NOTICE });
 
     expectOfflineArray(await advanceTo(fetch, 580, 600), 600);
     const log = await okJson<{ tick: number }[]>(

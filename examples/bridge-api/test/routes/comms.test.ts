@@ -105,10 +105,20 @@ describe.each(FRAMEWORKS)('the comms commands on %s', (framework) => {
     await using ship = await Nexus.create(OfflineMeridian, {
       plugins: bridgePlugins(),
     });
-    expect(await call(ship, 'POST', '/commands', hail)).toEqual({
+    const hailed = await call(ship, 'POST', '/commands', hail);
+    expect(hailed).toEqual({
       status: 202,
-      body: { tick: 1 },
+      body: {
+        tick: 1,
+        notice: {
+          code: 'MERIDIAN_NO_SUBSPACE_LINK',
+          message:
+            'The ship binds no SUBSPACE_LINK, so the hail waits under "no subspace link".',
+          fix: expect.stringContaining('RELAY_URL'),
+        },
+      },
     });
+    expect(JSON.stringify(hailed.body)).toContain('dev-relay');
     await advance(ship, 20);
     const offline = await reading(ship);
     expect(offline.comms.status).toBe('no subspace link');

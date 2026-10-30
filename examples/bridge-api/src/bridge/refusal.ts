@@ -5,12 +5,19 @@ import { BadCommandError } from '@nexusdi/meridian-systems';
 import { shipText } from '@nexusdi/meridian-systems/text';
 
 import { systemPhaseText } from '../ship/black-box.plugin';
+import { relayText } from './relay-text';
 
 /**
  * The text packs a refusal reads, and the ones `errors()` registers in
- * development: the ship's errors and the interceptors' errors.
+ * development: bridge-api's relay fix, the ship's errors and the
+ * interceptors' errors. The relay pack goes first, so its fix wins.
  */
-export const SHIP_TEXT = [shipText, interceptorsText, systemPhaseText] as const;
+export const SHIP_TEXT = [
+  relayText,
+  shipText,
+  interceptorsText,
+  systemPhaseText,
+] as const;
 
 /** The body of a refused request: the error's code and its text. */
 export interface Refusal {

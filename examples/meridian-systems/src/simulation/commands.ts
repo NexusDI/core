@@ -19,6 +19,14 @@ export type SetpointChange = DeepPartial<ShipSetpoints>;
 export interface QueuedCommand {
   /** The tick that applies the change. */
   readonly tick: number;
+  /** What the system reports about the accepted command, when it has something to say. */
+  readonly notice?: CommandNotice;
+}
+
+/** A system's report on a command it accepted. */
+export interface CommandNotice {
+  readonly code: string;
+  readonly message: string;
 }
 
 /** One entry of the command log. */

@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { RuntimeBridgeEndpoint } from './bridge-endpoint';
@@ -60,5 +63,14 @@ describe('RuntimeBridgeEndpoint', () => {
     await expect(endpoint.url()).rejects.toThrow('/bridge.json holds no url');
     expect(String(await endpoint.url())).toBe(BRIDGE.url);
     expect(fetch).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe('public/bridge.json', () => {
+  it('names bridge-api on its own port, 3000, as the console does', () => {
+    const file = resolve(process.cwd(), 'public/bridge.json');
+    expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({
+      url: 'http://localhost:3000/',
+    });
   });
 });
