@@ -50,6 +50,10 @@ app.get(UserService).greet('Ada'); // -> '[app] hello Ada'
 | [`@nexusdi/errors`](libs/errors/README.md)         | Full error text.             |
 | [`@nexusdi/cli`](libs/cli/README.md)               | Draw the graph from a shell. |
 
+## Examples
+
+- [Ship demo](examples/ship/): a ship that starts when its graph checks out.
+
 ## Installation
 
 > 0.4 is currently in Release Candidate. Install using the `next` tag.

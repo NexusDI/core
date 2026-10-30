@@ -45,6 +45,7 @@ export type Rule =
   | 'doctests'
   | 'interface-first'
   | 'packages'
+  | 'examples'
   | 'banned'
   | 'banned-prose';
 
@@ -71,6 +72,11 @@ export interface ReadmeInput {
   readonly docs: readonly { readonly file: string; readonly source: string }[];
   /** core's README, whose doctests the root README copies. Needed for `root`. */
   readonly core?: string;
+  /**
+   * The folders under `examples/`, by name. The root README links each
+   * one, and each holds a README. Needed for `root`.
+   */
+  readonly examples?: readonly string[];
   /** Whether a path relative to the repository root exists. */
   readonly exists: (path: string) => boolean;
   /** The NEXUS_ values the packages export (publicConstants). */
@@ -891,6 +897,36 @@ function checkPackages(input: ReadmeInput, faults: Fault[]): void {
       });
 }
 
+/**
+ * The root README links every demo under examples/, so none goes unlisted,
+ * and every folder there holds the README the link points to. The link is
+ * looked for in prose: a link inside a fence does not render.
+ */
+function checkExamples(
+  input: ReadmeInput,
+  parsed: Parsed,
+  faults: Fault[],
+): void {
+  if (input.name !== 'root') return;
+  const prose = parsed.lines.filter((_, i) => !parsed.fenced[i]).join('\n');
+  for (const name of input.examples ?? []) {
+    if (!input.exists(`examples/${name}/README.md`)) {
+      faults.push({
+        rule: 'examples',
+        message: `examples/${name} holds no README.md`,
+      });
+      continue;
+    }
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const link = new RegExp(`\\]\\(examples/${escaped}(?:/[^)]*)?\\)`);
+    if (!link.test(prose))
+      faults.push({
+        rule: 'examples',
+        message: `the root README does not link examples/${name}/`,
+      });
+  }
+}
+
 /** Every fault in one README against the npm README standard. */
 export function readmeFaults(input: ReadmeInput): Fault[] {
   const parsed = parse(input.source);
@@ -908,6 +944,7 @@ export function readmeFaults(input: ReadmeInput): Fault[] {
   checkDoctests(input, parsed, faults);
   checkInterfaceFirst(input, parsed, faults);
   checkPackages(input, faults);
+  checkExamples(input, parsed, faults);
   for (const hit of bannedRaw(input.source, input.constants))
     faults.push({ rule: 'banned', message: hit });
   for (const hit of bannedProse(input.source))

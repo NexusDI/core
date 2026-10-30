@@ -379,6 +379,17 @@
     ]
   },
   {
+    "rule": "examples",
+    "why": "the root does not link a demo under examples/",
+    "name": "root",
+    "replace": [
+      [
+        "[Ship demo](examples/ship/)",
+        "[Ship demo](https://nexus.js.org/next/)"
+      ]
+    ]
+  },
+  {
     "rule": "banned",
     "why": "the prose mentions reflect-metadata",
     "name": "errors",

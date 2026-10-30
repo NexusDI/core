@@ -72,16 +72,33 @@ NexusDI is a modular system. Start with `@nexusdi/core` and add capabilities as 
 npm install @nexusdi/core@next
 ```
 
-## Examples and Contributing
+## Exploring Implementation through Examples
 
-Every package keeps its examples in `libs/<package>/docs`, and [examples/bridge-console](examples/bridge-console/) shows a React Router integration. Read the [Contributing Guide](CONTRIBUTING.md) before you open a pull request.
+To understand how NexusDI manages complex dependency graphs, the repository provides a comprehensive set of demonstrations. These examples are located under `examples/`, while package-specific snippets reside in `libs/<package>/docs`.
+
+**A Unified Narrative.** Most demos share a single setting, the Starship Meridian, allowing you to follow a logical progression of complexity. Each Meridian demo README (meridian-systems, bridge-api, bridge-console and the federation shell) opens with a run command and what you see. The last three entries are test fixtures or gates, and none of them is a pattern to copy.
+
+**The Meridian Suite.** These examples demonstrate the library's versatility across different environments:
+
+- [meridian-systems](examples/meridian-systems/): **The ship as a library.** This seeded simulation is built from NexusDI modules without a server, UI, or timer, allowing the caller to advance the state tick by tick.
+- [bridge-api](examples/bridge-api/): **The ship behind HTTP.** A server on Hono, Express or Fastify, where the Hono entry also runs as a Worker, utilizing a single module graph with a unique scope per request. Its README gives the command that starts it.
+- [bridge-console](examples/bridge-console/): **The ship in a browser.** A React Router app in framework mode that consumes bridge-api over HTTP, ensuring container logic remains separate from UI components.
+- [federation-shell](examples/federation-shell/): **A micro-frontend host.** This shell maintains the container and loads four distinct stations at runtime using Module Federation.
+- [federation-cartography](examples/federation-cartography/), [federation-command](examples/federation-command/), [federation-engineering](examples/federation-engineering/) and [federation-life-support](examples/federation-life-support/): **The remote stations.** These are four independent remotes loaded by the shell. The command station is implemented using decorators.
+- [federation-contracts](examples/federation-contracts/): **The shared interface.** This contains the versioned contract tokens shared between the shell and the stations.
+- [meridian](examples/meridian/): **The documentation source.** These are the examples rendered on the docs site, where every doctest block is executed as a test.
+- [next-bridge](examples/next-bridge/): **A test fixture.** This checks how Next.js evaluates a server module. It is a canary.
+- [size](examples/size/): **A measurement fixture.** This is the app the size report bundles.
+- [toolchain-matrix](examples/toolchain-matrix/): **A CI gate.** This builds and runs the packed core under every pinned TypeScript toolchain.
+
+**Getting Started.** For the best learning path, explore `meridian-systems`, followed by `bridge-api`, and then `bridge-console`. If you wish to contribute, please read the [Contributing Guide](CONTRIBUTING.md) before opening a pull request.
 
 ## Documentation & Community
 
 Explore the full guide for advanced patterns, such as interface-first binding and custom providers.
 
 - [Full Documentation](https://nexus.js.org/next/)
-- [Examples](libs/core/docs/)
+- [Package examples](libs/core/docs/)
 - [GitHub Discussions](https://github.com/NexusDI/core/discussions)
 
 ## License

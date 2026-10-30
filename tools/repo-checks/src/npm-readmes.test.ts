@@ -44,12 +44,21 @@ function inputFrom(
             source: readFileSync(join(docsDir, file), 'utf8'),
           }))
       : [];
+  const examplesDir = join(root, 'examples');
+  const examples =
+    name === 'root' && existsSync(examplesDir)
+      ? readdirSync(examplesDir, { withFileTypes: true })
+          .filter((entry) => entry.isDirectory())
+          .map((entry) => entry.name)
+          .sort()
+      : [];
   return {
     name,
     source: readFileSync(join(dir, 'README.md'), 'utf8'),
     version,
     peers,
     docs,
+    examples,
     core: readFileSync(join(root, 'libs', 'core', 'README.md'), 'utf8'),
     exists: (path) => existsSync(join(root, path)),
   };
@@ -132,6 +141,7 @@ describe('readmeFaults', () => {
       'doctests',
       'interface-first',
       'packages',
+      'examples',
       'banned',
       'banned-prose',
     ];
@@ -172,6 +182,37 @@ describe('readmeFaults', () => {
     );
     expect(source).not.toBe(errors.source);
     expect(rulesOf({ ...errors, source })).toEqual([]);
+  });
+
+  it('asks every folder under examples/ for a README', () => {
+    const root = fixture('root');
+    const input = { ...root, examples: [...(root.examples ?? []), 'bare'] };
+    expect(
+      readmeFaults({
+        ...input,
+        exists: (path) =>
+          root.exists(path) && path !== 'examples/bare/README.md',
+      }).map((fault) => `[${fault.rule}] ${fault.message}`),
+    ).toEqual(['[examples] examples/bare holds no README.md']);
+  });
+
+  it('finds a demo link in prose only, and not by a name prefix', () => {
+    const root = fixture('root');
+    const link = '[Ship demo](examples/ship/)';
+    const fenced = root.source.replace(
+      link,
+      'Ship demo\n\n```md\n' + link + '\n```\n',
+    );
+    expect(rulesOf({ ...root, source: fenced })).toEqual(['examples']);
+    // The README links examples/shxp/, which an unescaped `.` would match.
+    const dotted = {
+      ...root,
+      examples: ['sh.p'],
+      exists: (path: string) =>
+        path === 'examples/sh.p/README.md' || root.exists(path),
+      source: root.source.replace(link, `${link}\n- [x](examples/shxp/)`),
+    };
+    expect(rulesOf(dotted)).toEqual(['examples']);
   });
 
   it("asks the root README's doctests to match core's, which runs them", () => {
