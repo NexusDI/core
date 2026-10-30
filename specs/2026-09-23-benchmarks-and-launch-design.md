@@ -1793,16 +1793,49 @@ Core's size report goes from 20,016 to 20,028 bytes gzipped (+12). On Node 24.20
 version `.nvmrc` pins and the only one K14 runs on, two runs measured get-50 at 0.856 and
 0.875. The ratio sits below 1 because V8 inlines the off build's smaller `buildTransient`
 into `resolveId` and calls the on build's out of line, and the inlined form is slower: the
-off build runs transient lookups about 5% slower than before the split (514 against 494
-ns). The slower baseline hides about 13% of get-50 headroom, so a hook-site cost of that
-size on the get path would still pass the gate. The reviewer's figures on Node 22.12 show
+off build runs transient lookups about 4% slower than before the split (514 against 494
+ns). At 0.866, a hook-site cost on the get path of up to about 19% still
+passed the 1.03 bound (1.03 / 0.866). The reviewer's figures on Node 22.12 show
 no inversion: transient lookups at 1.084 on/off (461 against 424 ns) and get-50 at 1.067.
-Issue #206 tracks the off baseline.
+Issue #206 raised the inlining budget (see below).
 
 The two builds. `libs/core/bench/build.mjs` bundles `libs/core/src/index.ts` twice with
 the same esbuild options (`--bundle --format=esm --platform=node --minify-syntax`, no
 identifier mangling). An esbuild `onLoad` plugin serves `hook-sites.ts` as
 `export const HOOK_SITES = false;` for the `off` build. Only that value differs.
+
+The inlining budget. Core's get path uses all of TurboFan's cumulative inlining budget
+(`--max-inlined-bytecode-size-cumulative`, 920 bytecodes by default). At that budget V8
+inlines different callees after an edit anywhere on the path, and get-50 moves by 10 to 15%
+in either direction. After the transient split, get-50 read 0.86 with the hook sites off.
+A planted 10% cost at the `canon` site read 0.88 and passed. The `get` cases therefore run
+both workers with the budget at 4600, the value of V8's `--max-inlined-bytecode-size-absolute`
+and the largest that changes anything, so the two builds inline the same callees on the get
+path except the hook sites themselves. The other cases run at V8 defaults: over 28 runner
+runs they stayed under the bound, and the flag moved create-2000 and lazy-read-50 above their
+default range. Lazy-read cases still block unrelated pull requests now and then at defaults
+(lazy-read-2000 in 1 of 9 runner runs); #284 tracks that noise. The flag lives in
+`libs/core/bench/exec-argv.mjs` (`execArgvFor(name)`), and a test holds that `benchmarks/`
+and bench-kit carry none. On Node 24.20, get-50 then reads 1.00 (0.9999 [0.9866, 1.0187]
+in one full run). A planted 3.4% cost at the `canon` site blocks in 2 of 3 runs and a 5%
+cost in 3 of 3, and a cost above 3% blocks more often as it grows. With the flag, both
+builds run faster. K14 bounds what the hook sites execute and does not see how their
+bytecode moves the budget in the shipped build. The published timings run at V8 defaults,
+so a change in what V8 inlines shows there. K14 drops the flag once the get path fits the
+default budget with margin (#278, "perf(core): fit the get path under V8's default
+inlining budget"). The cumulative bytecode margin was not measured, since
+`--trace-turbo-inlining` prints no total, and #278 records it.
+
+`bench-sensitivity` plants a cost at the `canon` site, measures it against the same bundle
+with the plant off, and exits 2 when that ratio is under 1.05, since a plant too small for
+the runner proves nothing. Otherwise it runs get-50 planted against `off` through K14's
+sampler and verdict, with its extension, and exits 1 unless K14 blocks. It runs on the
+schedule, by hand, on each core tag, on pull requests that touch the harness or bench-kit,
+and on `.nvmrc` changes. The plant is a serial `Math.imul` chain of 20 steps. On one laptop
+it read 1.08 to 1.10 against the plant off, and K14 blocked it at 1.08 to 1.11 in 3 of 3
+runs; with the flag removed the same plant read 0.85 and passed. On a GitHub runner the
+plant read 1.0685 on(N)/on(0) [1.0526, 1.0852] and 1.0715 planted/off [1.0543, 1.0952],
+and K14 blocked it.
 
 Completeness. A test registers a plugin whose every hook is a counting spy, runs `create`,
 `get`, `has`, `createScope`, `load`, a failing `get` and disposal against each build, and
