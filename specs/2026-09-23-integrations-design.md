@@ -77,9 +77,13 @@ API references checked against rc.1:
    change.
 3. `isNexusError(value, code?)` now takes an optional code and narrows to that code's
    class (`errors/is-nexus-error.ts`). Section 3.6 uses that form for the one 503 case.
-4. `Nexus.check(root, { plugins, load })` is new: a static compile with no user code
-   (`runtime/nexus.ts:70-108`). Section 9.2 uses it for the startup check of an app that
-   passes the function form of section 3.1, where `inject` validates on the first request.
+4. `Nexus.check(root, { plugins, load })` is new: a static compile (`runtime/nexus.ts:70-108`).
+   The one user code it calls besides the plugin hooks is the options schema of each `forRoot()` value (owner,
+   2026-10-30, #251). It judges a result that comes back synchronously. It does not await a
+   schema that returns a promise, and it does not validate a `forRootAsync()` module's
+   options; it returns both as `unchecked`. Section 9.2 uses it for the startup check of an
+   app that passes the function form of section 3.1, where `inject` validates on the first
+   request.
 5. `Nexus.create` takes a module, a provider array or `{ providers, imports, exports }`
    (`CheckedRoot`). The samples' `Nexus.create(Meridian, ...)` and
    `Nexus.create([...])` both stand.
@@ -1936,8 +1940,12 @@ Rules the edge guide states:
   `get()` and a request that does not need them does not run them. Async scoped factories
   stay eager (`NEXUS_LAZY_ASYNC`).
 - The startup check runs in CI: `Nexus.check(Meridian, { load: [Navigation] })` in a test
-  compiles the graph with no user code, so a wrong token fails the build before deploy.
-  `inject`'s own check runs on the first request (section 3.3).
+  compiles the graph and runs each sync `forRoot()` options schema, so a wrong token or a
+  rejected option fails the build before deploy. The schema is the one user code the check
+  calls, and it must stay free of side effects, since an isolate that calls the check at
+  module scope calls it there. The check calls an async schema too, without awaiting it. An
+  async schema and a `forRootAsync()` module fail only at `Nexus.create`, and the check
+  returns them in `unchecked`. `inject`'s own check runs on the first request (section 3.3).
 
 Deno, Bun and Vercel Edge allow I/O at module scope, so the module-scope form covers them,
 with `await using ship = ...` around `Deno.serve` where the process has a shutdown signal.
@@ -2729,3 +2737,22 @@ Q2. Which RC carries the adapters?
   restart the RC count.
 - Answer (owner, 2026-10-15): all adapters in rc.2, and Next may follow in rc.3. 0.4.0
   final waits until every adapter has been in at least one RC with its demo app green.
+
+Q3. Does `Nexus.check` run options schemas?
+
+- What it does: `Nexus.check` calls the options schema of each `forRoot()` value after
+  every compile passed, and throws one `BlueprintError` holding a
+  `NEXUS_INVALID_MODULE_OPTIONS` for each rejected value. It returns `{ unchecked }`, the
+  modules it could not validate: a schema whose `validate` returns a promise, and a
+  `forRootAsync()` module with a schema.
+- The case: `Comms.forRoot({ frequency: 99 })` with a schema that rejects 99 passes
+  `Nexus.check` and fails `Nexus.create` with `NEXUS_PROVIDER_FAILED`. A CI check that
+  passes tells the team nothing about its options.
+- User consequence: check now runs sync schema code, so a schema must be free of side
+  effects, and an edge isolate that calls check at module scope calls it there. An async
+  schema is called too, and its promise is dropped. `Nexus.check` returns `{ unchecked }`
+  where it returned nothing. Nothing is removed or renamed.
+- Recommendation: run sync schemas by default, with no flag. A flag leaves the CI check
+  blind to bad options for every team that does not know to set it.
+- Answer (owner, 2026-10-30): run sync schemas by default from rc.3, with no flag; async
+  schemas and `forRootAsync()` are skipped and reported as unchecked.
