@@ -13,7 +13,9 @@ import {
 import { trace } from '@nexusdi/devtools';
 import { nodeScopes } from '@nexusdi/node';
 import {
+  createMemoryRouter,
   createStaticHandler,
+  redirect,
   RouterContextProvider,
   type MiddlewareFunction,
 } from 'react-router';
@@ -87,6 +89,18 @@ afterEach(async () => {
 const count = (events: TraceEvent[], type: TraceEvent['type']) =>
   events.filter((e) => e.type === type).length;
 const settle = () => new Promise((r) => setTimeout(r, 10));
+/** Resolves once a data router has finished its first load. */
+const ready = (router: ReturnType<typeof createMemoryRouter>) =>
+  new Promise<void>((resolve) => {
+    const done = (s: typeof router.state) =>
+      s.initialized && s.navigation.state === 'idle';
+    if (done(router.state)) return resolve();
+    const unsubscribe = router.subscribe((s) => {
+      if (!done(s)) return;
+      unsubscribe();
+      resolve();
+    });
+  });
 
 /** Runs one middleware with a next() that calls `downstream`, the way React Router's chain does. */
 async function run(
@@ -127,6 +141,7 @@ describe('nexus', () => {
     const { response } = await run(di.middleware, async (context) =>
       Response.json(await loader({ params: { to: 'Kepler-442b' }, context })),
     );
+    await settle();
     expect(count(events, 'scope:dispose')).toBe(0);
     expect(await response.json()).toEqual(['survey-7: plotting Kepler-442b']);
     await settle();
@@ -804,10 +819,10 @@ describe('injectMiddleware', () => {
   it("runs in React Router's middleware chain: a 403 ends the request, and a void return goes on", async () => {
     const events: TraceEvent[] = [];
     const di = nexus(await guarded(events), { request, log: () => {} });
-    const guard = di.injectMiddleware(
+    const guard: MiddlewareFunction = di.injectMiddleware(
       { access: ACCESS },
       // Returns nothing for an allowed operator, so React Router calls next.
-      async ({ access }, { request: r }: Args) =>
+      async ({ access }, { request: r }) =>
         access.mayFire(r.headers.get('x-operator'))
           ? undefined
           : new Response('Forbidden', { status: 403 }),
@@ -818,12 +833,12 @@ describe('injectMiddleware', () => {
         return Response.json(log.entries());
       }),
     );
-    // Data-mode route objects type middleware as MiddlewareFunction<unknown>[].
+    // A data-mode route object: its middleware type takes the guard and the root middleware with no cast.
     const handler = createStaticHandler([
       {
         id: 'root',
         path: '/',
-        middleware: [di.middleware, guard] as never,
+        middleware: [di.middleware, guard],
         children: [{ id: 'drive', path: 'drive', loader }],
       },
     ]);
@@ -913,5 +928,171 @@ describe('injectMiddleware', () => {
     });
     expect(response.status).toBe(400);
     expect(await response.text()).toBe('route to home');
+  });
+});
+
+describe('data mode in the browser', () => {
+  it("gives a navigation a scope, hands the loaders' results to React Router and disposes the scope when the chain returns", async () => {
+    const events: TraceEvent[] = [];
+    const di = nexus(await ship(events), { request, log: () => {} });
+    const loader = di.inject(
+      { log: FLIGHT_LOG },
+      ({ log }, _args: { context: Readonly<RouterContextProvider> }) => {
+        log.record('fired');
+        return log.entries();
+      },
+    );
+    const router = createMemoryRouter(
+      [{ id: 'root', path: '/', middleware: [di.middleware], loader }],
+      { getContext: () => new RouterContextProvider() },
+    );
+    await router.initialize();
+    await ready(router);
+    expect(router.state.loaderData).toEqual({ root: ['survey-7: fired'] });
+    expect(router.state.errors).toBeNull();
+    await settle();
+    expect(count(events, 'scope:dispose')).toBe(1);
+    router.dispose();
+  });
+
+  it('returns a value next() resolves that is not a Response unchanged', async () => {
+    const di = nexus(await ship(), { request, log: () => {} });
+    const results = { root: { type: 'data', result: 1 } };
+    const returned = await di.middleware(
+      {
+        request: new Request('http://bridge/'),
+        context: new RouterContextProvider(),
+        params: {},
+        unstable_pattern: '/',
+      } as never,
+      async () => results,
+    );
+    expect(returned).toBe(results);
+  });
+
+  it('keeps the body wrapper for a Response that is not an instance of the global Response', async () => {
+    const events: TraceEvent[] = [];
+    const di = nexus(await ship(events), { request, log: () => {} });
+    const loader = di.inject(
+      { log: FLIGHT_LOG },
+      ({ log }, _args: { context: Readonly<RouterContextProvider> }) =>
+        log.entries(),
+    );
+    const context = new RouterContextProvider();
+    const real = new Response('reading', { status: 201 });
+    const foreign = {
+      status: real.status,
+      statusText: real.statusText,
+      headers: real.headers,
+      body: real.body,
+    };
+    expect(foreign instanceof Response).toBe(false);
+    const returned = (await di.middleware(
+      {
+        request: new Request('http://bridge/'),
+        context,
+        params: {},
+        unstable_pattern: '/',
+      } as never,
+      async () => {
+        await loader({ context });
+        return foreign as never;
+      },
+    )) as Response;
+    await settle();
+    expect(count(events, 'scope:dispose')).toBe(0);
+    expect(await returned.text()).toBe('reading');
+    await settle();
+    expect(count(events, 'scope:dispose')).toBe(1);
+  });
+
+  it('loads a section in a browser data router', async () => {
+    const di = nexus(await ship(), { request, log: () => {} });
+    const navigation = di.load(Navigation);
+    const loader = navigation.inject(
+      { routes: NAV_ROUTES },
+      ({ routes }, _args: { context: Readonly<RouterContextProvider> }) =>
+        routes.find('kepler'),
+    );
+    const router = createMemoryRouter(
+      [
+        {
+          id: 'root',
+          path: '/',
+          middleware: [di.middleware, navigation],
+          loader,
+        },
+      ],
+      { getContext: () => new RouterContextProvider() },
+    );
+    await router.initialize();
+    await ready(router);
+    expect(router.state.errors).toBeNull();
+    expect(router.state.loaderData).toEqual({ root: 'route to kepler' });
+    router.dispose();
+  });
+
+  it('stops a browser navigation when a guard throws redirect(), and disposes the scope', async () => {
+    const events: TraceEvent[] = [];
+    const di = nexus(await ship(events), { request, log: () => {} });
+    const loader = vi.fn(() => 'reading');
+    const guard: MiddlewareFunction = di.injectMiddleware(
+      { log: FLIGHT_LOG },
+      ({ log }) => {
+        log.record('checked');
+        throw redirect('/login');
+      },
+    );
+    const router = createMemoryRouter(
+      [
+        {
+          id: 'root',
+          path: '/',
+          middleware: [di.middleware, guard],
+          loader,
+        },
+        { id: 'login', path: '/login', loader: () => 'sign in' },
+      ],
+      { getContext: () => new RouterContextProvider() },
+    );
+    router.initialize();
+    await ready(router);
+    expect(router.state.location.pathname).toBe('/login');
+    expect(router.state.errors).toBeNull();
+    expect(loader).not.toHaveBeenCalled();
+    await settle();
+    expect(count(events, 'scope:dispose')).toBeGreaterThanOrEqual(1);
+    router.dispose();
+  });
+
+  it('stops a browser navigation when a guard throws a Response, and disposes the scope', async () => {
+    const events: TraceEvent[] = [];
+    const di = nexus(await ship(events), { request, log: () => {} });
+    const loader = vi.fn(() => 'reading');
+    const guard: MiddlewareFunction = di.injectMiddleware(
+      { log: FLIGHT_LOG },
+      ({ log }) => {
+        log.record('checked');
+        throw new Response('helm only', { status: 403 });
+      },
+    );
+    const router = createMemoryRouter(
+      [
+        {
+          id: 'root',
+          path: '/',
+          middleware: [di.middleware, guard],
+          loader,
+        },
+      ],
+      { getContext: () => new RouterContextProvider() },
+    );
+    router.initialize();
+    await ready(router);
+    expect(router.state.errors).toMatchObject({ root: { status: 403 } });
+    expect(loader).not.toHaveBeenCalled();
+    await settle();
+    expect(count(events, 'scope:dispose')).toBeGreaterThanOrEqual(1);
+    router.dispose();
   });
 });
