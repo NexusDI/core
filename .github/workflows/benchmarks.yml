@@ -3,7 +3,8 @@ name: Benchmarks
 # The cross-library harness of issue #21 (benchmarks spec section 4.8) and
 # core's dispatch benchmark (core spec 17.3). Timings run only on the
 # schedule, by hand and on a core tag; pull requests run the deterministic
-# check, and the dispatch job when core's source changes.
+# check, and the dispatch job when core's source, its bench harness or
+# bench-kit changes.
 on:
   pull_request:
     paths:
@@ -11,6 +12,7 @@ on:
       - libs/core/**
       - examples/toolchain-matrix/**
       - tools/bench-kit/**
+      - .nvmrc
   schedule:
     - cron: '0 4 * * 1'
   workflow_dispatch:
@@ -31,6 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       core: ${{ steps.diff.outputs.core }}
+      sensitivity: ${{ steps.diff.outputs.sensitivity }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -40,10 +43,16 @@ jobs:
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
         run: |
-          if git diff --name-only "$BASE" HEAD | grep -q '^libs/core/src/'; then
+          changed=$(git diff --name-only "$BASE" HEAD)
+          if grep -qE '^libs/core/src/|^libs/core/bench/|^tools/bench-kit/src/' <<< "$changed"; then
             echo "core=true" >> "$GITHUB_OUTPUT"
           else
             echo "core=false" >> "$GITHUB_OUTPUT"
+          fi
+          if grep -qE '^libs/core/bench/|^tools/bench-kit/src/|^\.nvmrc$' <<< "$changed"; then
+            echo "sensitivity=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "sensitivity=false" >> "$GITHUB_OUTPUT"
           fi
 
   # The three deterministic writers against the workspace's packed core, with
@@ -87,6 +96,28 @@ jobs:
             cat libs/core/tmp/bench/dispatch.json
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # K14 itself must still see a planted hook-site cost. The job plants a cost
+  # at the canon site of get() and fails when K14 does not block it, and exits
+  # 2 when the plant is too small on this runner (benchmarks spec 14.6). It
+  # checks the harness and the V8 version, so a pull request that edits only
+  # core's source skips it and the weekly run catches the get path growing back
+  # to the inlining cliff.
+  bench-sensitivity:
+    needs: changes
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.sensitivity == 'true') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx nx run @nexusdi/core:bench-sensitivity
 
   deterministic:
     if: github.event_name != 'pull_request'
