@@ -40,9 +40,10 @@ Try it: in `fixed.ts`, change the `PlasmaRouter` constructor to `constructor(pri
 
 ## Fields of `NotReadyError`
 
-`NotReadyError` carries these four fields:
+`NotReadyError` carries these five fields:
 
 - `owner`: the provider whose thunk ran.
-- `target`: for a `lazy(all())` thunk, the multi token. For a `lazy()` thunk, the provider the thunk refused, after alias hops.
+- `target`: the token the thunk names: the multi token for a `lazy(all())` thunk, the token passed to `lazy()` for a `lazy()` thunk.
+- `provider`: for a `lazy()` thunk whose token is an alias (`useExisting`), the provider at the end of the alias chain, which was not ready. `null` for any other thunk. The message names both: `PowerRouter called its lazy(Shields) thunk before ShieldGrid, which Shields aliases, was ready.`
 - `path`: empty unless the provider the thunk refused is in the middle of its own build. Then it lists the providers being built, from that provider's first frame to the provider that called the thunk, and ends with the provider the thunk refused. The rule is the same at startup and at `get()`. At startup the error sits inside a `ProviderError` whose own `path` holds only the failing provider. At `get()` it is thrown bare. The full text from `errors()` adds a `Runtime cycle` line when `path` is not empty.
 - `contributor`: `null` for a plain `lazy()` thunk. For a `lazy(all())` thunk it names the unready contribution as `<label> (module <name>)`.
