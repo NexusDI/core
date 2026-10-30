@@ -144,7 +144,8 @@
       { "from": "p4", "to": "p3", "kind": "required" },
       { "from": "p5", "to": "p6", "kind": "lazy" },
       { "from": "p6", "to": "p5", "kind": "required" }
-    ]
+    ],
+    "unchecked": []
   },
   "trace": {
     "counts": {

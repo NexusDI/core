@@ -1791,5 +1791,11 @@
       "to": "p67",
       "kind": "lazy"
     }
+  ],
+  "unchecked": [
+    {
+      "module": "LifeSupport",
+      "reason": "for-root-async"
+    }
   ]
 }

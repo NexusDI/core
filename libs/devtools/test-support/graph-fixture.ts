@@ -102,6 +102,7 @@ export const FIXTURE: NexusGraph = {
     { from: 'p1', to: 'p2', kind: 'lazy' },
     { from: 'p3', to: 'p0', kind: 'alias' },
   ],
+  unchecked: [],
 };
 
 /**
@@ -137,6 +138,7 @@ export const GRANTED: NexusGraph = {
   ],
   providers: [],
   edges: [],
+  unchecked: [],
 };
 
 /** A module and a token whose names carry every character a renderer escapes. */
@@ -188,6 +190,7 @@ export const ESCAPE_FIXTURE: NexusGraph = {
     },
   ],
   edges: [],
+  unchecked: [],
 };
 
 /** A graph with core's built-in REQUEST provider and nothing that depends on it. */
@@ -231,6 +234,7 @@ export const WITH_REQUEST: NexusGraph = {
     },
   ],
   edges: [],
+  unchecked: [],
 };
 
 /**
@@ -277,6 +281,7 @@ export const WITH_INTERNAL: NexusGraph = {
     },
   ],
   edges: [],
+  unchecked: [],
 };
 
 /**
@@ -347,4 +352,5 @@ export const HOSTILE_IDS: NexusGraph = {
     { from: 'a-->b', to: 'x;y', kind: 'required' },
     { from: 'x;y', to: 'say "hi" \\ now', kind: 'lazy' },
   ],
+  unchecked: [],
 };

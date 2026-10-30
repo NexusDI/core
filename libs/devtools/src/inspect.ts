@@ -31,7 +31,10 @@ export type InspectOptions = CheckOptions & {
  * with `options.text` ahead of core's pack, and each provider carries the
  * notes of `options.annotate`. The one internal plugin takes no
  * name a caller's errors() or devtools() uses, and it goes after the caller's
- * plugins, so a caller's formatter words an error first.
+ * plugins, so a caller's formatter words an error first. The graph's
+ * `unchecked` lists the modules whose options only Nexus.create can validate,
+ * from Nexus.check's report. A schema that throws makes inspect() throw the
+ * same error, unwrapped.
  */
 export function inspect<const R = UninferredRoot>(
   root: CheckedRoot<R>,
@@ -39,7 +42,7 @@ export function inspect<const R = UninferredRoot>(
 ): NexusGraph {
   const { text, annotate, ...check } = options;
   let last: BlueprintView | undefined;
-  Nexus.check(root, {
+  const report = Nexus.check(root, {
     ...check,
     plugins: [
       ...(check.plugins ?? []),
@@ -53,5 +56,5 @@ export function inspect<const R = UninferredRoot>(
   });
   if (last === undefined)
     throw new Error('internal: Nexus.check compiled nothing');
-  return graphOf(last, null, notesOf(last, annotate));
+  return graphOf(last, null, notesOf(last, annotate), report.unchecked);
 }

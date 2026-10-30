@@ -63,5 +63,10 @@ export function graph(ship: Nexus): NexusGraph {
     );
   const { context, annotate } = registered;
   const view = context.blueprint();
-  return graphOf(view, (id) => context.builtAsync(id), notesOf(view, annotate));
+  return graphOf(
+    view,
+    (id) => context.builtAsync(id),
+    notesOf(view, annotate),
+    [],
+  );
 }

@@ -77,6 +77,7 @@ const shipGraph: NexusGraph = {
     provider({ id: 'p3', token: 'NavCharts', module: 'm0' }),
   ],
   edges: [],
+  unchecked: [],
 };
 
 /** A link whose backend serves `shipGraph`. */

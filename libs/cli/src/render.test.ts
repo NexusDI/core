@@ -5,7 +5,12 @@ import type { NexusGraph } from '@nexusdi/devtools';
 import type { DevtoolsApi } from './devtools.js';
 import { render } from './render.js';
 
-const GRAPH: NexusGraph = { modules: [], providers: [], edges: [] };
+const GRAPH: NexusGraph = {
+  modules: [],
+  providers: [],
+  edges: [],
+  unchecked: [],
+};
 const DEVTOOLS = {
   inspect: () => GRAPH,
   toDot: (_graph: NexusGraph, options?: { view?: string }) =>

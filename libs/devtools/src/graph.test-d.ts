@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
-import type { CheckOptions, ErrorTextPack } from '@nexusdi/core';
+import type { CheckOptions, CheckReport, ErrorTextPack } from '@nexusdi/core';
 
 import { fuelLineNotes } from '../test-support/third-party-annotator.js';
 import {
@@ -9,6 +9,7 @@ import {
   type GraphAnnotator,
   type GraphNote,
   type InspectOptions,
+  type NexusGraph,
 } from './index.js';
 
 describe('devtools', () => {
@@ -36,5 +37,13 @@ describe('inspect', () => {
       .parameter(1)
       .toEqualTypeOf<InspectOptions | undefined>();
     inspect([], { annotate: [fuelLineNotes] });
+  });
+});
+
+describe('NexusGraph', () => {
+  it("takes the unchecked reason from core's CheckReport", () => {
+    expectTypeOf<NexusGraph['unchecked'][number]['reason']>().toEqualTypeOf<
+      CheckReport['unchecked'][number]['reason']
+    >();
   });
 });

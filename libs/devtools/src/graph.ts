@@ -1,4 +1,9 @@
-import { REQUEST, displayName, type BlueprintView } from '@nexusdi/core';
+import {
+  REQUEST,
+  displayName,
+  type BlueprintView,
+  type CheckReport,
+} from '@nexusdi/core';
 
 /** A line of text a plugin attaches to one provider in the graph. */
 export interface GraphNote {
@@ -81,6 +86,20 @@ export interface NexusGraph {
     to: string;
     kind: 'required' | 'optional' | 'lazy' | 'all' | 'alias';
   }>;
+  /**
+   * The configurable modules whose options Nexus.check could not judge,
+   * from its CheckReport, in compile order: `module` is the module's name
+   * and `reason` is core's, `'async-schema'` or `'for-root-async'`. Only
+   * Nexus.create validates their options. graph() of a running container
+   * lists none, since create validated every module's options. Core may
+   * add a reason in a minor release; handle one you do not know. A graph
+   * file written before the field existed has none; parseGraph reads it as
+   * [].
+   */
+  unchecked: Array<{
+    module: string;
+    reason: CheckReport['unchecked'][number]['reason'];
+  }>;
 }
 
 /**
@@ -105,11 +124,13 @@ export function notesOf(
  * The graph of `view`. `asyncOf` answers a factory's `async`; null reports
  * every provider's `async` as null, for a graph nothing was built from.
  * `notes` maps a provider id to its labels, as notesOf builds it.
+ * `unchecked` is Nexus.check's report; graph() passes [].
  */
 export function graphOf(
   view: BlueprintView,
   asyncOf: ((providerId: string) => boolean | null) | null,
   notes: ReadonlyMap<string, readonly string[]>,
+  unchecked: CheckReport['unchecked'],
 ): NexusGraph {
   return {
     modules: view.modules.map((m) => ({
@@ -144,5 +165,6 @@ export function graphOf(
       internal: p.token === REQUEST,
     })),
     edges: view.edges.map((e) => ({ from: e.from, to: e.to, kind: e.kind })),
+    unchecked: unchecked.map((u) => ({ module: u.module, reason: u.reason })),
   };
 }

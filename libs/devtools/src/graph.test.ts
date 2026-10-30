@@ -50,6 +50,28 @@ const BRIDGE_NOTES = {
 };
 
 describe('graph', () => {
+  it('lists no unchecked module for a running container, whose options create validated', async () => {
+    const COMMS_OPTIONS = new Token<{ frequency: number }>('CommsOptions');
+    const good = { frequency: 1420 };
+    const Uplink = defineModule({
+      name: 'Uplink',
+      options: COMMS_OPTIONS,
+      schema: {
+        '~standard': {
+          version: 1,
+          vendor: 'test',
+          validate: () => Promise.resolve({ value: good }),
+        },
+      } as never,
+    });
+    const Meridian = defineModule({
+      name: 'Meridian',
+      imports: [Uplink.forRoot(good)],
+    });
+    const ship = await Nexus.create(Meridian, { plugins: [devtools()] });
+    expect(graph(ship).unchecked).toEqual([]);
+  });
+
   it('lists the deps that bound to no provider in unresolved', async () => {
     class PhasedArray {
       constructor(readonly link: SubspaceLink | undefined) {}
@@ -191,6 +213,7 @@ describe('graph', () => {
         { from: 'p2', to: 'p4', kind: 'lazy' },
         { from: 'p3', to: 'p1', kind: 'alias' },
       ],
+      unchecked: [],
     });
   });
 
