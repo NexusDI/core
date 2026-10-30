@@ -7,6 +7,7 @@
 export function makeGraph(core, size) {
   const providers = [];
   const lookups = [];
+  const singletons = [];
   let below = [];
   for (let layer = 0; layer * 10 < size; layer++) {
     const row = [];
@@ -23,10 +24,11 @@ export function makeGraph(core, size) {
         providers.push(core.provide(C, { lifetime: 'transient' }));
       else providers.push(C);
       if (p !== 9) lookups.push(C);
+      if (p !== 4 && p !== 9) singletons.push(C);
     }
     below = row;
   }
-  return { providers, lookups };
+  return { providers, lookups, singletons };
 }
 
 /**
