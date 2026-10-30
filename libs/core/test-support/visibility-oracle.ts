@@ -268,7 +268,14 @@ export function computeVisibilityOracle(
     moduleExports.set(node.id, [
       ...new Set([
         ...node.exportTokens.flatMap((t) =>
-          collected(t) ? publishedOf(i, t) : lookup(i, t),
+          collected(t)
+            ? publishedOf(i, t)
+            : t instanceof MultiToken
+              ? (input.pinned.get(t) ?? []).filter(
+                  (id) =>
+                    input.records.find((r) => r.id === id)?.module === node.id,
+                )
+              : lookup(i, t),
         ),
         ...node.exportModules,
       ]),

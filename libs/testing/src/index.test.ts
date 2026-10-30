@@ -165,6 +165,43 @@ describe('createTestingContainer', () => {
     expect(ship.get(DIAGNOSTICS, { module: Engineering })).toEqual(['passing']);
   });
 
+  it('lists a pinned MultiToken override under the module that owns the record only', async () => {
+    const D = new MultiToken<string>('D');
+    const Engineering = defineModule({
+      name: 'Engineering',
+      providers: [provide(D, { useValue: 'eng' })],
+      exports: [D],
+    });
+    const Tactical = defineModule({ name: 'Tactical', exports: [D] });
+    const Science = defineModule({
+      name: 'Science',
+      providers: [provide(D, { useValue: 'sci' })],
+      exports: [D],
+    });
+    let context: PluginContext | undefined;
+    const ship = await createTestingContainer(
+      defineModule({ name: 'Root', imports: [Engineering, Tactical, Science] }),
+    )
+      .override(D, { useValue: 'passing' })
+      .create({
+        plugins: [
+          {
+            name: 'capture',
+            apiVersion: 1,
+            setup: (given: PluginContext) => void (context = given),
+          },
+        ],
+      });
+    const view = context?.blueprint();
+    const pinned = view?.providers.find((p) => p.token === D)?.id;
+    const exportsOf = (name: string) =>
+      view?.modules.find((m) => m.name === name)?.exports;
+    expect(exportsOf('Engineering')).toEqual([pinned]);
+    expect(exportsOf('Tactical')).toEqual([]);
+    expect(exportsOf('Science')).toEqual([]);
+    expect(ship.get(D, { module: Tactical })).toEqual(['passing']);
+  });
+
   describe('private contributions and the unread check', () => {
     const CHECKS = new MultiToken<string>('Checks');
     const HEALTH = new Token<readonly string[]>('Health');

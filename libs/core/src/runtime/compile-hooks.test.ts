@@ -353,6 +353,51 @@ describe('compile.provider', () => {
     expect(ship.get(DIAGNOSTICS)).toEqual(['pass']);
   });
 
+  it('lists a pinned MultiToken record in the exports of its own module only', async () => {
+    const D = new MultiToken<string>('D');
+    const Engineering = defineModule({
+      name: 'Engineering',
+      providers: [provide(D, { useValue: 'eng' })],
+      exports: [D],
+    });
+    const Tactical = defineModule({ name: 'Tactical', exports: [D] });
+    const Science = defineModule({
+      name: 'Science',
+      providers: [provide(D, { useValue: 'sci' })],
+      exports: [D],
+    });
+    const Root = defineModule({
+      name: 'Root',
+      imports: [Engineering, Tactical, Science],
+    });
+    let first = true;
+    let view: BlueprintView | undefined;
+    const ship = await Nexus.create(Root, {
+      plugins: [
+        {
+          name: 'pin',
+          apiVersion: 1,
+          compile: {
+            provider: (p: ProviderView) => {
+              if (p.token !== D || !first) return undefined;
+              first = false;
+              return { with: provide(D, { useValue: 'pass' }), pin: true };
+            },
+            check: (v: BlueprintView) => void (view = v),
+          },
+        } as never,
+      ],
+    });
+    const exportsOf = (name: string) =>
+      view?.modules.find((m) => m.name === name)?.exports;
+    const pinned = view?.providers.find((p) => p.token === D)?.id;
+    expect(pinned).toBeDefined();
+    expect(exportsOf('Engineering')).toEqual([pinned]);
+    expect(exportsOf('Tactical')).toEqual([]);
+    expect(exportsOf('Science')).toEqual([]);
+    expect(ship.get(D, { module: Tactical })).toEqual(['pass']);
+  });
+
   it('removes a provider, and the compiler reports its dependents', async () => {
     class Bridge {
       constructor(readonly reactor: IReactorCore) {}

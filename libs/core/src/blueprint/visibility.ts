@@ -271,7 +271,13 @@ export function computeVisibility(
     moduleExports.set(node.id, [
       ...new Set([
         ...node.exportTokens.flatMap((t) =>
-          collected(t) ? (publishedBy[i].get(t) ?? []) : lookup(i, t),
+          collected(t)
+            ? (publishedBy[i].get(t) ?? [])
+            : t instanceof MultiToken
+              ? (pinned.get(t) ?? []).filter(
+                  (id) => providers.get(id)?.module === node.id,
+                )
+              : lookup(i, t),
         ),
         ...node.exportModules,
       ]),
