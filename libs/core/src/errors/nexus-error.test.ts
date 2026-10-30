@@ -29,7 +29,7 @@ const FIELD_ORDER: Readonly<Record<string, readonly string[]>> = {
   InvalidModuleError: ['received', 'path'],
   CoreNotSharedError: ['received', 'where'],
   MissingDepsError: ['token', 'module', 'arity', 'useClass', 'bare'],
-  CircularDependencyError: ['path'],
+  CircularDependencyError: ['path', 'kinds'],
   LifetimeError: ['path', 'lifetimes'],
   ModuleImportCycleError: ['path'],
   ModuleOptionsError: ['module', 'issues'],

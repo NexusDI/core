@@ -243,7 +243,7 @@
       "variant": "decorated",
       "probe": "cycle",
       "detectedAt": "create",
-      "message": "CircularDependencyError: [NEXUS_CIRCULAR_DEPENDENCY] path=PowerRouter,ShieldGrid,PowerRouter. https://nexus.js.org/errors/NEXUS_CIRCULAR_DEPENDENCY"
+      "message": "CircularDependencyError: [NEXUS_CIRCULAR_DEPENDENCY] path=PowerRouter,ShieldGrid,PowerRouter kinds=required,required. https://nexus.js.org/errors/NEXUS_CIRCULAR_DEPENDENCY"
     },
     {
       "library": "nexusdi",
@@ -279,7 +279,7 @@
       "variant": "plain",
       "probe": "cycle",
       "detectedAt": "create",
-      "message": "CircularDependencyError: [NEXUS_CIRCULAR_DEPENDENCY] path=PowerRouter,ShieldGrid,PowerRouter. https://nexus.js.org/errors/NEXUS_CIRCULAR_DEPENDENCY"
+      "message": "CircularDependencyError: [NEXUS_CIRCULAR_DEPENDENCY] path=PowerRouter,ShieldGrid,PowerRouter kinds=required,required. https://nexus.js.org/errors/NEXUS_CIRCULAR_DEPENDENCY"
     },
     {
       "library": "nexusdi",

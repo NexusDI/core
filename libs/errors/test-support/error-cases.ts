@@ -317,9 +317,13 @@ export const errorCases: readonly ErrorCase[] = [
     name: 'CircularDependencyError',
     error: new CircularDependencyError({
       path: ['ShieldGrid', 'PowerRouter', 'ShieldGrid'],
+      kinds: ['required', 'required'],
     }),
     code: 'NEXUS_CIRCULAR_DEPENDENCY',
-    fields: { path: ['ShieldGrid', 'PowerRouter', 'ShieldGrid'] },
+    fields: {
+      path: ['ShieldGrid', 'PowerRouter', 'ShieldGrid'],
+      kinds: ['required', 'required'],
+    },
   },
   {
     name: 'LifetimeError',

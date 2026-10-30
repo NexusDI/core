@@ -31,6 +31,7 @@ describe('R18', () => {
     expect(error).toMatchObject({
       code: 'NEXUS_CIRCULAR_DEPENDENCY',
       path: ['Helm', 'Navigation', 'Sensors', 'Helm'],
+      kinds: ['required', 'required', 'required'],
     });
     expectCoreLine(error as NexusError);
   });
