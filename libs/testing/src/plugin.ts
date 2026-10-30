@@ -28,7 +28,8 @@ export interface TestingState {
 /**
  * The tokens and module definitions a module of the view exports, and
  * through each module it re-exports, what that module exports. A module a
- * compile.module hook replaced counts under its original definition too.
+ * compile.module hook replaced counts under its original definition too, and
+ * so does every MultiToken any of those modules names in its exports.
  */
 function exportsOf(view: BlueprintView, stub: ModuleDefinition): Set<unknown> {
   const exported = new Set<unknown>();
@@ -37,7 +38,13 @@ function exportsOf(view: BlueprintView, stub: ModuleDefinition): Set<unknown> {
     if (seen.has(id)) return;
     seen.add(id);
     const module = view.modules.find((m) => m.id === id);
-    for (const entry of module?.exports ?? []) {
+    if (module === undefined) return;
+    // A MultiToken a module names in its exports counts as exported. The view
+    // lists only the module's own records of it, and a module with none is
+    // legal.
+    for (const entry of module.definition.exports)
+      if (entry instanceof MultiToken) exported.add(view.canonical(entry));
+    for (const entry of module.exports) {
       const provider = view.providers.find((p) => p.id === entry);
       if (provider !== undefined) exported.add(provider.token);
       const reexported = view.modules.find((m) => m.id === entry);
@@ -49,10 +56,6 @@ function exportsOf(view: BlueprintView, stub: ModuleDefinition): Set<unknown> {
   };
   const module = view.modules.find((m) => m.definition === stub);
   if (module !== undefined) visit(module.id);
-  // A MultiToken the stub names in its exports counts as exported. The view
-  // lists only the stub's own records of it, and a stub with none is legal.
-  for (const entry of stub.exports)
-    if (entry instanceof MultiToken) exported.add(view.canonical(entry));
   return exported;
 }
 

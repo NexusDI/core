@@ -288,6 +288,58 @@ describe('createTestingContainer', () => {
     expect(ship.get(DIAGNOSTICS)).toEqual([]);
   });
 
+  it('accepts a stub whose re-exported module names a MultiToken the original exports, with no records', async () => {
+    const CHECKS = new MultiToken<string>('Checks');
+    const Inner = defineModule({ name: 'Inner', exports: [CHECKS] });
+    const Feature = defineModule({
+      name: 'Feature',
+      providers: [provide(CHECKS, { useValue: 'x' })],
+      exports: [CHECKS],
+    });
+    const Stub = defineModule({
+      name: 'Stub',
+      imports: [Inner],
+      exports: [Inner],
+    });
+    await using ship = await createTestingContainer(
+      defineModule({ name: 'Root', imports: [Feature] }),
+    )
+      .overrideModule(Feature, Stub)
+      .create();
+    expect(ship.get(CHECKS)).toEqual([]);
+  });
+
+  it('counts a MultiToken a stub reaches through two levels of re-export, one module on two paths', async () => {
+    const CHECKS = new MultiToken<string>('Checks');
+    const Inner = defineModule({ name: 'Inner', exports: [CHECKS] });
+    const Side = defineModule({
+      name: 'Side',
+      imports: [Inner],
+      exports: [Inner],
+    });
+    const Mid = defineModule({
+      name: 'Mid',
+      imports: [Inner, Side],
+      exports: [Inner, Side],
+    });
+    const Feature = defineModule({
+      name: 'Feature',
+      providers: [provide(CHECKS, { useValue: 'x' })],
+      exports: [CHECKS],
+    });
+    const Stub = defineModule({
+      name: 'Stub',
+      imports: [Mid],
+      exports: [Mid],
+    });
+    await using ship = await createTestingContainer(
+      defineModule({ name: 'Root', imports: [Feature] }),
+    )
+      .overrideModule(Feature, Stub)
+      .create();
+    expect(ship.get(CHECKS)).toEqual([]);
+  });
+
   it('rejects NEXUS_OVERRIDE_UNUSED for an override that matches nothing', async () => {
     const error = await rejected(
       createTestingContainer(defineModule({ name: 'Root' }))
