@@ -95,7 +95,7 @@ export async function main(argv: readonly string[], io: Io): Promise<number> {
     ]);
     requireCore(version);
     // graph.js imports @nexusdi/core, so it loads after the presence check.
-    const { graphFor } = await import('./graph.js');
+    const { graphFor, uncheckedWarnings } = await import('./graph.js');
     const { graph, devtools, from } = await graphFor(command, io.cwd, version);
     const data = await render(
       graph,
@@ -105,6 +105,8 @@ export async function main(argv: readonly string[], io: Io): Promise<number> {
       from,
     );
     await emit(data, command.out, io.stdout);
+    const warnings = uncheckedWarnings(graph);
+    if (warnings !== '') await writeTo(io.stderr, warnings);
     return 0;
   } catch (error) {
     if (error instanceof CliError) {

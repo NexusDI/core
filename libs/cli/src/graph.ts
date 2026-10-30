@@ -19,11 +19,15 @@ export interface GraphResult {
 }
 
 /**
- * The CliError for an error inspect() threw, or null for an error the CLI
- * does not classify. Any NexusError is classified, a third party's included.
+ * The CliError for an error inspect() threw. Any NexusError is classified,
+ * a third party's included. Nexus.check wraps an error from a plugin hook
+ * in a NexusError and lets an error from a forRoot() options schema
+ * propagate, so a schema is the usual source of any other value; a bug in
+ * core or devtools is the other. Exit 1, since Nexus.create fails on a
+ * throwing schema too.
  */
-export function inspectFailure(error: unknown): CliError | null {
-  if (!isNexusError(error)) return null;
+export function inspectFailure(error: unknown): CliError {
+  if (!isNexusError(error)) return schemaFailure(error);
   if (isNexusError(error, 'NEXUS_BLUEPRINT_INVALID'))
     return new CliError(1, error.message);
   // Core throws some input errors before it compiles, such as an object
@@ -31,6 +35,46 @@ export function inspectFailure(error: unknown): CliError | null {
   // wrong and no graph was checked, so exit 2. Core's message ends in its
   // Fix line.
   return new CliError(2, error.message);
+}
+
+/**
+ * Exit 1 with the error's message and, for an Error, its stack frames,
+ * which show whether a schema threw.
+ */
+function schemaFailure(error: unknown): CliError {
+  const frames =
+    error instanceof Error && error.stack !== undefined
+      ? error.stack
+          .split('\n')
+          .filter((line) => line.startsWith('    at '))
+          .map((line) => `\n${line}`)
+          .join('')
+      : '';
+  const message = error instanceof Error ? error.message : String(error);
+  return new CliError(
+    1,
+    `the check threw an error that is not a NexusError, as a forRoot() options schema that throws does: ${message}${frames}`,
+    'If a frame points at a schema, return the problem as issues from its validate() so the command names the module. Otherwise report the stack to NexusDI.',
+  );
+}
+
+/**
+ * One stderr line per module whose options Nexus.check left unchecked, or ''
+ * for none. A reason this CLI does not know gets the default line.
+ */
+export function uncheckedWarnings(graph: NexusGraph): string {
+  return graph.unchecked
+    .map(({ module, reason }) => {
+      switch (reason) {
+        case 'async-schema':
+          return `nexusdi: warning: the options of ${module} are unchecked: its schema is async, so only Nexus.create validates them.\n`;
+        case 'for-root-async':
+          return `nexusdi: warning: the options of ${module} are unchecked: forRootAsync() gives them only at create, so only Nexus.create validates them.\n`;
+        default:
+          return `nexusdi: warning: the options of ${module} are unchecked (reason ${JSON.stringify(String(reason))}), so only Nexus.create validates them.\n`;
+      }
+    })
+    .join('');
 }
 
 /**
@@ -163,6 +207,6 @@ export async function graphFor(
     });
     return { graph, devtools, from: command.entry.path };
   } catch (error) {
-    throw inspectFailure(error) ?? error;
+    throw inspectFailure(error);
   }
 }
