@@ -88,9 +88,9 @@ A section that cannot import a host module by name takes a [grant](#giving-a-loa
 
 ## Giving a Loaded Plugin Access to Host Services
 
-When a host loads code it does not own (such as a runtime plugin package or a federation remote), that code often requires access to host services. For example, a plugin might need the ship's star charts to function. Because the plugin is loaded dynamically, it cannot import the host's modules by name. Previously, hosts solved this by making services global, but that exposed those services to every module in the graph, regardless of whether they needed them.
+When a host loads code it does not own (such as a runtime plugin package or a federation remote), that code often requires access to host services. For example, a plugin might need the ship's star charts to function. Because the plugin is built apart from the host, it cannot import the host's modules by name. Without a grant, the host has to make the module global, and then every module in the graph sees its exports.
 
-A **grant** provides a targeted alternative. By using `load(module, { imports })`, the host explicitly names which modules the loaded code can "see" as if they had been imported. This restricts visibility to only the requested modules for that specific load. In contrast, a lazy feature within the host's own codebase continues to import host modules by name and requires no grant.
+A **grant** names the host modules whose exports the modules a load adds can see, as if they imported them. `load(module, { imports })` takes the grant, and no other module in the graph sees anything new. A lazy feature within the host's own codebase imports host modules by name and needs no grant. A grant is wiring, with no isolation and no security boundary.
 
 The following example shows a plugin `Survey` that depends on `NAV_CHARTS`, which is exported by the host module `Tactical`. Because `Survey` cannot import `Tactical` directly, the first load attempt fails with `NEXUS_BLUEPRINT_INVALID`. The second load succeeds because it grants access to `Tactical`:
 
@@ -102,9 +102,9 @@ The following example shows a plugin `Survey` that depends on `NAV_CHARTS`, whic
 
 ### A Grant Reaches the Whole Loaded Subtree
 
-A grant extends to the entire dependency tree introduced by the load. This includes the primary loaded module and any modules in its subtree that were not already present in the graph. Each of these modules can access the exports (including re-exports) of the granted modules. A grant only exposes a module's public exports. It gives none of that module's private providers.
+A grant reaches every module the load adds: the loaded module and each module of its import subtree that the graph did not hold. Each of these modules can access the exports (including re-exports) of the granted modules. A grant only exposes a module's public exports. It gives none of that module's private providers.
 
-In the example below, `Survey` imports `Sensors`, and `Sensors` provides the probe that requires `NAV_CHARTS`. A single grant on the initial load satisfies the requirements for both modules:
+In the example below, `Survey` imports `Sensors`, and `Sensors` provides the probe that requires `NAV_CHARTS`. The grant on the load of `Survey` also reaches `Sensors`, so `DeepProbe` resolves `NAV_CHARTS`:
 
 ```ts file=examples/meridian/src/pages/load.md region=load-grant-subtree
 
@@ -116,15 +116,15 @@ The blueprint records this grant for every module added during the load. Subsequ
 
 ### What a Grant Accepts and Refuses
 
-NexusDI validates grants against the current container graph. An invalid grant rejects with [NEXUS_LOAD_GRANT](/errors/NEXUS_LOAD_GRANT/), returning an error object with the `module` being loaded, the `grant` being attempted, and a `reason` field.
+NexusDI validates grants against the current container graph. `load()` rejects an invalid grant with [NEXUS_LOAD_GRANT](/errors/NEXUS_LOAD_GRANT/). The error carries `module`, `grant` and `reason`.
 
-- **`not-in-graph`**: A grant only adds visibility; it does not load the module itself. Every granted module must already exist in the graph. The host passes the object it imported. Passing the result of a fresh `forRoot()` call fails with this reason because it creates a new definition not yet in the graph.
-- **`root`**: The root module cannot be granted. If a loaded module needs root providers, the host must export those providers from a different module and grant that module instead.
+- **`not-in-graph`**: A grant only adds visibility; it does not load the module itself. Every granted module must already exist in the graph. The host passes the object it imported. A fresh `forRoot()` call returns a new definition, so granting it fails with this reason.
+- **`root`**: The root module cannot be granted. If a loaded module needs root providers, the host must export those providers from a different module and grant that module.
 - **`already-loaded`**: A repeat `load()` of a module already in the graph is ignored if the grant set is identical (ignoring order) or empty. If the repeat load attempts to provide a different set of grants, it fails with this reason. Similarly, loading a module that the root already imports statically fails if any grant is provided, as the root records no grant for that module.
 
 Granting a global module is legal but redundant, as every module in the graph already sees the exports of a global module.
 
-The following example demonstrates these constraints: `Fresh` is not yet in the graph, `Meridian` is the root, and the final calls attempt to reload `Survey` with different grants and grant `Tactical` (a root-imported module):
+The following example demonstrates these constraints: `Fresh` is not yet in the graph, `Meridian` is the root, and the last two calls load `Survey` again with another grant, then load `Tactical`, which the root imports, with a grant:
 
 ```ts file=examples/meridian/src/pages/load.md region=load-import-reasons
 
@@ -134,7 +134,7 @@ The following example demonstrates these constraints: `Fresh` is not yet in the 
 
 ### Checking a Grant before Startup
 
-To validate loading logic without initializing the container, use `Nexus.check(root, { load })`. This synchronously compiles each module in the `load` list against the root. An entry takes a grant as `{ module, imports }` in place of the module.
+To validate loading logic without initializing the container, use `Nexus.check(root, { load })`. This synchronously compiles each entry of the `load` list against the root and the entries before it, and stops at the first compile that fails. An entry takes a grant as `{ module, imports }` in place of the module.
 
 `Nexus.check` returns a `CheckReport` if all compilations pass. The `unchecked` array in the report lists modules whose options can only be validated by `Nexus.create`. If a compilation fails, it throws `NEXUS_BLUEPRINT_INVALID`, and the specific grant error is listed in the `errors` array.
 
@@ -150,16 +150,16 @@ The grant configuration is passed as the second argument to `di.load(module, opt
 
 These adapters call `loadOnce(container)` from `@nexusdi/core`. This ensures `load()` is called only once per module and grant set, sharing the pending promise across concurrent requests. If a load fails, it is removed from the cache so that subsequent requests can attempt the load again.
 
-Each module view maintains a `grants` list containing the IDs that a grant added to the module's imports. You can view these via `graph()`, `inspect()` from `@nexusdi/devtools`, or the `nexusdi graph` CLI tool. In diagram outputs, grants are drawn distinctly from standard imports ([Introspection](/introspection/)). `inspect()` also lists in `unchecked` the modules whose options only `Nexus.create` can validate.
+Each module view has a `grants` list with the ids that a grant added beyond the module's own imports. You can view these via `graph()`, `inspect()` from `@nexusdi/devtools`, or the `nexusdi graph` CLI tool. `toMermaid()` and `toDot()` draw a grant as a dashed edge and an import as a solid edge ([Introspection](/introspection/)). `inspect()` also lists in `unchecked` the modules whose options only `Nexus.create` can validate.
 
-A grant is a wiring mechanism; it does not provide process isolation or a security boundary. Because the loaded module runs in the host's process, it can access anything the host's code can. The grant solely determines which module exports the loaded module's providers can name as dependencies.
+A grant is a wiring mechanism; it does not provide process isolation or a security boundary. Because the loaded module runs in the host's process, it can access anything the host's code can. The grant determines which module exports the loaded module's providers can name as dependencies.
 
 ## Design Constraints
 
 To maintain the integrity of the graph, NexusDI imposes a few restrictions on dynamic loading:
 
 - **No Global Modules:** You cannot `load()` a module marked as `global: true`. Global modules must be declared in the root module at startup because they affect the visibility of every other module. A global module makes its exports visible to every module, so a global module new to the graph would change what every existing module sees. Import a global module from the root module before `Nexus.create`, or load it without `global: true`. A host that wants a loaded module to see one of its modules [grants that module](#giving-a-loaded-plugin-access-to-host-services) in the load, and the module need not be global.
-- **No contributions to Multi Tokens.** A loaded module cannot publish a contribution to a [`MultiToken`](/multi-providers/). Because a collector created by `Nexus.create` holds its own list, a subsequent `load()` cannot extend it. The load guard determines if a contribution is published by checking if the module exports the token or if a `compile.provider` hook pins the token to it; pins created during a load also count as publishing. Contributions kept private by the module remain legal, and the module reads them itself. To add a provider from a loaded module to a collector, register it via a registry offered by the collector during the module's `onInit` and unregister it when the module is disposed.
+- **No Contributions to Multi Tokens:** A loaded module cannot publish a contribution to a [`MultiToken`](/multi-providers/). Because a collector created by `Nexus.create` holds its own list, a subsequent `load()` cannot extend it. `load()` treats a contribution as published when the module exports the token, or when a [`compile.provider` hook](/write-a-plugin/#common-hooks) replaces the provider with `pin: true`, which makes it visible in every module. A pin first made during the load counts too. Contributions kept private by the module remain legal, and the module reads them itself. To add a provider from a loaded module to a collector, register it via a registry offered by the collector during the module's `onInit` and unregister it when the module is disposed.
 - **Sealed Container:** Once a provider is registered, it cannot be changed. `load()` adds new providers but does not allow you to replace existing ones.
 
 `load()` rejects a global module with [NEXUS_LOAD_GLOBAL_MODULE](/errors/NEXUS_LOAD_GLOBAL_MODULE/), which it throws directly, outside a `NEXUS_BLUEPRINT_INVALID` error. Its `module` property names the module, `Science` here:
@@ -178,7 +178,7 @@ To maintain the integrity of the graph, NexusDI imposes a few restrictions on dy
 
 **Try it:** Save the region as `contribution.ts` and run it. It prints `NEXUS_LOAD_CONTRIBUTION`, `Survey` and `Systems`, one per line. Delete the `exports: [SYSTEMS],` line and run it again: the load resolves and it prints `undefined` three times.
 
-In a test, `override(token, def, { lazy: true })` and `overrideModule(module, def, { lazy: true })` from `@nexusdi/testing` replace what a later `load()` adds ([Testing](/testing/)).
+In a test, `createTestingContainer(root).override(token, def, { lazy: true })` and `.overrideModule(module, def, { lazy: true })` let a later `load()` be the first use of the override, so `create()` does not report it unused ([Testing](/testing/)).
 
 ### Adding to a Collector from a Loaded Module
 
@@ -200,7 +200,7 @@ In 0.3, `set()` registered one provider into a mutable container at any time, be
 - `load()` of a module the root already imports, or a second `load()` of the same module, does nothing when the call passes no load imports or the load imports that module already has. Another set of load imports fails with `already-loaded`.
 - Concurrent `load()` calls run one at a time, in call order.
 - `get()` of a token from a module that is not loaded yet throws `NEXUS_MISSING_PROVIDER`.
-- `load()` cannot publish a contribution to a `MultiToken`: the module exports the token, or a `compile.provider` hook pins it, and a pin first made at a load counts. It fails with `NEXUS_LOAD_CONTRIBUTION`.
+- A loaded module cannot publish a contribution to a `MultiToken`. It publishes one when it exports the token or a `compile.provider` hook pins the provider, a pin first made at the load included. `load()` then fails with `NEXUS_LOAD_CONTRIBUTION`.
 - `load(module, { imports })` grants the exports of host modules already in the graph to every module the load adds. A grant gives no private providers, is recorded per module and stays fixed on later loads. It fails with `NEXUS_LOAD_GRANT` for a module outside the graph (`not-in-graph`), the root (`root`) or another set on a repeat (`already-loaded`).
 - `Nexus.check(root, { load: [{ module, imports }] })` checks a grant synchronously and reports its error inside `NEXUS_BLUEPRINT_INVALID`.
 - A grant is wiring, with no isolation and no security boundary.
