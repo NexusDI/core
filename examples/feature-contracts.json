@@ -53,7 +53,7 @@
     {
       "feature": "NEXUS_REACT_SECTION_FAILED with its fix line",
       "file": "bridge-console/tests/contracts/section.contract.test.tsx",
-      "test": "NEXUS_REACT_SECTION_FAILED names the section, carries the load error and words a fix line, while the fallback reads the raw load error"
+      "test": "NEXUS_REACT_SECTION_FAILED names the section, carries the load error and words a fix line, and the fallback and onError receive that same error"
     },
     {
       "feature": "react() TransientInRender with its fix line",

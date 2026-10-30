@@ -8,6 +8,8 @@ import {
   Component,
   Suspense,
   use,
+  useLayoutEffect,
+  useState,
   type ComponentType,
   type ReactElement,
   type ReactNode,
@@ -15,7 +17,12 @@ import {
 
 import { useNexusContext } from './context.js';
 import { dev } from './dev.js';
-import { sectionConflict, sectionFailed } from './errors.js';
+import {
+  sectionConflict,
+  sectionFailed,
+  type SectionConflictError,
+  type SectionError,
+} from './errors.js';
 import { useHydrated } from './hydrated.js';
 import type { SectionEntry, SectionSlot, Store } from './store.js';
 
@@ -40,25 +47,28 @@ export function lazySection(
   return Object.freeze({ name, loader, options });
 }
 
+/** The error an `errorFallback` and `onError` receive: the SectionError of a load failure, with the load error as its `cause`, or the SectionConflictError of a conflict. */
+type SectionFailure = SectionError | SectionConflictError;
+
 /** The props of `SectionBoundary`: the section to load, the fallbacks for loading and for a load failure, and a callback for each failure. */
 export interface SectionBoundaryProps {
   section: LazySection;
   /** Rendered on the server, during hydration and while the section loads. */
   fallback?: ReactNode;
-  /** Rendered for a load failure. Without it the boundary rethrows the error. */
-  errorFallback?: ComponentType<{ error: unknown; retry(): void }>;
-  /** Called once per load failure. */
-  onError?(error: unknown): void;
+  /** Rendered for a load failure. It receives the SectionError, with the load error as its `cause`. Without it the boundary rethrows that SectionError. */
+  errorFallback?: ComponentType<{ error: SectionFailure; retry(): void }>;
+  /** Called once per load failure with the same error `errorFallback` receives. */
+  onError?(error: SectionFailure): void;
   children?: ReactNode;
 }
 
 /**
  * Each rejection of a section's promise, mapped to the section it belongs
- * to and the error the boundary hands onError and errorFallback. A load
- * error becomes the cause of a SectionError, so React logs the section
- * name with it. A conflict error maps to itself.
+ * to. The boundary hands onError, errorFallback and React the marked error
+ * itself: a SectionError that carries the load error as its cause, or a
+ * SectionConflictError.
  */
-const loadFailures = new WeakMap<Error, { section: string; error: unknown }>();
+const loadFailures = new WeakMap<Error, { section: string }>();
 
 /**
  * The load failure of `section` that `thrown` is, or undefined. A
@@ -74,7 +84,7 @@ const failureOf = (thrown: unknown, section: string) => {
 const marked = (section: string, error: unknown): Error => {
   if (error instanceof Error && loadFailures.has(error)) return error;
   const failure = sectionFailed(section, error);
-  loadFailures.set(failure, { section, error });
+  loadFailures.set(failure, { section });
   return failure;
 };
 
@@ -170,7 +180,7 @@ function recheck(
 ): SectionEntry {
   const conflict = () => {
     const error = sectionConflict(section.name);
-    loadFailures.set(error, { section: section.name, error });
+    loadFailures.set(error, { section: section.name });
     return error;
   };
   return new Entry(section.name, () =>
@@ -231,51 +241,135 @@ function forget(store: Store, section: LazySection, failure: Error) {
     slot.checks.delete(section);
 }
 
+/**
+ * Commits, then reports `failure` and throws it on its next render. A
+ * failure reaches React only after a commit, so a render React retries or
+ * discards reports and clears nothing, and every failure clears its entry.
+ */
+function Deliver({
+  failure,
+  report,
+}: {
+  failure: Error;
+  report(failure: Error): void;
+}): ReactNode {
+  const [thrown, setThrown] = useState(false);
+  useLayoutEffect(() => {
+    report(failure);
+    // The commit is the point: the next render throws the failure to React.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the throw must follow a commit
+    setThrown(true);
+  }, [failure, report]);
+  if (thrown) throw failure;
+  return null;
+}
+
 function Gate({
   section,
+  report,
   children,
 }: {
   section: LazySection;
+  report(failure: Error): void;
   children?: ReactNode;
 }): ReactNode {
   const { store } = useNexusContext('SectionBoundary');
-  use(entryFor(store, section).promise);
+  const entry = entryFor(store, section);
+  if (entry.failure === undefined) use(entry.promise);
+  if (entry.failure !== undefined)
+    return <Deliver failure={entry.failure as Error} report={report} />;
   return children;
 }
 
 interface CatcherProps {
   readonly store: Store;
   readonly section: LazySection;
-  readonly errorFallback?: ComponentType<{ error: unknown; retry(): void }>;
-  readonly onError?: (error: unknown) => void;
+  readonly errorFallback?: SectionBoundaryProps['errorFallback'];
+  readonly onError?: SectionBoundaryProps['onError'];
+  readonly fallback: ReactNode;
   readonly children?: ReactNode;
 }
 
 class Catcher extends Component<CatcherProps, { failure: unknown }> {
   override state: { failure: unknown } = { failure: null };
 
+  /** The failures this boundary has reported to onError and cleared from the store. */
+  private readonly reported = new WeakSet<Error>();
+
+  /** The load promises this boundary watches for a failure after it unmounts. */
+  private readonly watched = new WeakSet<Promise<void>>();
+
+  private mounted = false;
+
   static getDerivedStateFromError(error: unknown) {
     return { failure: error };
   }
 
-  override componentDidCatch(thrown: unknown) {
-    const failure = failureOf(thrown, this.props.section.name);
-    if (failure === undefined) return;
-    forget(this.props.store, this.props.section, thrown as Error);
-    this.props.onError?.(failure.error);
+  /** Clears the store entry and calls onError, once per failure of this boundary. */
+  private readonly report = (
+    failure: Error,
+    section: LazySection = this.props.section,
+  ) => {
+    if (this.reported.has(failure)) return;
+    this.reported.add(failure);
+    forget(this.props.store, section, failure);
+    this.props.onError?.(failure as SectionFailure);
+  };
+
+  /**
+   * Watches the entry Gate rendered last. A boundary unmounted before that
+   * load fails reports at once, so the entry clears and a later boundary
+   * loads again. A retry or a new handle gives Gate a new entry, and the
+   * next commit watches that one too.
+   */
+  private watch() {
+    const { store, section } = this.props;
+    const slot = store.sections.get(section.name);
+    const entry =
+      slot?.handle === section ? slot.origin : slot?.checks.get(section);
+    if (entry === undefined || this.watched.has(entry.promise)) return;
+    this.watched.add(entry.promise);
+    entry.promise.catch((thrown: unknown) => {
+      if (!this.mounted && failureOf(thrown, section.name) !== undefined)
+        this.report(thrown as Error, section);
+    });
+  }
+
+  override componentDidMount() {
+    this.mounted = true;
+    this.watch();
+  }
+
+  override componentDidUpdate() {
+    this.watch();
+  }
+
+  override componentWillUnmount() {
+    this.mounted = false;
   }
 
   override render() {
     const { failure } = this.state;
-    if (failure === null) return this.props.children;
-    // The section's own components threw: the app's boundary handles it.
-    const load = failureOf(failure, this.props.section.name);
-    if (load === undefined) throw failure;
-    const { error } = load;
+    if (failure === null)
+      return (
+        <Suspense fallback={this.props.fallback}>
+          <Gate section={this.props.section} report={this.report}>
+            {this.props.children}
+          </Gate>
+        </Suspense>
+      );
     const Fallback = this.props.errorFallback;
-    if (Fallback === undefined) throw error;
+    // The section's own components threw, or no errorFallback: the app's boundary handles it.
+    if (
+      failureOf(failure, this.props.section.name) === undefined ||
+      Fallback === undefined
+    )
+      throw failure;
     return (
-      <Fallback error={error} retry={() => this.setState({ failure: null })} />
+      <Fallback
+        error={failure as SectionFailure}
+        retry={() => this.setState({ failure: null })}
+      />
     );
   }
 }
@@ -303,10 +397,9 @@ export function SectionBoundary({
       section={section}
       errorFallback={errorFallback}
       onError={onError}
+      fallback={fallback}
     >
-      <Suspense fallback={fallback}>
-        <Gate section={section}>{children}</Gate>
-      </Suspense>
+      {children}
     </Catcher>
   );
 }
