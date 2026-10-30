@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { Token, defineModule, provide } from '@nexusdi/core';
+import { Token, defineModule, optional, provide } from '@nexusdi/core';
 
 import { inspect } from './index.js';
 
@@ -39,5 +39,19 @@ describe('inspect', () => {
       ],
     });
     expect(inspect(Navigation).providers[0]?.implementation).toBeNull();
+  });
+
+  it('lists the deps that bound to no provider in unresolved', () => {
+    class SubspaceLink {}
+    class PhasedArray {
+      constructor(readonly link: SubspaceLink | undefined) {}
+    }
+    const Meridian = defineModule({
+      name: 'Meridian',
+      providers: [provide(PhasedArray, { deps: [optional(SubspaceLink)] })],
+    });
+    expect(inspect(Meridian).providers[0]?.unresolved).toEqual([
+      'SubspaceLink',
+    ]);
   });
 });

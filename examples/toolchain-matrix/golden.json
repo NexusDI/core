@@ -41,6 +41,7 @@
         "eager": true,
         "async": true,
         "notes": [],
+        "unresolved": [],
         "implementation": null,
         "internal": false
       },
@@ -53,6 +54,7 @@
         "eager": true,
         "async": false,
         "notes": [],
+        "unresolved": [],
         "implementation": null,
         "internal": false
       },
@@ -65,6 +67,7 @@
         "eager": true,
         "async": false,
         "notes": [],
+        "unresolved": [],
         "implementation": "Bridge",
         "internal": false
       },
@@ -77,6 +80,7 @@
         "eager": true,
         "async": false,
         "notes": [],
+        "unresolved": [],
         "implementation": "ReactorCore",
         "internal": false
       },
@@ -89,6 +93,7 @@
         "eager": true,
         "async": false,
         "notes": [],
+        "unresolved": [],
         "implementation": "ShipComputer",
         "internal": false
       },
@@ -101,6 +106,7 @@
         "eager": true,
         "async": false,
         "notes": [],
+        "unresolved": [],
         "implementation": "PowerRouter",
         "internal": false
       },
@@ -113,6 +119,7 @@
         "eager": true,
         "async": false,
         "notes": [],
+        "unresolved": [],
         "implementation": "ShieldGrid",
         "internal": false
       },
@@ -125,6 +132,7 @@
         "eager": true,
         "async": false,
         "notes": [],
+        "unresolved": [],
         "implementation": null,
         "internal": true
       }
