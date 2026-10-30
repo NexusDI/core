@@ -174,16 +174,16 @@ runtime calls `await scope.extend()` after the load.
 
 The deck view draws eight layers, bottom to top. Layers 1 to 3 draw the base, the props and the light of design system 8.2, with the light clipped by its masks. Layers 4 and 5 are the vector layers of 8.4, and layers 6 to 8 belong to this spec. While the overlay is on, layer 4 dims to 40%, so a dashed DI edge never reads as a duct (8.4).
 
-| #   | Layer     | Draws                                                                                                                                       | Source                                      |
-| --- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| 1   | base      | the painted deck base, two tiles per deck, on the `screen` floor                                                                            | the painted deck bases and their sidecars   |
-| 2   | props     | one sprite per fixture and door, in its current state frame                                                                                 | the prop sprites, atlases per deck          |
-| 3   | light     | lamp and alarm light sprites into a half-resolution light texture, clipped per room, multiplied over 1 and 2; the emissive mask added after | the room-id and emissive masks              |
-| 4   | conduits  | power, coolant and atmosphere lines with the state hues of design system 8.4                                                                | `conduits` in the geometry                  |
-| 5   | overlay   | the network overlay: providers at fixtures, DI edges, empty sockets                                                                         | the graph (`GET /graph` or the run's graph) |
-| 6   | focus     | the focus outline in `action`, the selected item's outline in `data`, the scope brackets of 5.6 in `data`                                   | the DOM layer's focus and the deck state    |
-| 7   | callouts  | `HoloLabel` plates with leader lines, placed by the camera over the canvas                                                                  | the deck state and the map's triggers       |
-| 8   | DOM layer | the deck directory: every room, door, fixture and alarm as text and controls                                                                | the deck state                              |
+| #   | Layer     | Draws                                                                                                                                             | Source                                      |
+| --- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| 1   | base      | the painted deck base, two tiles per deck, on the `screen` floor                                                                                  | the painted deck bases and their sidecars   |
+| 2   | props     | one sprite per fixture and door, in its current state frame                                                                                       | the prop sprites, atlases per deck          |
+| 3   | light     | lamp, glow and alarm light sprites into a half-resolution light texture, clipped per room, multiplied over 1 and 2; the emissive mask added after | the room-id and emissive masks              |
+| 4   | conduits  | power, coolant and atmosphere lines with the state hues of design system 8.4                                                                      | `conduits` in the geometry                  |
+| 5   | overlay   | the network overlay: providers at fixtures, DI edges, empty sockets                                                                               | the graph (`GET /graph` or the run's graph) |
+| 6   | focus     | the focus outline in `action`, the selected item's outline in `data`, the scope brackets of 5.6 in `data`                                         | the DOM layer's focus and the deck state    |
+| 7   | callouts  | `HoloLabel` plates with leader lines, placed by the camera over the canvas                                                                        | the deck state and the map's triggers       |
+| 8   | DOM layer | the deck directory: every room, door, fixture and alarm as text and controls                                                                      | the deck state                              |
 
 Layers 7 and 8 are DOM, so their text scales with the reader's text size and reaches assistive technology. Layer 7 follows the camera through one CSS
 transform per frame. Layer 8 sits beside the canvas (4.10). The interactive mask is data
@@ -305,8 +305,8 @@ A map names ids alone and holds no position, so the layout keeps one copy.
 
 The geometry gains two fields on each fixture, as design system 8.5 sets: `states`, the
 list of state frames its prop sprite holds (one of `on`, `off`, `damaged`, `open`,
-`closed`, or `default` for a prop with one frame), and `emissive`, true for a screen or
-lamp housing. Each door has the states `open` and `closed`. A map's `start` and every
+`closed`, or `default` for a prop with one frame), and `emissive`, true for a screen. A
+lamp housing carries the flag on its light in the geometry's `lights` list (design system 8.5). Each door has the states `open` and `closed`. A map's `start` and every
 effect may only name a state the fixture lists, and the guard checks it.
 
 The format is versioned by `$schema`. A runtime that reads a map with a newer schema

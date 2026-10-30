@@ -201,6 +201,7 @@ appears in the chrome.
 | `hull-paint`  | `#9aa1a8`                                                       | the hull's main plates                                      |
 | `hull-shadow` | `#4a5058`                                                       | recessed plates, the neck, the nacelle pylons               |
 | `lamp`        | `#e8b46a`                                                       | the tint of the light sprites in powered rooms (8.2)        |
+| `glow`        | `#dfe6ea`                                                       | the tint of the light sprite over a powered screen or core  |
 | `glass`       | `#1a2a33`                                                       | the bridge window strip, before the starfield shows through |
 | `hazard`      | `action-fill` striped with `on-action` at 45°, 8 px bands at 1x | bay doors and hatches                                       |
 
@@ -490,9 +491,9 @@ The deck map draws four layers, bottom to top, and bakes no light into any of th
    frame per state the simulation knows for it: `on`, `off`, `damaged`, `open`,
    `closed`. A prop with no state has one frame.
 3. Masks, generated from the geometry by `tools/meridian-ship`: a room-id mask (each
-   compartment in its own index value), an emissive mask (screens and lamp housings) and an interactive mask (the hit areas of doors and fixtures). The
+   compartment in its own index value), an emissive mask (screens, and the lamp housings of the geometry's `lights` list) and an interactive mask (the hit areas of doors and fixtures). The
    masks are data and never draw on screen.
-4. Light, drawn by Pixi at run time: light sprites (soft radial textures tinted `lamp` for room light or
+4. Light, drawn by Pixi at run time: light sprites (soft radial textures tinted `lamp` for room light, `glow` over a screen or core, or
    `alarm` for an alarm) render into a light texture, the room-id mask clips each light to
    its room so no light crosses a wall, and the light texture multiplies over the base
    and the props. The emissive mask adds a fixed glow where a powered screen or lamp sits.
@@ -570,6 +571,16 @@ an `emissive` flag (the emissive mask of 8.2). Each map is a JSON file in
 starting state and its triggers, every one by fixture or door id, and the geometry test
 checks that every id a map names exists in the geometry. The map files hold no positions,
 so the layout has one copy.
+
+The geometry also holds a `lights` list, so the deck view knows where to draw the light
+sprites of 8.2. Each light names its room and deck, its housing as a box, its kind (`lamp`
+or `strip` under the ceiling, `flood` in a bay, `glow` over a screen or a core), its art
+colour (`lamp`, or `glow` for a glow), the reach of its sprite in metres, an `emissive`
+flag and the states `on` and `off`. The deck state derives those states, and no map sets
+them: a lamp, strip or flood follows its room's light, and a glow follows the state of the
+fixture it names. The deck base paints the housings. The emissive mask covers the housings
+marked `emissive`, and the deck view shows a housing's glow only while its light is on, so
+a dark room or bay keeps no lit lamps.
 
 ## 9. Motion
 
@@ -735,8 +746,8 @@ screens.
 - `tools/meridian-ship/build_ship.py` writes the frame sidecar of 8.3 beside each
   orthographic render, and `ship_svg.py` or a sibling script writes the room-id,
   emissive and interactive masks of 8.2 per deck at 32 pixels per metre. The emissive
-  mask needs a fixture field that marks a fixture as emissive, which the geometry lacks
-  today, so the geometry gains `emissive` and `states` on each fixture (8.5), and its test
+  mask needs a fixture field that marks a screen as emissive, which the geometry lacks
+  today (lamp housings carry the flag on their light in `lights`), so the geometry gains `emissive` and `states` on each fixture (8.5), and its test
   checks the map files' ids.
 
 ## 13. Risks
