@@ -53,13 +53,13 @@ Cyclic dependencies often occur when a collector, such as an event bus, interact
 
 **SubspaceBus** accepts `lazy(all(HANDLERS))` and executes the thunk inside the `publish()` method after `Nexus.create` has completed. **AlertHandler** depends on `EVENT_BUS` and publishes a second bulletin upon hearing `hull breach`. Consequently, `LogHandler` processes the nested `all hands` bulletin before the `hull breach` bulletin. [Collectors Their Contributors Call](/lazy/#collectors-their-contributors-call) describes the thunk and the errors it throws.
 
-**Try it:** Save the region as `bus.ts` and run it. It prints `[ 'all hands', 'hull breach' ]`. Change `SubspaceBus`'s deps to `[all(HANDLERS)] as const`, its parameter to `IHandler[]` and the loop to `for (const each of this.handlers)`, and run it again: `Nexus.create` rejects, and the region below shows what you see. Change them back when you are done.
+**Try it:** Save the region as `bus.ts` and run it. It prints `[ 'all hands', 'hull breach' ]`. Change `SubspaceBus`'s deps to `[all(HANDLERS)] as const`, its parameter to `IHandler[]` and the loop to `for (const each of this.handlers)`, and run it again: `Nexus.create` rejects, and the region below shows what you see. The region registers `errors()` from `@nexusdi/errors` (`npm install @nexusdi/errors@next`), which adds a `Fix:` line under each error message. Change them back when you are done.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=lazy-all-cycle
 
 ```
 
-Save this region as `bus-cycle.ts` and run it. It prints `NEXUS_BLUEPRINT_INVALID` and then `NEXUS_CIRCULAR_DEPENDENCY`.
+Save this region as `bus-cycle.ts` and run it. It prints `NEXUS_BLUEPRINT_INVALID` and then `NEXUS_CIRCULAR_DEPENDENCY`. The third line, `all -> required`, shows that the bus's step is the `all()` dependency. The last line, `true`, says the fix line that `errors()` writes ends with `lazy(all(Handlers))`.
 
 ## Publishing Contributions
 

@@ -20,7 +20,7 @@ The region has `PlasmaRouter`, bound to `PowerRouter`, depend on `ShieldGrid`, a
 
 ```
 
-Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text as an array of two lines. The `path` field lists the cycle from its first provider back to it. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `0.4`.
+Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the one-line message, then the full text as an array of two lines, then the kinds. The `path` field lists the cycle from its first provider back to it. The `kinds` field says how each step depends on the next, and the region prints them as `required -> required`. Then save the fix region below as `fixed.ts` and run `npx tsx fixed.ts`. It prints `0.4`.
 
 ## Fix `NEXUS_CIRCULAR_DEPENDENCY`
 
@@ -32,8 +32,11 @@ Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the 
 
 Try it: change `lazy(SHIELD_GRID)` in the deps of `PlasmaRouter` back to `SHIELD_GRID` in `fixed.ts` and run it again. `tsc` flags the `provide(POWER_ROUTER, ...)` call, because the constructor still expects a function. `Nexus.create` rejects with a `BlueprintError` whose message lists `[NEXUS_CIRCULAR_DEPENDENCY] path=PowerRouter,ShieldGrid,PowerRouter kinds=required,required.` Restore `lazy(SHIELD_GRID)` and the program prints `0.4` again.
 
+The fix line that `errors()` writes names the first step of `path` that is not an alias. `path` starts at the provider of the cycle that is declared first. When that step is an `all()` dependency, wrap the whole modifier: `lazy(all(TOKEN))`. `lazy()` takes no `MultiToken` on its own, so the fix line writes `lazy(all(TOKEN))` for such a step. A cycle made only of `useExisting` aliases has no edge that `lazy()` can wrap. Point one alias at a provider outside the cycle.
+
 ## Fields of `CircularDependencyError`
 
-`CircularDependencyError` has one field:
+`CircularDependencyError` has two fields:
 
 - `path`: the display names along the cycle, ending with the first one again.
+- `kinds`: how each step of `path` depends on the next, one fewer entry than `path`. A kind is `required`, `optional`, `all` or `alias`, where `alias` marks a `useExisting` target. When a provider depends on the next provider of `path` more than once, as in `[SHIELD_GRID, optional(SHIELD_GRID)]`, its step reports the first of those deps.

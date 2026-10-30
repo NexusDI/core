@@ -382,6 +382,7 @@ import {
   isNexusError,
   provide,
 } from '@nexusdi/core';
+import { errors } from '@nexusdi/errors';
 
 interface IHandler {
   handle(): void;
@@ -416,6 +417,7 @@ const error = await Nexus.create(
       provide(HANDLERS, { useClass: AlertHandler }),
     ],
   }),
+  { plugins: [errors()] },
 ).catch((caught: unknown) => caught);
 const code = isNexusError(error) ? error.code : null; // -> 'NEXUS_BLUEPRINT_INVALID'
 console.log(code);
@@ -424,6 +426,14 @@ const inner = isNexusError(error, 'NEXUS_BLUEPRINT_INVALID')
   : undefined;
 const cycle = isNexusError(inner) ? inner.code : null; // -> 'NEXUS_CIRCULAR_DEPENDENCY'
 console.log(cycle);
+const kinds = isNexusError(inner, 'NEXUS_CIRCULAR_DEPENDENCY')
+  ? inner.kinds
+  : [];
+const steps = kinds.join(' -> '); // -> 'all -> required'
+console.log(steps);
+const lines = isNexusError(inner) ? inner.message.split('\n') : [];
+const fix = lines[1]?.endsWith('lazy(all(Handlers)).'); // -> true
+console.log(fix);
 ```
 
 <!-- #endregion lazy-all-cycle -->

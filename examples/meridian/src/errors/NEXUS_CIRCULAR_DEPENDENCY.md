@@ -57,6 +57,12 @@ const full = await Nexus.create(Engineering, { plugins: [errors()] }).catch(
 if (!isNexusError(full, 'NEXUS_BLUEPRINT_INVALID')) throw full;
 const text = full.errors[0]?.message.split('\n'); // -> ['[NEXUS_CIRCULAR_DEPENDENCY] PowerRouter → ShieldGrid → PowerRouter is a dependency cycle.', '  Fix: wrap one edge in lazy(), for example the dependency of PowerRouter on ShieldGrid: lazy(ShieldGrid).']
 console.log(text);
+const cycle = full.errors[0];
+const kinds = isNexusError(cycle, 'NEXUS_CIRCULAR_DEPENDENCY')
+  ? cycle.kinds
+  : [];
+const steps = kinds.join(' -> '); // -> 'required -> required'
+console.log(steps);
 ```
 
 <!-- #endregion reproduce -->
