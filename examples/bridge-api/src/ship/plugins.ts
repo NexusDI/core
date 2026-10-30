@@ -11,6 +11,7 @@ import { BLAST_DOORS, type IBlastDoors } from '@nexusdi/meridian-systems';
 import { PressureInterlock } from '@nexusdi/meridian-systems/interlock';
 
 import { SHIP_TEXT } from '../bridge/refusal';
+import { phaseCheck } from './black-box.plugin';
 import { AuditTrail } from './audit-trail.module';
 import {
   AUDIT_LOG,
@@ -87,10 +88,12 @@ export type PluginOptions = BasePluginOptions & { dev?: boolean } & (
 /**
  * The demo app's plugins. The interceptors always run: the audit on
  * NAV_CHARTS, and the flight recorder and the pressure interlock on
- * BLAST_DOORS. In development errors() with SHIP_TEXT joins them. No
- * refusal body depends on errors(), since refusalOf reads SHIP_TEXT itself.
- * The devtools() plugin that graph() and the profile need comes with
- * `introspect`, which labels each simulation provider with `shipNotes`.
+ * BLAST_DOORS. The phase check refuses a ship system class without a
+ * phase. In development errors() with SHIP_TEXT joins them. No refusal body
+ * depends on errors(), since refusalOf reads SHIP_TEXT itself. The devtools()
+ * plugin that graph() and the profile need comes with `introspect`, which
+ * labels each simulation provider with `shipNotes`. It also brings the black
+ * box recorder.
  */
 export function bridgePlugins(options: PluginOptions = {}): NexusPlugin[] {
   const { tools } = options;
@@ -114,6 +117,7 @@ export function bridgePlugins(options: PluginOptions = {}): NexusPlugin[] {
         },
       ],
     }),
+    phaseCheck,
     ...(options.dev ? [errors({ text: SHIP_TEXT })] : []),
     ...(options.trace && tools ? [tools.trace(options.trace)] : []),
   ];

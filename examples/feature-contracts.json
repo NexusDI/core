@@ -104,6 +104,16 @@
       "feature": "NEXUS_PROVIDER_FAILED with its fix line",
       "file": "meridian-systems/test/contracts/errors.contract.test.ts",
       "test": "NEXUS_PROVIDER_FAILED carries the cause of a load whose provider threw"
+    },
+    {
+      "feature": "black-box trace",
+      "file": "bridge-api/test/contracts/black-box.contract.test.ts",
+      "test": "the black box keeps one construct event for the FTL drive after the section loads, and the ship systems stamped with their phases"
+    },
+    {
+      "feature": "MERIDIAN_SYSTEM_PHASE with its fix line",
+      "file": "bridge-api/test/contracts/black-box.contract.test.ts",
+      "test": "MERIDIAN_SYSTEM_PHASE names a ship system class without a phase, with its fix line"
     }
   ]
 }

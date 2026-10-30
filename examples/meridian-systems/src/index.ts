@@ -26,8 +26,9 @@ export { Tactical } from './systems/tactical/tactical.module';
 export { Weapons } from './systems/weapons/weapons.module';
 export { Telemetry } from './telemetry/telemetry.module';
 
-// The graph annotator that labels each provider with its system and phase.
-export { shipNotes } from './notes';
+// The graph annotator that labels each provider with its system and phase,
+// and the check it and the black box share for a class's static phase.
+export { isShipSystemClass, shipNotes } from './notes';
 
 // Simulation: the tick loop, the ship state and the command desk.
 export {

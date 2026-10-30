@@ -2,6 +2,7 @@ import type { Nexus, NexusPlugin } from '@nexusdi/core';
 import type * as DevtoolsModule from '@nexusdi/devtools';
 import { shipNotes } from '@nexusdi/meridian-systems';
 
+import { blackBox, type BlackBox } from '../ship/black-box.plugin';
 import type { BridgeOptions } from './options';
 
 /** The part of `@nexusdi/devtools` the introspection routes use. */
@@ -23,6 +24,8 @@ export interface Introspection {
    * the profiler sees only the startup that follows its registration.
    */
   readonly plugins: NexusPlugin[];
+  /** The black box among `plugins`: this ship's recorder, shared with no other. */
+  readonly box: BlackBox;
   /** The `graph` and `profile` options of a bridge over `ship`. */
   options(
     ship: Nexus | Promise<Nexus>,
@@ -35,8 +38,16 @@ export interface Introspection {
  */
 export function introspect(devtools: Devtools): Introspection {
   const profiler = devtools.profile();
+  // The recorder serves diagnostics, so it joins the ship with the other
+  // introspection plugins and a ship with the flag off carries none of it.
+  const box = blackBox();
   return {
-    plugins: [devtools.devtools({ annotate: [shipNotes] }), profiler],
+    plugins: [
+      devtools.devtools({ annotate: [shipNotes] }),
+      profiler,
+      box.plugin,
+    ],
+    box,
     options: (ship) => ({
       graph: async () => devtools.graph(await ship),
       profile: () => {

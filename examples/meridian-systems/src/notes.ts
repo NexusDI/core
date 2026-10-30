@@ -65,7 +65,7 @@ export function shipNotes(
 }
 
 /** True when `impl` is a class with a static `phase` that is one of `PHASES`. */
-function isShipSystemClass(impl: unknown): impl is ShipSystemClass {
+export function isShipSystemClass(impl: unknown): impl is ShipSystemClass {
   return (
     typeof impl === 'function' &&
     'phase' in impl &&

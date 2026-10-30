@@ -4,11 +4,13 @@ import { interceptorsText } from '@nexusdi/interceptors/text';
 import { BadCommandError } from '@nexusdi/meridian-systems';
 import { shipText } from '@nexusdi/meridian-systems/text';
 
+import { systemPhaseText } from '../ship/black-box.plugin';
+
 /**
  * The text packs a refusal reads, and the ones `errors()` registers in
  * development: the ship's errors and the interceptors' errors.
  */
-export const SHIP_TEXT = [shipText, interceptorsText] as const;
+export const SHIP_TEXT = [shipText, interceptorsText, systemPhaseText] as const;
 
 /** The body of a refused request: the error's code and its text. */
 export interface Refusal {
