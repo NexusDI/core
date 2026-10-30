@@ -41,21 +41,19 @@ const HealthModule = defineModule({
 });
 
 // The application: a contributor that takes a dep of its own.
-interface IReactorProbe {
-  temperature(): number;
+interface IReactorCore {
+  readonly output: number;
 }
-const REACTOR_PROBE = new Token<IReactorProbe>('ReactorProbe');
-class CoreProbe implements IReactorProbe {
-  temperature() {
-    return 410;
-  }
+const REACTOR = new Token<IReactorCore>('ReactorCore');
+class FusionReactor implements IReactorCore {
+  readonly output = 1.21;
 }
 class ReactorCheck implements IHealthCheck {
-  static deps = [REACTOR_PROBE] as const;
+  static deps = [REACTOR] as const;
   readonly system = 'reactor';
-  constructor(private readonly probe: IReactorProbe) {}
+  constructor(private readonly reactor: IReactorCore) {}
   check() {
-    return this.probe.temperature() < 500;
+    return this.reactor.output > 1;
   }
 }
 class HullCheck implements IHealthCheck {
@@ -66,16 +64,14 @@ class HullCheck implements IHealthCheck {
 }
 const Engineering = defineModule({
   name: 'Engineering',
-  imports: [HealthModule],
   providers: [
-    provide(REACTOR_PROBE, { useClass: CoreProbe }),
+    provide(REACTOR, { useClass: FusionReactor }),
     provide(HEALTH_CHECKS, { useClass: ReactorCheck }),
   ],
   exports: [HEALTH_CHECKS],
 });
 const Tactical = defineModule({
   name: 'Tactical',
-  imports: [HealthModule],
   providers: [provide(HEALTH_CHECKS, { useClass: HullCheck })],
   exports: [HEALTH_CHECKS],
 });
@@ -387,12 +383,12 @@ interface IHealthCheck {
 interface IHealthMonitor {
   summary(): string;
 }
-interface IReactorProbe {
-  temperature(): number;
+interface IReactorCore {
+  readonly output: number;
 }
 const HEALTH_CHECKS = new MultiToken<IHealthCheck>('HealthChecks');
 const HEALTH_MONITOR = new Token<IHealthMonitor>('HealthMonitor');
-const REACTOR_PROBE = new Token<IReactorProbe>('ReactorProbe');
+const REACTOR = new Token<IReactorCore>('ReactorCore');
 
 class HealthService implements IHealthMonitor {
   static deps = [all(HEALTH_CHECKS)] as const;
@@ -411,27 +407,27 @@ const HealthModule = defineModule({
   providers: [provide(HEALTH_MONITOR, { useClass: HealthService })],
   exports: [HEALTH_MONITOR],
 });
-class CoreProbe implements IReactorProbe {
-  temperature() {
-    return 410;
-  }
+class FusionReactor implements IReactorCore {
+  readonly output = 1.21;
+}
+class FakeReactor implements IReactorCore {
+  readonly output = 0.5;
 }
 class ReactorCheck implements IHealthCheck {
-  static deps = [REACTOR_PROBE] as const;
+  static deps = [REACTOR] as const;
   readonly system = 'reactor';
-  private readonly probe: IReactorProbe;
-  constructor(probe: IReactorProbe) {
-    this.probe = probe;
+  private readonly reactor: IReactorCore;
+  constructor(reactor: IReactorCore) {
+    this.reactor = reactor;
   }
   check() {
-    return this.probe.temperature() < 500;
+    return this.reactor.output > 1;
   }
 }
 const Engineering = defineModule({
   name: 'Engineering',
-  imports: [HealthModule],
   providers: [
-    provide(REACTOR_PROBE, { useClass: CoreProbe }),
+    provide(REACTOR, { useClass: FusionReactor }),
     provide(HEALTH_CHECKS, { useClass: ReactorCheck }),
   ],
   exports: [HEALTH_CHECKS],
@@ -441,15 +437,12 @@ const Meridian = defineModule({
   imports: [HealthModule, Engineering],
 });
 
-// test/fixtures.ts: the real graph, with the probe replaced and the token left alone.
+// test/fixtures.ts: the real graph, with the reactor replaced and the token left alone.
 const test = nexusTest(base, Meridian, {
-  setup: (builder) =>
-    builder.override(REACTOR_PROBE, {
-      useValue: { temperature: () => 900 },
-    }),
+  setup: (builder) => builder.override(REACTOR, { useClass: FakeReactor }),
 });
 
-test('the real reactor check sees the hot probe', ({ nexus }) => {
+test('the real reactor check sees the weak reactor', ({ nexus }) => {
   nexus.get(HEALTH_MONITOR).summary(); // -> 'reactor red'
 });
 

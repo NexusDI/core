@@ -6,7 +6,7 @@ description: Build a library that collects contributions from the modules that u
 
 # Building an Extension Point
 
-Many libraries need to execute logic supplied by the end user, such as health checks, validation rules, or event handlers. To achieve this without the library knowing about the application's concrete modules, the library provides a way for those modules to "plug in" their own logic.
+Many libraries need to execute logic that the application supplies, such as health checks, validation rules, or event handlers. To achieve this without the library knowing about the application's concrete modules, the library provides a way for those modules to "plug in" their own logic.
 
 This pattern uses a `MultiToken` and a collector module. The library owns the token, and the application modules contribute to it. Because the library cannot import application modules, the application must publish its contributions by exporting the token from the contributing module. [Multi-Providers](/multi-providers/) explains the underlying rules and the order of the resulting list. This guide demonstrates how to build both the library and application sides of an extension point called `HEALTH_CHECKS`.
 
@@ -16,9 +16,7 @@ The library must export the token, the interface for contributions, and the modu
 
 In this example, `HEALTH_CHECKS` is a `MultiToken<IHealthCheck>`. The `HealthService` implements `IHealthMonitor` and collects all contributions via `all(HEALTH_CHECKS)`. The `HealthModule` provides this service under `HEALTH_MONITOR` (a `Token<IHealthMonitor>`) and exports it.
 
-To ensure the container can find these contributions, the library documents that contributors export the token from their own modules. A contribution that is not exported stays private to its module, and `Nexus.create` rejects it with `NEXUS_UNREAD_CONTRIBUTION` when no provider in that module reads it.
-
-The application then imports `HealthModule` into each contributing module, binds each check using `useClass`, and exports `HEALTH_CHECKS`.
+The library documents that contributors export the token from their own modules. The application binds each check using `useClass` and exports `HEALTH_CHECKS`. A contributing module imports `HealthModule` only when one of its providers reads a token from the library, such as `HEALTH_MONITOR`.
 
 ```ts file=examples/meridian/src/pages/build-an-extension-point.md region=library
 
@@ -26,31 +24,31 @@ The application then imports `HealthModule` into each contributing module, binds
 
 Because of this decoupling, `Engineering` and `Tactical` never appear in the library code, yet `HealthService` still runs both checks.
 
-**Try it:** Save the region as `health.ts` and run `npx tsx health.ts`. It prints `reactor green, hull red`. Delete `exports: [HEALTH_CHECKS],` from `Tactical` and run it again: `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, holding `NEXUS_UNREAD_CONTRIBUTION` for `HullCheck` in `Tactical`.
-
 ## Managing Contributor Dependencies
 
 Contributions are providers. They can declare their own dependencies in `deps` and resolve them based on the visibility of the module they belong to.
 
-For example, `ReactorCheck` takes `REACTOR_PROBE`, which the `Engineering` module provides. A contribution can read any token that its own module can see: its own internal providers and the exports of any modules it imports.
+For example, `ReactorCheck` takes `REACTOR`, which the `Engineering` module provides with `FusionReactor`. A contribution can read any token that its own module can see: its own internal providers and the exports of any modules it imports.
+
+**Try it:** Save the `library` region as `health.ts` and run `npx tsx health.ts`. It prints `reactor green, hull red`. Delete the `provide(REACTOR, ...)` line from `Engineering` and run it again: `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID` holding `NEXUS_MISSING_PROVIDER` for `ReactorCore` in `Engineering`.
 
 ## Solving Circular Dependencies with `lazy(all())`
 
 A circular dependency occurs when a contribution depends on the collector, while the collector depends on all contributions. For example, if a health check reports its status back to the `HEALTH_MONITOR`, but the monitor takes `all(HEALTH_CHECKS)`, `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID` holding `NEXUS_CIRCULAR_DEPENDENCY`.
 
-The library can break this cycle by using `lazy(all(HEALTH_CHECKS))`. This prevents the end-user from having to write `lazy()` in every contribution. The library then calls the returned thunk inside a method after `Nexus.create` has finished. [Contributors That Call the Collector](/multi-providers/#contributors-that-call-the-collector) illustrates the cycle, and [Lazy Dependencies and Cycles](/lazy/) explains how to handle the thunk.
+The library can break this cycle by using `lazy(all(HEALTH_CHECKS))`. So no contributor writes `lazy()`. The library then calls the returned thunk inside a method after `Nexus.create` has finished. [Contributors That Call the Collector](/multi-providers/#contributors-that-call-the-collector) illustrates the cycle, and [Lazy Dependencies and Cycles](/lazy/) explains how to handle the thunk.
 
 ```ts file=examples/meridian/src/pages/build-an-extension-point.md region=lazy-library
 
 ```
 
-In this setup, `HullCheck` has a plain dependency on `HEALTH_MONITOR`. When the monitor's `run()` method calls the thunk, it executes each check, and `HullCheck` successfully reports `hull` back to the monitor.
+In this setup, `HullCheck` has a plain dependency on `HEALTH_MONITOR`. `run()` calls the thunk and runs each check, and `HullCheck` reports `hull` back to the monitor.
 
 **Try it:** Save the region as `lazy-library.ts` and run it. It prints `[ 'hull' ]`. Change `lazy(all(HEALTH_CHECKS))` to `all(HEALTH_CHECKS)`, the parameter to `IHealthCheck[]` and `run()` to loop over `this.checks`, and run it again. `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID` holding `NEXUS_CIRCULAR_DEPENDENCY`.
 
 ## Handling Lifetime Constraints
 
-Collectors and their contributions must share a compatible lifetime contract. If a singleton collector holds contributions for the life of the container, any scoped contribution in the graph makes `Nexus.create` reject with `NEXUS_BLUEPRINT_INVALID` holding `NEXUS_LIFETIME_VIOLATION`. This restriction also applies to `lazy(all())` edges.
+Collectors and their contributions must share a compatible lifetime contract. If a singleton collector holds contributions for the life of the container, a scoped contribution that the singleton collector reads makes `Nexus.create` reject with `NEXUS_BLUEPRINT_INVALID` holding `NEXUS_LIFETIME_VIOLATION`. This restriction also applies to `lazy(all())` edges.
 
 ```ts file=examples/meridian/src/pages/build-an-extension-point.md region=lifetime
 
@@ -88,9 +86,9 @@ The `options` include `setup`, `create`, and `containerScope` (`'test'` or `'fil
 
 ```
 
-The setup above replaces `REACTOR_PROBE` while leaving `HEALTH_CHECKS` intact. Running `Nexus.check(Meridian)` in a CI test returns a `CheckReport` without building any providers; it throws `NEXUS_BLUEPRINT_INVALID` if a module forgot to export its contributions.
+The setup above replaces `REACTOR` with `FakeReactor` and leaves `HEALTH_CHECKS` alone. `Nexus.check(Meridian)` in a CI test returns a `CheckReport` without building any providers, and it throws `NEXUS_BLUEPRINT_INVALID` if a module forgot to export its contributions.
 
-Using `override(HEALTH_CHECKS, ...)` pins the token. This means every collector reads only one record, and the unread-contribution check is skipped for that token. Wiring tests should avoid overriding the token, as doing so hides the very configuration errors the test is designed to find:
+`override(HEALTH_CHECKS, ...)` pins the token. Every collector reads only one record, and the unread-contribution check is skipped for that token. Wiring tests should avoid overriding the token, as doing so hides the missing export the test is there to find:
 
 ```ts file=examples/meridian/src/pages/build-an-extension-point.md region=pin
 
@@ -106,17 +104,17 @@ If the library must support contributions from loaded modules, provide a registr
 
 ## Errors You Meet
 
-Contributors and library authors typically encounter the following errors during development.
+Contributors and library authors meet these errors. `Nexus.create` reports the unread-contribution, circular-dependency, lifetime and invalid-provider rows inside `NEXUS_BLUEPRINT_INVALID`.
 
-| Code                                                              | When it happens                                                                                                                                                                                    | Fix                                                                                  |
-| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| [`NEXUS_UNREAD_CONTRIBUTION`](/errors/NEXUS_UNREAD_CONTRIBUTION/) | A module contributes to `HEALTH_CHECKS`, does not export it, and no provider in the module reads it.                                                                                               | Collect it in the module with `all()`, export the token, or remove the contribution. |
-| [`NEXUS_CIRCULAR_DEPENDENCY`](/errors/NEXUS_CIRCULAR_DEPENDENCY/) | A contributor depends on the monitor, and the monitor takes `all(HEALTH_CHECKS)`. The error's `kinds` read `all -> required`.                                                                      | Take `lazy(all(HEALTH_CHECKS))` in the collector.                                    |
-| [`NEXUS_LIFETIME_VIOLATION`](/errors/NEXUS_LIFETIME_VIOLATION/)   | A singleton collector reaches a scoped contribution.                                                                                                                                               | Make the contribution a singleton, or make the collector scoped.                     |
-| [`NEXUS_LOAD_CONTRIBUTION`](/errors/NEXUS_LOAD_CONTRIBUTION/)     | `ship.load()` receives a module that exports a contribution to `HEALTH_CHECKS`.                                                                                                                    | Register the check from `onInit` through the collector's registry.                   |
-| [`NEXUS_NOT_READY`](/errors/NEXUS_NOT_READY/)                     | A `lazy(all())` thunk runs while a contribution is not built, such as in the collector's constructor. The error's `target` names the multi token and `contributor` the first unready contribution. | Call the thunk in a method, after `Nexus.create` has finished.                       |
-| [`NEXUS_INVALID_PROVIDER`](/errors/NEXUS_INVALID_PROVIDER/)       | A provider declares `lazy(HEALTH_CHECKS)`, `optional(HEALTH_CHECKS)`, `optional(all(HEALTH_CHECKS))` or the bare token.                                                                            | Declare `all(HEALTH_CHECKS)` or `lazy(all(HEALTH_CHECKS))`.                          |
-| [`NEXUS_DISPOSED`](/errors/NEXUS_DISPOSED/)                       | A collector's dispose method calls the thunk after its contributions are disposed.                                                                                                                 | Do not call the thunk from a dispose method.                                         |
+| Code                                                              | When it happens                                                                                                                                                                                                                                                                                | Fix                                                                                                                  |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| [`NEXUS_UNREAD_CONTRIBUTION`](/errors/NEXUS_UNREAD_CONTRIBUTION/) | A module contributes to `HEALTH_CHECKS`, does not export it, and no provider in the module reads it.                                                                                                                                                                                           | Collect it in the module with `all()`, export the token, or remove the contribution.                                 |
+| [`NEXUS_CIRCULAR_DEPENDENCY`](/errors/NEXUS_CIRCULAR_DEPENDENCY/) | A contributor depends on the monitor, and the monitor takes `all(HEALTH_CHECKS)`. The error's `kinds` read `all -> required`.                                                                                                                                                                  | Take `lazy(all(HEALTH_CHECKS))` in the collector.                                                                    |
+| [`NEXUS_LIFETIME_VIOLATION`](/errors/NEXUS_LIFETIME_VIOLATION/)   | A singleton collector reaches a scoped contribution.                                                                                                                                                                                                                                           | Make the contribution a singleton, or make the collector scoped.                                                     |
+| [`NEXUS_LOAD_CONTRIBUTION`](/errors/NEXUS_LOAD_CONTRIBUTION/)     | `ship.load()` receives a module that exports a contribution to `HEALTH_CHECKS`.                                                                                                                                                                                                                | Drop the contribution from the loaded module, and register the check from `onInit` through the collector's registry. |
+| [`NEXUS_NOT_READY`](/errors/NEXUS_NOT_READY/)                     | A `lazy(all())` thunk runs while a contribution is not built. When the collector's constructor calls it, `Nexus.create` rejects with `NEXUS_PROVIDER_FAILED`, whose `cause` is `NEXUS_NOT_READY`. The error's `target` names the multi token and `contributor` the first unready contribution. | Call the thunk in a method, after `Nexus.create` has finished.                                                       |
+| [`NEXUS_INVALID_PROVIDER`](/errors/NEXUS_INVALID_PROVIDER/)       | A provider declares `lazy(HEALTH_CHECKS)`, `optional(HEALTH_CHECKS)`, `optional(all(HEALTH_CHECKS))` or the bare token.                                                                                                                                                                        | Declare `all(HEALTH_CHECKS)` or `lazy(all(HEALTH_CHECKS))`.                                                          |
+| [`NEXUS_DISPOSED`](/errors/NEXUS_DISPOSED/)                       | A collector's dispose method calls the thunk after its contributions are disposed.                                                                                                                                                                                                             | Read the contributions before disposal starts, or call the thunk only while they are live.                           |
 
 ## Next Step
 
