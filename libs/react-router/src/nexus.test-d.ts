@@ -1,5 +1,10 @@
 import { defineModule, Nexus, Token, optional } from '@nexusdi/core';
-import { RouterContextProvider, type MiddlewareFunction } from 'react-router';
+import {
+  createMemoryRouter,
+  createStaticHandler,
+  RouterContextProvider,
+  type MiddlewareFunction,
+} from 'react-router';
 import type { GetAnnotations } from 'react-router/internal';
 import { describe, expectTypeOf, it } from 'vitest';
 
@@ -142,5 +147,102 @@ describe('@nexusdi/react-router types', () => {
         },
       );
     expectTypeOf(guard).returns.toEqualTypeOf<Promise<Response | void>>();
+  });
+
+  it('fits a data-mode route object with the root middleware and a section', () => {
+    const Sickbay = defineModule({ name: 'Sickbay' });
+    createStaticHandler([
+      {
+        path: '/',
+        middleware: [di.middleware, di.load(Sickbay)],
+        loader: () => null,
+      },
+    ]);
+    createMemoryRouter([
+      {
+        path: '/',
+        middleware: [di.middleware, di.load(Sickbay)],
+        loader: () => null,
+      },
+    ]);
+    const data: MiddlewareFunction[] = [di.middleware];
+    void data;
+  });
+
+  it('infers deps, args and an unknown next for injectMiddleware on a data-mode route object', () => {
+    createStaticHandler([
+      {
+        path: '/',
+        middleware: [
+          di.injectMiddleware({ log: FLIGHT_LOG }, async (deps, args, next) => {
+            expectTypeOf(deps.log).toEqualTypeOf<IFlightLog>();
+            expectTypeOf(args.request).toEqualTypeOf<Request>();
+            expectTypeOf(next).returns.toEqualTypeOf<Promise<unknown>>();
+            return next();
+          }),
+        ],
+        loader: () => null,
+      },
+    ]);
+  });
+
+  it('gives a section the data-mode middleware form', () => {
+    createStaticHandler([
+      {
+        path: '/',
+        middleware: [
+          di
+            .load(defineModule({ name: 'Sickbay' }))
+            .injectMiddleware(
+              { log: FLIGHT_LOG },
+              async (deps, _args, next) => {
+                expectTypeOf(deps.log).toEqualTypeOf<IFlightLog>();
+                expectTypeOf(next).returns.toEqualTypeOf<Promise<unknown>>();
+                return next();
+              },
+            ),
+        ],
+        loader: () => null,
+      },
+    ]);
+  });
+
+  it('fits a data-mode route object with a standalone middleware typed as MiddlewareFunction', () => {
+    const guard: MiddlewareFunction = di.injectMiddleware(
+      { log: FLIGHT_LOG },
+      async ({ log }, { request }, next) => {
+        expectTypeOf(log).toEqualTypeOf<IFlightLog>();
+        expectTypeOf(request).toEqualTypeOf<Request>();
+        expectTypeOf(next).returns.toEqualTypeOf<Promise<unknown>>();
+        return next();
+      },
+    );
+    createStaticHandler([
+      { path: '/', middleware: [di.middleware, guard], loader: () => null },
+    ]);
+  });
+
+  it('refuses an unannotated standalone middleware in a data-mode route object', () => {
+    // The guard has no contextual type, so next() resolves a Response.
+    const guard = di.injectMiddleware(
+      { log: FLIGHT_LOG },
+      async (_, __, next) => next(),
+    );
+    createStaticHandler([
+      {
+        path: '/',
+        // @ts-expect-error a data-mode route's next() resolves unknown
+        middleware: [guard],
+        loader: () => null,
+      },
+    ]);
+  });
+
+  it('refuses a string return in a framework-mode array', () => {
+    const m: MiddlewareFunction<Response>[] = [
+      // @ts-expect-error a middleware returns a Response or nothing
+      di.injectMiddleware({ log: FLIGHT_LOG }, async () => 'cleared'),
+    ];
+    void m;
   });
 });

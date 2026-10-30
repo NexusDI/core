@@ -52,29 +52,49 @@ type Inject = <const D extends DepsMap, A extends WithContext, R>(
   handler: (deps: ResolvedDeps<D>, args: A) => R,
 ) => (args: A) => Promise<Awaited<R>>;
 
-/** The next() a server middleware receives: it runs the rest of the chain and resolves its Response. */
-type Next = () => Promise<Response>;
+/** React Router's middleware args. */
+type MiddlewareArgs = Parameters<MiddlewareFunction>[0];
+
+/**
+ * The next() a route middleware receives: it runs the rest of the chain.
+ * R is what the chain resolves. At runtime a server handler gives a Response
+ * and a browser data router gives the loaders' results. As a type, R is
+ * Response in framework mode and unknown on a data-mode route object.
+ */
+type Next<R> = () => Promise<R>;
 
 /**
  * A route middleware that `injectMiddleware` wraps: it receives the resolved
  * deps first, then React Router's args and next(). It ends the request by
  * returning or throwing a Response, and passes it on by returning next().
  * React Router calls next() itself for a middleware that returns without
- * calling it.
+ * calling it. next() resolves what the route's middleware array resolves: a
+ * Response in framework mode, unknown on a data-mode route object.
  */
-type GuardMiddleware<D extends DepsMap, A extends WithContext> = (
+type GuardMiddleware<D extends DepsMap, A extends WithContext, R> = (
   deps: ResolvedDeps<D>,
   args: A,
-  next: Next,
-) => Response | void | Promise<Response | void>;
+  next: Next<R>,
+) => NoInfer<R> | void | Promise<NoInfer<R> | void>;
 
-type InjectMiddleware = <const D extends DepsMap, A extends WithContext>(
+type InjectMiddleware = <
+  const D extends DepsMap,
+  A extends WithContext,
+  R = Response,
+>(
   deps: D,
-  middleware: GuardMiddleware<D, A>,
-) => (args: A, next: Next) => Promise<Response | void>;
+  middleware: GuardMiddleware<D, A, R>,
+) => (args: A, next: Next<R>) => Promise<R | void>;
 
-/** The route middleware `di.load(module, options?)` returns: it loads the module once, with the grant in `options.imports`, and extends the request's scope before the route's loaders run. */
-export interface SectionMiddleware extends MiddlewareFunction<Response> {
+/**
+ * The route middleware `di.load(module, options?)` returns: it loads the
+ * module once, with the grant in `options.imports`, and extends the
+ * request's scope before the route's loaders run. It resolves what next()
+ * resolves, so it fits a framework-mode middleware array and a data-mode
+ * route object.
+ */
+export interface SectionMiddleware {
+  <R = Response>(args: MiddlewareArgs, next: Next<R>): Promise<R>;
   /** Like di.inject, validated after the section's first successful load. */
   readonly inject: Inject;
   /** Like di.injectMiddleware, validated after the section's first successful load. */
@@ -82,12 +102,18 @@ export interface SectionMiddleware extends MiddlewareFunction<Response> {
 }
 
 /**
- * The root middleware: React Router's middleware args and next(), and
- * always a Response, which a MiddlewareFunction<Response> also accepts.
+ * The root middleware: React Router's middleware args and next(). It
+ * resolves what next() resolves. For a Response it returns a copy whose
+ * body disposes the scope when it ends; for any other value, such as the
+ * loaders' results in a browser data router, it disposes the scope and
+ * returns the value unchanged. It fits Route.MiddlewareFunction and
+ * MiddlewareFunction<Response> in framework mode. It also fits the
+ * MiddlewareFunction of a data-mode route object.
  */
-export type RouterMiddleware = (
-  ...args: Parameters<MiddlewareFunction<Response>>
-) => Promise<Response>;
+export type RouterMiddleware = <R = Response>(
+  args: MiddlewareArgs,
+  next: Next<R>,
+) => Promise<R>;
 
 /** What `nexus()` returns for React Router: the root middleware, `inject` for typed loaders and actions, `injectMiddleware` for typed route middleware, `scope` for other code and `load` for lazy routes. */
 export interface NexusRouter {
@@ -130,6 +156,21 @@ function toRouter(failure: unknown): unknown {
     : failure;
 }
 
+/**
+ * True for a Response from any class, as React Router's own pipeline
+ * tests it: a Response from the undici package fails instanceof Response.
+ */
+function isResponse(value: unknown): value is Response {
+  const r = value as Partial<Response> | null | undefined;
+  return (
+    r != null &&
+    typeof r.status === 'number' &&
+    typeof r.statusText === 'string' &&
+    typeof r.headers === 'object' &&
+    r.body !== undefined
+  );
+}
+
 /** A stopped request: a failure is thrown, and a finished one throws a response nobody reads. */
 function stop(result: Stop): never {
   if ('failure' in result) throw toRouter(result.failure);
@@ -148,25 +189,35 @@ export function nexus(
   const options = (args[0] ?? {}) as NexusRouterOptions;
   const core = adapterCore(ship, options, ADAPTER);
 
-  const middleware: RouterMiddleware = async (
-    { request, context, params },
-    next,
-  ) => {
+  const middleware: RouterMiddleware = async <R>(
+    { request, context, params }: MiddlewareArgs,
+    next: Next<R>,
+  ): Promise<R> => {
     const { handle, dispose } = core.open(() =>
       options.request?.({ request, params }),
     );
     context.set(NEXUS_SCOPE, handle); // set before any return, so a late loader finds a closed handle
-    return serveWithBody({
+    // A browser data router resolves next() to the loaders' results. The body
+    // wrapper disposes the scope at once for an empty Response, and the
+    // chain's own result goes back to React Router.
+    let other: { readonly value: R } | undefined;
+    const response = await serveWithBody({
       request,
       handle,
       dispose,
       scopes: options.scopes,
       ambient: core.ambient,
-      next,
+      next: async () => {
+        const result = await next();
+        if (isResponse(result)) return result;
+        other = { value: result };
+        return new Response(null);
+      },
       fail: (failure) => {
         throw toRouter(failure);
       },
     });
+    return other === undefined ? (response as R) : other.value;
   };
 
   /** Resolves the record for a loader, an action or a middleware, or throws through stop(). */
@@ -203,14 +254,14 @@ export function nexus(
       );
 
   const middlewareOf =
-    <const D extends DepsMap, A extends WithContext>(
+    <const D extends DepsMap, A extends WithContext, R>(
       deps: D,
-      middleware: GuardMiddleware<D, A>,
+      middleware: GuardMiddleware<D, A, R>,
       checked: () => Promise<void>,
       section?: ModuleRef,
       grant?: LoadOptions,
     ) =>
-    async (args: A, next: Next): Promise<Response | void> =>
+    async (args: A, next: Next<R>): Promise<R | void> =>
       await middleware(
         await depsFor(deps, args.context, checked, section, grant),
         args,
@@ -224,10 +275,10 @@ export function nexus(
       middlewareOf(deps, middleware, core.definition(deps)),
     scope: async (context) => handleOf(context).scope(),
     load(module, options) {
-      const section: MiddlewareFunction<Response> = async (
-        { context },
-        next,
-      ) => {
+      const section = async <R>(
+        { context }: MiddlewareArgs,
+        next: Next<R>,
+      ): Promise<R> => {
         const result = await core.enter(
           module,
           handleIn(context),
