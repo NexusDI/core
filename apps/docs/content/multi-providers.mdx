@@ -7,11 +7,11 @@ requires: [lazy]
 
 # Multi-Providers
 
-In most cases, one token maps to one provider. However, some features require a collection of contributions from across the application, such as a list of all available diagnostics, a set of validation rules, or a collection of plugin handlers.
+In most cases, one token maps to one provider. However, some features require a collection of contributions from across the application, such as a list of all available diagnostics or a collection of plugin handlers.
 
 ## Extension Points in Libraries
 
-A library that runs every health check, every validation rule, or every event handler cannot know these contributors in advance. The contributors live in the application's modules, and the library cannot import those modules because they already import the library.
+A library that runs every health check or every event handler cannot know these contributors in advance. The contributors live in the application's modules, and the library cannot import those modules because they already import the library.
 
 To solve this, the library defines a token that acts as an extension point. The library's collector reads the entire list of contributions, while the application modules add to that list without needing to know the collector exists.
 
@@ -19,7 +19,7 @@ To solve this, the library defines a token that acts as an extension point. The 
 
 ## The `MultiToken`
 
-To create a multi-provider, use the `MultiToken` class. This signals to NexusDI that the token is designed to collect multiple values.
+To create a multi-provider, use the `MultiToken` class. The class tells NexusDI that the token collects multiple values.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=multi-token
 
@@ -35,7 +35,7 @@ When you call `ship.get(DIAGNOSTICS)`, NexusDI returns the contributions as an a
 
 Because a `MultiToken` represents a collection, you cannot use it as a standard dependency. You must use the `all()` modifier in the dependency list.
 
-Valid forms for multi-tokens include `all(TOKEN)` and `lazy(all(TOKEN))`. `lazy(TOKEN)`, `optional(TOKEN)`, `optional(all(TOKEN))` and a bare `MultiToken` are invalid. Each makes `Nexus.create` to reject with `NEXUS_BLUEPRINT_INVALID`, wrapping a `NEXUS_INVALID_PROVIDER` error.
+Valid forms for multi-tokens include `all(TOKEN)` and `lazy(all(TOKEN))`. `lazy(TOKEN)`, `optional(TOKEN)`, `optional(all(TOKEN))` and a bare `MultiToken` are invalid. Each makes `Nexus.create` reject with `NEXUS_BLUEPRINT_INVALID`, wrapping a `NEXUS_INVALID_PROVIDER` error.
 
 ```ts file=examples/meridian/src/pages/multi-providers.md region=panel
 
@@ -108,7 +108,7 @@ For a non-root module to keep a private contribution, it must provide its own re
 
 In this example, `Tactical` contributes a hull check but has no `exports`, and no provider in `Tactical` reads `DIAGNOSTICS`. Nothing can read the contribution, so `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and the first entry of its `errors` list is `NEXUS_UNREAD_CONTRIBUTION`.
 
-There are three fixes, in this order:
+There are three fixes, in order of preference:
 
 1. Collect the contribution in `Tactical` with a provider using `all(DIAGNOSTICS)`.
 2. Add `DIAGNOSTICS` to the `exports` of `Tactical` to publish it.
