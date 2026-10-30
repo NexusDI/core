@@ -44,6 +44,7 @@ const GOOD: NexusGraph = {
     },
   ],
   edges: [{ from: 'p0', to: 'request', kind: 'required' }],
+  unchecked: [],
 };
 
 const FIX =
@@ -124,10 +125,43 @@ describe('parseGraph', () => {
     expect(graph.providers[0]?.unresolved).toEqual([]);
   });
 
+  it('keeps the unchecked modules of a graph', () => {
+    const open = {
+      ...GOOD,
+      unchecked: [
+        { module: 'Uplink', reason: 'async-schema' },
+        { module: 'Comms', reason: 'for-root-async' },
+      ],
+    } as NexusGraph;
+    expect(parseGraph(JSON.parse(JSON.stringify(open)))).toEqual(open);
+  });
+
+  it('reads a graph with no unchecked field, as rc.2 graph files have, as unchecked: []', () => {
+    const old = { ...GOOD, unchecked: undefined };
+    expect(parseGraph(JSON.parse(JSON.stringify(old))).unchecked).toEqual([]);
+  });
+
+  it('keeps an unchecked reason it does not know', () => {
+    const future = {
+      ...GOOD,
+      unchecked: [{ module: 'Relay', reason: 'remote-schema' }],
+    };
+    expect(parseGraph(JSON.parse(JSON.stringify(future))).unchecked).toEqual([
+      { module: 'Relay', reason: 'remote-schema' },
+    ]);
+  });
+
   it('returns a copy that shares no array with its input', () => {
-    const input = JSON.parse(JSON.stringify(GOOD)) as NexusGraph;
+    const input = JSON.parse(
+      JSON.stringify({
+        ...GOOD,
+        unchecked: [{ module: 'Uplink', reason: 'async-schema' }],
+      }),
+    ) as NexusGraph;
     const graph = parseGraph(input);
     expect(graph.modules[0]?.exports).not.toBe(input.modules[0]?.exports);
+    expect(graph.unchecked).not.toBe(input.unchecked);
+    expect(graph.unchecked[0]).not.toBe(input.unchecked[0]);
   });
 
   it('throws DevtoolsError with the path and a Fix line', () => {
@@ -152,6 +186,11 @@ describe('parseGraph', () => {
       'providers[0].implementation',
     ],
     [withProvider(0, { unresolved: [1] }), 'providers[0].unresolved[0]'],
+    [{ ...GOOD, unchecked: 'none' }, 'unchecked'],
+    [
+      { ...GOOD, unchecked: [{ reason: 'async-schema' }] },
+      'unchecked[0].module',
+    ],
     [withProvider(1, { internal: undefined }), 'providers[1].internal'],
     [withProvider(1, { internal: 'yes' }), 'providers[1].internal'],
     [

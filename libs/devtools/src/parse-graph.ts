@@ -166,6 +166,24 @@ export function parseGraph(value: unknown): NexusGraph {
     },
   );
 
+  // Graph files written before unchecked existed omit the field. Core may
+  // add a reason in a minor release (CheckReport), so any string passes.
+  const unchecked: NexusGraph['unchecked'] =
+    root['unchecked'] === undefined
+      ? []
+      : list(root['unchecked'], 'unchecked').map((raw, i) => {
+          const path = `unchecked[${i}]`;
+          const u = record(raw, path);
+          return {
+            module: string(u, 'module', path),
+            reason: string(
+              u,
+              'reason',
+              path,
+            ) as NexusGraph['unchecked'][number]['reason'],
+          };
+        });
+
   for (const [i, m] of modules.entries()) {
     for (const [j, id] of m.imports.entries())
       refer(moduleIds, id, `modules[${i}].imports[${j}]`, 'module');
@@ -175,5 +193,5 @@ export function parseGraph(value: unknown): NexusGraph {
       refer(owners, id, `modules[${i}].exports[${j}]`, 'module or provider');
   }
 
-  return { modules, providers, edges };
+  return { modules, providers, edges, unchecked };
 }
