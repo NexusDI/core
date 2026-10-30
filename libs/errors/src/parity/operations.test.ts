@@ -478,6 +478,26 @@ describe('errors', () => {
       const [error] = checkErrors(Bridge);
       expect(error?.message).toContain('Helm → Navigation → Sensors → Helm');
     });
+
+    it('suggests lazy(all()) for a cycle through all()', () => {
+      const ROUTER = new Token<string>('PlasmaRouter');
+      const POWER = new MultiToken<string>('PowerConsumer');
+      const Bridge = defineModule({
+        name: 'Bridge',
+        providers: [
+          provide(ROUTER, {
+            useFactory: (consumers: string[]) => consumers.join(),
+            deps: [all(POWER)],
+          }),
+          provide(POWER, {
+            useFactory: (router: string) => router,
+            deps: [ROUTER],
+          }),
+        ],
+      });
+      const [error] = checkErrors(Bridge);
+      expect(error?.message).toContain('lazy(all(PowerConsumer))');
+    });
   });
 
   describe('SEC-003 a polluted Object.prototype (CWE-1321)', () => {

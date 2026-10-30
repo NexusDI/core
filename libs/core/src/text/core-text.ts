@@ -197,10 +197,19 @@ const missingDeps: Builder<MissingDepsError> = (error) => {
 };
 
 const circularDependency: Builder<CircularDependencyError> = (error) => {
-  const [from = '?', to = '?'] = error.path;
+  const cycle = `${error.path.join(' → ')} is a dependency cycle.\n`;
+  const kinds = error.kinds ?? [];
+  const step =
+    kinds.length === 0 ? 0 : kinds.findIndex((kind) => kind !== 'alias');
+  if (step === -1)
+    return text(
+      `${cycle}  Fix: every step of the cycle is a useExisting alias, and lazy() cannot wrap an alias; point one alias at a provider outside the cycle.`,
+    );
+  const from = error.path[step] ?? '?';
+  const to = error.path[step + 1] ?? '?';
+  const wrapped = kinds[step] === 'all' ? `lazy(all(${to}))` : `lazy(${to})`;
   return text(
-    `${error.path.join(' → ')} is a dependency cycle.\n` +
-      `  Fix: wrap one edge in lazy(), for example the dependency of ${from} on ${to}: lazy(${to}).`,
+    `${cycle}  Fix: wrap one edge in lazy(), for example the dependency of ${from} on ${to}: ${wrapped}.`,
   );
 };
 

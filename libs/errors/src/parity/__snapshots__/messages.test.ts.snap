@@ -17,6 +17,11 @@ exports[`NexusError > keeps the message of BlueprintError 1`] = `
       Fix: add NavCharts to Tactical's exports and import Tactical into Engineering."
 `;
 
+exports[`NexusError > keeps the message of CircularDependencyError (all) 1`] = `
+"[NEXUS_CIRCULAR_DEPENDENCY] PowerRouter → PowerConsumer → PowerRouter is a dependency cycle.
+  Fix: wrap one edge in lazy(), for example the dependency of PowerRouter on PowerConsumer: lazy(all(PowerConsumer))."
+`;
+
 exports[`NexusError > keeps the message of CircularDependencyError 1`] = `
 "[NEXUS_CIRCULAR_DEPENDENCY] ShieldGrid → PowerRouter → ShieldGrid is a dependency cycle.
   Fix: wrap one edge in lazy(), for example the dependency of ShieldGrid on PowerRouter: lazy(PowerRouter)."
