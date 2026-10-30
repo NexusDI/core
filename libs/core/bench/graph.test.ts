@@ -17,6 +17,13 @@ describe('makeGraph', () => {
       await ship[Symbol.asyncDispose]();
     },
   );
+  it.each([50, 2000] as const)(
+    'lists 8 singleton classes per layer at size %i',
+    (size) => {
+      const { singletons } = makeGraph(core, size);
+      expect(singletons).toHaveLength((size / 10) * 8);
+    },
+  );
   it('leaves scoped classes out of the lookups', () => {
     const { lookups } = makeGraph(core, 50);
     expect(lookups).toHaveLength(45);

@@ -78,15 +78,18 @@ async function exercise(core: Core) {
   const { calls, plugin, EXTRA } = spyPlugin(core);
   class Reactor {}
   class Computer {
-    static deps = [Reactor] as const;
-    constructor(readonly reactor: Reactor) {}
+    static deps = [Reactor, core.lazy(Reactor)] as const;
+    constructor(
+      readonly reactor: Reactor,
+      readonly readReactor: () => Reactor,
+    ) {}
   }
   class Log {}
   const ship = await core.Nexus.create(
     [Reactor, Computer, core.provide(Log, { lifetime: 'scoped' })],
     { plugins: [plugin] },
   );
-  ship.get(Computer);
+  ship.get(Computer).readReactor();
   const extra = ship.has(EXTRA);
   expect(() => ship.get(new core.Token('Missing'))).toThrow();
   // Tokens no lookup has keyed yet, so the canonicalizer asks tokenKey.

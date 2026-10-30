@@ -65,8 +65,9 @@ async function measure(name, samples, from, to) {
 }
 
 const results = [];
+const OPS = ['create', 'get', 'createScope'];
 for (const size of [50, 2000, 'modules']) {
-  for (const op of ['create', 'get', 'createScope']) {
+  for (const op of typeof size === 'number' ? [...OPS, 'lazy-read'] : OPS) {
     const name = `${op}-${size}`;
     const s = await measure(name, { on: [], off: [], batches: [] }, 0, pairs);
     let ratio = clusteredRatio(s.on, s.off, seed, perPair);
