@@ -5,6 +5,7 @@ import {
   type NexusHono,
 } from '@nexusdi/hono';
 import {
+  ALARM_BOARD,
   COMMAND_DESK,
   DECK_PLAN,
   FTL_DRIVE,
@@ -18,6 +19,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 
+import { answerAlarms } from '../bridge/alarms';
 import { answerAtmosphere } from '../bridge/atmosphere';
 import { answerCommand } from '../bridge/commands';
 import { compartmentOf } from '../bridge/compartment-of';
@@ -106,6 +108,12 @@ export function createBridge(
     '/sim',
     di.inject({ state: SHIP_STATE, deck: DECK_PLAN }, ({ state, deck }, c) =>
       c.json(readShip(state.snapshot(), deck)),
+    ),
+  );
+  bridge.get(
+    '/alarms',
+    di.inject({ board: ALARM_BOARD }, ({ board }, c) =>
+      c.json(answerAlarms(board)),
     ),
   );
   bridge.get('/compartments/:id/atmosphere', async (c) => {

@@ -89,8 +89,8 @@ describe('the helm and the drive', () => {
     });
     expect(first.power.shed).toEqual(['thrusters', 'main-drive']);
     expect(first.safety.alarms).toEqual([
-      { code: 'LOAD_SHED', subject: 'thrusters' },
-      { code: 'LOAD_SHED', subject: 'main-drive' },
+      { code: 'LOAD_SHED', subject: 'thrusters', acknowledged: false },
+      { code: 'LOAD_SHED', subject: 'main-drive', acknowledged: false },
     ]);
     expect(first.helm).toEqual({ attitude: 0, rate: 0, torque: 0 });
     expect(first.setpoints.helm.heading).toBe(KEPLER);

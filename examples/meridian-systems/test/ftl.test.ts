@@ -431,7 +431,7 @@ describe('the FTL drive', () => {
     });
     expect(shed.power.shed).toEqual(['ftl-spool']);
     expect(shed.safety.alarms).toEqual([
-      { code: 'LOAD_SHED', subject: 'ftl-spool' },
+      { code: 'LOAD_SHED', subject: 'ftl-spool', acknowledged: false },
     ]);
   });
 

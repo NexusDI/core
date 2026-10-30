@@ -8,6 +8,7 @@ import {
   type NexusFastify,
 } from '@nexusdi/fastify';
 import {
+  ALARM_BOARD,
   COMMAND_DESK,
   DECK_PLAN,
   FTL_DRIVE,
@@ -18,6 +19,7 @@ import {
 } from '@nexusdi/meridian-systems';
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 
+import { answerAlarms } from '../bridge/alarms';
 import { answerAtmosphere } from '../bridge/atmosphere';
 import { answerCommand } from '../bridge/commands';
 import { compartmentOf } from '../bridge/compartment-of';
@@ -100,6 +102,12 @@ export async function createBridge(
       di.inject(
         { state: SHIP_STATE, deck: DECK_PLAN },
         async ({ state, deck }) => readShip(state.snapshot(), deck),
+      ),
+    );
+    scoped.get(
+      '/alarms',
+      di.inject({ board: ALARM_BOARD }, async ({ board }) =>
+        answerAlarms(board),
       ),
     );
     scoped.get('/compartments/:id/atmosphere', async (req, reply) => {

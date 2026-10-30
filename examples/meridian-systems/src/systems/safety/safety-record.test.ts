@@ -44,6 +44,7 @@ describe('safetyRecord', () => {
           doors: each(DOOR_IDS, false),
           floods: each(CHARGED, false),
           drills: each(CHARGED, false),
+          acknowledge: false,
         },
       },
     });

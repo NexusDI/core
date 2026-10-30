@@ -18,6 +18,7 @@ import {
 } from '../src/simulation/contracts';
 import { ATMOSPHERE_PROBE } from '../src/systems/life-support/contracts';
 import {
+  ALARM_BOARD,
   ALARM_SINKS,
   BLAST_DOORS,
   FIRE_SUPPRESSION,
@@ -95,6 +96,12 @@ describe('Safety', () => {
     expect(ship.get(ATMOSPHERE_PROBE)).toBeDefined();
   });
 
+  test('resolves ALARM_BOARD and MASTER_ALARM to one instance', ({
+    nexus: ship,
+  }) => {
+    expect(ship.get(ALARM_BOARD)).toBe(ship.get(MASTER_ALARM));
+  });
+
   test('answers a safety command through the desk and opens the door on the next tick', ({
     nexus: ship,
   }) => {
@@ -158,7 +165,7 @@ describe('a decompression through both airlock doors', () => {
     const second = loop.advance(1);
     expect(roomPressure(second, deck, 'habitat')).toBeCloseTo(97_316.1, 0);
     expect(second.safety.alarms).toEqual([
-      { code: 'DECOMPRESSION', subject: 'habitat' },
+      { code: 'DECOMPRESSION', subject: 'habitat', acknowledged: false },
     ]);
     expect(ship.get(MASTER_ALARM).active()).toEqual(second.safety.alarms);
     expect(second.setpoints.safety.doors).toEqual({
@@ -205,9 +212,9 @@ describe('a fire in the habitat', () => {
     const burning = loop.advance(185);
     expect(burning.safety.fires.habitat).toBe(1);
     expect(burning.safety.alarms).toEqual([
-      { code: 'FIRE', subject: 'habitat' },
-      { code: 'CO2_HIGH', subject: 'habitat' },
-      { code: 'TEMPERATURE', subject: 'habitat' },
+      { code: 'FIRE', subject: 'habitat', acknowledged: false },
+      { code: 'CO2_HIGH', subject: 'habitat', acknowledged: false },
+      { code: 'TEMPERATURE', subject: 'habitat', acknowledged: false },
     ]);
 
     // The flood applies at tick 401 and empties the charge over 20 ticks.
@@ -225,6 +232,42 @@ describe('a fire in the habitat', () => {
     expect(sink.calls).toContain(`cleared FIRE habitat at tick ${out}`);
   });
 
+  test('acknowledges the active alarms on the tick after the command, and a new alarm starts unacknowledged', ({
+    nexus: ship,
+  }) => {
+    const desk = ship.get(COMMAND_DESK);
+    const loop = ship.get(TICK_LOOP);
+    throttle(desk, 0.01);
+    online(desk);
+    drill(desk, 'habitat');
+    expect(loop.advance(1).safety.alarms).toEqual([
+      { code: 'FIRE', subject: 'habitat', acknowledged: false },
+    ]);
+
+    const queued = ship.get(MASTER_ALARM).acknowledge();
+    expect(queued).toEqual({ tick: 2 });
+    const marked = loop.advance(1);
+    expect(marked.tick).toBe(2);
+    expect(marked.safety.alarms).toEqual([
+      { code: 'FIRE', subject: 'habitat', acknowledged: true },
+    ]);
+    expect(marked.setpoints.safety.acknowledge).toBe(false);
+    expect(ship.get(ALARM_BOARD).active()).toEqual(marked.safety.alarms);
+
+    drill(desk, 'quarters');
+    const later = loop.advance(1);
+    expect(
+      later.safety.alarms.map(
+        (a) => `${a.code} ${a.subject} ${a.acknowledged}`,
+      ),
+    ).toEqual(
+      expect.arrayContaining(['FIRE habitat true', 'FIRE quarters false']),
+    );
+    expect(sink.calls.filter((call) => call.includes('FIRE habitat'))).toEqual([
+      'raised FIRE habitat at tick 1',
+    ]);
+  });
+
   test('lights a drill on the next tick and floods it out, and a drill on the flooded room lights nothing', ({
     nexus: ship,
   }) => {
@@ -238,7 +281,9 @@ describe('a fire in the habitat', () => {
     const lit = loop.advance(1);
     expect(lit.safety.fires.habitat).toBe(0.05);
     expect(lit.setpoints.safety.drills.habitat).toBe(false);
-    expect(lit.safety.alarms).toEqual([{ code: 'FIRE', subject: 'habitat' }]);
+    expect(lit.safety.alarms).toEqual([
+      { code: 'FIRE', subject: 'habitat', acknowledged: false },
+    ]);
 
     const full = loop.advance(39);
     expect(full.safety.fires.habitat).toBe(1);

@@ -184,7 +184,7 @@ describe('comms on the relay graph', () => {
       });
       expect(cold.power.shed).toEqual(['comms']);
       expect(cold.safety.alarms).toEqual([
-        { code: 'LOAD_SHED', subject: 'comms' },
+        { code: 'LOAD_SHED', subject: 'comms', acknowledged: false },
       ]);
     }
     expect(throttle(desk, 0.01)).toEqual({ tick: 4 });

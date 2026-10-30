@@ -10,7 +10,7 @@ export const SAFETY_SYSTEM = 'safety';
  * after "It takes".
  */
 export const SAFETY_ACTIONS =
-  'open and close with a door of bridge-habitat, habitat-airlock, airlock-outer, bridge-chart-room, bridge-computer-core, habitat-quarters, habitat-comms-relay, airlock-shuttle-bay, shuttle-bay-outer, shuttle-bay-drone-bay, drone-bay-outer, habitat-engineering, engineering-capacitor-room, engineering-ftl-core, engineering-reactor-bay or reactor-bay-main-drive, and flood and drill with a compartment of bridge, habitat, reactor-bay, chart-room, computer-core, quarters, comms-relay, capacitor-room, engineering, ftl-core or main-drive';
+  'open and close with a door of bridge-habitat, habitat-airlock, airlock-outer, bridge-chart-room, bridge-computer-core, habitat-quarters, habitat-comms-relay, airlock-shuttle-bay, shuttle-bay-outer, shuttle-bay-drone-bay, drone-bay-outer, habitat-engineering, engineering-capacitor-room, engineering-ftl-core, engineering-reactor-bay or reactor-bay-main-drive, and flood and drill with a compartment of bridge, habitat, reactor-bay, chart-room, computer-core, quarters, comms-relay, capacitor-room, engineering, ftl-core or main-drive, and acknowledge with no argument';
 
 /** Every alarm the safety step raises, in the order it evaluates them for a room. */
 export type AlarmCode =
@@ -31,6 +31,12 @@ export interface Alarm {
   readonly subject: string;
 }
 
+/** An alarm as the record holds it: the alarm and whether the crew acknowledged it. */
+export interface RecordedAlarm extends Alarm {
+  /** True from the first tick after an acknowledge until the alarm clears. */
+  readonly acknowledged: boolean;
+}
+
 /** Safety at the end of a tick. `Id` narrows the keys to the deck's ids. */
 export interface SafetyRecord<Id extends string = string> {
   /** The fire intensity φ of each compartment, 0 to 1, with 0 for no fire. */
@@ -38,7 +44,7 @@ export interface SafetyRecord<Id extends string = string> {
   /** The moles of N₂ the running flood of each charged room has released. */
   readonly flooded: Readonly<Partial<Record<Id, number>>>;
   /** The active alarms, in the order the step raised them. */
-  readonly alarms: readonly Alarm[];
+  readonly alarms: readonly RecordedAlarm[];
 }
 
 /** What the crew set for safety. `Door` narrows the door keys to the deck's ids. */
@@ -52,6 +58,8 @@ export interface SafetySetpoints<
   readonly floods: Readonly<Partial<Record<Id, boolean>>>;
   /** True from the command until the tick that lights the drill fire. */
   readonly drills: Readonly<Partial<Record<Id, boolean>>>;
+  /** True from the command until the tick that marks the active alarms. */
+  readonly acknowledge: boolean;
 }
 
 /** The flood charge a compartment of the deck may carry. */
@@ -94,9 +102,19 @@ export interface IAlarmSink {
   clear(alarm: Alarm, tick: number): void;
 }
 
-export interface IMasterAlarm {
+/** The read-only view of the alarms. A reader that only lists them asks for this. */
+export interface IAlarmBoard {
   /** The alarms of the last tick, in the order the safety step raised them. */
-  active(): readonly Alarm[];
+  active(): readonly RecordedAlarm[];
+}
+
+/** The master alarm. It tells the sinks, lists its alarms as the board and takes the crew's acknowledge. */
+export interface IMasterAlarm extends IAlarmBoard {
+  /**
+   * Queues a mark for the next tick, which sets `acknowledged` on every alarm
+   * active at that tick. The sinks hear nothing of it.
+   */
+  acknowledge(): QueuedCommand;
 }
 
 export const BLAST_DOORS = new Token<IBlastDoors>('BlastDoors');
@@ -104,6 +122,8 @@ export const FIRE_SUPPRESSION = new Token<IFireSuppression>('FireSuppression');
 /** Every sink the master alarm tells. A module contributes one with `provide(ALARM_SINKS, ...)`. */
 export const ALARM_SINKS = new MultiToken<IAlarmSink>('AlarmSinks');
 export const MASTER_ALARM = new Token<IMasterAlarm>('MasterAlarm');
+/** The read-only board. Safety binds it to MASTER_ALARM with `useExisting`, so both tokens give one instance. */
+export const ALARM_BOARD = new Token<IAlarmBoard>('AlarmBoard');
 
 declare module '../../simulation/contracts' {
   interface ShipRecords {

@@ -11,6 +11,7 @@ import { shipText } from '../../text';
 import {
   type IBlastDoors,
   type IFireSuppression,
+  type IMasterAlarm,
   SAFETY_ACTIONS,
 } from './contracts';
 import { refuseSafety, SafetyCommands } from './safety-commands';
@@ -29,7 +30,11 @@ function build() {
     flood: record('flood'),
     drill: record('drill'),
   };
-  return { calls, commands: new SafetyCommands(doors, suppression) };
+  const alarm: IMasterAlarm = {
+    active: () => [],
+    acknowledge: record('acknowledge'),
+  };
+  return { calls, commands: new SafetyCommands(doors, suppression, alarm) };
 }
 
 /** What `commands.handle(command)` threw. */
@@ -52,6 +57,7 @@ describe('SafetyCommands', () => {
     [{ action: 'close', door: 'airlock-outer' }, ['close', 'airlock-outer']],
     [{ action: 'flood', compartment: 'habitat' }, ['flood', 'habitat']],
     [{ action: 'drill', compartment: 'bridge' }, ['drill', 'bridge']],
+    [{ action: 'acknowledge' }, ['acknowledge']],
     // The panel refuses a door or a room the deck lacks.
     [{ action: 'open', door: 'galley-hatch' }, ['open', 'galley-hatch']],
   ])('hands %o to the panel', (args, call) => {
@@ -122,7 +128,7 @@ describe('SafetyCommands', () => {
     const orList = (names: readonly string[]) =>
       `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`;
     expect(SAFETY_ACTIONS).toBe(
-      `open and close with a door of ${orList(DOOR_IDS)}, and flood and drill with a compartment of ${orList(charged)}`,
+      `open and close with a door of ${orList(DOOR_IDS)}, and flood and drill with a compartment of ${orList(charged)}, and acknowledge with no argument`,
     );
   });
 
@@ -132,7 +138,7 @@ describe('SafetyCommands', () => {
       action: 'vent',
     });
     expect(explain(error as NexusError, { text: [shipText] })?.message).toBe(
-      "safety has no action 'vent'. It takes open and close with a door of bridge-habitat, habitat-airlock, airlock-outer, bridge-chart-room, bridge-computer-core, habitat-quarters, habitat-comms-relay, airlock-shuttle-bay, shuttle-bay-outer, shuttle-bay-drone-bay, drone-bay-outer, habitat-engineering, engineering-capacitor-room, engineering-ftl-core, engineering-reactor-bay or reactor-bay-main-drive, and flood and drill with a compartment of bridge, habitat, reactor-bay, chart-room, computer-core, quarters, comms-relay, capacitor-room, engineering, ftl-core or main-drive.",
+      "safety has no action 'vent'. It takes open and close with a door of bridge-habitat, habitat-airlock, airlock-outer, bridge-chart-room, bridge-computer-core, habitat-quarters, habitat-comms-relay, airlock-shuttle-bay, shuttle-bay-outer, shuttle-bay-drone-bay, drone-bay-outer, habitat-engineering, engineering-capacitor-room, engineering-ftl-core, engineering-reactor-bay or reactor-bay-main-drive, and flood and drill with a compartment of bridge, habitat, reactor-bay, chart-room, computer-core, quarters, comms-relay, capacitor-room, engineering, ftl-core or main-drive, and acknowledge with no argument.",
     );
   });
 });

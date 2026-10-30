@@ -17,7 +17,12 @@ import {
 import { LITHIUM_LOOP } from '../engineering/engineering-model';
 import type { AtmosphereReading } from '../life-support/contracts';
 
-import type { Alarm, SafetyRecord, SafetySetpoints } from './contracts';
+import type {
+  Alarm,
+  RecordedAlarm,
+  SafetyRecord,
+  SafetySetpoints,
+} from './contracts';
 import {
   burns,
   FIRE,
@@ -115,6 +120,7 @@ function setpoints(
     doors: { ...shut(), ...change.doors },
     floods: { ...charged(false), ...change.floods },
     drills: { ...charged(false), ...change.drills },
+    acknowledge: change.acknowledge ?? false,
   };
 }
 
@@ -160,7 +166,7 @@ const habitatNow = (override: Override, from = 101_300) =>
   analyzer({ 'habitat:4': { pressure: from }, 'habitat:5': override });
 const active = (...list: Alarm[]) => ({
   compartments: initial(),
-  alarms: list,
+  alarms: list.map((alarm) => ({ ...alarm, acknowledged: false })),
 });
 
 describe('a quiet tick', () => {
@@ -276,7 +282,7 @@ describe('the fires', () => {
     );
     expect(result.safety.fires.habitat).toBe(FIRE.start);
     expect(result.safety.alarms).toEqual([
-      { code: 'FIRE', subject: 'habitat' },
+      { code: 'FIRE', subject: 'habitat', acknowledged: false },
     ]);
     expect(result.setpoints.drills).toEqual(charged(false));
     expect(draw).not.toHaveBeenCalled();
@@ -798,5 +804,56 @@ describe('the ratings', () => {
       oxygen: { fraction: 0.16, partial: 16_000 },
     });
     expect(FLOOD).toEqual({ seconds: 10 });
+  });
+});
+
+describe('the acknowledge flag', () => {
+  const fire = { code: 'FIRE', subject: 'habitat' } as const;
+  const burning = record({ fires: { habitat: 0.5 } });
+  const marks = (change: Partial<SafetyInput>): [string, boolean][] =>
+    stepSafety(input(change)).safety.alarms.map((alarm: RecordedAlarm) => [
+      key(alarm),
+      alarm.acknowledged,
+    ]);
+
+  it('starts a new alarm unacknowledged', () => {
+    expect(marks({ record: burning })).toEqual([['FIRE habitat', false]]);
+  });
+
+  it('marks every alarm active in the tick and clears the flag', () => {
+    const given = input({
+      record: burning,
+      setpoints: setpoints({ acknowledge: true }),
+    });
+    const result = stepSafety(given);
+    expect(result.safety.alarms.map((alarm) => alarm.acknowledged)).toEqual([
+      true,
+    ]);
+    expect(result.setpoints.acknowledge).toBe(false);
+  });
+
+  it('keeps the mark while the alarm stays active', () => {
+    const start = {
+      compartments: initial(),
+      alarms: [{ ...fire, acknowledged: true }],
+    };
+    expect(marks({ start, record: burning })).toEqual([['FIRE habitat', true]]);
+  });
+
+  it('drops the mark of a cleared alarm, so a return starts unacknowledged', () => {
+    const start = {
+      compartments: initial(),
+      alarms: [{ ...fire, acknowledged: true }],
+    };
+    expect(marks({ start })).toEqual([]);
+    expect(marks({ record: burning })).toEqual([['FIRE habitat', false]]);
+  });
+
+  it('marks nothing when no alarm is active', () => {
+    const result = stepSafety(
+      input({ setpoints: setpoints({ acknowledge: true }) }),
+    );
+    expect(result.safety.alarms).toEqual([]);
+    expect(result.setpoints.acknowledge).toBe(false);
   });
 });

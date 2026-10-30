@@ -1,6 +1,7 @@
 import { defineModule, type ModuleRef } from '@nexusdi/core';
 import {
   MeridianSystems,
+  Safety,
   ShipLifeSupport,
   Simulation,
   type SimOptions,
@@ -36,9 +37,9 @@ export const SEEDED: ShipSetup = { sim: { seed: 7, dt: 0.5 }, mode: 'manual' };
 /**
  * The root named `name`: the kernel, the link when `link` is set, every
  * system, the bridge's own modules, and the system modules whose tokens the
- * routes read: Tactical for `/course`, ShipLifeSupport for the compartment
- * route and Telemetry for the stream. The kernel's tokens reach the routes
- * from the global Simulation.
+ * routes read: Tactical for `/course`, Safety for `/alarms`,
+ * ShipLifeSupport for the compartment route and Telemetry for the stream.
+ * The kernel's tokens reach the routes from the global Simulation.
  */
 function bridgeShip(
   name: string,
@@ -53,6 +54,7 @@ function bridgeShip(
       ...link,
       MeridianSystems,
       Tactical,
+      Safety,
       ShipLifeSupport,
       Telemetry,
       MissionScope,

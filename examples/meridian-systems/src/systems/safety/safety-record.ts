@@ -9,7 +9,7 @@ import {
 
 /**
  * Safety at tick 0: every door of `deck` shut, and the flood valve and the
- * drill flag of each room with a flood charge off. No room burns and no
+ * drill flag of each room with a flood charge off, and the acknowledge flag off. No room burns and no
  * alarm is active; each charged room's flood count starts at 0.
  */
 export function safetyRecord(deck: DeckPlan) {
@@ -29,6 +29,6 @@ export function safetyRecord(deck: DeckPlan) {
   }
   return {
     records: { safety: { fires, flooded, alarms: [] } },
-    setpoints: { safety: { doors, floods, drills } },
+    setpoints: { safety: { doors, floods, drills, acknowledge: false } },
   } satisfies SystemRecord;
 }

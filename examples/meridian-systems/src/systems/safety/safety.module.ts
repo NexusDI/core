@@ -9,7 +9,12 @@ import {
 import { ShipLifeSupport } from '../life-support/life-support.module';
 
 import { BlastDoorControl } from './blast-door-control';
-import { BLAST_DOORS, FIRE_SUPPRESSION, MASTER_ALARM } from './contracts';
+import {
+  ALARM_BOARD,
+  BLAST_DOORS,
+  FIRE_SUPPRESSION,
+  MASTER_ALARM,
+} from './contracts';
 import { InertGasSuppression } from './inert-gas-suppression';
 import { MasterAlarm } from './master-alarm';
 import { SafetyCommands } from './safety-commands';
@@ -25,6 +30,7 @@ export const Safety = defineModule({
     provide(BLAST_DOORS, { useClass: BlastDoorControl }),
     provide(FIRE_SUPPRESSION, { useClass: InertGasSuppression }),
     provide(MASTER_ALARM, { useClass: MasterAlarm }),
+    provide(ALARM_BOARD, { useExisting: MASTER_ALARM }),
     provide(SHIP_SYSTEMS, { useClass: SafetyPhysics }),
     provide(COMMAND_HANDLERS, { useClass: SafetyCommands }),
     provide(SHIP_RECORDS, { useFactory: safetyRecord, deps: [DECK_PLAN] }),
@@ -33,6 +39,7 @@ export const Safety = defineModule({
     BLAST_DOORS,
     FIRE_SUPPRESSION,
     MASTER_ALARM,
+    ALARM_BOARD,
     SHIP_SYSTEMS,
     COMMAND_HANDLERS,
     SHIP_RECORDS,

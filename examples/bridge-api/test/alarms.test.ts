@@ -1,5 +1,6 @@
 import { defineModule, provide } from '@nexusdi/core';
 import {
+  ALARM_BOARD,
   ALARM_SINKS,
   ATMOSPHERE_PROBE,
   COMPARTMENT_IDS,
@@ -28,7 +29,8 @@ const RecordingAlarms = defineModule({
 
 const AlarmTestShip = defineModule({
   name: 'AlarmTestShip',
-  // Safety for MASTER_ALARM: the test reads the alarm from its root.
+  // Safety exports ALARM_BOARD and MASTER_ALARM. The root imports it too, and
+  // core dedupes the module.
   imports: [OfflineMeridian, Safety, RecordingAlarms],
 });
 
@@ -67,7 +69,13 @@ describe('the alarm panel with a failing probe', () => {
 
   test('holds the four faults as the active alarms', ({ nexus }) => {
     nexus.get(SIM_DRIVER).advance(10);
-    expect(nexus.get(MASTER_ALARM).active()).toEqual(faults);
+    expect(nexus.get(ALARM_BOARD).active()).toEqual(
+      faults.map((alarm) => ({ ...alarm, acknowledged: false })),
+    );
+  });
+
+  test('reads the one master alarm through the narrow token', ({ nexus }) => {
+    expect(nexus.get(ALARM_BOARD)).toBe(nexus.get(MASTER_ALARM));
   });
 });
 

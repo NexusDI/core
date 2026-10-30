@@ -41,19 +41,24 @@ class RecordingSink implements IAlarmSink {
 }
 
 const idle = shipState(deck).snapshot();
+const recorded = (alarm: Alarm) => ({ ...alarm, acknowledged: false });
 
 /** The idle ship at `tick` with `alarms` active. */
 function at(tick: number, alarms: readonly Alarm[]): ShipSnapshot {
-  return { ...idle, tick, safety: { ...idle.safety, alarms } };
+  return {
+    ...idle,
+    tick,
+    safety: { ...idle.safety, alarms: alarms.map(recorded) },
+  };
 }
 
 const fire: Alarm = { code: 'FIRE', subject: 'habitat' };
 const decompression: Alarm = { code: 'DECOMPRESSION', subject: 'habitat' };
 const shed: Alarm = { code: 'LOAD_SHED', subject: 'life-support' };
 
-function build(sinks: IAlarmSink[]) {
+function build(sinks: IAlarmSink[], state = shipState(deck)) {
   const loop = new FakeLoop();
-  const alarm = new MasterAlarm(loop, sinks);
+  const alarm = new MasterAlarm(loop, state, sinks);
   alarm.onInit();
   return { loop, alarm };
 }
@@ -74,7 +79,7 @@ describe('MasterAlarm', () => {
       'raised FIRE habitat at tick 1',
       'raised DECOMPRESSION habitat at tick 1',
     ]);
-    expect(alarm.active()).toEqual([fire, decompression]);
+    expect(alarm.active()).toEqual([fire, decompression].map(recorded));
   });
 
   it('clears the gone alarms in the old order before it raises the new ones', () => {
@@ -90,10 +95,11 @@ describe('MasterAlarm', () => {
       'cleared LOAD_SHED life-support at tick 2',
       'raised SENSOR_FAULT bridge at tick 2',
     ]);
-    expect(alarm.active()).toEqual([
-      decompression,
-      { code: 'SENSOR_FAULT', subject: 'bridge' },
-    ]);
+    expect(alarm.active()).toEqual(
+      [decompression, { code: 'SENSOR_FAULT', subject: 'bridge' } as const].map(
+        recorded,
+      ),
+    );
   });
 
   it('keys an alarm by its code and its subject', () => {
@@ -120,9 +126,26 @@ describe('MasterAlarm', () => {
     expect(() => loop.tick(at(1, [fire]))).toThrow(boom);
     expect(first.calls).toEqual(['raised FIRE habitat at tick 1']);
     expect(last.calls).toEqual(['raised FIRE habitat at tick 1']);
-    expect(alarm.active()).toEqual([fire]);
+    expect(alarm.active()).toEqual([recorded(fire)]);
     loop.tick(at(2, [fire]));
     expect(last.calls).toHaveLength(1);
+  });
+
+  it('tells the sinks the plain alarm, without the mark', () => {
+    const heard: unknown[] = [];
+    const { loop } = build([
+      { raise: (alarm) => heard.push(alarm), clear: () => {} },
+    ]);
+    loop.tick(at(1, [fire]));
+    expect(heard).toEqual([fire]);
+  });
+
+  it('queues the acknowledge flag on the ship state for the next tick', () => {
+    const state = shipState(deck);
+    const { alarm } = build([], state);
+    expect(alarm.acknowledge()).toEqual({ tick: 1 });
+    expect(state.snapshot().setpoints.safety.acknowledge).toBe(false);
+    expect(state.applyQueued(1).setpoints.safety.acknowledge).toBe(true);
   });
 
   it('leaves the loop at dispose', () => {

@@ -181,9 +181,11 @@ export {
 export {
   type Alarm,
   type AlarmCode,
+  ALARM_BOARD,
   ALARM_SINKS,
   BLAST_DOORS,
   FIRE_SUPPRESSION,
+  type IAlarmBoard,
   type IAlarmSink,
   type IBlastDoors,
   type IFireSuppression,
