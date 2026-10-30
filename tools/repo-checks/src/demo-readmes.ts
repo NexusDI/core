@@ -23,6 +23,7 @@ import {
 export const DEMO_READMES: readonly string[] = [
   'examples/meridian-systems/README.md',
   'examples/bridge-api/README.md',
+  'examples/bridge-console/README.md',
 ];
 
 export type DemoRule = Rule | 'claim' | 'wiring';
