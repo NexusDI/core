@@ -15,6 +15,12 @@ An app declares its object graph as a tree of modules, and `@nexusdi/core` check
 
 <!-- reference @nexusdi/core#Nexus example=interfaces-and-tokens -->
 
+`load(module, { imports })` grants the loaded module the exports of host modules already in the graph, and `Nexus.check(root, { plugins, load: [{ module, imports }] })` takes the same grant per entry. A grant names host modules and never the root. It is wiring, and it is no isolation or security boundary.
+
+```ts file=libs/core/docs/modules.md region=load-import
+
+```
+
 ## `Token`
 
 <!-- reference @nexusdi/core#Token example=interfaces-and-tokens -->
@@ -38,6 +44,12 @@ An app declares its object graph as a tree of modules, and `@nexusdi/core` check
 ## `lazy`
 
 <!-- reference @nexusdi/core#lazy example=lazy -->
+
+`lazy(all(TOKEN))` hands a collector a thunk that returns every contribution of a `MultiToken`.
+
+```ts file=libs/core/docs/providers.md region=lazy-all
+
+```
 
 ## `all`
 
@@ -122,6 +134,8 @@ An app declares its object graph as a tree of modules, and `@nexusdi/core` check
 ## `CheckOptions`
 
 <!-- reference @nexusdi/core#CheckOptions -->
+
+`Nexus.check(root, { plugins, load })` runs the plugins' compile hooks and compiles each `load` entry after the root. An entry is a module, or `{ module, imports }` with the grant that `load(module, { imports })` takes.
 
 ## `CheckReport`
 
@@ -248,6 +262,8 @@ Plugins run in the order the `plugins` array lists them, with the exceptions [Pl
 ## `LoadOptions`
 
 <!-- reference @nexusdi/core#LoadOptions -->
+
+`load(module, { imports })` takes the host modules to grant. Each must already be in the graph.
 
 ## `LookupOptions`
 
@@ -376,6 +392,12 @@ Plugins run in the order the `plugins` array lists them, with the exceptions [Pl
 ## `Scope`
 
 <!-- reference @nexusdi/core#Scope example=scope-extend -->
+
+`get()` on a scope takes a `MultiToken` and returns an array of every contribution the scope sees.
+
+```ts file=libs/core/docs/scopes.md region=scope-get-all
+
+```
 
 ## `StandardSchemaV1`
 

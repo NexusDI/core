@@ -96,3 +96,32 @@ shuttle.get(SWEEP).target; // -> 'probe'
 ```
 
 <!-- #endregion scope-extend -->
+
+## Reading a collection from a scope
+
+`get()` on a scope takes a `MultiToken` too and returns every contribution the scope sees, in provider order.
+
+<!-- #region scope-get-all -->
+
+```ts @import.meta.vitest
+import { MultiToken, Nexus, defineModule, provide } from '@nexusdi/core';
+
+interface IDiagnostic {
+  readonly name: string;
+}
+const DIAGNOSTICS = new MultiToken<IDiagnostic>('Diagnostics');
+
+await using ship = await Nexus.create(
+  defineModule({
+    name: 'Meridian',
+    providers: [
+      provide(DIAGNOSTICS, { useValue: { name: 'hull' } }),
+      provide(DIAGNOSTICS, { useValue: { name: 'shields' } }),
+    ],
+  }),
+);
+await using shuttle = await ship.createScope();
+shuttle.get(DIAGNOSTICS).map((each) => each.name); // -> ['hull', 'shields']
+```
+
+<!-- #endregion scope-get-all -->

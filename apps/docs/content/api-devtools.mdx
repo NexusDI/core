@@ -25,6 +25,8 @@ A container that wires the wrong provider or starts slowly leaves a developer as
 
 <!-- reference @nexusdi/devtools#inspect example=inspect -->
 
+`inspect(root, { load: [{ module, imports }] })` takes the same `load` list as `InspectOptions`. An entry is a module, or `{ module, imports }` with a grant.
+
 ## `trace`
 
 <!-- reference @nexusdi/devtools#trace example=graph -->
@@ -61,6 +63,8 @@ A container that wires the wrong provider or starts slowly leaves a developer as
 
 <!-- reference @nexusdi/devtools#InspectOptions -->
 
+`inspect(root, { load: [{ module, imports }] })` compiles each `load` entry after the root, with the grant that `load(module, { imports })` takes.
+
 ## `NexusGraph`
 
 <!-- reference @nexusdi/devtools#NexusGraph -->
@@ -92,6 +96,8 @@ A container that wires the wrong provider or starts slowly leaves a developer as
 ## `profileStartup`
 
 <!-- reference @nexusdi/devtools#profileStartup example=profile-startup -->
+
+`profileStartup(root, { load: [{ module, imports }] })` loads each entry in order, as `load(module, { imports })` does.
 
 ## `profileTable`
 

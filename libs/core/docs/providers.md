@@ -169,6 +169,52 @@ ship.get(POWER_ROUTER).divert(); // -> 0.4
 
 <!-- #endregion lazy -->
 
+`lazy(all(TOKEN))` does the same for a `MultiToken`. The collector receives a thunk that returns every contribution, so the bus and its handlers can depend on each other.
+
+<!-- #region lazy-all -->
+
+```ts @import.meta.vitest
+import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
+import { lazy, provide } from '@nexusdi/core';
+
+interface IHandler {
+  handle(): string;
+}
+interface IEventBus {
+  publish(): string[];
+}
+const HANDLERS = new MultiToken<IHandler>('Handlers');
+const EVENT_BUS = new Token<IEventBus>('EventBus');
+
+class SubspaceBus implements IEventBus {
+  static deps = [lazy(all(HANDLERS))] as const;
+  constructor(private readonly handlers: () => IHandler[]) {}
+  publish() {
+    return this.handlers().map((each) => each.handle());
+  }
+}
+class AlertHandler implements IHandler {
+  static deps = [EVENT_BUS] as const;
+  constructor(private readonly bus: IEventBus) {}
+  handle() {
+    return 'red alert';
+  }
+}
+
+await using ship = await Nexus.create(
+  defineModule({
+    name: 'Meridian',
+    providers: [
+      provide(EVENT_BUS, { useClass: SubspaceBus }),
+      provide(HANDLERS, { useClass: AlertHandler }),
+    ],
+  }),
+);
+ship.get(EVENT_BUS).publish(); // -> ['red alert']
+```
+
+<!-- #endregion lazy-all -->
+
 ## Optional deps
 
 `optional(TOKEN)` marks a dep the provider can run without: with no provider of the token visible, the dep resolves to `undefined`. `StatusBoard` returns its report with `held` appended when no provider of `SUBSPACE_LINK` is visible.
