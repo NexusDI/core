@@ -1163,7 +1163,10 @@ teaching reason:
    to interfaces.
 2. `ScoutDrone` takes only `COMPUTER` on the pages before Scopes, so the Lifetimes page
    teaches a transient before a scope exists.
-3. The diagnostics panel lives in `Meridian`, and `Engineering` and `Tactical` each export `DIAGNOSTICS`, so the Multi-providers page and mission 9 can show a contribution that leaves its module through an export and reaches a collector in the root. In core §3.4 the panel lives in `Engineering`.
+3. The diagnostics panel lives in `Meridian`, and `Engineering` and `Tactical` each export
+   `DIAGNOSTICS`, so the Multi-providers page and mission 9 can show a contribution that
+   leaves its module through an export and reaches a collector in the root. In core §3.4
+   the panel lives in `Engineering`.
 4. `FLIGHT_LOG` and the `BridgeApi` module that binds it are new. Core §3.4 has no scoped
    class, and the Scopes page needs one. The integrations spec binds `FLIGHT_LOG` in
    `BridgeApi` too, so the docs and that spec share the name and the binding.
@@ -2071,7 +2074,33 @@ Every mission's seed and solution follow the interface-first rule (section 7.3).
 starts from a seed that breaks it on purpose: `QuantumComputer` takes a `FusionReactor`
 directly, so the test override of its third objective cannot work until the reader
 introduces the interface and the token. Mission 7 reads the order of `dispose:instance`
-events from the run's trace (core spec §8.2). Mission 9 teaches multi-token visibility: a module publishes its own contributions by exporting the token, and every collector in the graph reads what any module publishes. Its seed has `Tactical` export `DIAGNOSTICS` and `Engineering` contribute `ReactorDiagnostic` with no export, so `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID` holding `NEXUS_UNREAD_CONTRIBUTION` for `DIAGNOSTICS` in `Engineering`. The reader adds `DIAGNOSTICS` to the exports of `Engineering`. The check of the last objective creates a container with `Engineering` as its root and expects `reactor` in its `get(DIAGNOSTICS)`. Seven decoys fail. A `ship.get(DIAGNOSTICS, { module: Engineering })` call in `main.ts` keeps the error, since that lookup does not count as a reader. `exports: [DIAGNOSTICS]` on `Meridian` keeps it, since a module with no contribution of its own publishes nothing. `exports: [Engineering]` on `Tactical` keeps it, since a module re-export publishes no contribution. `all(DIAGNOSTICS)` added to the deps of `QuantumComputer` starts the ship, and so does the contribution deleted. Both fail the panel objective with "DiagnosticsPanel saw one diagnostic of two." `ReactorDiagnostic` moved into `Meridian`, or into `Tactical`, passes the panel objective and fails the last one with "ReactorDiagnostic left Engineering."
+events from the run's trace (core spec §8.2). Mission 9 teaches multi-token visibility: a
+module publishes its own contributions by exporting the token, and every collector in the
+graph reads what any module publishes. Its seed has `Tactical` export `DIAGNOSTICS` and
+`Engineering` contribute `ReactorDiagnostic` with no export, so `Nexus.create` rejects
+with `NEXUS_BLUEPRINT_INVALID` holding `NEXUS_UNREAD_CONTRIBUTION` for `DIAGNOSTICS` in
+`Engineering`. The reader adds `DIAGNOSTICS` to the exports of `Engineering`. The check of
+the last objective creates a container with `Engineering` as its root and expects
+`reactor` in its `get(DIAGNOSTICS)`. The last objective passes on the seed too, since the
+root is exempt from the check. It guards where `ReactorDiagnostic` lives, and the start
+and panel objectives guard the export.
+
+Seven decoys fail:
+
+- A `ship.get(DIAGNOSTICS, { module: Engineering })` call in `main.ts` keeps the error,
+  since that lookup does not count as a reader.
+- `exports: [DIAGNOSTICS]` on `Meridian` keeps it, since a module with no contribution of
+  its own publishes nothing and `Engineering` still keeps its own private.
+- `exports: [Engineering]` on `Tactical` keeps it, since a module re-export publishes no
+  contribution.
+- `all(DIAGNOSTICS)` added to the deps of `QuantumComputer` starts the ship and fails the
+  panel objective with "DiagnosticsPanel saw one diagnostic of two."
+- The contribution deleted from `Engineering` starts the ship and fails the panel
+  objective the same way.
+- `ReactorDiagnostic` moved into `Meridian` passes the panel objective and fails the last
+  one with "ReactorDiagnostic left Engineering."
+- `ReactorDiagnostic` moved into `Tactical` passes the panel objective and fails the last
+  one the same way.
 
 The Errors and Introspection pages have no mission. Every mission shows both: a failed
 check shows the `NexusError` code the run produced, and the console shows the graph and the
@@ -3191,7 +3220,10 @@ the `@nexusdi/core@0.4.0-rc.0` tag. Each case below follows the code.
     where the runtime lacks the class (`libs/core/src/runtime/dispose.ts`). `/lifecycle/`
     teaches the chain.
 19. Unexported contributions. A multi-token contribution in a module that does not export
-    the token is left out of `all()` in other modules, with no error. `/multi-providers/`
+    the token reaches no collector outside that module. When no provider of that module
+    reads the token through `all()` or `lazy(all())` and the module is not the root,
+    `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID` holding
+    `NEXUS_UNREAD_CONTRIBUTION` (`libs/core/src/blueprint/unread.ts`). `/multi-providers/`
     shows it.
 20. `override()`. `OverrideDefinition` takes `useClass` or `useValue`
     (`libs/core/src/definitions/provide.ts`), and `override()` takes `useFactory` through a
