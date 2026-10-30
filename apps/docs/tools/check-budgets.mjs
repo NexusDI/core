@@ -28,10 +28,12 @@ export const BUDGETS = {
  *
  * 2026-10-28: the K1 to K4 extension-points tests grew core's sidecar to
  * 1471.1 kB raw and 62.3 kB gzipped, so the ceilings sit at 1550 kB and 65 kB.
+ * 2026-10-30: the rc.3 load guard and lazy alias tests grew it to 1575.7 kB
+ * raw and 65.8 kB gzipped, so the ceilings sit at 1600 kB and 67 kB.
  * Issue #235 tracks sharing the popups once per library in
  * `tools/behaviour-data.mjs`; the ceilings drop again when it lands.
  */
-export const BEHAVIOUR_BUDGET = { raw: 1_550_000, gzip: 65_000 };
+export const BEHAVIOUR_BUDGET = { raw: 1_600_000, gzip: 67_000 };
 
 /**
  * A ratchet on everything one guide page loads, scripts and stylesheets.

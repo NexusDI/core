@@ -20,6 +20,7 @@ import {
   NO_ENTRIES,
   REQUEST_ID,
   type Blueprint,
+  type ModuleNode,
   type ProviderRecord,
   type TokenKey,
 } from './blueprint.js';
@@ -99,13 +100,40 @@ function moduleIdsOf(
 }
 
 /**
- * load()'s rule: every existing module's bindings are computed, so a global
- * module new to the graph would change them all. Walk order decides which
- * one the error names.
+ * The id `previous` holds for the module `node` stands for: its walked
+ * definition, or the original a compile.module hook replaced with it, so a
+ * hook that returns a fresh replacement every compile names the same module.
  */
-function checkNewGlobals(walked: WalkResult, previous: Blueprint): void {
+function heldModuleId(
+  previous: Blueprint,
+  node: ModuleNode,
+  replaced: ReadonlyMap<ModuleDefinition, ModuleDefinition>,
+): string | undefined {
+  const original = replaced.get(node.definition) ?? node.definition;
+  return (
+    previous.moduleByDefinition.get(node.definition) ??
+    previous.moduleByDefinition.get(original) ??
+    previous.moduleByReplaced.get(original)
+  );
+}
+
+/**
+ * load()'s rule: every existing module's bindings are computed, so a global
+ * module new to the graph would change them all. A module is new when
+ * `previous` holds no module for it or for the original a compile.module hook
+ * replaced with it, and a held plain module that a hook turns global at a load
+ * counts as new too. Walk order decides which one the error names.
+ */
+function checkNewGlobals(
+  walked: WalkResult,
+  previous: Blueprint,
+  replaced: ReadonlyMap<ModuleDefinition, ModuleDefinition>,
+): void {
   const added = walked.modules.find(
-    (m) => m.global && !previous.moduleByDefinition.has(m.definition),
+    (m) =>
+      m.global &&
+      previous.modules.get(heldModuleId(previous, m, replaced) ?? '')
+        ?.global !== true,
   );
   if (added !== undefined) throw new LoadError({ module: added.name });
 }
@@ -186,10 +214,14 @@ function checkGrants(entries: readonly LoadEntry[], previous: Blueprint): void {
 
 /**
  * load()'s second rule: collectors built at startup hold their lists, so a
- * module new to the graph cannot publish a contribution to a MultiToken. The
- * first record by index that breaks it names the error. A pinned token is
- * skipped, and so is a record a compile.provider hook removed, since the
- * caller passes the records left after the hooks ran.
+ * load cannot publish a record of a MultiToken that `previous` did not
+ * publish. A record is published when its module's exportTokens names its
+ * token or a compile.provider hook pinned it. `previous` published the same
+ * record when it holds a record under the id with the same module and token,
+ * and that record was pinned or its module exported the token. A hook that
+ * replaces a module with an equal fresh object every compile keeps its
+ * records. A record a compile.provider hook removed or a pin dropped is not
+ * checked, since the caller passes the records left after the hooks ran.
  */
 function checkNewContributions(
   walked: WalkResult,
@@ -199,18 +231,28 @@ function checkNewContributions(
 ): void {
   const nodes = new Map(walked.modules.map((m) => [m.id, m]));
   for (const record of records) {
-    if (!(record.token instanceof MultiToken) || pinned.has(record.token))
-      continue;
+    const token = record.token;
+    if (!(token instanceof MultiToken)) continue;
     const node = nodes.get(record.module);
     if (
-      node !== undefined &&
-      !previous.moduleByDefinition.has(node.definition) &&
-      node.exportTokens.includes(record.token)
+      pinned.get(token)?.includes(record.id) !== true &&
+      node?.exportTokens.includes(token) !== true
     )
-      throw new LoadContributionError({
-        module: node.name,
-        token: record.name,
-      });
+      continue;
+    const before = previous.providers.get(record.id);
+    if (
+      before !== undefined &&
+      before.module === record.module &&
+      before.token === token &&
+      (previous.pinned.get(token)?.includes(record.id) === true ||
+        previous.modules.get(record.module)?.exportTokens.includes(token) ===
+          true)
+    )
+      continue;
+    throw new LoadContributionError({
+      module: node?.name ?? record.module,
+      token: record.name,
+    });
   }
 }
 
@@ -287,7 +329,8 @@ export function compile(input: CompileInput): Blueprint {
     },
     errors,
   );
-  if (input.previous !== undefined) checkNewGlobals(walked, input.previous);
+  if (input.previous !== undefined)
+    checkNewGlobals(walked, input.previous, replacedModules);
   const rewritten =
     context === undefined
       ? undefined
@@ -410,6 +453,7 @@ export function compile(input: CompileInput): Blueprint {
     moduleByDefinition: walked.byDefinition,
     moduleByReplaced: moduleIdsOf(walked),
     providers,
+    pinned,
     extraImports,
     visibility: visible.visibility,
     moduleExports: visible.moduleExports,
