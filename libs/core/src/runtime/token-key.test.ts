@@ -671,7 +671,7 @@ describe('tokenKey', () => {
         }),
         { plugins: [byDescription] },
       ),
-    ).toBeUndefined();
+    ).toEqual({ unchecked: [] });
   });
 
   it('keys a loaded module the way create keyed the root', async () => {

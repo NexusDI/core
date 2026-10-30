@@ -5,6 +5,7 @@ import type { BlueprintView } from '../blueprint/views.js';
 import { defineModule } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
 import { MultiToken, Token } from '../definitions/token.js';
+import { frequencySchema } from '../../test-support/schema.js';
 import { Nexus } from './nexus.js';
 import type { TraceEvent } from './trace.js';
 
@@ -37,7 +38,9 @@ describe('Nexus.check', () => {
     // Science imports Engineering, so the root imports Engineering: with
     // Engineering as the root, load() would report a module import cycle.
     const Meridian = defineModule({ name: 'Meridian', imports: [Engineering] });
-    expect(Nexus.check(Meridian, { load: [Science] })).toBeUndefined();
+    expect(Nexus.check(Meridian, { load: [Science] })).toEqual({
+      unchecked: [],
+    });
     expect(built).toBe(0);
   });
 
@@ -164,7 +167,7 @@ describe('Nexus.check', () => {
       Nexus.check(defineModule({ name: 'Root', imports: [Telemetry] }), {
         load: [Wrapper],
       }),
-    ).toBeUndefined();
+    ).toEqual({ unchecked: [] });
   });
 
   it('accepts a load of a module the root already imports, as load() does', () => {
@@ -178,7 +181,7 @@ describe('Nexus.check', () => {
       Nexus.check(defineModule({ name: 'Root', imports: [Lab] }), {
         load: [Lab, Lab],
       }),
-    ).toBeUndefined();
+    ).toEqual({ unchecked: [] });
   });
 
   it('stops at the first failing compile and compiles no later load', () => {
@@ -199,7 +202,7 @@ describe('Nexus.check', () => {
     expect(phases).toEqual([true, false]);
   });
 
-  it('calls no setup and runs no options schema', () => {
+  it('calls no setup hook and runs a sync options schema once', () => {
     let setups = 0;
     let parsed = 0;
     const Configured = defineModule({
@@ -227,7 +230,7 @@ describe('Nexus.check', () => {
       ],
     });
     expect(setups).toBe(0);
-    expect(parsed).toBe(0);
+    expect(parsed).toBe(1);
   });
 
   it('formats the thrown BlueprintError and its inner errors with formatError', () => {
@@ -298,7 +301,7 @@ describe('Nexus.check', () => {
         Nexus.check(Root, {
           load: [{ module: Science, imports: [Navigation] }],
         }),
-      ).toBeUndefined();
+      ).toEqual({ unchecked: [] });
     });
 
     it('reports a missing provider when the entry has no grant', () => {
@@ -336,6 +339,324 @@ describe('Nexus.check', () => {
       ).toMatchObject({
         errors: [{ code: 'NEXUS_LOAD_GRANT', reason: 'already-loaded' }],
       });
+    });
+  });
+
+  describe('options schemas', () => {
+    const COMMS_OPTIONS = new Token<{ frequency: number; band?: string }>(
+      'CommsOptions',
+    );
+    const RELAY = new Token<{ open: boolean }>('SubspaceRelay');
+    const bad = { frequency: 'high' } as never;
+    const good = { frequency: 1420 };
+
+    function comms(name = 'Comms', schema: unknown = frequencySchema()) {
+      return defineModule({
+        name,
+        options: COMMS_OPTIONS,
+        schema: schema as ReturnType<typeof frequencySchema>,
+      });
+    }
+
+    function counting(verdict: 'reject' | 'accept' = 'reject') {
+      const seen = { calls: 0 };
+      const schema = {
+        '~standard': {
+          version: 1,
+          vendor: 'test',
+          validate: (value: unknown) => {
+            seen.calls++;
+            return verdict === 'reject'
+              ? { issues: [{ message: 'no' }] }
+              : { value };
+          },
+        },
+      };
+      return { seen, schema };
+    }
+
+    const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+    it('throws NEXUS_BLUEPRINT_INVALID with NEXUS_INVALID_MODULE_OPTIONS for a forRoot() value its sync schema rejects', () => {
+      let built = 0;
+      const Comms = defineModule({
+        name: 'Comms',
+        options: COMMS_OPTIONS,
+        schema: frequencySchema(),
+        providers: [
+          provide(RELAY, {
+            useFactory: () => {
+              built++;
+              return { open: true };
+            },
+          }),
+        ],
+      });
+      const root = defineModule({
+        name: 'Root',
+        imports: [Comms.forRoot(bad)],
+      });
+      expect(thrown(() => Nexus.check(root))).toMatchObject({
+        code: 'NEXUS_BLUEPRINT_INVALID',
+        errors: [
+          {
+            code: 'NEXUS_INVALID_MODULE_OPTIONS',
+            module: 'Comms',
+            issues: [{ message: 'expected a number', path: ['frequency'] }],
+          },
+        ],
+      });
+      expect(built).toBe(0);
+    });
+
+    it('returns no unchecked module when every schema ran', () => {
+      const report = Nexus.check(
+        defineModule({ name: 'Root', imports: [comms().forRoot(good)] }),
+      );
+      expect(report).toEqual({ unchecked: [] });
+      expect(Object.isFrozen(report)).toBe(true);
+      expect(Object.isFrozen(report.unchecked)).toBe(true);
+    });
+
+    it('reports every rejected value of one compile in record order', () => {
+      const Comms = comms('Comms');
+      const Uplink = comms('Uplink');
+      const error = thrown(() =>
+        Nexus.check(
+          defineModule({
+            name: 'Root',
+            imports: [Comms.forRoot(bad), Uplink.forRoot(bad)],
+          }),
+        ),
+      ) as Error & { errors: { module: string }[] };
+      expect(error.errors.map((each) => each.module)).toEqual([
+        'Comms',
+        'Uplink',
+      ]);
+    });
+
+    it('lists a schema whose validate returns a promise as unchecked and observes its rejection', async () => {
+      let calls = 0;
+      const Comms = comms('Comms', {
+        '~standard': {
+          version: 1,
+          vendor: 'test',
+          validate: () => {
+            calls++;
+            return Promise.reject(new Error('late'));
+          },
+        },
+      });
+      const report = Nexus.check(
+        defineModule({ name: 'Root', imports: [Comms.forRoot(good)] }),
+      );
+      expect(report.unchecked).toEqual([
+        { module: 'Comms', reason: 'async-schema' },
+      ]);
+      expect(Object.isFrozen(report.unchecked[0])).toBe(true);
+      expect(calls).toBe(1);
+      await tick();
+    });
+
+    it('lists a forRootAsync() module with a schema as unchecked and runs no factory', () => {
+      let factories = 0;
+      const report = Nexus.check(
+        defineModule({
+          name: 'Root',
+          imports: [
+            comms().forRootAsync({
+              useFactory: () => {
+                factories++;
+                return good;
+              },
+              deps: [],
+            }),
+          ],
+        }),
+      );
+      expect(factories).toBe(0);
+      expect(report.unchecked).toEqual([
+        { module: 'Comms', reason: 'for-root-async' },
+      ]);
+      expect(Object.isFrozen(report.unchecked[0])).toBe(true);
+    });
+
+    it('lists nothing for a forRootAsync() module without a schema', () => {
+      const Plain = defineModule({ name: 'Plain', options: COMMS_OPTIONS });
+      expect(
+        Nexus.check(
+          defineModule({
+            name: 'Root',
+            imports: [Plain.forRootAsync({ useFactory: () => good, deps: [] })],
+          }),
+        ),
+      ).toEqual({ unchecked: [] });
+    });
+
+    it('discards the output of a schema that transforms its value', () => {
+      const Comms = comms('Comms', {
+        '~standard': {
+          version: 1,
+          vendor: 'test',
+          validate: () => ({ value: { frequency: 1, band: 'rewritten' } }),
+        },
+      });
+      expect(
+        Nexus.check(
+          defineModule({ name: 'Root', imports: [Comms.forRoot(good)] }),
+        ),
+      ).toEqual({ unchecked: [] });
+    });
+
+    it('lists an async-schema module and a forRootAsync() module in compile order', async () => {
+      const Uplink = comms('Uplink', {
+        '~standard': {
+          version: 1,
+          vendor: 'test',
+          validate: () => Promise.resolve({ value: good }),
+        },
+      });
+      const Comms = comms('Comms');
+      const report = Nexus.check(
+        defineModule({
+          name: 'Root',
+          imports: [
+            Uplink.forRoot(good),
+            Comms.forRootAsync({ useFactory: () => good, deps: [] }),
+          ],
+        }),
+      );
+      expect(report.unchecked).toEqual([
+        { module: 'Uplink', reason: 'async-schema' },
+        { module: 'Comms', reason: 'for-root-async' },
+      ]);
+      await tick();
+    });
+
+    it('propagates the exception a schema throws', () => {
+      const boom = new Error('schema broke');
+      const Comms = comms('Comms', {
+        '~standard': {
+          version: 1,
+          vendor: 'test',
+          validate: () => {
+            throw boom;
+          },
+        },
+      });
+      const root = defineModule({
+        name: 'Root',
+        imports: [Comms.forRoot(good)],
+      });
+      expect(thrown(() => Nexus.check(root))).toBe(boom);
+    });
+
+    it("checks a load entry's forRoot() value", () => {
+      const error = thrown(() =>
+        Nexus.check(defineModule({ name: 'Root' }), {
+          load: [comms().forRoot(bad)],
+        }),
+      ) as Error & { errors: { code: string }[] };
+      expect(error.errors.map((each) => each.code)).toEqual([
+        'NEXUS_INVALID_MODULE_OPTIONS',
+      ]);
+    });
+
+    it('runs no schema when a load entry fails to compile', () => {
+      const { seen, schema } = counting();
+      const Science = defineModule({ name: 'Science', providers: [Bridge] });
+      const error = thrown(() =>
+        Nexus.check(
+          defineModule({
+            name: 'Root',
+            imports: [comms('Comms', schema).forRoot(bad)],
+          }),
+          { load: [Science] },
+        ),
+      ) as Error & { errors: { code: string }[] };
+      expect(error.errors.map((each) => each.code)).toEqual([
+        'NEXUS_MISSING_PROVIDER',
+      ]);
+      expect(seen.calls).toBe(0);
+    });
+
+    it('reports rejected values of the root and of a load entry in one BlueprintError', () => {
+      const error = thrown(() =>
+        Nexus.check(
+          defineModule({
+            name: 'Root',
+            imports: [comms('Comms').forRoot(bad)],
+          }),
+          { load: [comms('Uplink').forRoot(bad)] },
+        ),
+      ) as Error & { errors: { code: string; module: string }[] };
+      expect(error.errors.map((each) => each.code)).toEqual([
+        'NEXUS_INVALID_MODULE_OPTIONS',
+        'NEXUS_INVALID_MODULE_OPTIONS',
+      ]);
+      expect(error.errors.map((each) => each.module)).toEqual([
+        'Comms',
+        'Uplink',
+      ]);
+    });
+
+    it('runs a root schema once across every load compile', () => {
+      const { seen, schema } = counting('accept');
+      Nexus.check(
+        defineModule({
+          name: 'Root',
+          imports: [comms('Comms', schema).forRoot(good)],
+        }),
+        {
+          load: [
+            defineModule({ name: 'Science' }),
+            defineModule({ name: 'Lab' }),
+          ],
+        },
+      );
+      expect(seen.calls).toBe(1);
+    });
+
+    it('runs no schema when the graph has an error', () => {
+      const { seen, schema } = counting();
+      const error = thrown(() =>
+        Nexus.check(
+          defineModule({
+            name: 'Root',
+            imports: [comms('Comms', schema).forRoot(bad)],
+            providers: [Bridge],
+          }),
+        ),
+      ) as Error & { errors: { code: string }[] };
+      expect(error.errors.map((each) => each.code)).toEqual([
+        'NEXUS_MISSING_PROVIDER',
+      ]);
+      expect(seen.calls).toBe(0);
+    });
+
+    it('formats the schema failure with the view of the compile that passed', () => {
+      const views: (BlueprintView | undefined)[] = [];
+      thrown(() =>
+        Nexus.check(
+          defineModule({ name: 'Root', imports: [comms().forRoot(bad)] }),
+          {
+            plugins: [
+              {
+                name: 'fmt',
+                apiVersion: 1,
+                formatError: (_error, view) => {
+                  views.push(view);
+                  return undefined;
+                },
+              },
+            ],
+          },
+        ),
+      );
+      expect(views.length).toBeGreaterThan(0);
+      expect(
+        views[0]?.providers.some((each) => each.name.includes('CommsOptions')),
+      ).toBe(true);
     });
   });
 });

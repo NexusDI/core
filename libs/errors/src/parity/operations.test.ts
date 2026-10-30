@@ -454,6 +454,35 @@ describe('errors', () => {
         '  [NEXUS_INVALID_PROVIDER] Root.providers[1] is the number 42, not a provider; list a class, a provide() result or a { token } literal.',
       ]);
     });
+
+    it('words the NEXUS_INVALID_MODULE_OPTIONS of Nexus.check as create words its cause', async () => {
+      const Comms = defineModule({
+        name: 'Comms',
+        options: new Token<{ frequency: number }>('CommsOptions'),
+        schema: {
+          '~standard': {
+            version: 1,
+            vendor: 'test',
+            validate: () => ({
+              issues: [{ message: 'expected a number', path: ['frequency'] }],
+            }),
+          },
+        },
+      });
+      const root = defineModule({
+        name: 'Root',
+        imports: [Comms.forRoot({ frequency: 'high' } as never)],
+      });
+      const checkError = thrown(() =>
+        Nexus.check(root, { plugins: [errors()] }),
+      ) as BlueprintError;
+      const createError = (await rejected(
+        Nexus.create(root, { plugins: [errors()] }),
+      )) as ProviderError;
+      expect(checkError.errors[0]?.message).toBe(
+        (createError.cause as Error).message,
+      );
+    });
   });
 
   describe('R18', () => {
