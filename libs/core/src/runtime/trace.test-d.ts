@@ -105,6 +105,22 @@ describe('TraceEvent', () => {
   });
 });
 
+describe('lazy:read', () => {
+  it('types lazy:read', () => {
+    expectTypeOf<
+      TraceEvent<'lazy:read'>['type']
+    >().toEqualTypeOf<'lazy:read'>();
+    expectTypeOf<Omit<TraceEvent<'lazy:read'>, 'type'>>().toEqualTypeOf<{
+      token: string;
+      providerId: string;
+      owner: string | null;
+      scope: string | null;
+      built: boolean;
+      run: null;
+    }>();
+  });
+});
+
 describe('RunKind', () => {
   it('is exported with the four kinds', () => {
     expectTypeOf<RunKind>().toEqualTypeOf<

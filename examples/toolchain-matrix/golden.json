@@ -144,6 +144,7 @@
       "construct:await": 1,
       "construct": 7,
       "init": 1,
+      "lazy:read": 1,
       "run": 2,
       "scope:create": 1,
       "scope:dispose": 1,

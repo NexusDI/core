@@ -9,6 +9,7 @@ import { constructionStack } from './construction-stack.js';
 import { formatFor } from './format.js';
 import { isObject } from './ownership.js';
 import type { ContainerState, Ctx, TransientOwner } from './state.js';
+import type { TraceEvent } from './trace.js';
 
 /**
  * The shape of `resolveId` (runtime/build.ts). Callers pass it in, so
@@ -16,8 +17,13 @@ import type { ContainerState, Ctx, TransientOwner } from './state.js';
  */
 export type ResolveId = (id: string, ctx: Ctx) => unknown;
 
+/** The owner a thunk reports: its provider id, or null for resolve(). */
+export type ThunkOwner = Pick<ProviderRecord, 'name' | 'lifetime'> & {
+  readonly id: string | null;
+};
+
 function notReady(
-  owner: Pick<ProviderRecord, 'name' | 'lifetime'>,
+  owner: ThunkOwner,
   target: ProviderRecord,
   container: ContainerState,
 ): NotReadyError {
@@ -62,11 +68,7 @@ type LazyStep =
  * NEXUS_DISPOSED. Follows alias hops with a loop, since an alias chain can be
  * arbitrarily long and one call frame per hop would overflow the call stack.
  */
-function lazyStep(
-  id: string,
-  owner: Pick<ProviderRecord, 'name' | 'lifetime'>,
-  ctx: Ctx,
-): LazyStep {
+function lazyStep(id: string, owner: ThunkOwner, ctx: Ctx): LazyStep {
   const { bp, container } = ctx;
   for (;;) {
     if (id === REQUEST_ID) return { build: id, ctx };
@@ -129,6 +131,29 @@ function lazyStep(
   }
 }
 
+function readEvent(
+  ctx: Ctx,
+  id: string,
+  owner: ThunkOwner,
+  built: boolean,
+): TraceEvent {
+  return {
+    type: 'lazy:read',
+    token: ctx.bp.providers.get(id)?.name ?? id,
+    providerId: id,
+    owner: owner.id,
+    scope: ctx.container.scopeId,
+    built,
+    run: null,
+  };
+}
+
+/** True when the read built its target: a build step that is not REQUEST. */
+const builds = (step: LazyStep): boolean =>
+  !(step instanceof NotReadyError) &&
+  'build' in step &&
+  step.build !== REQUEST_ID;
+
 /** Runs a decided step. A refusal throws, and a ready value or a build returns. */
 function run(step: LazyStep, resolve: ResolveId): unknown {
   if (step instanceof NotReadyError) throw step;
@@ -142,13 +167,18 @@ function run(step: LazyStep, resolve: ResolveId): unknown {
  */
 export function makeThunk(
   targetId: string,
-  owner: Pick<ProviderRecord, 'name' | 'lifetime'>,
+  owner: ThunkOwner,
   ctx: Ctx,
   resolve: ResolveId,
 ): () => unknown {
   return () => {
     try {
-      return run(lazyStep(targetId, owner, ctx), resolve);
+      const step = lazyStep(targetId, owner, ctx);
+      const value = run(step, resolve);
+      ctx.container.root.tracer.emit(() =>
+        readEvent(ctx, targetId, owner, builds(step)),
+      );
+      return value;
     } catch (error) {
       throw formatFor(ctx.container.root, error);
     }
@@ -166,7 +196,7 @@ export function makeThunk(
  */
 export function makeListThunk(
   targetIds: readonly string[],
-  owner: Pick<ProviderRecord, 'name' | 'lifetime'>,
+  owner: ThunkOwner,
   ctx: Ctx,
   resolve: ResolveId,
 ): () => unknown[] {
@@ -187,7 +217,17 @@ export function makeListThunk(
           });
         steps.push(step);
       }
-      return steps.map((step) => run(step, resolve));
+      const values = steps.map((step) => run(step, resolve));
+      for (let i = 0; i < targetIds.length; i++)
+        ctx.container.root.tracer.emit(() =>
+          readEvent(
+            ctx,
+            targetIds[i] as string,
+            owner,
+            builds(steps[i] as LazyStep),
+          ),
+        );
+      return values;
     } catch (error) {
       throw formatFor(ctx.container.root, error);
     }

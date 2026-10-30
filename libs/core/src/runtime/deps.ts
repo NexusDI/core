@@ -1,8 +1,4 @@
-import {
-  REQUEST_ID,
-  type Blueprint,
-  type ProviderRecord,
-} from '../blueprint/blueprint.js';
+import { REQUEST_ID, type Blueprint } from '../blueprint/blueprint.js';
 import { depOf, type BadDep } from '../blueprint/records.js';
 import { isForeign } from '../definitions/brand.js';
 import { describeValue, notShared } from '../definitions/token.js';
@@ -15,7 +11,7 @@ import {
   type NexusError,
 } from '../errors/index.js';
 import { resolveId } from './build.js';
-import { makeListThunk, makeThunk } from './lazy.js';
+import { makeListThunk, makeThunk, type ThunkOwner } from './lazy.js';
 import { lookupModule, notFound } from './lookup.js';
 import type { LookupOptions } from './options.js';
 import type { ContainerState, TransientOwner } from './state.js';
@@ -139,10 +135,9 @@ function needsScopeAtRoot(bp: Blueprint, id: string): boolean {
 }
 
 /** What a thunk from resolve() names as its owner in NEXUS_NOT_READY, and how it owns a transient. */
-function thunkOwner(
-  container: ContainerState,
-): Pick<ProviderRecord, 'name' | 'lifetime'> {
+function thunkOwner(container: ContainerState): ThunkOwner {
   return {
+    id: null,
     name: 'resolve()',
     lifetime: container.kind === 'scope' ? 'scoped' : 'transient',
   };

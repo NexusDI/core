@@ -684,7 +684,7 @@ describe('makeListThunk', () => {
     const thunk = (ids: string[]) =>
       makeListThunk(
         ids,
-        { name: 'Bus', lifetime: 'singleton' },
+        { id: null, name: 'Bus', lifetime: 'singleton' },
         { bp, container: root, owner: root },
         () => {
           throw new Error('internal: nothing may build');

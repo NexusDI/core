@@ -4,12 +4,14 @@ import { rejected } from '../../test-support/catch.js';
 import { deferred } from '../../test-support/deferred.js';
 import { recordEvents } from '../../test-support/observe.js';
 import { defineModule } from '../definitions/define-module.js';
-import { lazy } from '../definitions/modifiers.js';
+import { all, lazy } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
-import { Token } from '../definitions/token.js';
+import { MultiToken, Token } from '../definitions/token.js';
 import { REQUEST } from '../definitions/request.js';
 import type { StandardSchemaV1 } from '../definitions/standard-schema.js';
 import { Nexus } from './nexus.js';
+import type { BlueprintView } from '../blueprint/views.js';
+import type { NexusPlugin } from './plugins.js';
 import type { TraceEvent } from './trace.js';
 
 /** `value`, after the test checked that it exists. */
@@ -1438,3 +1440,254 @@ describe('order and the in-flight set (spec 3.4)', () => {
     expect(inFlight(events)).toEqual(['Router']);
   });
 });
+
+describe('lazy:read', () => {
+  interface IShieldGrid {
+    readonly strength: number;
+  }
+  interface IPowerRouter {
+    readonly grid: () => IShieldGrid;
+  }
+  interface IGauge {
+    readonly level: number;
+  }
+  const SHIELD_GRID = new Token<IShieldGrid>('ShieldGrid');
+  const SHIELDS = new Token<IShieldGrid>('Shields');
+  const POWER_ROUTER = new Token<IPowerRouter>('PowerRouter');
+  const GAUGE = new Token<IGauge>('Gauge');
+  class ShieldGrid implements IShieldGrid {
+    static deps = [POWER_ROUTER] as const;
+    readonly strength = 9;
+  }
+  class PowerRouter implements IPowerRouter {
+    static deps = [lazy(SHIELD_GRID)] as const;
+    constructor(readonly grid: () => IShieldGrid) {}
+  }
+  class Gauge implements IGauge {
+    readonly level = 3;
+  }
+  class GaugeReader {
+    static deps = [lazy(GAUGE)] as const;
+    constructor(readonly gauge: () => IGauge) {}
+  }
+
+  /** The view a compile.check hook receives, kept for its edges and providers. */
+  function viewOf(): { views: BlueprintView[]; plugin: NexusPlugin } {
+    const views: BlueprintView[] = [];
+    return {
+      views,
+      plugin: {
+        name: 'test:view',
+        apiVersion: 1,
+        compile: { check: (view: BlueprintView) => void views.push(view) },
+      },
+    };
+  }
+
+  it('emits one event per call of a thunk whose singleton is ready, with the lazy edge target', async () => {
+    const { events, plugin } = recordEvents();
+    const { views, plugin: viewPlugin } = viewOf();
+    await using ship = await Nexus.create(
+      [
+        provide(SHIELD_GRID, { useClass: ShieldGrid }),
+        provide(POWER_ROUTER, { useClass: PowerRouter }),
+      ],
+      { plugins: [plugin, viewPlugin] },
+    );
+    const view = defined(views[0]);
+    const edge = defined(view.edges.find((e) => e.kind === 'lazy'));
+    const router = defined(
+      view.providers.find((p) => p.name === 'PowerRouter'),
+    );
+    const thunk = ship.get(POWER_ROUTER).grid;
+    thunk();
+    thunk();
+    expect(only(events, 'lazy:read')).toEqual([
+      {
+        type: 'lazy:read',
+        token: 'ShieldGrid',
+        providerId: edge.to,
+        owner: router.id,
+        scope: null,
+        built: false,
+        run: null,
+      },
+      {
+        type: 'lazy:read',
+        token: 'ShieldGrid',
+        providerId: edge.to,
+        owner: router.id,
+        scope: null,
+        built: false,
+        run: null,
+      },
+    ]);
+  });
+
+  it('emits construct before lazy:read when the read builds its target', async () => {
+    const { events, plugin } = recordEvents();
+    await using ship = await Nexus.create(
+      [provide(GAUGE, { useClass: Gauge, eager: false }), GaugeReader],
+      { plugins: [plugin] },
+    );
+    const thunk = ship.get(GaugeReader).gauge;
+    const before = events.length;
+    thunk();
+    expect(events.slice(before).map((e) => e.type)).toEqual([
+      'construct',
+      'lazy:read',
+    ]);
+    expect(only(events, 'lazy:read').map((e) => e.built)).toEqual([true]);
+    thunk();
+    expect(only(events, 'lazy:read').map((e) => e.built)).toEqual([
+      true,
+      false,
+    ]);
+  });
+
+  it('reads a transient target with built true on every call', async () => {
+    const { events, plugin } = recordEvents();
+    await using ship = await Nexus.create(
+      [provide(GAUGE, { useClass: Gauge, lifetime: 'transient' }), GaugeReader],
+      { plugins: [plugin] },
+    );
+    const thunk = ship.get(GaugeReader).gauge;
+    thunk();
+    thunk();
+    expect(
+      only(events, 'construct').filter((e) => e.token === 'Gauge'),
+    ).toHaveLength(2);
+    expect(only(events, 'lazy:read').map((e) => e.built)).toEqual([true, true]);
+  });
+
+  it('emits one event per contribution for a lazy(all()) thunk, in record order', async () => {
+    interface IPowerConsumer {
+      readonly draw: number;
+    }
+    const POWER_CONSUMERS = new MultiToken<IPowerConsumer>('PowerConsumers');
+    class Lights implements IPowerConsumer {
+      readonly draw = 1;
+    }
+    class Pumps implements IPowerConsumer {
+      readonly draw = 2;
+    }
+    class Collector {
+      static deps = [lazy(all(POWER_CONSUMERS))] as const;
+      constructor(readonly consumers: () => IPowerConsumer[]) {}
+    }
+    const { events, plugin } = recordEvents();
+    const { views, plugin: viewPlugin } = viewOf();
+    await using ship = await Nexus.create(
+      [
+        provide(POWER_CONSUMERS, { useClass: Lights }),
+        provide(POWER_CONSUMERS, { useClass: Pumps, lifetime: 'transient' }),
+        Collector,
+      ],
+      { plugins: [plugin, viewPlugin] },
+    );
+    const view = defined(views[0]);
+    const targets = view.edges
+      .filter((e) => e.kind === 'lazy')
+      .map((e) => e.to);
+    const collector = defined(
+      view.providers.find((p) => p.name === 'Collector'),
+    );
+    expect(targets).toHaveLength(2);
+    ship.get(Collector).consumers();
+    const reads = only(events, 'lazy:read');
+    expect(reads.map((e) => e.providerId)).toEqual(targets);
+    expect(reads.map((e) => e.token)).toEqual([
+      'PowerConsumers',
+      'PowerConsumers',
+    ]);
+    expect(reads.map((e) => e.owner)).toEqual([collector.id, collector.id]);
+    expect(reads.map((e) => e.scope)).toEqual([null, null]);
+    expect(reads.map((e) => e.built)).toEqual([false, true]);
+  });
+
+  it('reports the scope id and the provider id for a thunk held by a scoped provider', async () => {
+    class ScopedRouter implements IPowerRouter {
+      static deps = [lazy(SHIELD_GRID)] as const;
+      constructor(readonly grid: () => IShieldGrid) {}
+    }
+    const { events, plugin } = recordEvents();
+    const { views, plugin: viewPlugin } = viewOf();
+    await using ship = await Nexus.create(
+      [
+        provide(SHIELD_GRID, { useClass: ShieldGridAlone }),
+        provide(POWER_ROUTER, { useClass: ScopedRouter, lifetime: 'scoped' }),
+      ],
+      { plugins: [plugin, viewPlugin] },
+    );
+    const router = defined(
+      defined(views[0]).providers.find((p) => p.name === 'PowerRouter'),
+    );
+    await using scope = await ship.createScope();
+    scope.get(POWER_ROUTER).grid();
+    expect(only(events, 'lazy:read')).toMatchObject([
+      { owner: router.id, scope: scope.id, token: 'ShieldGrid' },
+    ]);
+  });
+
+  it('emits nothing for a refused read', async () => {
+    class EagerRouter implements IPowerRouter {
+      static deps = [lazy(SHIELD_GRID)] as const;
+      constructor(readonly grid: () => IShieldGrid) {
+        grid();
+      }
+    }
+    const { events, plugin } = recordEvents();
+    const error = await rejected(
+      Nexus.create(
+        [
+          provide(SHIELD_GRID, { useClass: ShieldGrid }),
+          provide(POWER_ROUTER, { useClass: EagerRouter }),
+        ],
+        { plugins: [plugin] },
+      ),
+    );
+    expect(error).toMatchObject({ code: 'NEXUS_PROVIDER_FAILED' });
+    expect(only(events, 'lazy:read')).toEqual([]);
+  });
+
+  it('reports owner null and the scope id for a thunk from resolve() in a scope', async () => {
+    const { events, plugin } = recordEvents();
+    await using ship = await Nexus.create(
+      [provide(SHIELD_GRID, { useClass: ShieldGridAlone })],
+      { plugins: [plugin] },
+    );
+    await using scope = await ship.createScope();
+    const { grid } = scope.resolve({ grid: lazy(SHIELD_GRID) });
+    grid();
+    expect(only(events, 'lazy:read')).toMatchObject([
+      { owner: null, scope: scope.id, token: 'ShieldGrid', built: false },
+    ]);
+  });
+
+  it('reports the alias id for a thunk whose target is an alias', async () => {
+    class Bridge {
+      static deps = [lazy(SHIELDS)] as const;
+      constructor(readonly shields: () => IShieldGrid) {}
+    }
+    const { events, plugin } = recordEvents();
+    const { views, plugin: viewPlugin } = viewOf();
+    await using ship = await Nexus.create(
+      [
+        provide(SHIELD_GRID, { useClass: ShieldGridAlone }),
+        provide(SHIELDS, { useExisting: SHIELD_GRID }),
+        Bridge,
+      ],
+      { plugins: [plugin, viewPlugin] },
+    );
+    const view = defined(views[0]);
+    const alias = defined(view.providers.find((p) => p.name === 'Shields'));
+    ship.get(Bridge).shields();
+    expect(only(events, 'lazy:read')).toMatchObject([
+      { providerId: alias.id, token: 'Shields' },
+    ]);
+  });
+});
+
+class ShieldGridAlone {
+  readonly strength = 9;
+}

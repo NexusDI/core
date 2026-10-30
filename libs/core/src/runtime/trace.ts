@@ -81,6 +81,25 @@ export interface TraceEventByType {
     providerId: string;
     reason: 'root-transient' | 'singleton-thunk';
   };
+  /**
+   * A lazy() or lazy(all()) thunk returned. One per call, and one per
+   * contribution for lazy(all()). A read that builds its target emits that
+   * build's construct first. A call that throws emits none.
+   */
+  'lazy:read': {
+    /** The display name of the record the thunk reads: the alias or the contribution itself, before any alias hop. */
+    token: string;
+    /** The id the thunk reads: the `to` of its lazy edge in the blueprint. */
+    providerId: string;
+    /** The provider whose deps hold the thunk, or null for a thunk from resolve(). */
+    owner: string | null;
+    /** The scope the thunk was made in, or null at the root. */
+    scope: string | null;
+    /** True when this read built its target: a transient, a deferred singleton, or a scoped instance built on demand. */
+    built: boolean;
+    /** Always null: a thunk read belongs to no run. A later minor release may widen it to number | null. */
+    run: null;
+  };
   /** A singleton's onInit settled. */
   init: BuildEventFields;
   /** onInit returned a thenable; core now awaits it. Ends with init or init:failed. */
