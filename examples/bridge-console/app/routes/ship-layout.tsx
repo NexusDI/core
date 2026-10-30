@@ -2,6 +2,7 @@ import type { ShipReading } from '@nexusdi/meridian-systems';
 import { Outlet } from 'react-router';
 
 import { StatusStrip } from '../components/StatusStrip';
+import { useShipReading } from '../hooks/use-ship-reading';
 import type { Route } from './+types/ship-layout';
 import { snapshotLoader } from './snapshot-loader.server';
 
@@ -19,9 +20,10 @@ export const shouldRevalidate = () => false;
 
 /** The pages about the running ship, under its status strip. */
 export default function ShipLayout({ loaderData }: Route.ComponentProps) {
+  const ship = useShipReading(loaderData);
   return (
     <>
-      <StatusStrip ship={loaderData} />
+      <StatusStrip ship={ship} />
       <Outlet />
     </>
   );

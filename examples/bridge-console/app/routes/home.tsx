@@ -1,6 +1,6 @@
 import { REQUEST } from '@nexusdi/core';
 import { NAV_CHARTS } from '@nexusdi/meridian-systems/charts';
-import { ScopeProvider } from '@nexusdi/react';
+import { ScopeProvider, useService } from '@nexusdi/react';
 import { Form } from 'react-router';
 
 import {
@@ -50,6 +50,26 @@ export const action: (
   },
 );
 
+/**
+ * The plotter over the client graph's charts. It turns a refusal the charts
+ * throw into the `{ refused }` answer the component shows.
+ */
+function Plotter() {
+  const charts = useService(NAV_CHARTS);
+  return (
+    <CoursePlotter
+      plot={(to) => {
+        try {
+          return charts.plot(to);
+        } catch (error) {
+          if (error instanceof Error) return { refused: error.message };
+          throw error;
+        }
+      }}
+    />
+  );
+}
+
 export default function Home({ loaderData, actionData }: Route.ComponentProps) {
   const entries = actionData?.entries ?? loaderData.entries;
   return (
@@ -84,7 +104,7 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
       <Section>
         {/* Its own scope, created after hydration: the server sends the fallback. */}
         <ScopeProvider fallback={<p>Warming up the plotter</p>}>
-          <CoursePlotter />
+          <Plotter />
         </ScopeProvider>
       </Section>
     </>

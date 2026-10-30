@@ -1,24 +1,14 @@
-import { useEffect, useState } from 'react';
-import { useService } from '@nexusdi/react';
 import type { ShipReading } from '@nexusdi/meridian-systems';
 
-import { TELEMETRY_CLIENT } from '../di/contracts';
 import { fixed } from '../fixed';
 
 /**
- * The ship's tick, ship time and habitat air. It starts from the loader's
- * reading, so the server and the first browser render agree, then follows
- * the telemetry stream after hydration. `null` shows the ship offline. The
+ * The ship's tick, ship time and habitat air, from the `ship` reading the
+ * layout passes. `null` shows the ship offline. The
  * temperature shows in whole kelvin and the pressure to 0.1 kPa, through
  * `fixed`, so the text keeps one precision as the air changes.
  */
-export function StatusStrip({ ship: first }: { ship: ShipReading | null }) {
-  const telemetry = useService(TELEMETRY_CLIENT);
-  const [ship, setShip] = useState(first);
-  useEffect(
-    () => telemetry.subscribe(setShip, () => setShip(null)),
-    [telemetry],
-  );
+export function StatusStrip({ ship }: { ship: ShipReading | null }) {
   return (
     <section
       role="status"
