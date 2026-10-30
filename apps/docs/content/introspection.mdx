@@ -67,18 +67,19 @@ Common events include:
 - `run`: When a `create`, `load`, `createScope` or `extend()` settles, with its run id, its kind, its scope and whether it succeeded.
 - `dispose:instance`: When a specific instance is cleaned up.
 
-Eight more types exist:
+Nine more types exist:
 
-| `type`             | When NexusDI emits it                                     |
-| ------------------ | --------------------------------------------------------- |
-| `compile`          | once per compile, at `create`, `load` or `Nexus.check`    |
-| `untracked`        | for a disposable instance that no container or scope owns |
-| `scope:extend`     | when `scope.extend()` built what a later `load()` added   |
-| `dispose`          | when the container finished disposing                     |
-| `construct:await`  | a factory returned a thenable and core starts awaiting it |
-| `construct:failed` | a build failed between the call and the store             |
-| `init:await`       | `onInit` returned a thenable                              |
-| `init:failed`      | `onInit` threw or rejected                                |
+| `type`             | When NexusDI emits it                                                      |
+| ------------------ | -------------------------------------------------------------------------- |
+| `compile`          | once per compile, at `create`, `load` or `Nexus.check`                     |
+| `untracked`        | for a disposable instance that no container or scope owns                  |
+| `lazy:read`        | a `lazy()` thunk returned a value, once per contribution for `lazy(all())` |
+| `scope:extend`     | when `scope.extend()` built what a later `load()` added                    |
+| `dispose`          | when the container finished disposing                                      |
+| `construct:await`  | a factory returned a thenable and core starts awaiting it                  |
+| `construct:failed` | a build failed between the call and the store                              |
+| `init:await`       | `onInit` returned a thenable                                               |
+| `init:failed`      | `onInit` threw or rejected                                                 |
 
 A `construct` event carries its token, lifetime and scope. `scope:create` fires when `createScope()` finished building its scoped factories, and `dispose:instance` fires for each instance in disposal order.
 

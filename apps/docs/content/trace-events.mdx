@@ -12,22 +12,23 @@ NexusDI core reports what a container does as trace events, which a plugin's `ob
 
 Each event is an object with a `type` and that type's fields. `TraceEvent` is the union of these objects, `TraceEventByType` maps each type to its fields, and `@nexusdi/core` exports both. `RunKind` names the operations a `run` event closes.
 
-| `type`             | When core emits it                                                        | Fields beside `type`                                                      |
-| ------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `compile`          | once per compile, at `create`, `load` or `Nexus.check`                    | `phase`, `modules`, `providers`, `errors`, `run`, `startMs`, `durationMs` |
-| `construct`        | a build stored its instance                                               | the build fields                                                          |
-| `construct:await`  | a constructor or factory returned a thenable, and core starts awaiting it | the build fields                                                          |
-| `construct:failed` | a build failed between the call and the store                             | the build fields                                                          |
-| `init`             | a singleton's `onInit` settled                                            | the build fields                                                          |
-| `init:await`       | `onInit` returned a thenable, and core starts awaiting it                 | the build fields                                                          |
-| `init:failed`      | `onInit` threw or rejected, or an on-demand build refused its thenable    | the build fields                                                          |
-| `run`              | a `create`, `load`, `createScope` or `extend()` settled                   | `run`, `kind`, `scope`, `ok`, `startMs`, `durationMs`                     |
-| `scope:create`     | `createScope()` finished building its scoped providers                    | `scope`, `built`, `run`, `startMs`, `durationMs`                          |
-| `scope:extend`     | `scope.extend()` built what a later `load()` added                        | `scope`, `modules`, `built`, `run`, `startMs`, `durationMs`               |
-| `scope:dispose`    | a scope finished disposing                                                | `scope`, `disposed`, `errors`, `startMs`, `durationMs`                    |
-| `dispose:instance` | one instance was disposed, in disposal order                              | `token`, `providerId`, `scope`                                            |
-| `dispose`          | the container finished disposing                                          | `disposed`, `errors`, `startMs`, `durationMs`                             |
-| `untracked`        | a disposable instance that no container or scope owns was built           | `token`, `providerId`, `reason`                                           |
+| `type`             | When core emits it                                                                  | Fields beside `type`                                                      |
+| ------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `compile`          | once per compile, at `create`, `load` or `Nexus.check`                              | `phase`, `modules`, `providers`, `errors`, `run`, `startMs`, `durationMs` |
+| `construct`        | a build stored its instance                                                         | the build fields                                                          |
+| `construct:await`  | a constructor or factory returned a thenable, and core starts awaiting it           | the build fields                                                          |
+| `construct:failed` | a build failed between the call and the store                                       | the build fields                                                          |
+| `init`             | a singleton's `onInit` settled                                                      | the build fields                                                          |
+| `init:await`       | `onInit` returned a thenable, and core starts awaiting it                           | the build fields                                                          |
+| `init:failed`      | `onInit` threw or rejected, or an on-demand build refused its thenable              | the build fields                                                          |
+| `run`              | a `create`, `load`, `createScope` or `extend()` settled                             | `run`, `kind`, `scope`, `ok`, `startMs`, `durationMs`                     |
+| `scope:create`     | `createScope()` finished building its scoped providers                              | `scope`, `built`, `run`, `startMs`, `durationMs`                          |
+| `scope:extend`     | `scope.extend()` built what a later `load()` added                                  | `scope`, `modules`, `built`, `run`, `startMs`, `durationMs`               |
+| `scope:dispose`    | a scope finished disposing                                                          | `scope`, `disposed`, `errors`, `startMs`, `durationMs`                    |
+| `dispose:instance` | one instance was disposed, in disposal order                                        | `token`, `providerId`, `scope`                                            |
+| `dispose`          | the container finished disposing                                                    | `disposed`, `errors`, `startMs`, `durationMs`                             |
+| `untracked`        | a disposable instance that no container or scope owns was built                     | `token`, `providerId`, `reason`                                           |
+| `lazy:read`        | a `lazy()` or `lazy(all())` thunk returned, once per contribution for `lazy(all())` | `token`, `providerId`, `owner`, `scope`, `built`, `run`                   |
 
 A build is one call of a provider's constructor, factory or `onInit`, up to the stored instance. The six build events share one shape, the build fields, and each field means the same on all six, read up to the moment its event fires:
 
@@ -52,24 +53,29 @@ On an `:await` event the span ends at the emit, so `awaitMs` and `finishMs` read
 
 The other events carry these fields, all stable:
 
-| Field                   | On                                               | Type                                     | Meaning                                                                          |
-| ----------------------- | ------------------------------------------------ | ---------------------------------------- | -------------------------------------------------------------------------------- |
-| `phase`                 | `compile`                                        | `'create' \| 'load' \| 'check'`          | the operation that compiled                                                      |
-| `modules`               | `compile`                                        | `number`                                 | the count of modules compiled                                                    |
-| `modules`               | `scope:extend`                                   | `string[]`                               | the names of the modules the extension added                                     |
-| `providers`             | `compile`                                        | `number`                                 | the count of providers compiled                                                  |
-| `errors`                | `compile`                                        | `number`                                 | the count of graph errors found                                                  |
-| `errors`                | `scope:dispose`, `dispose`                       | `number`                                 | the count of disposer errors                                                     |
-| `run`                   | `compile`, `run`, `scope:create`, `scope:extend` | `number` (`number \| null` on `compile`) | the run id; `null` on `compile` for `Nexus.check`                                |
-| `kind`                  | `run`                                            | `RunKind`                                | `'create'`, `'load'`, `'createScope'` or `'extend'`; a minor release may add one |
-| `ok`                    | `run`                                            | `boolean`                                | `false` when the operation threw or disposal aborted it                          |
-| `scope`                 | `run`                                            | `string \| null`                         | the scope of a `createScope` or `extend()`, `null` at the root                   |
-| `scope`                 | the scope events                                 | `string`                                 | the scope id                                                                     |
-| `scope`                 | `dispose:instance`                               | `string \| null`                         | the scope that owned the instance, `null` at the root                            |
-| `built`                 | `scope:create`, `scope:extend`                   | `number`                                 | the count of providers built                                                     |
-| `disposed`              | `scope:dispose`, `dispose`                       | `number`                                 | the count of instances disposed                                                  |
-| `reason`                | `untracked`                                      | `'root-transient' \| 'singleton-thunk'`  | why no container owns the instance                                               |
-| `startMs`, `durationMs` | every event with a span                          | `number`                                 | as on the build events                                                           |
+| Field                   | On                                               | Type                                     | Meaning                                                                                                                                                       |
+| ----------------------- | ------------------------------------------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `phase`                 | `compile`                                        | `'create' \| 'load' \| 'check'`          | the operation that compiled                                                                                                                                   |
+| `modules`               | `compile`                                        | `number`                                 | the count of modules compiled                                                                                                                                 |
+| `modules`               | `scope:extend`                                   | `string[]`                               | the names of the modules the extension added                                                                                                                  |
+| `providers`             | `compile`                                        | `number`                                 | the count of providers compiled                                                                                                                               |
+| `errors`                | `compile`                                        | `number`                                 | the count of graph errors found                                                                                                                               |
+| `errors`                | `scope:dispose`, `dispose`                       | `number`                                 | the count of disposer errors                                                                                                                                  |
+| `run`                   | `compile`, `run`, `scope:create`, `scope:extend` | `number` (`number \| null` on `compile`) | the run id; `null` on `compile` for `Nexus.check`                                                                                                             |
+| `kind`                  | `run`                                            | `RunKind`                                | `'create'`, `'load'`, `'createScope'` or `'extend'`; a minor release may add one                                                                              |
+| `ok`                    | `run`                                            | `boolean`                                | `false` when the operation threw or disposal aborted it                                                                                                       |
+| `scope`                 | `run`                                            | `string \| null`                         | the scope of a `createScope` or `extend()`, `null` at the root                                                                                                |
+| `scope`                 | the scope events                                 | `string`                                 | the scope id                                                                                                                                                  |
+| `scope`                 | `dispose:instance`                               | `string \| null`                         | the scope that owned the instance, `null` at the root                                                                                                         |
+| `built`                 | `scope:create`, `scope:extend`                   | `number`                                 | the count of providers built                                                                                                                                  |
+| `disposed`              | `scope:dispose`, `dispose`                       | `number`                                 | the count of instances disposed                                                                                                                               |
+| `reason`                | `untracked`                                      | `'root-transient' \| 'singleton-thunk'`  | why no container owns the instance                                                                                                                            |
+| `token`, `providerId`   | `lazy:read`                                      | `string`                                 | `token` is the display name the thunk reads, before any `useExisting` hop. `providerId` is the provider id, the `to` of the thunk's `lazy` edge in `graph()`. |
+| `owner`                 | `lazy:read`                                      | `string \| null`                         | the provider whose deps hold the thunk, `null` for a thunk from `resolve()`                                                                                   |
+| `scope`                 | `lazy:read`                                      | `string \| null`                         | the scope the thunk was made in, `null` at the root                                                                                                           |
+| `built`                 | `lazy:read`                                      | `boolean`                                | the read built its target                                                                                                                                     |
+| `run`                   | `lazy:read`                                      | `null`                                   | a thunk read belongs to no run                                                                                                                                |
+| `startMs`, `durationMs` | every event with a span                          | `number`                                 | as on the build events                                                                                                                                        |
 
 The event types and every field on this page are stable in plugin API 1, except where a tier says otherwise.
 
@@ -101,7 +107,7 @@ Core emits each event once, when its span ends. `construct:await` and `init:awai
 4. `scope:create` or `scope:extend`, for those run kinds.
 5. `run`, last.
 
-Items 2 and 3 describe how core schedules builds today and may change in a minor release. Items 1, 4 and 5, one emit per event, and `run` last, are stable. An on-demand build emits its `construct`, then its `init` or `init:failed`, with `level: null`, wherever it runs: inside a level, or inside `onInit`.
+Items 2 and 3 describe how core schedules builds today and may change in a minor release. Items 1, 4 and 5, one emit per event, and `run` last, are stable. An on-demand build emits its `construct`, then its `init` or `init:failed`, with `level: null`, wherever it runs: inside a level, or inside `onInit`. A thunk read emits `lazy:read` after the read returns, so a read that builds its target emits that build's `construct` first. Core emits one per call, and one per contribution for `lazy(all())`, on every call.
 
 A `create` with one async factory emits four events, all with run 0:
 
