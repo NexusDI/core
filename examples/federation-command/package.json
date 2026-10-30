@@ -16,6 +16,7 @@
     "react-dom": "19.3.1"
   },
   "devDependencies": {
+    "@nexusdi/doc-examples": "*",
     "@nexusdi/federation": "*",
     "@nexusdi/testing": "*",
     "@nexusdi/vitest": "*",

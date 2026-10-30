@@ -1,74 +1,92 @@
 # @nexusdi/federation-shell
 
-The host of the federation demo: the Meridian shell. It holds the container `ship`, whose
-root `Meridian` imports `Tactical`, the module that provides the contract's `NAV_CHARTS`,
-`STATION_TELEMETRY` and `COMMAND_LINK`. Four stations join the ship at runtime as sections,
-each a remote built and served on its own. A remote cannot import `Tactical`, so each
-section loads with `{ imports: [Tactical] }`, a grant that lets the station see the
-module's exports:
+Run the Meridian shell with its four stations and watch the ship assemble in the browser. The stations and [bridge-api](../bridge-api/README.md) keep running, so use one terminal for each command.
 
-- `/charts` loads `cartography` (`examples/federation-cartography`) and renders its
-  `CartographyPanel`.
-- `/command` loads `command` (`examples/federation-command`), whose classes use
-  decorators, and renders its `CommandPanel`, which sends helm orders.
-- `/engineering` loads `engineering` (`examples/federation-engineering`) and renders its
-  `EngineeringPanel`.
-- `/life-support` loads `life-support` (`examples/federation-life-support`) and renders
-  its `LifeSupportPanel`.
-
-At startup the shell reads `/remotes.json`, a list of `{ name, entry }`, and registers it
-with the Module Federation runtime. The shell build emits `remotes.json` from the station table (`src/stations.ts`), with the development ports. A
-station that fails to load renders `SectionFailed` with the `SectionError` code, then the code and message of the load error in its `cause`, and
-its retry button loads the section again. The contract lives in
-`examples/federation-contracts`, which the shell owns.
-
-`STATION_TELEMETRY` reads bridge-api's `GET /telemetry` stream, and `COMMAND_LINK` posts to
-its `POST /commands`. The shell reads bridge-api's address from `/bridge.json`,
-`{ "url": "..." }`, the first time a station asks for either, so startup fetches nothing.
-`public/bridge.json` names `http://localhost:3000/`, bridge-api's dev port, and bridge-api's
-Hono entry answers the shell's origins, `http://localhost:4300` and `http://127.0.0.1:4300`,
-with CORS headers. A `url` in `/bridge.json` without a trailing slash gets one, so its path
-stays in front of `telemetry` and `commands`.
-
-The telemetry stream does not reconnect after bridge-api restarts. A panel shows
-"Telemetry offline" until the crew leaves the route and opens it again. When
-`/bridge.json` is missing or malformed, the panels show "offline" or "The bridge
-is unreachable". A relative `url` gives the same panels. The shell logs the
-cause with `console.error`.
-
-The shell lists `@nexusdi/bridge-api` as a devDependency because the e2e servers start its
-Hono entry. Nx reads the devDependency as a project edge, so `nx affected` marks the shell
-and runs its tests, builds and e2e whenever bridge-api changes. Nx's TypeScript sync adds
-`../bridge-api/tsconfig.lib.json` to `tsconfig.app.json` for the same edge, so the shell's
-type check builds bridge-api first.
-
-The ports: the shell on 4300, `cartography` on 4301, `command` on 4302, `engineering` on
-4305 and `life-support` on 4306.
-
-## Commands
-
-The first command serves the four remotes in development, and each remote's `serve`
-starts the shell's, so five dev servers run side by side. The second starts bridge-api,
-which the stations read and command.
-
-```sh
-npx nx run-many -t serve --projects=@nexusdi/federation-cartography,@nexusdi/federation-command,@nexusdi/federation-engineering,@nexusdi/federation-life-support
+```bash
 npx nx dev @nexusdi/bridge-api
-npx nx build @nexusdi/federation-shell           # production build in dist/main
-npx nx build-e2e @nexusdi/federation-shell       # production build with devtools(), in dist/e2e
-npx nx test @nexusdi/federation-shell
-npx nx e2e @nexusdi/federation-shell             # every build, then Playwright in Chromium
-npx nx e2e-growth @nexusdi/federation-shell      # the growth cases against a manual bridge-api
+npx nx run-many -t serve --projects=@nexusdi/federation-cartography,@nexusdi/federation-command,@nexusdi/federation-engineering,@nexusdi/federation-life-support
 ```
 
-The e2e suite runs three shell instances, on 4300, 4310 and 4320, one per remote list in
-`e2e/remotes`: the main remotes, the drift build of `cartography` on 4303 and its
-unshared build on 4304. `SHELL_PORT=4400` moves the three shells on a machine where 4300
-is taken.
+**The first command** starts bridge-api on port 3000. **The second command** serves the four stations on ports 4301, 4302, 4305 and 4306. Each station's serve target depends on the shell's, so the shell starts on port 4300 too.
 
-The `e2e-growth` target runs the cases under `e2e/growth` through
-`playwright.e2e-growth.config.mts`, one each for `engineering`, `command` and
-`life-support`, in that order, since they share one ship. One shell on `SHELL_PORT + 30`
-(4330 by default) loads the three remotes on 4332, 4335 and 4336, and bridge-api's Hono
-entry runs a manual ship on seed 7 on 4331 and answers that shell's origin. Each case
-reads the ship's tick from `GET /sim` and advances it with `POST /sim/advance`.
+Open http://localhost:4300. You see the Meridian heading and a nav bar with Bridge, Cartography, Command, Engineering, Life support and Diagnostics. Each station link loads that station on its route:
+
+- `/charts` shows the star map with "Kepler-442b: heading 42"
+- `/command` shows the command deck with its helm buttons
+- `/engineering` shows the reactor and coolant gauges
+- `/life-support` shows the compartment air
+
+**The engineering and life-support panels** read the live telemetry stream of bridge-api. Stop bridge-api and they show "Telemetry offline". **Diagnostics** lists the modules of the ship's graph, naming each station after you visit it.
+
+**The shell** finds bridge-api through `public/bridge.json`, which holds `{ "url": "http://localhost:3000/" }`. Edit that file to point the shell at another bridge-api. In development, bridge-api's Hono entry answers the shell's origins, `http://localhost:4300` and `http://127.0.0.1:4300`, with CORS headers. The `BRIDGE_API_URL` variable only exists for the end-to-end (e2e) servers, which answer `/bridge.json` with it.
+
+## Distributed Development in a Single Container
+
+In a large project, different teams often build separate modules (like the ship's stations) and need to build, deploy, and fail independently. However, the application still requires a single container where these modules meet.
+
+Each station bundles its own copy of the contract's tokens. The challenge is ensuring that a remote station receives the shell's services using the correct tokens and fails gracefully if the station was built against a newer contract than the shell provides.
+
+## Implementing Runtime Federation
+
+The shell solves this by owning a versioned contract, `meridian` in `@nexusdi/federation-contracts`, while each station acts as a remote that loads into the shell's container at runtime.
+
+**The contract** is `meridian` (version 2.4.0) from `@nexusdi/federation-contracts`. It defines `NAV_CHARTS`, `STATION_TELEMETRY`, and `COMMAND_LINK`. The shell's Tactical module provides and exports these tokens without polluting the globals. Each station accesses Tactical only through a grant: its section loads with `{ imports: [Tactical] }`.
+
+**The shell's container** is `ship`. `createShip()` in `src/ship/ship.ts` builds it with `federation()` from `@nexusdi/federation`. `federation()` binds a remote's copy of a contract token to the shell's copy using a key and name (e.g., `meridian/NavCharts`) and verifies that the shell's version satisfies the one the remote was built against.
+
+**The build configuration** uses specialized helpers from `@nexusdi/federation-contracts/rspack`. Each remote's rspack config uses `meridianRemote()`, while the shell uses `meridianShell()`. Each config passes its own port, and both helpers take the shared packages from `meridianShared()` in `federation-contracts`.
+
+**The discovery process** happens at startup when the shell fetches `/remotes.json` (a list of `{ name, entry }`) and registers them with the Module Federation runtime. The shell build generates this file from the station table in `src/stations.ts`, which defines each station's route, remote name, port, module, and panel. `stationAt(path)` finds a row.
+
+**The loading mechanism** uses `lazySection()` from `@nexusdi/react` to load each station as a lazy section when its route opens. A `SectionBoundary` renders `SectionFailed` if the load fails. `SectionFailed` shows the code of the `SectionError` the boundary hands it, `NEXUS_REACT_SECTION_FAILED`, then the code and message of the load error in its `cause`, which it reads with `isNexusError`. Its Retry button attempts the load again.
+
+**The data flow** is handled via tokens:
+
+- `STATION_TELEMETRY` reads the `GET /telemetry` stream from bridge-api using an `EventSource`.
+- `COMMAND_LINK` sends data to `POST /commands`.
+
+`BridgeTelemetry` and `BridgeCommandLink` read the address from `/bridge.json` on first use, so one build talks to whichever bridge-api the server names. The stream does not reconnect; a panel shows "Telemetry offline" until the user leaves the route and returns.
+
+## Verifying Federation Failures
+
+The cartography station includes two extra builds served by the e2e suite to demonstrate how the shell handles federation errors.
+
+- **Contract Drift:** The drift build uses contract version 2.5.0. Because the shell provides 2.4.0, `load()` fails with `NEXUS_CONTRACT_VERSION`. `SectionFailed` displays this code as the cause and a message stating `meridian/NavCharts` is needed at 2.5.0 but the provider has 2.4.0.
+- **Missing Shared Dependencies:** The unshared build excludes `@nexusdi/core` from shared packages. This results in the module using a separate copy of core, causing `load()` to fail with `NEXUS_CORE_NOT_SHARED`. The message instructs the developer to share `@nexusdi/core` with `singleton: true`.
+
+## Testing the Ship
+
+The shell's tests operate without a server. The following example creates the ship container and plots a course through the ship's `NAV_CHARTS`:
+
+```ts @import.meta.vitest
+import {
+  MERIDIAN_CONTRACT_VERSION,
+  NAV_CHARTS,
+} from '@nexusdi/federation-contracts';
+
+import { createShip } from './src/ship/ship';
+import { stationAt } from './src/stations';
+
+await using ship = await createShip();
+ship.get(NAV_CHARTS).plot('Kepler-442b').heading; // -> 42
+NAV_CHARTS.description; // -> 'meridian/NavCharts'
+MERIDIAN_CONTRACT_VERSION; // -> '2.4.0'
+stationAt('/command')?.remote; // -> 'federation_command'
+```
+
+Run the unit tests and the e2e tests with these commands. The e2e run builds the shell and every remote before driving them in Chromium.
+
+```bash
+npx nx test @nexusdi/federation-shell
+npx nx e2e @nexusdi/federation-shell
+```
+
+## Next Steps
+
+Explore the individual station implementations or the contract definitions:
+
+- [Cartography](../federation-cartography/README.md)
+- [Command](../federation-command/README.md)
+- [Engineering](../federation-engineering/README.md)
+- [Life Support](../federation-life-support/README.md)
+- [Federation Contracts](../federation-contracts/README.md)

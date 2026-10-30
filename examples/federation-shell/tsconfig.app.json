@@ -35,13 +35,16 @@
       "path": "../../libs/core/tsconfig.lib.json"
     },
     {
+      "path": "../../tools/doc-examples"
+    },
+    {
       "path": "../bridge-api/tsconfig.lib.json"
     },
     {
-      "path": "../federation-contracts/tsconfig.lib.json"
+      "path": "../meridian-systems/tsconfig.lib.json"
     },
     {
-      "path": "../meridian-systems/tsconfig.lib.json"
+      "path": "../federation-contracts/tsconfig.lib.json"
     }
   ]
 }

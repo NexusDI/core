@@ -24,6 +24,11 @@ export const DEMO_READMES: readonly string[] = [
   'examples/meridian-systems/README.md',
   'examples/bridge-api/README.md',
   'examples/bridge-console/README.md',
+  'examples/federation-shell/README.md',
+  'examples/federation-command/README.md',
+  'examples/federation-cartography/README.md',
+  'examples/federation-engineering/README.md',
+  'examples/federation-life-support/README.md',
 ];
 
 export type DemoRule = Rule | 'claim' | 'wiring';
