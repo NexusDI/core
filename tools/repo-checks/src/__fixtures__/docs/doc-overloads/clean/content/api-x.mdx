@@ -1,0 +1,38 @@
+---
+title: '@nexusdi/x'
+kind: reference
+package: '@nexusdi/x'
+---
+
+# `@nexusdi/x`
+
+## `ping`
+
+```ts twoslash
+import { Beacon, ping } from '@nexusdi/x';
+
+ping('Meridian');
+ping([new Beacon('Meridian')]);
+```
+
+## `hail`
+
+```ts twoslash
+import { hail } from '@nexusdi/x';
+
+hail('Meridian');
+```
+
+## `Relay`
+
+```ts file=examples/relay.ts region=send
+import { Relay } from '@nexusdi/x';
+
+const relay = new Relay();
+relay.send('Helm');
+relay.send(['Helm', 'Engineering']);
+```
+
+## `Beacon`
+
+A beacon.
