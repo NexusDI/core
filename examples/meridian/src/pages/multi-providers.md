@@ -199,6 +199,35 @@ console.log(seen);
 
 <!-- #endregion publish -->
 
+<!-- #region export-only -->
+
+```ts @import.meta.vitest
+import { MultiToken, Nexus, defineModule, provide } from '@nexusdi/core';
+
+const SYSTEMS = new MultiToken<string>('Systems');
+
+const Engineering = defineModule({
+  name: 'Engineering',
+  providers: [provide(SYSTEMS, { useValue: 'reactor' })],
+  exports: [SYSTEMS],
+});
+// Bridge has no contribution of its own. The export is legal and does nothing,
+// and so does the re-export of Engineering.
+const Bridge = defineModule({
+  name: 'Bridge',
+  imports: [Engineering],
+  exports: [SYSTEMS, Engineering],
+});
+
+await using ship = await Nexus.create(
+  defineModule({ name: 'Meridian', imports: [Bridge] }),
+);
+const systems = ship.get(SYSTEMS); // -> ['reactor']
+console.log(systems);
+```
+
+<!-- #endregion export-only -->
+
 <!-- #region order -->
 
 ```ts @import.meta.vitest
