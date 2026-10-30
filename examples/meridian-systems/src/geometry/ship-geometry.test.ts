@@ -12,7 +12,7 @@ import {
   type Point,
 } from './ship-geometry';
 
-const { hull, decks, compartments, doors, conduits, tanks, exterior } =
+const { hull, decks, compartments, doors, conduits, tanks, lights, exterior } =
   SHIP_GEOMETRY;
 
 /** The compartments, the four existing ids first, then fore to aft. */
@@ -57,6 +57,9 @@ const AXES = ['x', 'y', 'z'] as const;
 const EPS = 1e-9;
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+/** The longest reach a light sprite may have: half the hull's 16 m beam. */
+const MAX_REACH = 8;
 
 /** A volume's octagon at `x`, as (y, z) corners counter-clockwise from the port keel corner. */
 function section(
@@ -520,6 +523,92 @@ describe('the ship geometry', () => {
       for (const [x, y] of rest)
         expect(seen.has(key(x, y)), `${room.id} to ${x}, ${y}`).toBe(true);
     }
+  });
+
+  it('names each light by its room and keeps the ids apart from the fixtures', () => {
+    const fixtureIds = new Set(
+      compartments.flatMap((c) => c.fixtures.map((f) => f.id)),
+    );
+    const ids = lights.map((l) => l.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const light of lights) {
+      expect(light.id.startsWith(`${light.room}.`), light.id).toBe(true);
+      expect(fixtureIds.has(light.id), light.id).toBe(false);
+    }
+  });
+
+  it('puts each light inside one box of its room, within the band of a deck the room spans', () => {
+    for (const light of lights) {
+      const room = compartments.find((c) => c.id === light.room);
+      const deck = decks.find((d) => d.id === light.deck);
+      if (!room || !deck) throw new Error(`${light.id}: no room or deck`);
+      expect(room.decks, light.id).toContain(light.deck);
+      const inside = room.boxes.some((box) =>
+        corners(light).every((p) => contains(box, p)),
+      );
+      expect(inside, light.id).toBe(true);
+      expect(light.z[0], light.id).toBeGreaterThanOrEqual(deck.floor - EPS);
+      expect(light.z[1], light.id).toBeLessThanOrEqual(
+        deck.floor + deck.clearHeight + EPS,
+      );
+    }
+  });
+
+  it('gives each light a kind, an art colour, a reach and the on and off states', () => {
+    for (const light of lights) {
+      expect(['lamp', 'strip', 'flood', 'glow'], light.id).toContain(
+        light.kind,
+      );
+      const glow = light.kind === 'glow';
+      expect(light.colour, light.id).toBe(glow ? 'glow' : 'lamp');
+      expect(light.emissive, light.id).toBe(!glow);
+      expect(light.fixture === undefined, light.id).toBe(!glow);
+      expect(light.radius, light.id).toBeGreaterThan(0);
+      expect(light.radius, light.id).toBeLessThanOrEqual(MAX_REACH);
+      expect([...light.states].sort(), light.id).toEqual(['off', 'on']);
+    }
+  });
+
+  it('hangs each lamp, strip and flood under its deck ceiling, clear of fixtures and doors', () => {
+    const fixtures = compartments.flatMap((c) => c.fixtures);
+    const zones = doors.filter((d) => d.kind !== 'bay-door').map(doorZone);
+    for (const light of lights.filter((l) => l.kind !== 'glow')) {
+      const deck = decks.find((d) => d.id === light.deck);
+      if (!deck) throw new Error(`${light.id}: no deck`);
+      const ceiling = deck.floor + deck.clearHeight;
+      expect(ceiling - light.z[1], light.id).toBeLessThanOrEqual(0.2 + EPS);
+      for (const f of fixtures)
+        expect(overlapVolume(light, f), `${light.id} and ${f.id}`).toBe(0);
+      for (const zone of zones)
+        expect(overlapVolume(light, zone), light.id).toBe(0);
+    }
+  });
+
+  it('ties each glow to a fixture of its room, over the fixture', () => {
+    for (const light of lights.filter((l) => l.kind === 'glow')) {
+      const fixture = compartments
+        .find((c) => c.id === light.room)
+        ?.fixtures.find((f) => f.id === light.fixture);
+      if (!fixture) throw new Error(`${light.id}: no fixture in its room`);
+      const overlap = (['x', 'y'] as const).every(
+        (axis) =>
+          Math.min(light[axis][1], fixture[axis][1]) >
+          Math.max(light[axis][0], fixture[axis][0]),
+      );
+      expect(overlap, light.id).toBe(true);
+    }
+  });
+
+  it('lights every room on every deck it spans, the two bays with floods alone', () => {
+    for (const room of compartments)
+      for (const deck of room.decks) {
+        const own = lights.filter(
+          (l) => l.room === room.id && l.deck === deck && l.kind !== 'glow',
+        );
+        expect(own.length, `${room.id} on ${deck}`).toBeGreaterThan(0);
+        if (!room.pressurised)
+          for (const l of own) expect(l.kind, l.id).toBe('flood');
+      }
   });
 
   it('keeps the radiator vanes on the nacelles and the louvres on the reactor block', () => {

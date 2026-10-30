@@ -108,6 +108,37 @@ export interface TankShape extends Box {
   readonly contents: string;
 }
 
+/**
+ * A light source the deck view lights a room with. Its box is the housing:
+ * a lamp or strip under the ceiling, a flood in a bay, or the face of the
+ * screen or core a `glow` comes from. The deck view draws a light sprite of
+ * `radius` metres there, tinted with the art colour `colour` names. The deck
+ * base paints the housings, and the emissive mask covers the housings of the
+ * lights marked `emissive` while they are on.
+ */
+export interface LightShape extends Box {
+  /** `<room id>.<name>`, unique among lights and fixtures. */
+  readonly id: string;
+  readonly room: string;
+  /** One of the room's decks; the housing sits within its band. */
+  readonly deck: string;
+  /** `lamp`, `strip`, `flood` or `glow`. */
+  readonly kind: string;
+  /** The art colour of the sprite: `lamp` for room light, `glow` for a screen or core. */
+  readonly colour: string;
+  /** The reach of the light sprite in metres. */
+  readonly radius: number;
+  /** True for a lamp housing that glows in the emissive mask. */
+  readonly emissive: boolean;
+  /**
+   * `on` and `off`. The deck state derives them: a lamp, strip or flood
+   * follows its room's light, and a glow follows its fixture's state.
+   */
+  readonly states: readonly string[];
+  /** For a `glow`: the fixture whose screen or core it comes from. */
+  readonly fixture?: string;
+}
+
 /** A line parallel to the x axis. */
 export interface Axis {
   readonly y: number;
@@ -204,6 +235,7 @@ export interface ShipGeometry {
   readonly doors: readonly DoorShape[];
   readonly conduits: readonly ConduitRoute[];
   readonly tanks: readonly TankShape[];
+  readonly lights: readonly LightShape[];
   readonly exterior: Exterior;
 }
 
