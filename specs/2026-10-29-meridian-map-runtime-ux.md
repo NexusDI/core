@@ -1150,10 +1150,9 @@ missions' tests assert in docs-site 13.
 | `08-power-loop`        | `SHIELD_GRID` and `POWER_ROUTER` need each other                         | `NEXUS_CIRCULAR_DEPENDENCY` with the cycle's path; with `lazy()`, the check passes; a thunk read in a constructor gives `NEXUS_NOT_READY` as the cause of `NEXUS_PROVIDER_FAILED`        | the ring draws on the overlay and opens on the fix                         |
 | `09-diagnostics-sweep` | `Engineering` contributes a diagnostic and does not export `DIAGNOSTICS` | under K2 the seed no longer starts: `NEXUS_UNREAD_CONTRIBUTION` for `DIAGNOSTICS` in Engineering, "... and no provider can read it."                                                     | the computer core's racks take `alarm` until the export or a reader exists |
 
-Docs-site 13 still words mission 9's symptom as "DiagnosticsPanel saw one diagnostic of
-two", which was the rc.2 behaviour. Under K2 the seed fails at the check, so the mission's
-briefing and its first objective change in the docs-site amendment that carries the
-Academy, and the mission guard's replay of 6.9 asserts the new code.
+Docs-site 13.1 words mission 9 for K2: the seed fails at the check with
+`NEXUS_UNREAD_CONTRIBUTION` for `DIAGNOSTICS` in Engineering, and the reader adds the
+export. The mission guard's replay of 6.9 asserts that code.
 
 ## 7. What an implementation changes
 
