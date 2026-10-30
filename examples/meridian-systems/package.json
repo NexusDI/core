@@ -53,8 +53,10 @@
   },
   "devDependencies": {
     "@nexusdi/devtools": "*",
+    "@nexusdi/doc-examples": "*",
     "@nexusdi/errors": "*",
     "@nexusdi/interceptors": "*",
+    "@nexusdi/testing": "*",
     "@nexusdi/vitest": "*"
   },
   "nx": {
