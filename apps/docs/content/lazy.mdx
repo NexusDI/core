@@ -109,6 +109,8 @@ NexusDI calls `onInit` level by level, dependencies first, and a lazy edge does 
 
 **Try it:** Save the region as `not-ready.ts` and run it. It prints `NEXUS_PROVIDER_FAILED` and then `NEXUS_NOT_READY`. Now move the call out of the constructor. Keep the thunk in a field with `constructor(private readonly shields: () => IShieldGrid) {}`, and replace `reserve` in `IPowerRouter` and `PlasmaRouter` with a `divert(): number` method that returns `this.shields().draw()`. Replace the `Nexus.create(...).catch(...)` block and the prints with `await using ship = await Nexus.create(...)` and `console.log(ship.get(POWER_ROUTER).divert());`. It prints `0.4`. Put the call back in the constructor and the two codes return.
 
+Each call of a thunk that returns emits a `lazy:read` [trace event](/trace-events/); a call that throws emits none.
+
 ## Collectors Their Contributors Call
 
 **Cyclic dependencies often emerge when a central coordinator must track the very components that depend on it.** Consider a power router that lists every power consumer: the router depends on each consumer to manage them, while each consumer depends on the router to receive power. This creates a dependency cycle. While wrapping the router in `lazy(POWER_ROUTER)` within every consumer breaks the cycle, it forces every contributor (including those written by third parties) to know and follow this rule. A contributor who forgets this rule encounters `NEXUS_CIRCULAR_DEPENDENCY` from a router they did not write.
