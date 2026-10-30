@@ -241,7 +241,10 @@ export function registerPlugins(input: unknown): PluginSet {
           plugin: name,
           reason: null,
           detail: [],
-          apiVersion: String(apiVersion),
+          apiVersion:
+            typeof apiVersion === 'number'
+              ? String(apiVersion)
+              : describeValue(apiVersion),
           supported: SUPPORTED_PLUGIN_APIS,
           plugins: [],
           target: null,

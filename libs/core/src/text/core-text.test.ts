@@ -6,6 +6,7 @@ import {
   CoreNotSharedError,
   LoadGrantError,
   MissingProviderError,
+  PluginError,
   Token,
 } from '../index.js';
 import { coreText } from '../text/index.js';
@@ -182,5 +183,43 @@ describe('NEXUS_CIRCULAR_DEPENDENCY text', () => {
     expect(message(['ShieldGrid', 'PowerRouter', 'ShieldGrid'])).toMatch(
       /lazy\(PowerRouter\)\.$/,
     );
+  });
+});
+
+describe('NEXUS_PLUGIN_VERSION text', () => {
+  const line = (apiVersion: string, supported: readonly number[] = [1, 2]) =>
+    coreText.NEXUS_PLUGIN_VERSION(
+      new PluginError({
+        code: 'NEXUS_PLUGIN_VERSION',
+        plugin: 'devtools',
+        apiVersion,
+        supported,
+      } as never),
+    ).message;
+
+  it('tells the user to upgrade core when the plugin is above every supported version', () => {
+    expect(line('3')).toBe(
+      'devtools was written for plugin API 3; this @nexusdi/core supports 1, 2.\n  Fix: install a @nexusdi/core that supports plugin API 3.',
+    );
+  });
+
+  it('tells the user to upgrade the plugin when the version is below the top one', () => {
+    expect(line('0')).toContain(
+      'Fix: install the plugin version built for this @nexusdi/core.',
+    );
+  });
+
+  it('tells the user to upgrade the plugin when the version sits between supported ones', () => {
+    expect(line('2', [1, 3])).toContain(
+      'Fix: install the plugin version built for this @nexusdi/core.',
+    );
+  });
+
+  it('tells the user to upgrade the plugin when the version is not a number', () => {
+    for (const value of ['undefined', 'the string "9"', 'null']) {
+      expect(line(value)).toContain(
+        'Fix: install the plugin version built for this @nexusdi/core.',
+      );
+    }
   });
 });

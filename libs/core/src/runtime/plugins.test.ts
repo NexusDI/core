@@ -6,6 +6,8 @@ import { defineModule } from '../definitions/define-module.js';
 import { MissingDepsError } from '../errors/index.js';
 import { Nexus } from './nexus.js';
 import {
+  NEXUS_PLUGIN_API,
+  SUPPORTED_PLUGIN_APIS,
   registerPlugins,
   type NexusPlugin,
   type PluginContext,
@@ -19,6 +21,14 @@ const plugin = <T extends object>(name: string, extra: T = {} as T) => ({
 });
 
 describe('registerPlugins', () => {
+  it('lists every supported plugin API version in ascending order, frozen, with NEXUS_PLUGIN_API among them', () => {
+    expect([...SUPPORTED_PLUGIN_APIS]).toEqual(
+      [...SUPPORTED_PLUGIN_APIS].sort((a, b) => a - b),
+    );
+    expect(Object.isFrozen(SUPPORTED_PLUGIN_APIS)).toBe(true);
+    expect(SUPPORTED_PLUGIN_APIS).toContain(NEXUS_PLUGIN_API);
+  });
+
   it('accepts undefined and an empty array', () => {
     expect(registerPlugins(undefined).observe).toEqual([]);
     expect(registerPlugins([]).setup).toEqual([]);
@@ -152,6 +162,60 @@ describe('Nexus.create', () => {
           supported: [1],
         },
       ],
+    });
+  });
+
+  it('names a non-number apiVersion the way the value reads', async () => {
+    const fields: unknown[] = [];
+    for (const apiVersion of [0, undefined, '1']) {
+      const error = await rejected(
+        Nexus.create(Root, {
+          plugins: [{ name: 'odd', apiVersion }] as never,
+        }),
+      );
+      fields.push(
+        (error as unknown as { errors: { apiVersion: string }[] }).errors[0]
+          .apiVersion,
+      );
+    }
+    expect(fields).toEqual(['0', 'undefined', 'the string "1"']);
+  });
+
+  it('never calls a hook of a plugin it rejects for its version', async () => {
+    const calls: string[] = [];
+    const future = {
+      name: 'future',
+      apiVersion: 2,
+      formatError: () => void calls.push('formatError'),
+      setup: () => void calls.push('setup'),
+      compile: { check: () => void calls.push('check') },
+      observe: () => void calls.push('observe'),
+    };
+    const formatted: unknown[] = [];
+    const formatter = plugin('formatter', {
+      formatError: (error: unknown) => {
+        formatted.push(error);
+        return { message: 'Version refused.', fix: 'Update it.' };
+      },
+    });
+    const error = await rejected(
+      Nexus.create(Root, { plugins: [future, formatter] as never }),
+    );
+    expect(calls).toEqual([]);
+    expect(formatted.length).toBeGreaterThan(0);
+    expect((error as Error).message).toContain('Version refused.');
+  });
+
+  it('throws NEXUS_PLUGIN_VERSION from Nexus.check', () => {
+    let thrown: unknown;
+    try {
+      Nexus.check(Root, { plugins: [{ name: 'future', apiVersion: 2 }] });
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toMatchObject({
+      code: 'NEXUS_BLUEPRINT_INVALID',
+      errors: [{ code: 'NEXUS_PLUGIN_VERSION', plugin: 'future' }],
     });
   });
 
