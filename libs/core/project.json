@@ -28,6 +28,14 @@
         "command": "node bench/run.mjs"
       }
     },
+    "bench-sensitivity": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "cwd": "libs/core",
+        "command": "node bench/sensitivity.mjs"
+      }
+    },
     "test": {
       "dependsOn": ["^build", "build", "test-browser", "test-bench"]
     },

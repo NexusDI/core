@@ -1,1 +1,1 @@
-export const WORKER_EXEC_ARGV: string[];
+export function execArgvFor(name: string): string[];
