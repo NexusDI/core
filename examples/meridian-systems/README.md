@@ -136,9 +136,104 @@ Fix: the reactor is at full throttle, so wait for the output to climb.
 
 `MERIDIAN_UNCHARTED` lists known stars, which `bridge-api` maps to a 404 response. `test/contracts/errors.contract.test.ts` checks that each core `NEXUS_*` error a ship build reaches carries the fix line core's text export words, and that `NEXUS_INVALID_MODULE_OPTIONS` and `NEXUS_PROVIDER_FAILED` carry none.
 
+## Error codes
+
+When a command fails, the ship raises a refusal to explain why the operation could not be completed. Each error includes a one-line message that links to a specific error code for detailed troubleshooting. The `shipText` utility provides the wording for these messages and their fixes, while the `bridge-api` maps these refusals to HTTP status codes.
+
+<a id="MERIDIAN_POWER_BUDGET"></a>
+
+### Managing Power Budgets (MERIDIAN_POWER_BUDGET)
+
+A `PowerBudgetError` occurs when the power router cannot allocate enough energy for a specific load based on the reactor's current output.
+
+**Triggering events:** This error is thrown by `POWER_ROUTER.divert(load)`, which is called internally by `SHIELD_GRID.raise()`, `FTL_DRIVE.spool()`, and `WEAPON_MOUNT.fire()`.
+
+**Resolution:**
+
+- Increase the reactor throttle and advance the ship until `REACTOR.output` meets the load requirement.
+- Lower a load the router serves before this one to free up capacity.
+
+**API Response:** `bridge-api` returns a 409 status.
+
+<a id="MERIDIAN_BAD_COMMAND"></a>
+
+### Correcting Invalid Commands (MERIDIAN_BAD_COMMAND)
+
+A `BadCommandError` indicates that the command desk or a system handler cannot parse the provided command.
+
+**Triggering events:** This occurs when a command is malformed or contains invalid data. The `reason` property will specify if the issue lies with the `envelope`, `system`, `action`, or `argument`.
+
+**Resolution:** Review the `expected` property, which lists the formats the ship accepts, and resend the command following that structure.
+
+**API Response:** `bridge-api` returns a 400 status.
+
+<a id="MERIDIAN_UNKNOWN_COMPARTMENT"></a>
+
+### Locating Ship Compartments (MERIDIAN_UNKNOWN_COMPARTMENT)
+
+An `UnknownCompartmentError` occurs when a request targets a compartment that is either unspecified or does not exist on the deck.
+
+**Triggering events:** The `COMPARTMENT` factory throws this error during lookup.
+
+**Resolution:** Check the `expected` list to find the names of valid compartments and use one of those in your request.
+
+**API Response:** `bridge-api` returns a 404 status.
+
+<a id="MERIDIAN_INTERLOCK"></a>
+
+### Resolving Pressure Interlocks (MERIDIAN_INTERLOCK)
+
+An `InterlockError` occurs when a command attempts to open a door while the pressure differential across it exceeds the allowed safety limit.
+
+**Triggering events:** `PressureInterlock` throws this error during `BLAST_DOORS.open` calls. This interlock is registered by the application and the `bridge-api`.
+
+**Resolution:** Operate a pump or a vent until the pressure on both sides of the door is within the defined `limit`, then attempt to open the door again.
+
+**API Response:** `bridge-api` returns a 409 status.
+
+<a id="MERIDIAN_FTL_NOT_SPOOLED"></a>
+
+### Spooling the FTL Drive (MERIDIAN_FTL_NOT_SPOOLED)
+
+An `FtlNotSpooledError` occurs when a jump is initiated before the spool has reached its full charge.
+
+**Triggering events:** `IFtlDrive.jump(to)` throws this error after completing the star check.
+
+**Resolution:** Initiate the spool sequence and advance the ship until `ftl.charge` equals the required `energy` before attempting the jump.
+
+**API Response:** `bridge-api` returns a 409 status.
+
+<a id="MERIDIAN_RELAY"></a>
+
+### Troubleshooting Subspace Relays (MERIDIAN_RELAY)
+
+A `RelayError` indicates a communication failure with the subspace relay.
+
+**Triggering events:**
+
+- **Timeout:** `SubspaceRelay` throws this when the relay fails to answer in time (`reason: 'timeout'`).
+- **Malformed Data:** `StarCharts.download` throws this when the relay returns a table the ship cannot read (`reason: 'malformed'`).
+
+**Resolution:**
+
+- To fix timeouts, ensure the relay is active or increase the `relayTimeout` value.
+- To fix malformed data, configure the relay to serve a JSON object that maps each star name to a finite heading.
+
+<a id="MERIDIAN_UNCHARTED"></a>
+
+### Plotting Uncharted Stars (MERIDIAN_UNCHARTED)
+
+An `UnchartedStarError` occurs when the system is asked to plot a star that is not present in the current charts.
+
+**Triggering events:** `StarCharts.plot` throws this error during navigation attempts.
+
+**Resolution:** Use the `charted` list to identify known stars and plot a destination from that list.
+
+**API Response:** `bridge-api` returns a 404 status.
+
 ## Testing a Ship
 
-The recommended approach is to build the real ship and swap only the components that interact with external systems. `createTestingContainer` from `@nexusdi/testing` builds the real graph and replaces a specific provider, while `nexusTest` from `@nexusdi/vitest` provides a fresh container for each test. These tests utilize `test/ship-root.ts` and `test/fixtures.ts`.
+The recommended approach is to build the real ship and swap only the components that interact with external systems. `createTestingContainer` from `@nexusdi/testing` builds the real graph and replaces a specific provider, while `nexusTest` from `@nexusdi/vitest` provides a fresh container for each test. The project's tests use `nexusTest` with `test/ship-root.ts` and `test/fixtures.ts`.
 
 The doctest below replaces the relay link with a fake, plots a star, throttles the reactor so the array has power to sign off, advances two ticks, and verifies that disposing the ship triggers a sign-off at tick 2.
 

@@ -1,12 +1,13 @@
 import {
   existsSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, dirname } from 'node:path';
+import { basename, join, dirname } from 'node:path';
 
 import { workspaceRoot } from '@nx/devkit';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -116,6 +117,46 @@ describe('demo-readmes fixtures', () => {
     expect(demoReadmeFaults({ source, config: CONFIG })).toEqual([]);
   });
 
+  describe('error code anchors', () => {
+    const SRC = `
+const DOCS = 'https://github.com/NexusDI/core/tree/main/examples/demo#';
+export class A extends errorBase<'DEMO_A', Fields>('DEMO_A', 'AError', DOCS) {}
+export class B extends errorBase<
+  'DEMO_B',
+  Fields
+>('DEMO_B', 'BError', DOCS) {}
+`;
+    const withAnchors = (...codes: string[]) =>
+      GOOD + codes.map((c) => `\n<a id="${c}"></a>\n\n### ${c}\n`).join('');
+    const input = (source: string, sources: string[] = [SRC]) => ({
+      source,
+      config: CONFIG,
+      project: 'demo',
+      sources,
+    });
+
+    it('passes when every linked code has an anchor', () => {
+      expect(demoReadmeFaults(input(withAnchors('DEMO_A', 'DEMO_B')))).toEqual(
+        [],
+      );
+    });
+
+    it('names the code that has no anchor', () => {
+      expect(demoReadmeFaults(input(withAnchors('DEMO_A')))).toEqual([
+        {
+          rule: 'error-codes',
+          message:
+            'src links DEMO_B to the README, which has no <a id="DEMO_B"></a> anchor',
+        },
+      ]);
+    });
+
+    it('ignores a source that links another project', () => {
+      const other = SRC.replace('examples/demo#', 'examples/other#');
+      expect(demoReadmeFaults(input(GOOD, [other]))).toEqual([]);
+    });
+  });
+
   it('allows a NEXUS_ error code in prose', () => {
     const source = GOOD.replace(
       'Try it.',
@@ -173,6 +214,14 @@ describe('demo READMEs', () => {
     const dir = dirname(join(workspaceRoot, readme));
     const config = readFileSync(vitestConfigPath(dir), 'utf8');
     const source = readFileSync(join(workspaceRoot, readme), 'utf8');
-    expect(demoReadmeFaults({ source, config })).toEqual([]);
+    const project = basename(dir);
+    const sources = readdirSync(dir, { recursive: true, encoding: 'utf8' })
+      .filter(
+        (f) =>
+          f.endsWith('.ts') &&
+          !/(^|\/)(node_modules|dist|build|\.react-router)\//.test(f),
+      )
+      .map((f) => readFileSync(join(dir, f), 'utf8'));
+    expect(demoReadmeFaults({ source, config, project, sources })).toEqual([]);
   });
 });

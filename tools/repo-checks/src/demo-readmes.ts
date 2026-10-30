@@ -31,7 +31,7 @@ export const DEMO_READMES: readonly string[] = [
   'examples/federation-life-support/README.md',
 ];
 
-export type DemoRule = Rule | 'claim' | 'wiring';
+export type DemoRule = Rule | 'claim' | 'wiring' | 'error-codes';
 
 export interface DemoFault {
   readonly rule: DemoRule;
@@ -42,6 +42,34 @@ export interface DemoReadmeInput {
   readonly source: string;
   /** Text of the project's vitest config. */
   readonly config: string;
+  /** The demo's directory name under examples/. Needed with `sources`. */
+  readonly project?: string;
+  /** Text of the project's .ts files, searched for the codes the README must anchor. */
+  readonly sources?: readonly string[];
+}
+
+/**
+ * A code is linked to the README when its errorBase call passes a constant
+ * named DOCS (or ending in DOCS) as the third argument, and the file holds that
+ * constant's url `.../examples/<project>#`. The check reads the call's text,
+ * `'CODE', 'ClassName', DOCS`, so it needs no list the project exports.
+ */
+const LINKED_CODE = /'([A-Z][A-Z0-9_]+)'\s*,\s*'[A-Za-z]+'\s*,\s*\w*DOCS\b/g;
+
+function errorCodeFaults(input: DemoReadmeInput): DemoFault[] {
+  if (input.project === undefined || input.sources === undefined) return [];
+  const url = `/examples/${input.project}#`;
+  const codes = new Set<string>();
+  for (const text of input.sources) {
+    if (!text.includes(url)) continue;
+    for (const m of text.matchAll(LINKED_CODE)) codes.add(m[1] as string);
+  }
+  return [...codes]
+    .filter((code) => !input.source.includes(`id="${code}"`))
+    .map((code) => ({
+      rule: 'error-codes' as const,
+      message: `src links ${code} to the README, which has no <a id="${code}"></a> anchor`,
+    }));
 }
 
 /**
@@ -96,6 +124,7 @@ export function demoReadmeFaults(input: DemoReadmeInput): DemoFault[] {
   faults.push(...doctestInterfaceFirstFaults(doctests));
 
   faults.push(...wiringFaults(input.config));
+  faults.push(...errorCodeFaults(input));
   // The npm check's error-code rule bans NEXUS_ words; a demo README names
   // the codes its refusals carry, so that one rule is left out.
   for (const hit of bannedRaw(
