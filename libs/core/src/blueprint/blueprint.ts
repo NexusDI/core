@@ -142,6 +142,8 @@ export interface Blueprint {
    */
   readonly moduleByReplaced: ReadonlyMap<ModuleDefinition, string>;
   readonly providers: ReadonlyMap<string, ProviderRecord>;
+  /** MultiToken → the one record a compile.provider hook pinned, plus REQUEST. */
+  readonly pinned: ReadonlyMap<TokenKey, readonly string[]>;
   /** Modules load() added as root imports, in load order, each with the grant it was loaded with. */
   readonly extraImports: readonly LoadEntry[];
   /** module id → token → provider ids that module sees. */

@@ -193,7 +193,40 @@ describe('Nexus', () => {
         expect(ship.get(LOG)).toEqual([]);
       });
 
-      it('skips a token a compile.provider hook pinned', async () => {
+      it('loads a module that exports a contribution to a token a hook pinned at create', async () => {
+        const Pinned = defineModule({
+          name: 'Pinned',
+          providers: [provide(LOG, { useValue: 'root' })],
+        });
+        let seen: unknown;
+        let done = false;
+        const ship = await Nexus.create(Pinned, {
+          plugins: [
+            {
+              name: 'pin',
+              apiVersion: 1,
+              compile: {
+                provider: (p: { token: unknown }, context: unknown) => {
+                  if (context !== seen) {
+                    seen = context;
+                    done = false;
+                  }
+                  if (p.token !== LOG || done) return undefined;
+                  done = true;
+                  return {
+                    with: provide(LOG, { useValue: 'pin' }),
+                    pin: true,
+                  };
+                },
+              },
+            } as never,
+          ],
+        });
+        await ship.load(Listener);
+        expect(ship.get(LOG)).toEqual(['pin']);
+      });
+
+      it('rejects NEXUS_LOAD_CONTRIBUTION for a token a hook first pins at a load', async () => {
         const ship = await Nexus.create(Meridian, {
           plugins: [
             {
@@ -208,8 +241,234 @@ describe('Nexus', () => {
             } as never,
           ],
         });
-        await ship.load(Listener);
-        expect(ship.get(LOG)).toEqual(['pin']);
+        expect(await rejected(ship.load(Listener))).toMatchObject({
+          code: 'NEXUS_LOAD_CONTRIBUTION',
+          module: 'Listener',
+          token: 'Log',
+        });
+      });
+
+      it('rejects NEXUS_LOAD_CONTRIBUTION for a private contribution a hook first pins at a load', async () => {
+        class Sink {
+          constructor(readonly lines: string[]) {}
+        }
+        const Quiet = defineModule({
+          name: 'Quiet',
+          providers: [
+            provide(LOG, { useValue: 'own' }),
+            provide(Sink, { deps: [all(LOG)] }),
+          ],
+          exports: [Sink],
+        });
+        const ship = await Nexus.create(Meridian, {
+          plugins: [
+            {
+              name: 'pin',
+              apiVersion: 1,
+              compile: {
+                provider: (
+                  p: { token: unknown },
+                  context: { phase: string },
+                ) =>
+                  context.phase === 'load' && p.token === LOG
+                    ? { with: provide(LOG, { useValue: 'pin' }), pin: true }
+                    : undefined,
+              },
+            } as never,
+          ],
+        });
+        expect(await rejected(ship.load(Quiet))).toMatchObject({
+          code: 'NEXUS_LOAD_CONTRIBUTION',
+          module: 'Quiet',
+          token: 'Log',
+        });
+      });
+
+      it("accepts a load where a compile.provider rewrite keeps a held record's token", async () => {
+        const X = new Token<string>('X');
+        const Root = defineModule({
+          name: 'Root',
+          providers: [
+            provide(X, { useValue: 'x' }),
+            provide(LOG, { useValue: 'tele' }),
+          ],
+        });
+        const ship = await Nexus.create(Root, {
+          plugins: [
+            {
+              name: 'rewrite',
+              apiVersion: 1,
+              compile: {
+                provider: (
+                  p: { token: unknown },
+                  context: { phase: string },
+                ) =>
+                  context.phase === 'load' && p.token === X
+                    ? { with: provide(LOG, { useValue: 'added' }) }
+                    : undefined,
+              },
+            } as never,
+          ],
+        });
+        await ship.load(Meridian);
+        expect(ship.get(X)).toBe('x');
+        expect(ship.get(LOG)).toEqual(['tele']);
+      });
+    });
+
+    describe('compile.module replacements', () => {
+      const LOG = new MultiToken<string>('Log');
+      class Sink {
+        constructor(readonly l: string[]) {}
+      }
+      const Other = defineModule({ name: 'Other' });
+      const telemetry = (global: boolean) =>
+        defineModule({
+          name: 'Telemetry',
+          global,
+          providers: [provide(LOG, { useValue: 'tele' })],
+          exports: [LOG],
+        });
+      const stub = (name: string, global: boolean, extra: string[] = []) =>
+        defineModule({
+          name,
+          global,
+          providers: [
+            provide(LOG, { useValue: 'stub' }),
+            ...extra.map((v) => provide(LOG, { useValue: v })),
+          ],
+          exports: [LOG],
+        });
+      const rootOf = (Telemetry: ReturnType<typeof telemetry>) =>
+        defineModule({
+          name: 'Root',
+          imports: [Telemetry],
+          providers: [provide(Sink, { deps: [all(LOG)] })],
+        });
+
+      it('loads a module next to a module a compile.module hook replaces with a fresh object every compile', async () => {
+        const Telemetry = telemetry(false);
+        const fresh = {
+          name: 'fresh',
+          apiVersion: 1,
+          compile: {
+            module: (m: unknown) =>
+              m === Telemetry ? stub('TelemetryStub', false) : undefined,
+          },
+        } as never;
+        const ship = await Nexus.create(rootOf(Telemetry), {
+          plugins: [fresh],
+        });
+        expect(ship.get(Sink).l).toEqual(['stub']);
+        await ship.load(Other);
+        expect(ship.get(Sink).l).toEqual(['stub']);
+      });
+
+      it('loads a module next to a global module a compile.module hook replaces with a fresh object every compile', async () => {
+        const Telemetry = telemetry(true);
+        const fresh = {
+          name: 'fresh',
+          apiVersion: 1,
+          compile: {
+            module: (m: unknown) =>
+              m === Telemetry ? stub('GStub', true) : undefined,
+          },
+        } as never;
+        const ship = await Nexus.create(rootOf(Telemetry), {
+          plugins: [fresh],
+        });
+        await ship.load(Other);
+        expect(ship.get(Sink).l).toEqual(['stub']);
+      });
+
+      it('rejects NEXUS_LOAD_CONTRIBUTION when a compile.module hook adds an exported contribution to a module the graph holds during a load', async () => {
+        const Telemetry = telemetry(false);
+        const grow = {
+          name: 'grow',
+          apiVersion: 1,
+          compile: {
+            module: (m: unknown, context: { phase: string }) =>
+              m === Telemetry && context.phase === 'load'
+                ? stub('TelemetryGrown', false, ['more'])
+                : undefined,
+          },
+        } as never;
+        const ship = await Nexus.create(rootOf(Telemetry), {
+          plugins: [grow],
+        });
+        expect(await rejected(ship.load(Other))).toMatchObject({
+          code: 'NEXUS_LOAD_CONTRIBUTION',
+          module: 'TelemetryGrown',
+          token: 'Log',
+        });
+        expect(ship.get(Sink).l).toEqual(['tele']);
+      });
+
+      it('rejects NEXUS_LOAD_GLOBAL_MODULE when a compile.module hook turns a module the graph holds global during a load', async () => {
+        const Telemetry = telemetry(false);
+        const turn = {
+          name: 'turn',
+          apiVersion: 1,
+          compile: {
+            module: (m: unknown, context: { phase: string }) =>
+              m === Telemetry && context.phase === 'load'
+                ? defineModule({
+                    name: 'TelemetryGlobal',
+                    global: true,
+                    providers: [provide(LOG, { useValue: 'tele' })],
+                    exports: [LOG],
+                  })
+                : undefined,
+          },
+        } as never;
+        const ship = await Nexus.create(rootOf(Telemetry), {
+          plugins: [turn],
+        });
+        expect(await rejected(ship.load(Other))).toMatchObject({
+          code: 'NEXUS_LOAD_GLOBAL_MODULE',
+          module: 'TelemetryGlobal',
+        });
+      });
+
+      it('rejects NEXUS_LOAD_CONTRIBUTION when a compile.module hook makes a held private contribution public during a load', async () => {
+        const PS = new Token<string[]>('PS');
+        const Priv = defineModule({
+          name: 'Priv',
+          providers: [
+            provide(LOG, { useValue: 'own' }),
+            provide(PS, { useFactory: (l: string[]) => l, deps: [all(LOG)] }),
+          ],
+          exports: [PS],
+        });
+        const flip = {
+          name: 'flip',
+          apiVersion: 1,
+          compile: {
+            module: (m: unknown, context: { phase: string }) =>
+              m === Priv && context.phase === 'load'
+                ? defineModule({
+                    name: 'PrivExported',
+                    providers: [
+                      provide(LOG, { useValue: 'own' }),
+                      provide(PS, {
+                        useFactory: (l: string[]) => l,
+                        deps: [all(LOG)],
+                      }),
+                    ],
+                    exports: [PS, LOG],
+                  })
+                : undefined,
+          },
+        } as never;
+        const ship = await Nexus.create(
+          defineModule({ name: 'Root', imports: [Priv] }),
+          { plugins: [flip] },
+        );
+        expect(await rejected(ship.load(Other))).toMatchObject({
+          code: 'NEXUS_LOAD_CONTRIBUTION',
+          module: 'PrivExported',
+          token: 'Log',
+        });
       });
     });
 

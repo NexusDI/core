@@ -44,6 +44,36 @@ describe('Nexus.check', () => {
     expect(built).toBe(0);
   });
 
+  it('accepts a load next to a module a compile.module hook replaces with a fresh object every compile', () => {
+    const LOG = new MultiToken<string>('Log');
+    const Telemetry = defineModule({
+      name: 'Telemetry',
+      providers: [provide(LOG, { useValue: 'tele' })],
+      exports: [LOG],
+    });
+    const Root = defineModule({ name: 'Root', imports: [Telemetry] });
+    const fresh = {
+      name: 'fresh',
+      apiVersion: 1,
+      compile: {
+        module: (m: unknown) =>
+          m === Telemetry
+            ? defineModule({
+                name: 'TelemetryStub',
+                providers: [provide(LOG, { useValue: 'stub' })],
+                exports: [LOG],
+              })
+            : undefined,
+      },
+    } as never;
+    expect(
+      Nexus.check(Root, {
+        plugins: [fresh],
+        load: [defineModule({ name: 'Other' })],
+      }),
+    ).toEqual({ unchecked: [] });
+  });
+
   it('throws one BlueprintError for the first compile that fails', () => {
     const Science = defineModule({ name: 'Science', providers: [Bridge] });
     expect(
