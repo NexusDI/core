@@ -113,7 +113,7 @@ NexusDI calls `onInit` level by level, dependencies first, and a lazy edge does 
 
 **Cyclic dependencies often emerge when a central coordinator must track the very components that depend on it.** Consider a power router that lists every power consumer: the router depends on each consumer to manage them, while each consumer depends on the router to receive power. This creates a dependency cycle. While wrapping the router in `lazy(POWER_ROUTER)` within every consumer breaks the cycle, it forces every contributor (including those written by third parties) to know and follow this rule. A contributor who forgets this rule encounters `NEXUS_CIRCULAR_DEPENDENCY` from a router they did not write.
 
-**Lazy collectors solve this by moving the resolution logic into the coordinator.** By using `lazy(all(TOKEN))`, the collector receives a thunk that resolves the contributions on demand. This allows consumers to maintain a plain dependency on the router without triggering a cycle.
+**Lazy collectors solve this by moving the resolution logic into the coordinator.** By using `lazy(all(TOKEN))`, the collector receives a thunk that resolves the contributions on demand. This allows consumers to maintain a plain dependency on the router without triggering a cycle. When such a cycle fails, the fix line that `errors()` from `@nexusdi/errors` writes for [NEXUS_CIRCULAR_DEPENDENCY](/errors/NEXUS_CIRCULAR_DEPENDENCY/) names the first step of `path` that is not an alias, and it writes `lazy(all(TOKEN))` when that step is an `all()` dependency.
 
 ```mermaid caption="PlasmaRouter reaches POWER_CONSUMERS through one lazy edge per contribution, and each consumer depends on POWER_ROUTER."
 flowchart LR
