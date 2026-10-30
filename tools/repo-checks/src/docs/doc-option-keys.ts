@@ -58,7 +58,8 @@ import { stripFences, type DocsPage } from './site';
  *   `` `imports` `` or `` `load(m, { imports })` ``;
  * - a property the type checker binds to that key, on a line a reader sees
  *   of an executable fence in the section (compiled as `fence-programs.ts`
- *   compiles one), with no diagnostic on it: a key written in an object
+ *   compiles one), with no diagnostic in the statement or class member
+ *   that holds it: a key written in an object
  *   literal or a JSX attribute checked against the type, or a property read.
  *
  * A bare word in prose does not count, since `imports` and `deps` are also

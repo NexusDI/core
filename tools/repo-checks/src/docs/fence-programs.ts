@@ -127,7 +127,10 @@ export function fencePrograms(
 
 /**
  * Calls `visit` for every node of a fence file that starts on a line a
- * reader sees, with whether the compiler reports a diagnostic inside it.
+ * reader sees, with whether the compiler reports a diagnostic inside the
+ * statement or class member that holds the node. An error anywhere in
+ * `launch('Meridian', { crew: nope })` fails the `crew` it holds, so a key
+ * or a call counts only from a statement that compiles.
  */
 export function forEachShownNode(
   program: ts.Program,
@@ -137,22 +140,19 @@ export function forEachShownNode(
 ): void {
   const source = program.getSourceFile(file.path);
   if (!source) return;
-  const diagnostics = [
+  const starts = [
     ...program.getSyntacticDiagnostics(source),
     ...program.getSemanticDiagnostics(source),
-  ];
-  const walk = (node: ts.Node): void => {
-    const start = node.getStart(source);
-    const line = source.getLineAndCharacterOfPosition(start).line;
-    if (!fence.hidden.has(file.lines[line] ?? -1))
-      visit(
-        node,
-        diagnostics.some(
-          ({ start: at }) =>
-            at !== undefined && at >= start && at < node.getEnd(),
-        ),
-      );
-    ts.forEachChild(node, walk);
+  ].flatMap(({ start }) => (start === undefined ? [] : [start]));
+  const fails = (holder: ts.Node): boolean =>
+    starts.some((at) => at >= holder.getStart(source) && at < holder.getEnd());
+  const walk = (node: ts.Node, holder: ts.Node): void => {
+    const own = ts.isStatement(node) || ts.isClassElement(node) ? node : holder;
+    const line = source.getLineAndCharacterOfPosition(
+      node.getStart(source),
+    ).line;
+    if (!fence.hidden.has(file.lines[line] ?? -1)) visit(node, fails(own));
+    ts.forEachChild(node, (child) => walk(child, own));
   };
-  ts.forEachChild(source, walk);
+  ts.forEachChild(source, (child) => walk(child, child));
 }

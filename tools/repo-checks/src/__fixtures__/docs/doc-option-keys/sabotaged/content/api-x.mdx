@@ -12,9 +12,10 @@ The crew and the countdown are both optional.
 
 ```ts twoslash
 import { launch } from '@nexusdi/x';
-const crew = 4;
+launch('Meridian', { crew: 4 });
 // ---cut---
-launch('Meridian', { countdown: true });
+// @errors: 2304
+launch('Meridian', { countdown: nope });
 ```
 
 ## `defineShip`
