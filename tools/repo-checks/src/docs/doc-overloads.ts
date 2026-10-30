@@ -22,8 +22,9 @@ import type { DocsPage } from './site';
  * passes it while the page shows only `lazy(TOKEN)`.
  *
  * An overloaded callable is a callable (see `callablesOf`: an exported
- * function, an exported class's constructor, or a public method the class
- * declares) with two or more call or construct signatures. A callable with
+ * function, an exported class's constructor, a public method the class
+ * declares, or a method an exported interface declares, such as
+ * `Scope#get`) with two or more call or construct signatures. A callable with
  * one signature is G10's.
  *
  * Exercised is an overload some call on the package's reference page

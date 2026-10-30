@@ -33,3 +33,28 @@ export class Dock {
     return ship.hull;
   }
 }
+
+/** Refits a ship, given any part of its launch options. */
+export function refit(options: Partial<LaunchOptions>): number {
+  return options.crew ?? 0;
+}
+
+/** The props a panel takes. */
+export interface PanelProps {
+  readonly size: number;
+  readonly label?: string;
+}
+
+/** Renders a panel. */
+export function Panel(props: PanelProps): null {
+  return props.size > 0 ? null : null;
+}
+
+/** What a listener hears, which no caller writes as options. */
+export type Signal = { readonly kind: 'ping' } | { readonly kind: 'pong' };
+
+/** A hook an app implements. */
+export interface Listener {
+  /** Hears one signal. */
+  hear(signal: Signal): void;
+}

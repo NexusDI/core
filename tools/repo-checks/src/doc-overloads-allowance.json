@@ -1,6 +1,7 @@
 {
   "@nexusdi/core": {
     "unexercised": [
+      "Scope#get<T>(token: MultiToken<T>, options?: LookupOptions): T[]",
       "lazy<T>(dep: All<T>): LazyAll<T>",
       "provide<C extends Ctor>(cls: C, ...options: ClassOptions<C>): Provider<InstanceType<C>>"
     ]
@@ -13,6 +14,11 @@
   "@nexusdi/react": {
     "unexercised": [
       "useService<T>(token: MultiToken<T>, options?: LookupOptions): readonly T[]"
+    ]
+  },
+  "@nexusdi/testing": {
+    "unexercised": [
+      "TestingContainerBuilder#override<T, const D extends readonly Dep[], R extends NoInfer<T> | PromiseLike<NoInfer<T>>>(token: [T] extends [PromiseLike<unknown>] ? PromiseTokenMessage : InjectionToken<T> | MultiToken<T>, definition: FactoryDefinition<D, R>, options?: OverrideOptions): TestingContainerBuilder"
     ]
   }
 }

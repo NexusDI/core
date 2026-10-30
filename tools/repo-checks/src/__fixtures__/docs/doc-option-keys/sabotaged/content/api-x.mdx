@@ -42,3 +42,29 @@ new Dock().open(layout);
 ## `ShipDefinition`
 
 A ship, as defineShip() returns it.
+
+## `refit`
+
+```ts twoslash
+import { refit } from '@nexusdi/x';
+
+refit({ crew: 2, countdown: false });
+```
+
+## `Panel`
+
+```tsx twoslash
+import { Panel, type PanelProps } from '@nexusdi/x';
+
+declare const saved: PanelProps;
+export const panel = <Panel size={1} />;
+saved.label;
+```
+
+## `PanelProps`
+
+`size` is required and `label` is optional.
+
+## `Listener`
+
+A listener hears each signal.

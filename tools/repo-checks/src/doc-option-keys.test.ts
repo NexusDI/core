@@ -43,26 +43,28 @@ const PAGE =
 
 describe('readOptionKeys', () => {
   it('owes each key under the heading of every export that takes it, and under its own type', () => {
-    expect(fixture('clean')).toEqual([
-      {
-        name: '@nexusdi/x',
-        page: PAGE,
-        keys: [
-          expect.objectContaining({ via: 'Dock#open', named: true }),
-          expect.objectContaining({ heading: 'launch', named: true }),
-          expect.objectContaining({ heading: 'launch', named: true }),
-          expect.objectContaining({ heading: 'LaunchOptions', named: true }),
-          expect.objectContaining({ heading: 'LaunchOptions', named: true }),
-        ],
-      },
-    ]);
-    expect(fixture('clean')[0]?.keys.map(optionKeyId)).toEqual([
+    const [read] = fixture('clean');
+    expect(read?.page).toBe(PAGE);
+    expect(read?.keys.map(optionKeyId)).toEqual([
       'Dock: Dock#open(options).bay',
       'launch: LaunchOptions.countdown',
       'launch: LaunchOptions.crew',
       'LaunchOptions: LaunchOptions.countdown',
       'LaunchOptions: LaunchOptions.crew',
+      'Panel: PanelProps.label',
+      'Panel: PanelProps.size',
+      'PanelProps: PanelProps.label',
+      'PanelProps: PanelProps.size',
+      'refit: LaunchOptions.countdown',
+      'refit: LaunchOptions.crew',
     ]);
+  });
+
+  it('names a key by an object literal, a JSX attribute, a property read and a code span', () => {
+    // `refit` takes Partial<LaunchOptions> and is named by an object
+    // literal, `Panel` by a JSX attribute (size) and a property read
+    // (label), `PanelProps` by its code spans.
+    expect(fixture('clean')[0]?.keys.filter((each) => !each.named)).toEqual([]);
   });
 
   it('counts no key above a cut, in bare prose, in a statement that fails to compile, or in a literal the checker does not hold to the type', () => {

@@ -28,3 +28,16 @@ export class Relay {
     return typeof to === 'string' ? 1 : to.length;
   }
 }
+
+/** A radio a relay hands out. */
+export interface Station {
+  /** Tunes to a channel by number. */
+  tune(channel: number): string;
+  /** Tunes to a channel by name. */
+  tune(channel: string): string;
+}
+
+/** The relay's station. */
+export function station(): Station {
+  return { tune: (channel: number | string) => String(channel) };
+}

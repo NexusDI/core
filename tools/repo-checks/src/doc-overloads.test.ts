@@ -84,6 +84,8 @@ describe('readOverloads', () => {
           { key: 'ping(name: string): string', exercised: true },
           { key: SEND_ALL, exercised: true },
           { key: 'Relay#send(to: string): number', exercised: true },
+          { key: 'Station#tune(channel: number): string', exercised: true },
+          { key: 'Station#tune(channel: string): string', exercised: true },
         ],
       },
     ]);
