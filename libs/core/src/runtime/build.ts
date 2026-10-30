@@ -7,6 +7,7 @@ import {
 import { pluginFailed } from '../blueprint/hooks.js';
 import { providerViewIn } from '../blueprint/views.js';
 import { HOOK_SITES } from '../definitions/hook-sites.js';
+import type { StandardSchemaV1 } from '../definitions/standard-schema.js';
 import { unreachable } from '../definitions/unreachable.js';
 import {
   AsyncTransientError,
@@ -337,14 +338,23 @@ export async function validateOptions(
 ): Promise<{ readonly value: unknown }> {
   if (record.schema === undefined) return { value };
   const result = await record.schema['~standard'].validate(value);
-  if (result.issues !== undefined) {
-    throw new ModuleOptionsError({
-      code: 'NEXUS_INVALID_MODULE_OPTIONS',
-      module: moduleName(bp, record),
-      issues: result.issues,
-    });
-  }
-  return { value: result.value };
+  const error = optionsError(record, bp, result);
+  if (error !== undefined) throw error;
+  return { value: (result as StandardSchemaV1.SuccessResult<unknown>).value };
+}
+
+/** The ModuleOptionsError a schema result's issues give, or undefined for a result with none. */
+export function optionsError(
+  record: ProviderRecord,
+  bp: Blueprint,
+  result: StandardSchemaV1.Result<unknown>,
+): ModuleOptionsError | undefined {
+  if (result.issues === undefined) return undefined;
+  return new ModuleOptionsError({
+    code: 'NEXUS_INVALID_MODULE_OPTIONS',
+    module: moduleName(bp, record),
+    issues: result.issues,
+  });
 }
 
 /**
