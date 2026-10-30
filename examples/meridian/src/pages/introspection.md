@@ -174,6 +174,39 @@ console.log(dot);
 
 <!-- #endregion inspect -->
 
+<!-- #region inspect-unchecked -->
+
+```ts @import.meta.vitest
+import { Token, defineModule } from '@nexusdi/core';
+import { inspect } from '@nexusdi/devtools';
+
+interface ICommsOptions {
+  readonly frequency: number;
+}
+const COMMS_OPTIONS = new Token<ICommsOptions>('CommsOptions');
+
+const Comms = defineModule({
+  name: 'Comms',
+  options: COMMS_OPTIONS,
+  schema: {
+    '~standard': {
+      version: 1,
+      vendor: 'meridian',
+      validate: async (value) => ({ value: value as ICommsOptions }),
+    },
+  },
+});
+const Meridian = defineModule({
+  name: 'Meridian',
+  imports: [Comms.forRoot({ frequency: 1420 })],
+});
+
+const unchecked = inspect(Meridian).unchecked; // -> [{ module: 'Comms', reason: 'async-schema' }]
+console.log(unchecked);
+```
+
+<!-- #endregion inspect-unchecked -->
+
 <!-- #region minified-names -->
 
 ```ts @import.meta.vitest

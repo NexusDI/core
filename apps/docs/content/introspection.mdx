@@ -23,11 +23,12 @@ DevTools is a plugin that should be registered in your development environment. 
 
 ## Visualizing the Graph with `graph()`
 
-The `graph(ship)` function returns the entire compiled dependency graph as a structured JSON object. This graph contains three key arrays:
+The `graph(ship)` function returns the entire compiled dependency graph as a structured JSON object. This graph contains four key arrays:
 
 - **Modules:** The names and visibility (global/private) of every module. A module has a `name`, `global`, `imports`, `grants` and `exports`. The `grants` list holds the module ids that a [load grant](/load/#granting-host-modules-to-a-loaded-module) added to the module's own imports, and each also appears in `imports`. A granted module the module already imports stays out of `grants`. `toMermaid()` and `toDot()` draw a grant as a dashed edge and the other imports as solid edges.
 - **Providers:** Details on every provider, including its token, lifetime (singleton/transient), and whether it is eager or async. A provider has a `token` (the token's description or the class name), `module`, `lifetime`, `kind` (`class`, `value`, `factory` or `alias`), `eager`, `async`, the annotators' `notes`, the `implementation` class name, `internal` and `unresolved`, the names of the optional deps and properties that bound to no provider, such as an `optional()` dep with nothing to bind.
 - **Edges:** Every dependency link between providers, labeled by type (required, optional, lazy). The `kind` of an edge is `required`, `optional`, `lazy`, `all` or `alias`.
+- **Unchecked:** Modules with options `Nexus.check` cannot judge. Each entry contains the `module` name and a core `reason`: `'async-schema'` or `'for-root-async'`. Core may add a reason in a minor release, so handle one you do not know. `graph(ship)` of a running container lists none, since `Nexus.create` already validated every module's options.
 
 ```ts file=examples/meridian/src/pages/introspection.md region=graph
 
@@ -39,7 +40,13 @@ The `graph(ship)` function returns the entire compiled dependency graph as a str
 
 ### Checking a Graph Without Building It
 
-`inspect(root)` compiles a graph with `Nexus.check` and builds nothing, so no constructor runs. It takes the root forms `Nexus.create` takes and returns the same JSON as `graph()`, with every provider's `async` set to `null`, since nothing ran. It throws the `BlueprintError` that `Nexus.check` throws. Like `Nexus.check`, it calls each `forRoot()` options schema and fails on a synchronous rejection. It returns no `unchecked` list, so call `Nexus.check` to learn which modules only `Nexus.create` can validate.
+`inspect(root)` compiles a graph with `Nexus.check` and builds nothing, so no constructor runs. It takes the root forms `Nexus.create` takes and returns the same JSON as `graph()`, with every provider's `async` set to `null`, since nothing ran. It throws the `BlueprintError` that `Nexus.check` throws. Like `Nexus.check`, it calls each `forRoot()` options schema and fails on a synchronous rejection. Its `unchecked` list names the modules whose options only `Nexus.create` can validate, from the report `Nexus.check` returns. A schema that throws causes `inspect()` to throw the same error.
+
+A module whose schema is async stays unchecked:
+
+```ts file=examples/meridian/src/pages/introspection.md region=inspect-unchecked
+
+```
 
 You can also use `toMermaid()` or `toDot()` to convert this JSON graph into text that can be rendered as a visual diagram using Mermaid.js or Graphviz. Both take the graph, as in `toMermaid(graph)`. Neither imports a Node module, so both run in a browser too.
 
