@@ -135,9 +135,11 @@ at the root and following each module's `imports` in order, and within a module 
 - Cycles: a collector and a contributor that depends on it form a provider cycle. Pass 4
   reports it as `NEXUS_CIRCULAR_DEPENDENCY` with the path. `lazy()` on the contributor, or
   `lazy(all(T))` on the collector (section 5), breaks it. Module imports stay acyclic.
-- Testing: the testing plugin overrides a multi token with `{ with, pin: true }`
-  (`libs/testing/src/plugin.ts:150`), and a pinned token resolves to one record in every
-  module. K1 leaves pinned tokens alone.
+- Testing: the testing plugin pins a multi token override with `{ with, pin: true }` at
+  create, and at a load only for a token it pinned at create. A token a load first adds is
+  rewritten record by record without a pin (`libs/testing/src/plugin.ts`). A pinned token
+  resolves to one record in every module, and the load guard of section 4.5 treats the pin
+  as a publish.
 - `graph()`: `bind` already records an `all` edge from the collector to each contribution.
   The view's module `exports` lists show published records.
 
@@ -150,7 +152,8 @@ The pass keeps a module's view of a multi token apart from what it publishes.
 - `lookup(i, T)` for a multi token returns `sorted([...(own[i].get(T) ?? []), ...(published.get(T) ?? [])])`.
 - Multi tokens leave `exported[]`, `open()` and `settle`. The cycle solver then handles plain
   tokens alone.
-- `moduleExports` and `exportedTokens` read a multi token from M's published set.
+- `moduleExports` and `exportedTokens` read a multi token from M's published set. A pinned
+  multi token is listed only under the module that owns the pinned record.
 - The `NEXUS_INVALID_EXPORT` loop (`visibility.ts:222-235`) skips multi tokens.
 
 ### 4.5 The load guard
@@ -162,13 +165,16 @@ that `load()` must not extend multi tokens, and K1 makes core enforce it.
 In `compile()`, when `previous` is set, after `rewriteProviders` and before pass 2, the
 compile looks for the first record by index that:
 
-- the previous blueprint does not hold,
-- has a `MultiToken` that is not pinned,
-- sits in a module whose `exportTokens` names that token.
+- is a record of a `MultiToken` that this compile publishes (its module's `exportTokens`
+  names the token, or a `compile.provider` hook pins it),
+- and that the previous blueprint did not publish under the same id, module and token.
 
 It throws `LoadContributionError`, code `NEXUS_LOAD_CONTRIBUTION`, fields `module` and
-`token`. The guard runs after the `compile.provider` hooks so a hook that removes or pins
-the record is honoured. A loaded module's private contributions stay legal, subject to K2.
+`token`. The guard runs after the `compile.provider` hooks, so a record a hook removes is
+not checked. A hook that pins at the load the same record it pinned at create passes,
+since the pin drops every other record of the token. A pin first made at a load is
+checked like any record (#230). A loaded module's private contributions stay legal,
+subject to K2.
 
 - `nexus.ts:108` wraps a thrown `LoadError` in `BlueprintError` for `Nexus.check`. One helper,
   `isLoadError(error)`, covers `LoadError`, `LoadContributionError` and K4's
@@ -459,7 +465,8 @@ extra)` already appends `extra` refs to a node's imports, the mechanism the root
 ## 12. Tech lead rulings
 
 - K1: the pass separates a module's view of a multi token from what it publishes (section
-  4.4). The load guard runs in `compile()` after `rewriteProviders` and skips pinned tokens.
+  4.4). The load guard runs in `compile()` after `rewriteProviders`. It treats a pin as a
+  publish and skips a record the previous blueprint published (#230, tech lead).
   Its fix text sends users to an `onInit` registry. `exports: [T]` with no own record stays
   legal. The oracle test is rewritten first.
 - K2: the fix text order of section 6.2. `get(T, { module })` and `view.visible()` do not
