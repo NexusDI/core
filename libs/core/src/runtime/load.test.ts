@@ -364,6 +364,101 @@ describe('Nexus', () => {
         expect(ship.get(Sink).l).toEqual(['stub']);
       });
 
+      it('loads a module next to a module with two exported contributions a compile.module hook replaces with an equal fresh object every compile', async () => {
+        const Telemetry = telemetry(false);
+        const fresh = {
+          name: 'fresh',
+          apiVersion: 1,
+          compile: {
+            module: (m: unknown) =>
+              m === Telemetry
+                ? stub('TelemetryStub', false, ['more'])
+                : undefined,
+          },
+        } as never;
+        const ship = await Nexus.create(rootOf(Telemetry), {
+          plugins: [fresh],
+        });
+        expect(ship.get(Sink).l).toEqual(['stub', 'more']);
+        await ship.load(Other);
+        expect(ship.get(Sink).l).toEqual(['stub', 'more']);
+      });
+
+      describe('with a compile.provider hook that rewrites a contribution every compile', () => {
+        const rewriter = (
+          replace: (m: unknown) => unknown,
+          rewrite: () => unknown = () =>
+            provide(LOG, { useValue: 'rewritten' }),
+        ) => {
+          let seen = 0;
+          return {
+            name: 'rewriter',
+            apiVersion: 1,
+            compile: {
+              module: (m: unknown) => {
+                const next = replace(m);
+                if (next !== undefined) seen = 0;
+                return next;
+              },
+              provider: (p: { token: unknown }) =>
+                p.token === LOG && ++seen === 2
+                  ? { with: rewrite() }
+                  : undefined,
+            },
+          } as never;
+        };
+
+        it('loads next to an exported pair an equal fresh stub replaces every compile', async () => {
+          const Telemetry = telemetry(false);
+          const ship = await Nexus.create(rootOf(Telemetry), {
+            plugins: [
+              rewriter((m) =>
+                m === Telemetry ? stub('Stub', false, ['more']) : undefined,
+              ),
+            ],
+          });
+          expect(ship.get(Sink).l).toEqual(['stub', 'rewritten']);
+          await ship.load(Other);
+          expect(ship.get(Sink).l).toEqual(['stub', 'rewritten']);
+        });
+
+        it('rebuilds no singleton of a private pair an equal fresh stub replaces every compile', async () => {
+          const built: string[] = [];
+          const buildA = () => (built.push('a'), 'a');
+          const buildB = () => (built.push('b'), 'b');
+          // The hook wraps the second factory with one shared function, so the
+          // rewritten record still builds and its recipe differs from the walked one.
+          const wrapped = () => buildB();
+          const make = () =>
+            defineModule({
+              name: 'Priv',
+              providers: [
+                provide(LOG, { useFactory: buildA, deps: [] }),
+                provide(LOG, { useFactory: buildB, deps: [] }),
+                provide(Sink, { deps: [all(LOG)] }),
+              ],
+              exports: [Sink],
+            });
+          const Priv = make();
+          const ship = await Nexus.create(
+            defineModule({ name: 'Root', imports: [Priv] }),
+            {
+              plugins: [
+                rewriter(
+                  (m) => (m === Priv ? make() : undefined),
+                  () => provide(LOG, { useFactory: wrapped, deps: [] }),
+                ),
+              ],
+            },
+          );
+          const sink = ship.get(Sink);
+          const count = built.length;
+          await ship.load(Other);
+          expect(ship.get(Sink)).toBe(sink);
+          expect(built.length).toBe(count);
+        });
+      });
+
       it('loads a module next to a global module a compile.module hook replaces with a fresh object every compile', async () => {
         const Telemetry = telemetry(true);
         const fresh = {
@@ -379,6 +474,390 @@ describe('Nexus', () => {
         });
         await ship.load(Other);
         expect(ship.get(Sink).l).toEqual(['stub']);
+      });
+
+      describe('held modules across a load', () => {
+        interface IReactor {
+          readonly tag: string;
+        }
+        const REACTOR = new Token<IReactor>('Reactor');
+        const SPARE = new Token<IReactor>('Spare');
+        const SENSORS = new Token<IReactor>('Sensors');
+        const SCANNER = new Token<IReactor>('Scanner');
+        const EXTRA = new Token<IReactor>('Extra');
+        class FusionReactor implements IReactor {
+          readonly tag = 'fusion';
+        }
+        class Sensors implements IReactor {
+          readonly tag = 'sensors';
+        }
+        const Eng = defineModule({
+          name: 'Eng',
+          providers: [provide(REACTOR, { useClass: FusionReactor })],
+          exports: [REACTOR],
+        });
+        const Sci = defineModule({
+          name: 'Sci',
+          providers: [
+            provide(SENSORS, { useClass: Sensors }),
+            provide(SCANNER, { useClass: Sensors }),
+          ],
+          exports: [SENSORS, SCANNER],
+        });
+        const Ship = defineModule({ name: 'Ship', imports: [Eng, Sci] });
+        const hookFor = (
+          from: unknown,
+          to: () => unknown,
+          capture?: (ids: string[]) => void,
+        ) =>
+          ({
+            name: 'held',
+            apiVersion: 1,
+            compile: {
+              module: (m: unknown, context: { phase: string }) =>
+                m === from && context.phase === 'load' ? to() : undefined,
+              check: (view: {
+                modules: { id: string }[];
+                providers: { id: string }[];
+              }) =>
+                capture?.([
+                  ...view.modules.map((m) => m.id),
+                  ...view.providers.map((p) => p.id),
+                ]),
+            },
+          }) as never;
+
+        it("builds a provider a compile.module hook adds to a held module at a load and keeps the module's instances", async () => {
+          const Grown = defineModule({
+            name: 'Eng',
+            providers: [
+              provide(REACTOR, { useClass: FusionReactor }),
+              provide(SPARE, { useClass: FusionReactor }),
+            ],
+            exports: [REACTOR, SPARE],
+          });
+          const ship = await Nexus.create(Ship, {
+            plugins: [hookFor(Eng, () => Grown)],
+          });
+          const reactor = ship.get(REACTOR);
+          const sensors = ship.get(SENSORS);
+          await ship.load(Other);
+          expect(ship.get(REACTOR)).toBe(reactor);
+          expect(ship.get(SENSORS)).toBe(sensors);
+          expect(ship.get(SPARE)).toBeInstanceOf(FusionReactor);
+          expect(ship.get(SPARE)).not.toBe(reactor);
+        });
+
+        it("keeps every later module's instances when a compile.module hook gives a held module a new import at a load", async () => {
+          const Added = defineModule({
+            name: 'Added',
+            providers: [provide(EXTRA, { useClass: FusionReactor })],
+            exports: [EXTRA],
+          });
+          const WithImport = defineModule({
+            name: 'Eng',
+            imports: [Added],
+            providers: [provide(REACTOR, { useClass: FusionReactor })],
+            exports: [REACTOR],
+          });
+          const seen: string[][] = [];
+          const ship = await Nexus.create(Ship, {
+            plugins: [
+              hookFor(
+                Eng,
+                () => WithImport,
+                (ids) => seen.push(ids),
+              ),
+            ],
+          });
+          const sensors = ship.get(SENSORS);
+          await ship.load(Other);
+          expect(ship.get(SENSORS)).toBe(sensors);
+          const [before, after] = [seen[0], seen[seen.length - 1]];
+          for (const id of before) expect(after).toContain(id);
+          expect(after.length).toBeGreaterThan(before.length);
+        });
+
+        it("keeps each instance with its token when a compile.module hook reorders a held module's providers at a load", async () => {
+          const Flipped = defineModule({
+            name: 'Sci',
+            providers: [
+              provide(SCANNER, { useClass: Sensors }),
+              provide(SENSORS, { useClass: Sensors }),
+            ],
+            exports: [SENSORS, SCANNER],
+          });
+          const ship = await Nexus.create(Ship, {
+            plugins: [hookFor(Sci, () => Flipped)],
+          });
+          const sensors = ship.get(SENSORS);
+          const scanner = ship.get(SCANNER);
+          expect(sensors).not.toBe(scanner);
+          await ship.load(Other);
+          expect(ship.get(SENSORS)).toBe(sensors);
+          expect(ship.get(SCANNER)).toBe(scanner);
+        });
+
+        it('keeps the other instances when a compile.module hook drops a provider of a held module at a load, and builds it fresh when a later load restores it', async () => {
+          const Dropped = defineModule({
+            name: 'Eng',
+            providers: [],
+            exports: [],
+          });
+          let dropping = true;
+          const seen: string[][] = [];
+          const ship = await Nexus.create(Ship, {
+            plugins: [
+              hookFor(
+                Eng,
+                () => (dropping ? Dropped : Eng),
+                (ids) => seen.push(ids),
+              ),
+            ],
+          });
+          const sensors = ship.get(SENSORS);
+          const reactor = ship.get(REACTOR);
+          await ship.load(Other);
+          expect(ship.get(SENSORS)).toBe(sensors);
+          const known = new Set(seen.flat());
+          // Restoring the provider at a later load gives it a new id and a new instance.
+          dropping = false;
+          await ship.load(defineModule({ name: 'Later' }));
+          const restored = seen[seen.length - 1].filter((id) => !known.has(id));
+          expect(restored.length).toBeGreaterThan(0);
+          expect(ship.get(SENSORS)).toBe(sensors);
+          expect(ship.get(REACTOR)).not.toBe(reactor);
+        });
+
+        describe('private contributions', () => {
+          const NOTE = new MultiToken<{ n: string }>('Note');
+          const NOTES = new Token<string[]>('Notes');
+          const note = (n: string) =>
+            provide(NOTE, { useFactory: () => ({ n }), deps: [] });
+          const a = note('a');
+          const b = note('b');
+          const c = note('c');
+          const notes = provide(NOTES, {
+            useFactory: (l: { n: string }[]) => l.map((x) => x.n),
+            deps: [all(NOTE)],
+            lifetime: 'scoped',
+          } as never);
+          const Priv = defineModule({
+            name: 'Priv',
+            providers: [a, b, notes],
+            exports: [NOTES],
+          });
+          const create = (to: unknown) =>
+            Nexus.create(defineModule({ name: 'Root', imports: [Priv] }), {
+              plugins: [hookFor(Priv, () => to)],
+            });
+          const reading = async (
+            ship: Awaited<ReturnType<typeof create>>,
+          ): Promise<string[]> => (await ship.createScope()).get(NOTES);
+
+          it('keeps each contribution with its own instance when a compile.module hook prepends one at a load', async () => {
+            const Grown = defineModule({
+              name: 'Priv',
+              providers: [c, ...Priv.providers],
+              exports: [NOTES],
+            });
+            const ship = await create(Grown);
+            expect(await reading(ship)).toEqual(['a', 'b']);
+            await ship.load(Other);
+            expect(await reading(ship)).toEqual(['c', 'a', 'b']);
+          });
+
+          it("gives no contribution another one's instance when a compile.module hook prepends fresh provider objects at a load", async () => {
+            const fresh = (list: string[]) =>
+              defineModule({
+                name: 'Priv',
+                providers: [...list.map(note), notes],
+                exports: [NOTES],
+              });
+            const ship = await create(fresh(['c', 'a', 'b']));
+            expect(await reading(ship)).toEqual(['a', 'b']);
+            await ship.load(Other);
+            expect(await reading(ship)).toEqual(['c', 'a', 'b']);
+          });
+
+          it("gives no contribution another one's instance when a compile.module hook reorders fresh provider objects at a load", async () => {
+            const ship = await create(
+              defineModule({
+                name: 'Priv',
+                providers: [note('b'), note('a'), notes],
+                exports: [NOTES],
+              }),
+            );
+            expect(await reading(ship)).toEqual(['a', 'b']);
+            await ship.load(Other);
+            expect(await reading(ship)).toEqual(['b', 'a']);
+          });
+
+          it('keeps each contribution with its own instance when a compile.module hook reorders them at a load', async () => {
+            const Flipped = defineModule({
+              name: 'Priv',
+              providers: [b, a, notes],
+              exports: [NOTES],
+            });
+            const ship = await create(Flipped);
+            expect(await reading(ship)).toEqual(['a', 'b']);
+            await ship.load(Other);
+            expect(await reading(ship)).toEqual(['b', 'a']);
+          });
+        });
+
+        it('builds a held provider anew when a compile.provider hook removes it at one load and a later load brings it back', async () => {
+          class Gear {}
+          const GEAR = new Token<Gear>('Gear');
+          let removing = false;
+          const ship = await Nexus.create(
+            defineModule({
+              name: 'Root',
+              providers: [provide(GEAR, { useClass: Gear })],
+            }),
+            {
+              plugins: [
+                {
+                  name: 'bay',
+                  apiVersion: 1,
+                  compile: {
+                    provider: (p: { token: unknown }, c: { phase: string }) =>
+                      removing && c.phase === 'load' && p.token === GEAR
+                        ? { remove: true }
+                        : undefined,
+                  },
+                } as never,
+              ],
+            },
+          );
+          const first = ship.get(GEAR);
+          removing = true;
+          await ship.load(Other);
+          removing = false;
+          await ship.load(defineModule({ name: 'Later' }));
+          const second = ship.get(GEAR);
+          expect(second).toBeInstanceOf(Gear);
+          expect(second).not.toBe(first);
+          expect(ship.get(GEAR)).toBe(second);
+        });
+
+        it('keeps the surviving contribution with its own instance when a compile.module hook drops an equal-recipe entry at a load', async () => {
+          interface IHandler {
+            readonly n: number;
+          }
+          const HANDLER = new MultiToken<IHandler>('Handler');
+          const LIST = new Token<{ hs: IHandler[] }>('List');
+          let made = 0;
+          const makeHandler = () => ({ n: ++made });
+          const first = provide(HANDLER, { useFactory: makeHandler });
+          const second = provide(HANDLER, { useFactory: makeHandler });
+          const list = provide(LIST, {
+            deps: [all(HANDLER)],
+            useFactory: (hs: IHandler[]) => ({ hs }),
+            lifetime: 'transient',
+          } as never);
+          const Held = defineModule({
+            name: 'Eng',
+            providers: [first, second, list],
+            exports: [LIST],
+          });
+          const Dropped = defineModule({
+            name: 'Eng',
+            providers: [second, list],
+            exports: [LIST],
+          });
+          const ship = await Nexus.create(
+            defineModule({ name: 'Root', imports: [Held] }),
+            { plugins: [hookFor(Held, () => Dropped)] },
+          );
+          expect(ship.get(LIST).hs.map((h) => h.n)).toEqual([1, 2]);
+          await ship.load(Other);
+          expect(ship.get(LIST).hs.map((h) => h.n)).toEqual([2]);
+        });
+
+        it('keeps the singletons of a stub a compile.module hook builds with inline factories every compile', async () => {
+          const A = new Token<object>('A');
+          const C = new Token<object>('C');
+          const NOTE = new MultiToken<string>('Note');
+          const Held = defineModule({
+            name: 'Eng',
+            providers: [
+              provide(A, { useFactory: () => ({ a: 1 }) }),
+              provide(C, { useFactory: () => ({ c: 1 }) }),
+              provide(NOTE, { useValue: 'n' }),
+            ],
+            exports: [A, C, NOTE],
+          });
+          const stubbed = {
+            name: 'inline',
+            apiVersion: 1,
+            compile: {
+              module: (m: unknown) =>
+                m === Held
+                  ? defineModule({
+                      name: 'Eng',
+                      providers: [
+                        provide(A, { useFactory: () => ({ a: 1 }) }),
+                        provide(C, { useFactory: () => ({ c: 1 }) }),
+                        provide(NOTE, { useFactory: () => 'n' }),
+                      ],
+                      exports: [A, C, NOTE],
+                    })
+                  : undefined,
+            },
+          } as never;
+          const ship = await Nexus.create(
+            defineModule({ name: 'Root', imports: [Held] }),
+            { plugins: [stubbed] },
+          );
+          const a = ship.get(A);
+          const c = ship.get(C);
+          await ship.load(Other);
+          expect(ship.get(A)).toBe(a);
+          expect(ship.get(C)).toBe(c);
+        });
+
+        it('hands the ids a failed load introduced to the next load, whose instances are right', async () => {
+          const seen: string[][] = [];
+          const ship = await Nexus.create(Ship, {
+            plugins: [
+              hookFor(
+                Eng,
+                () => Eng,
+                (ids) => seen.push(ids),
+              ),
+            ],
+          });
+          const sensors = ship.get(SENSORS);
+          const Boom = defineModule({
+            name: 'Boom',
+            providers: [
+              provide(EXTRA, {
+                useFactory: () => {
+                  throw new Error('no power');
+                },
+                deps: [],
+              }),
+            ],
+            exports: [EXTRA],
+          });
+          await rejected(ship.load(Boom));
+          const failedIds = seen[seen.length - 1];
+          class Fine implements IReactor {
+            readonly tag = 'fine';
+          }
+          const Good = defineModule({
+            name: 'Good',
+            providers: [provide(EXTRA, { useClass: Fine })],
+            exports: [EXTRA],
+          });
+          await ship.load(Good);
+          const goodIds = seen[seen.length - 1];
+          // The failed run committed nothing, so Good takes the ids Boom had.
+          expect(goodIds).toEqual(failedIds);
+          expect(ship.get(EXTRA)).toBeInstanceOf(Fine);
+          expect(ship.get(SENSORS)).toBe(sensors);
+        });
       });
 
       it('rejects NEXUS_LOAD_CONTRIBUTION when a compile.module hook adds an exported contribution to a module the graph holds during a load', async () => {

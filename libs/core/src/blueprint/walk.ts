@@ -21,6 +21,7 @@ import {
 } from '../errors/index.js';
 import {
   NO_ENTRIES,
+  type Blueprint,
   type ModuleNode,
   type ProviderRecord,
   type RecordShape,
@@ -36,6 +37,25 @@ import {
 } from './records.js';
 import { sameToken, type Canonicalizer } from './views.js';
 
+/** Whether two records build alike, comparing recipes by reference. */
+function sameRecipe(a: RecordShape, b: RecordShape): boolean {
+  // Eager and schema are left out because they do not change the built
+  // instance, and props are left out because they follow useClass.
+  return (
+    a.token === b.token &&
+    a.kind === b.kind &&
+    a.useClass === b.useClass &&
+    a.useFactory === b.useFactory &&
+    a.target === b.target &&
+    a.lifetime === b.lifetime &&
+    Object.is(a.value, b.value) &&
+    a.deps.length === b.deps.length &&
+    a.deps.every(
+      (d, i) => d.kind === b.deps[i].kind && d.token === b.deps[i].token,
+    )
+  );
+}
+
 export interface WalkInput {
   readonly root: unknown;
   /**
@@ -45,6 +65,12 @@ export interface WalkInput {
    * already visited.
    */
   readonly extraImports: readonly LoadEntry[];
+  /**
+   * The blueprint a load compiles against. A module it holds keeps its id and
+   * each of its records keeps the id it had; what it lacks takes the next
+   * free index. Absent, the ids count from zero in walk order.
+   */
+  readonly previous?: Blueprint;
   /** The module to walk in place of the one met. The compile.module hooks use it. */
   readonly replace?: (definition: ModuleDefinition) => ModuleDefinition;
   /**
@@ -58,6 +84,8 @@ export interface WalkInput {
 export interface WalkResult {
   readonly modules: readonly ModuleNode[];
   readonly records: readonly ProviderRecord[];
+  /** The next free module and record index after this walk. */
+  readonly nextIds: readonly [number, number];
   readonly byDefinition: ReadonlyMap<ModuleDefinition, string>;
   /** Tokens whose provider was rejected, so pass 3 does not report them as missing too. */
   readonly broken: ReadonlySet<TokenKey>;
@@ -79,18 +107,27 @@ export interface WalkResult {
 /** A ModuleNode under construction: its lists fill in as the walk proceeds. */
 type NodeDraft = Omit<
   ModuleNode,
-  'imports' | 'grants' | 'providers' | 'exportTokens' | 'exportModules'
+  | 'imports'
+  | 'grants'
+  | 'providers'
+  | 'shapes'
+  | 'entries'
+  | 'exportTokens'
+  | 'exportModules'
 > & {
   readonly imports: string[];
   readonly grants: string[];
   readonly providers: string[];
+  readonly shapes: RecordShape[];
+  readonly entries: unknown[];
   readonly exportTokens: TokenKey[];
   readonly exportModules: string[];
 };
 
 /**
  * Pass 1. A depth-first walk from the root that deduplicates modules by
- * identity, assigns ids in walk order and normalises every provider. It keeps
+ * identity and normalises every provider. A module and a record the previous
+ * blueprint holds keep their ids; the rest number on from `nextIds`. It keeps
  * a duplicate provider and marks it; `rejectDuplicates` reports it after the
  * compile.provider hooks, which may remove one of the two (spec §5 pass 1).
  */
@@ -104,56 +141,142 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
   const stack: ModuleDefinition[] = [];
   const canon = input.canon;
   const keyOf = canon ?? sameToken;
+  const previous = input.previous;
+  let nextModule = previous?.nextIds[0] ?? 0;
+  let nextRecord = previous?.nextIds[1] ?? 0;
+  const claimed = new Set<string>();
+
+  // The id previous holds for the module walked as `definition`, the first
+  // of these that previous knows:
+  // 1. the definition itself;
+  // 2. the original a compile.module hook replaced;
+  // 3. the module that original was replaced by last time.
+  const heldId = (
+    definition: ModuleDefinition,
+    original: ModuleDefinition,
+  ): string | undefined => {
+    if (previous === undefined) return undefined;
+    const id =
+      previous.moduleByDefinition.get(definition) ??
+      previous.moduleByDefinition.get(original) ??
+      previous.moduleByReplaced.get(original);
+    return id !== undefined && !claimed.has(id) ? id : undefined;
+  };
 
   const addProviders = (
     node: NodeDraft,
     definition: ModuleDefinition,
+    held: ModuleNode | undefined,
   ): void => {
     const plain = new Set<TokenKey>();
-    const accept = (written: RecordShape): void => {
+    const pending: {
+      readonly written: RecordShape;
+      readonly shape: RecordShape;
+      readonly entry: unknown;
+      readonly at: number;
+      readonly dup: boolean;
+    }[] = [];
+    const accept = (written: RecordShape, entry?: unknown): void => {
       const shape = canon === undefined ? written : keyShape(written, canon);
-      const index = records.length;
-      const id = `p${index}`;
+      let dup = false;
       if (!(shape.token instanceof MultiToken)) {
-        if (plain.has(shape.token))
-          (duplicates ??= new Map()).set(id, errors.length);
-        else plain.add(shape.token);
+        dup = plain.has(shape.token);
+        plain.add(shape.token);
       }
-      records.push(
-        providerRecord(shape, id, index, node.id, displayName(written.token)),
-      );
-      node.providers.push(id);
+      pending.push({ written, shape, entry, at: errors.length, dup });
     };
 
-    // The same entry listed twice is one provider, as one module imported twice is one module.
-    const listed = new Set<unknown>();
+    // A record keeps the id of a record the held module had only when the
+    // match is unambiguous. The steps, in order:
+    // 1. the same entry object;
+    // 2. the same token with an equal recipe (first unclaimed, in order);
+    // 3. the only record of its token on both sides.
+    // Any other record takes a fresh id and builds anew, since a wrong
+    // instance is worse than a rebuilt one. A lone record replaced by a
+    // different recipe keeps its built instance, as a held provider whose
+    // recipe a hook changes does (#277). The held node's walked shapes, from
+    // before the compile.provider hooks, give the candidates, so a record a
+    // hook rewrote or removed still matches.
+    const assign = (): void => {
+      const ids: (string | undefined)[] = [];
+      if (held !== undefined) {
+        pending.forEach(({ entry }, n) => {
+          const i = held.entries.indexOf(entry);
+          if (entry !== undefined && i !== -1) ids[n] = held.providers[i];
+        });
+        pending.forEach(({ shape }, n) => {
+          if (ids[n] === undefined) {
+            const i = held.shapes.findIndex(
+              (before, j) =>
+                !ids.includes(held.providers[j]) && sameRecipe(before, shape),
+            );
+            if (i !== -1) ids[n] = held.providers[i];
+          }
+        });
+        const tokens = held.shapes.map((x) => x.token);
+        pending.forEach(({ shape: { token } }, n) => {
+          const i = tokens.indexOf(token);
+          if (
+            ids[n] === undefined &&
+            i !== -1 &&
+            i === tokens.lastIndexOf(token) &&
+            !ids.includes(held.providers[i]) &&
+            pending.filter((q) => q.shape.token === token).length === 1
+          )
+            ids[n] = held.providers[i];
+        });
+      }
+      pending.forEach(({ written, shape, entry, at, dup }, n) => {
+        const id = ids[n] ?? `p${nextRecord++}`;
+        if (dup) (duplicates ??= new Map()).set(id, at);
+        records.push(
+          providerRecord(
+            shape,
+            id,
+            records.length,
+            node.id,
+            displayName(written.token),
+          ),
+        );
+        node.providers.push(id);
+        node.shapes.push(shape);
+        node.entries.push(entry);
+      });
+    };
 
-    definition.providers.forEach((entry, index) => {
-      if (listed.has(entry)) return;
-      listed.add(entry);
-      const shape = normalizeProvider(
-        entry,
-        { module: definition.name, index },
+    const collect = (): void => {
+      // The same entry listed twice is one provider, as one module imported twice is one module.
+      const listed = new Set<unknown>();
+
+      definition.providers.forEach((entry, index) => {
+        if (listed.has(entry)) return;
+        listed.add(entry);
+        const shape = normalizeProvider(
+          entry,
+          { module: definition.name, index },
+          errors,
+        );
+        if (shape !== null) return accept(shape, entry);
+        const token = tokenOfEntry(entry);
+        if (token !== undefined) broken.add(keyOf(token));
+      });
+
+      const internals = moduleInternals(definition);
+      if (internals?.options === undefined) return;
+      if (internals.source === undefined) {
+        broken.add(keyOf(internals.options));
+        return;
+      }
+      const shape = optionsShape(
+        internals,
+        { module: definition.name, index: definition.providers.length },
         errors,
       );
-      if (shape !== null) return accept(shape);
-      const token = tokenOfEntry(entry);
-      if (token !== undefined) broken.add(keyOf(token));
-    });
-
-    const internals = moduleInternals(definition);
-    if (internals?.options === undefined) return;
-    if (internals.source === undefined) {
-      broken.add(keyOf(internals.options));
-      return;
-    }
-    const shape = optionsShape(
-      internals,
-      { module: definition.name, index: definition.providers.length },
-      errors,
-    );
-    if (shape === null) broken.add(keyOf(internals.options));
-    else accept(shape);
+      if (shape === null) broken.add(keyOf(internals.options));
+      else accept(shape);
+    };
+    collect();
+    assign();
   };
 
   // The ids of the granted modules, in grant order, without repeats. A grant
@@ -222,8 +345,10 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
       );
     }
 
+    const keptId = heldId(definition, found);
+    if (keptId !== undefined) claimed.add(keptId);
     const node: NodeDraft = {
-      id: `m${modules.length}`,
+      id: keptId ?? `m${nextModule++}`,
       index: modules.length,
       name: definition.name,
       definition,
@@ -232,12 +357,18 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
       grants: [],
       grantSet: granted,
       providers: [],
+      shapes: [],
+      entries: [],
       exportTokens: [],
       exportModules: [],
     };
     modules.push(node);
     byDefinition.set(definition, node.id);
-    addProviders(node, definition);
+    addProviders(
+      node,
+      definition,
+      keptId === undefined ? undefined : previous?.modules.get(keptId),
+    );
 
     stack.push(definition);
     const imported = new Set<string>();
@@ -299,6 +430,7 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
   return {
     modules,
     records,
+    nextIds: [nextModule, nextRecord],
     byDefinition,
     broken,
     duplicates: duplicates ?? NO_ENTRIES,

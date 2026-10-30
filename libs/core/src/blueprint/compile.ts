@@ -20,7 +20,6 @@ import {
   NO_ENTRIES,
   REQUEST_ID,
   type Blueprint,
-  type ModuleNode,
   type ProviderRecord,
   type TokenKey,
 } from './blueprint.js';
@@ -100,40 +99,15 @@ function moduleIdsOf(
 }
 
 /**
- * The id `previous` holds for the module `node` stands for: its walked
- * definition, or the original a compile.module hook replaced with it, so a
- * hook that returns a fresh replacement every compile names the same module.
- */
-function heldModuleId(
-  previous: Blueprint,
-  node: ModuleNode,
-  replaced: ReadonlyMap<ModuleDefinition, ModuleDefinition>,
-): string | undefined {
-  const original = replaced.get(node.definition) ?? node.definition;
-  return (
-    previous.moduleByDefinition.get(node.definition) ??
-    previous.moduleByDefinition.get(original) ??
-    previous.moduleByReplaced.get(original)
-  );
-}
-
-/**
  * load()'s rule: every existing module's bindings are computed, so a global
  * module new to the graph would change them all. A module is new when
  * `previous` holds no module for it or for the original a compile.module hook
  * replaced with it, and a held plain module that a hook turns global at a load
  * counts as new too. Walk order decides which one the error names.
  */
-function checkNewGlobals(
-  walked: WalkResult,
-  previous: Blueprint,
-  replaced: ReadonlyMap<ModuleDefinition, ModuleDefinition>,
-): void {
+function checkNewGlobals(walked: WalkResult, previous: Blueprint): void {
   const added = walked.modules.find(
-    (m) =>
-      m.global &&
-      previous.modules.get(heldModuleId(previous, m, replaced) ?? '')
-        ?.global !== true,
+    (m) => m.global && previous.modules.get(m.id)?.global !== true,
   );
   if (added !== undefined) throw new LoadError({ module: added.name });
 }
@@ -325,12 +299,12 @@ export function compile(input: CompileInput): Blueprint {
               })),
               ...extraImports,
             ],
+      previous: input.previous,
       replace,
     },
     errors,
   );
-  if (input.previous !== undefined)
-    checkNewGlobals(walked, input.previous, replacedModules);
+  if (input.previous !== undefined) checkNewGlobals(walked, input.previous);
   const rewritten =
     context === undefined
       ? undefined
@@ -453,6 +427,7 @@ export function compile(input: CompileInput): Blueprint {
     moduleByDefinition: walked.byDefinition,
     moduleByReplaced: moduleIdsOf(walked),
     providers,
+    nextIds: walked.nextIds,
     pinned,
     extraImports,
     visibility: visible.visibility,

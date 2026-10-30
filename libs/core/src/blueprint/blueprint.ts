@@ -62,8 +62,18 @@ export interface RecordShape {
 }
 
 export interface ProviderRecord extends RecordShape {
-  /** `p0`, `p1`, ... in walk order, then declaration order. */
+  /**
+   * Unique in the container. A record the compile first meets takes the
+   * next free `p<n>`. A load keeps the id of a record of a held module that
+   * matches, in this order:
+   * 1. the same provider entry object;
+   * 2. the same token with an equal recipe;
+   * 3. the only record of its token on both sides.
+   *
+   * Any other record takes a fresh id.
+   */
   readonly id: string;
+  /** The record's position in the walk. */
   readonly index: number;
   /** The owning module's id. */
   readonly module: string;
@@ -72,8 +82,12 @@ export interface ProviderRecord extends RecordShape {
 }
 
 export interface ModuleNode {
-  /** `m0`, `m1`, ... in walk order. `m0` is the root. */
+  /**
+   * Unique in the container. `m0` is the root; a load keeps the id of a
+   * module the previous blueprint holds.
+   */
   readonly id: string;
+  /** The module's position in the walk. */
   readonly index: number;
   readonly name: string;
   readonly definition: ModuleDefinition;
@@ -85,6 +99,10 @@ export interface ModuleNode {
   /** The full set the load granted this module, in grant order. The repeat rule of load() reads it; the views do not carry it. */
   readonly grantSet: readonly string[];
   readonly providers: readonly string[];
+  /** The walked shape of each entry in `providers`, same order, from before the compile.provider hooks. A load matches them to the ids the next walk keeps. */
+  readonly shapes: readonly RecordShape[];
+  /** The `providers` entry each record came from, same order; undefined for the options record. A load matches a held record by entry identity before it matches by token. */
+  readonly entries: readonly unknown[];
   /** The tokens the module's exports list names, in list order. */
   readonly exportTokens: readonly TokenKey[];
   /** The ids of the imported modules the module re-exports, in list order. */
@@ -142,6 +160,8 @@ export interface Blueprint {
    */
   readonly moduleByReplaced: ReadonlyMap<ModuleDefinition, string>;
   readonly providers: ReadonlyMap<string, ProviderRecord>;
+  /** The next free module and record index. A load numbers what it adds from here. */
+  readonly nextIds: readonly [number, number];
   /** MultiToken → the one record a compile.provider hook pinned, plus REQUEST. */
   readonly pinned: ReadonlyMap<TokenKey, readonly string[]>;
   /** Modules load() added as root imports, in load order, each with the grant it was loaded with. */
