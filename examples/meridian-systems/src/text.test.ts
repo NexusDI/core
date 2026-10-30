@@ -46,12 +46,56 @@ describe('shipText', () => {
       consumer: 'shields',
       demand: 200e6,
       available: 193.6e6,
+      throttle: 0.4,
+      ahead: ['life-support'],
+      climbing: false,
     });
     expect(render(error)).toBe(
       [
         '[MERIDIAN_POWER_BUDGET] The shields load needs 200 MW, and the router has 193.6 MW free beside the loads above it.',
         '  Fix: raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
       ].join('\n'),
+    );
+  });
+
+  const budget = (
+    fields: Partial<ConstructorParameters<typeof PowerBudgetError>[0]>,
+  ) =>
+    new PowerBudgetError({
+      consumer: 'ftl-spool',
+      demand: 900e6,
+      available: 12.1e6,
+      throttle: 1,
+      climbing: false,
+      ahead: [],
+      ...fields,
+    });
+
+  it('names the loads ahead of the load at full output', () => {
+    expect(
+      render(budget({ ahead: ['life-support', 'shields'], available: 0 })),
+    ).toContain(
+      'Fix: the reactor is at full throttle, so lower a load ahead of the ftl-spool: life-support, shields.',
+    );
+  });
+
+  it('says to wait while the reactor climbs to full throttle with no load ahead', () => {
+    expect(render(budget({ climbing: true }))).toContain(
+      'Fix: the reactor is at full throttle, so wait for the output to climb.',
+    );
+  });
+
+  it('adds the loads ahead as the way to spool sooner while the reactor climbs', () => {
+    expect(
+      render(budget({ climbing: true, ahead: ['life-support', 'shields'] })),
+    ).toContain(
+      'Fix: the reactor is at full throttle and still climbing, so wait for the output to climb, or lower a load ahead of the ftl-spool to spool sooner: life-support, shields.',
+    );
+  });
+
+  it('names both figures when the full output is below the demand and nothing is ahead', () => {
+    expect(render(budget({ available: 290.4e6, demand: 300e6 }))).toContain(
+      "Fix: the reactor's full output of 290.4 MW is below the 300 MW the ftl-spool needs.",
     );
   });
 

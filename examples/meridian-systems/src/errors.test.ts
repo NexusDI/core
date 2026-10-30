@@ -20,6 +20,9 @@ const budget = () =>
     consumer: 'shields',
     demand: 200e6,
     available: 193.6e6,
+    throttle: 0.4,
+    ahead: ['life-support'],
+    climbing: false,
   });
 
 const badCommand = () =>
@@ -40,6 +43,9 @@ describe('PowerBudgetError', () => {
       consumer: 'shields',
       demand: 200e6,
       available: 193.6e6,
+      throttle: 0.4,
+      ahead: ['life-support'],
+      climbing: false,
     });
   });
 
@@ -53,7 +59,7 @@ describe('PowerBudgetError', () => {
 
   it('links its one-line message to the README anchor of its code', () => {
     expect(budget().message).toBe(
-      `[MERIDIAN_POWER_BUDGET] consumer=shields demand=200000000 available=193600000. ${DOCS}MERIDIAN_POWER_BUDGET`,
+      `[MERIDIAN_POWER_BUDGET] consumer=shields demand=200000000 available=193600000 throttle=0.4 ahead=life-support. ${DOCS}MERIDIAN_POWER_BUDGET`,
     );
   });
 });

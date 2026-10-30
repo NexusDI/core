@@ -391,7 +391,30 @@ export const spoolAndJump: GrowthCase = {
       fix: 'raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
     });
 
-    let ship = await advanceTo(fetch, 100, 100);
+    // Tick 1 applies the throttle. The reactor is still climbing, and the
+    // refusal at full throttle names the loads that hold the power.
+    await advanceTo(fetch, 1, 1);
+    await send(fetch, command('ftl', 'spool'), 409, {
+      code: 'MERIDIAN_POWER_BUDGET',
+      message:
+        'The ftl-spool load needs 900 MW, and the router has 12.1 MW free beside the loads above it.',
+      fix: 'the reactor is at full throttle, so wait for the output to climb.',
+    });
+
+    // Life support holds power ahead of the spool for one tick, so the
+    // refusal at tick 2 names it as the load to lower to spool sooner. The
+    // offline order at tick 3 puts the ship back before tick 100.
+    await send(fetch, command('life-support', 'online'), 202, { tick: 2 });
+    await advanceTo(fetch, 1, 2);
+    await send(fetch, command('ftl', 'spool'), 409, {
+      code: 'MERIDIAN_POWER_BUDGET',
+      message:
+        'The ftl-spool load needs 900 MW, and the router has 24.2 MW free beside the loads above it.',
+      fix: 'the reactor is at full throttle and still climbing, so wait for the output to climb, or lower a load ahead of the ftl-spool to spool sooner: life-support.',
+    });
+    await send(fetch, command('life-support', 'offline'), 202, { tick: 3 });
+
+    let ship = await advanceTo(fetch, 98, 100);
     expectEqual('ftl at tick 100', ship.ftl, {
       status: 'idle',
       charge: 0,
@@ -447,6 +470,8 @@ export const spoolAndJump: GrowthCase = {
       await okJson('GET /commands', await fetch('/commands')),
       [
         { tick: 1, change: { reactor: { throttle: 1 } } },
+        { tick: 2, change: { lifeSupport: { online: true } } },
+        { tick: 3, change: { lifeSupport: { online: false } } },
         { tick: 101, change: { ftl: { armed: true } } },
         { tick: 301, change: { ftl: { jump: 'Kepler-442b' } } },
       ],

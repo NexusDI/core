@@ -55,6 +55,9 @@ function build(refuse = false) {
           consumer: load.id,
           demand: load.demand,
           available: 0,
+          throttle: 0,
+          ahead: [],
+          climbing: false,
         });
       }
     },

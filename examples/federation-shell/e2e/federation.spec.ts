@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { MERIDIAN_CONTRACT_VERSION } from '@nexusdi/federation-contracts/version';
 
 import { SHELLS } from './ports.ts';
@@ -10,6 +10,21 @@ const unshared = `http://127.0.0.1:${SHELLS.unshared}`;
 /** The drift build's contract version: the next minor of the shell's. */
 const [major, minor] = MERIDIAN_CONTRACT_VERSION.split('.').map(Number);
 const driftVersion = `${major}.${minor + 1}.0`;
+
+/**
+ * The command panel reads the burn from the telemetry stream, and these runs
+ * start no bridge-api. The stream answers an empty feed, so the page logs no
+ * refused connection.
+ */
+async function idleTelemetry(page: Page): Promise<void> {
+  await page.route('**/telemetry', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'text/event-stream',
+      body: ': no bridge-api\n\n',
+    }),
+  );
+}
 
 test('renders the bridge with no console error', async ({ page }) => {
   const seen = problems(page);
@@ -31,6 +46,7 @@ test("plots Kepler-442b through the cartography remote's copy of NAV_CHARTS", as
 test('shows the course the decorated Bridge plots through its @Inject accessor', async ({
   page,
 }) => {
+  await idleTelemetry(page);
   const seen = problems(page);
   await page.goto('/command');
   await expect(
@@ -42,6 +58,7 @@ test('shows the course the decorated Bridge plots through its @Inject accessor',
 test('lists both sections among the modules of graph(ship) after they load', async ({
   page,
 }) => {
+  await idleTelemetry(page);
   const seen = problems(page);
   await page.goto('/charts');
   await expect(page.getByText('Kepler-442b: heading 42')).toBeVisible();

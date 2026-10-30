@@ -37,10 +37,16 @@ function build(
   electric: number,
   draw: PowerLoad = { ...RAISED, demand: 0 },
   consumers: IPowerConsumer[] = [],
+  throttle = 0,
+  level = throttle,
 ) {
   const state = shipState(deck satisfies DeckPlan);
   const ship = state.snapshot();
-  state.commit({ ...ship, reactor: { ...ship.reactor, electric } });
+  state.commit({
+    ...ship,
+    reactor: { ...ship.reactor, electric, level },
+    setpoints: { ...ship.setpoints, reactor: { throttle } },
+  });
   const seen: ShipSnapshot[] = [];
   const grid: IShieldGrid = {
     draw(at) {
@@ -124,6 +130,51 @@ describe('PlasmaRouter', () => {
       demand: 200e6,
       available: 205.7e6 - 5.8e6,
     });
+  });
+
+  it('carries the throttle and the loads that hold power ahead of the refused load', () => {
+    const pump = consumer({
+      id: 'pump',
+      priority: 1,
+      demand: 5.8e6,
+      heatShare: 0,
+    });
+    const idle = consumer({
+      id: 'idle',
+      priority: 1,
+      demand: 0,
+      heatShare: 0,
+    });
+    const { router } = build(205.7e6, undefined, [pump.double, idle.double], 1);
+    expect(refusal(router, RAISED)).toMatchObject({
+      throttle: 1,
+      ahead: ['pump'],
+    });
+    expect(refusal(build(0).router, RAISED)).toMatchObject({
+      throttle: 0,
+      ahead: [],
+    });
+  });
+
+  it('lists two loads ahead in priority order, a tie broken by id', () => {
+    const loads = ['pump', 'fan'].map((id) =>
+      consumer({ id, priority: 1, demand: 5.8e6, heatShare: 0 }),
+    );
+    const { router } = build(
+      205.7e6,
+      undefined,
+      loads.map(({ double }) => double),
+      1,
+    );
+    expect(refusal(router, RAISED)).toMatchObject({ ahead: ['fan', 'pump'] });
+  });
+
+  it('reports a reactor whose level is below the throttle setpoint as climbing', () => {
+    const climbing = (level: number, throttle: number) =>
+      refusal(build(0, undefined, [], throttle, level).router, RAISED);
+    expect(climbing(0.4, 1)).toMatchObject({ climbing: true });
+    expect(climbing(1, 1)).toMatchObject({ climbing: false });
+    expect(climbing(0, 0)).toMatchObject({ climbing: false });
   });
 
   it('refuses 200 MW of shields at 193.6 MW', () => {

@@ -34,3 +34,15 @@ export async function advance(request: APIRequestContext): Promise<void> {
   });
   expect(answer.status()).toBe(200);
 }
+
+/**
+ * Posts `body` to the manual ship's `POST /commands` and checks that it
+ * queues it. A spec uses it to put back a setpoint its page changed.
+ */
+export async function queue(
+  request: APIRequestContext,
+  body: Record<string, unknown>,
+): Promise<void> {
+  const answer = await request.post(`${bridgeApi}/commands`, { data: body });
+  expect(answer.status()).toBe(202);
+}

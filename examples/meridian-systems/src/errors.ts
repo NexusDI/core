@@ -11,6 +11,12 @@ interface PowerBudgetFields {
   readonly demand: number;
   /** The power left for it after the loads of higher priority, in W. */
   readonly available: number;
+  /** The reactor's throttle setpoint, 0 to 1. */
+  readonly throttle: number;
+  /** The loads that hold power ahead of the load, in the router's priority order. */
+  readonly ahead: readonly string[];
+  /** Whether the reactor's level is still below its throttle setpoint, so the output is still rising. */
+  readonly climbing: boolean;
 }
 
 /** A command asked for a load the power router cannot fit at the reactor's current output. */
