@@ -489,6 +489,7 @@ function notBuilt(record: ProviderRecord): NotReadyError {
   return new NotReadyError({
     owner: constructionStack.top()?.name ?? record.name,
     target: record.name,
+    provider: null,
     path: [],
     contributor: null,
   });
@@ -564,6 +565,7 @@ export function buildOnDemand(record: ProviderRecord, ctx: Ctx): unknown {
     throw new NotReadyError({
       owner: constructionStack.top()?.name ?? record.name,
       target: record.name,
+      provider: null,
       path: constructionStack.cycleFrom(record.id, container),
       contributor: null,
     });

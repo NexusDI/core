@@ -140,8 +140,8 @@
       "library": "nexusdi",
       "variant": "decorated",
       "bundler": "esbuild",
-      "minified": 72066,
-      "gzip": 23366,
+      "minified": 72532,
+      "gzip": 23491,
       "polyfillGzip": 0,
       "runs": "pass"
     },
@@ -149,8 +149,8 @@
       "library": "nexusdi",
       "variant": "decorated",
       "bundler": "rollup",
-      "minified": 72382,
-      "gzip": 22431,
+      "minified": 72848,
+      "gzip": 22567,
       "polyfillGzip": 0,
       "runs": "pass"
     },
@@ -158,8 +158,8 @@
       "library": "nexusdi",
       "variant": "plain",
       "bundler": "esbuild",
-      "minified": 67275,
-      "gzip": 22291,
+      "minified": 67741,
+      "gzip": 22422,
       "polyfillGzip": 0,
       "runs": "pass"
     },
@@ -167,8 +167,8 @@
       "library": "nexusdi",
       "variant": "plain",
       "bundler": "rollup",
-      "minified": 67621,
-      "gzip": 21348,
+      "minified": 68087,
+      "gzip": 21481,
       "polyfillGzip": 0,
       "runs": "pass"
     },

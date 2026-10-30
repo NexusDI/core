@@ -304,7 +304,7 @@ const notReady: Builder<NotReadyError> = (error) => {
     error.path.length > 0 ? `\n  Runtime cycle: ${error.path.join(' → ')}` : '';
   const first =
     error.contributor === null
-      ? `${error.owner} called its lazy(${error.target}) thunk before ${error.target} was ready.`
+      ? `${error.owner} called its lazy(${error.target}) thunk before ${error.provider === null ? error.target : `${error.provider}, which ${error.target} aliases,`} was ready.`
       : `${error.owner} called its lazy(all(${error.target})) thunk before the contribution ${error.contributor} was ready.`;
   return text(
     `${first}${cycle}\n` +

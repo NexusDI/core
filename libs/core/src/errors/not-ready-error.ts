@@ -3,10 +3,15 @@ import { errorBase } from './nexus-error.js';
 interface NotReadyFields {
   readonly owner: string;
   /**
-   * For a lazy(all()) thunk, the multi token. For a lazy() thunk, the
-   * provider the thunk refused, after alias hops.
+   * The token the thunk names: the multi token for a lazy(all()) thunk, the
+   * token passed to lazy() for a lazy() thunk.
    */
   readonly target: string;
+  /**
+   * For a lazy() thunk whose token is an alias, the provider at the end of
+   * the alias chain, which was not ready. Null for any other thunk.
+   */
+  readonly provider: string | null;
   /**
    * The runtime cycle, when the target is being built, or empty. It ends
    * with the provider the thunk refused.
