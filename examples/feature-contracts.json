@@ -114,6 +114,11 @@
       "feature": "MERIDIAN_SYSTEM_PHASE with its fix line",
       "file": "bridge-api/test/contracts/black-box.contract.test.ts",
       "test": "MERIDIAN_SYSTEM_PHASE names a ship system class without a phase, with its fix line"
+    },
+    {
+      "feature": "async interceptor retry",
+      "file": "bridge-api/test/contracts/link-retry.contract.test.ts",
+      "test": "the retry interceptor on SUBSPACE_LINK calls next() again until the relay takes the sign-off, and the comms log counts the attempts"
     }
   ]
 }

@@ -32,6 +32,25 @@ export interface IAuditLog {
   readonly calls: readonly string[];
 }
 
+/** What the comms interceptors wrote: one entry per hail, and one per failed attempt on the subspace link, and one `answered on attempt N` on a late success. */
+export interface ICommsLog {
+  record(entry: string): void;
+  readonly entries: readonly string[];
+}
+
+/** How the retry interceptor on the subspace link behaves. */
+export interface LinkRetryOptions {
+  /** The calls to make before the failure goes to the caller, the first one included. */
+  readonly attempts: number;
+  /** The wait between two attempts, in ms. */
+  readonly delayMs: number;
+  /**
+   * The total wait in ms after which no further attempt starts. Defaults to
+   * 6000.
+   */
+  readonly deadlineMs?: number;
+}
+
 /** The scope of the request in flight, such as the one `nodeScopes()` runs. */
 export interface IScopeSource {
   current(): Scope | undefined;
@@ -61,6 +80,10 @@ export type TelemetryFrame = ShipReading & { readonly ftlRating?: FtlRating };
 export const FLIGHT_LOG = new Token<IFlightLog>('FlightLog');
 export const MISSION = new Token<Mission>('Mission');
 export const AUDIT_LOG = new Token<IAuditLog>('AuditLog');
+export const COMMS_LOG = new Token<ICommsLog>('CommsLog');
+export const LINK_RETRY_OPTIONS = new Token<LinkRetryOptions>(
+  'LinkRetryOptions',
+);
 export const DRIVER_OPTIONS = new Token<DriverOptions>('DriverOptions');
 export const SIM_DRIVER = new Token<ISimDriver>('SimDriver');
 export const REQUEST_SCOPES = new Token<IScopeSource>('RequestScopes');

@@ -119,6 +119,30 @@ export class FixedLink implements ISubspaceLink {
 }
 
 /**
+ * A subspace link that throws on purpose: its first `failures` sign-offs
+ * reject, and later ones succeed and keep their report. `receive` answers the
+ * bundled charts, so a ship with this link starts. `calls` counts every
+ * sign-off call, so a test reads how often a caller tried.
+ */
+export class FailingLink implements ISubspaceLink {
+  calls = 0;
+  readonly signOffs: SignOffReport[] = [];
+  constructor(public failures = 0) {}
+  async onInit(): Promise<void> {
+    // The handshake needs no answer.
+  }
+  async receive<T>(): Promise<T> {
+    return BUNDLED_CHARTS as T;
+  }
+  async signOff(report: SignOffReport): Promise<void> {
+    this.calls += 1;
+    if (this.calls <= this.failures)
+      throw new Error(`the relay dropped sign-off ${this.calls}`);
+    this.signOffs.push(report);
+  }
+}
+
+/**
  * An FTL drive with no spool to wait for: `spool()` and `jump(to)` queue
  * their setpoints with no check, and the drive's step fills the charge on
  * an armed tick and jumps on a commanded one with no pulse. Its rating draws
