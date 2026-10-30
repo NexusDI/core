@@ -1,0 +1,109 @@
+{
+  "contracts": [
+    {
+      "feature": "dispose order",
+      "file": "bridge-api/test/contracts/dispose-order.contract.test.ts",
+      "test": "on shutdown the stream sends event: offline, the telemetry feed disposes before the reactor scram, and a later request answers 503 with NEXUS_DISPOSED"
+    },
+    {
+      "feature": "NEXUS_SCOPE_REQUIRED with its fix line",
+      "file": "bridge-api/test/contracts/errors.contract.test.ts",
+      "test": "NEXUS_SCOPE_REQUIRED names the scoped flight log the root container cannot hand out"
+    },
+    {
+      "feature": "NEXUS_DISPOSED with its fix line",
+      "file": "bridge-api/test/contracts/errors.contract.test.ts",
+      "test": "NEXUS_DISPOSED answers a read from a container that is gone"
+    },
+    {
+      "feature": "NEXUS_INTERCEPTOR_LIFETIME with its fix line",
+      "file": "bridge-api/test/contracts/errors.contract.test.ts",
+      "test": "NEXUS_INTERCEPTOR_LIFETIME names an interceptor bound with a lifetime, with its fix line"
+    },
+    {
+      "feature": "NEXUS_OVERRIDE_UNUSED with its fix line",
+      "file": "bridge-api/test/contracts/errors.contract.test.ts",
+      "test": "NEXUS_OVERRIDE_UNUSED names an override of the FTL drive module that a startup never uses, with its fix line"
+    },
+    {
+      "feature": "interceptor order and refusal text",
+      "file": "bridge-api/test/contracts/interceptors.contract.test.ts",
+      "test": "an allowed open logs one flight-log entry, and a refused open answers 409 MERIDIAN_INTERLOCK with its fix line and no flight-log entry"
+    },
+    {
+      "feature": "optional() degradation",
+      "file": "bridge-api/test/contracts/optional.contract.test.ts",
+      "test": "the ship without SubspaceLink starts, queues a hail, reads no subspace link and serves the bundled charts"
+    },
+    {
+      "feature": "scoped isolation per request",
+      "file": "bridge-api/test/contracts/request-scope.contract.test.ts",
+      "test": "two concurrent requests with different mission ids record into separate flight logs on each framework"
+    },
+    {
+      "feature": "load() builds once",
+      "file": "bridge-api/test/contracts/section-load.contract.test.ts",
+      "test": "twenty concurrent POST /sections/ftl build the FTL drive once and each answers 200"
+    },
+    {
+      "feature": "extend() for a scope opened before a load",
+      "file": "bridge-api/test/contracts/section-load.contract.test.ts",
+      "test": "a telemetry stream opened before the load reads the drive after extend, and the same read without extend throws NEXUS_LOADED_AFTER_SCOPE"
+    },
+    {
+      "feature": "NEXUS_REACT_SECTION_FAILED with its fix line",
+      "file": "bridge-console/tests/contracts/section.contract.test.tsx",
+      "test": "NEXUS_REACT_SECTION_FAILED names the section, carries the load error and words a fix line, while the fallback reads the raw load error"
+    },
+    {
+      "feature": "NEXUS_CONTRACT_VERSION with its fix line",
+      "file": "federation-contracts/src/contracts.contract.test.ts",
+      "test": "NEXUS_CONTRACT_VERSION names the contract, both versions and a fix line from the federation text"
+    },
+    {
+      "feature": "NEXUS_CORE_NOT_SHARED with its fix line",
+      "file": "federation-contracts/src/contracts.contract.test.ts",
+      "test": "NEXUS_CORE_NOT_SHARED names a module made by another copy of core and words the core fix line"
+    },
+    {
+      "feature": "NEXUS_MISSING_PROVIDER with its fix line",
+      "file": "meridian-systems/test/contracts/errors.contract.test.ts",
+      "test": "NEXUS_MISSING_PROVIDER names the token and the module and words a fix"
+    },
+    {
+      "feature": "NEXUS_NOT_VISIBLE with its fix line",
+      "file": "meridian-systems/test/contracts/errors.contract.test.ts",
+      "test": "NEXUS_NOT_VISIBLE names a token a root does not import the module of"
+    },
+    {
+      "feature": "NEXUS_AMBIGUOUS_PROVIDER with its fix line",
+      "file": "meridian-systems/test/contracts/errors.contract.test.ts",
+      "test": "NEXUS_AMBIGUOUS_PROVIDER names the token two imports provide"
+    },
+    {
+      "feature": "NEXUS_INVALID_MODULE_OPTIONS with its fix line",
+      "file": "meridian-systems/test/contracts/errors.contract.test.ts",
+      "test": "NEXUS_INVALID_MODULE_OPTIONS lists each refused field of the simulation options"
+    },
+    {
+      "feature": "NEXUS_MODULE_OPTIONS_MISSING with its fix line",
+      "file": "meridian-systems/test/contracts/errors.contract.test.ts",
+      "test": "NEXUS_MODULE_OPTIONS_MISSING names a configured module imported with no forRoot"
+    },
+    {
+      "feature": "NEXUS_CIRCULAR_DEPENDENCY with its fix line",
+      "file": "meridian-systems/test/contracts/errors.contract.test.ts",
+      "test": "NEXUS_CIRCULAR_DEPENDENCY names the cycle an eager FTL command handler closes"
+    },
+    {
+      "feature": "NEXUS_LOADED_AFTER_SCOPE with its fix line",
+      "file": "meridian-systems/test/contracts/errors.contract.test.ts",
+      "test": "NEXUS_LOADED_AFTER_SCOPE names the drive a scope opened before the load cannot read"
+    },
+    {
+      "feature": "NEXUS_PROVIDER_FAILED with its fix line",
+      "file": "meridian-systems/test/contracts/errors.contract.test.ts",
+      "test": "NEXUS_PROVIDER_FAILED carries the cause of a load whose provider threw"
+    }
+  ]
+}
