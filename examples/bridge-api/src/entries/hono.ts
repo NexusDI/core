@@ -83,9 +83,14 @@ export function createBridge(
 
   // Before the middleware, so they never have a scope handle.
   bridge.get('/health', (c) => c.text('ok'));
-  bridge.get('/graph', (c) =>
-    options.graph ? c.json(options.graph()) : c.notFound(),
-  );
+  bridge.get('/graph', async (c) => {
+    const drawn = await options.graph?.();
+    return drawn ? c.json(drawn) : c.notFound();
+  });
+  bridge.get('/profile', async (c) => {
+    const answer = await options.profile?.();
+    return answer ? c.json(answer) : c.notFound();
+  });
   bridge.use(di.middleware);
   options.mount?.(bridge, di);
 

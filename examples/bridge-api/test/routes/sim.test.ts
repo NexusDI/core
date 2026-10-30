@@ -1,6 +1,11 @@
 import { Nexus } from '@nexusdi/core';
-import { graph } from '@nexusdi/devtools';
-import { DECK_PLAN, readShip, SHIP_STATE } from '@nexusdi/meridian-systems';
+import * as tools from '@nexusdi/devtools';
+import {
+  DECK_PLAN,
+  readShip,
+  shipNotes,
+  SHIP_STATE,
+} from '@nexusdi/meridian-systems';
 import { describe, expect, vi } from 'vitest';
 
 import { SIM_BODY_LIMIT, TICKS_REFUSED } from '../../src/bridge/sim-ticks';
@@ -102,13 +107,16 @@ describe.each(FRAMEWORKS)('the simulation routes on %s', (framework) => {
 
   test('GET /graph answers the graph the option draws', async () => {
     await using ship = await Nexus.create(OfflineMeridian, {
-      plugins: bridgePlugins({ dev: true }),
+      plugins: [
+        ...bridgePlugins({ dev: true }),
+        tools.devtools({ annotate: [shipNotes] }),
+      ],
     });
     const { status, body } = await call(ship, 'GET', '/graph', undefined, {
-      graph: () => graph(ship),
+      graph: () => tools.graph(ship),
     });
     expect(status).toBe(200);
-    expect(body).toEqual(graph(ship));
+    expect(body).toEqual(tools.graph(ship));
   });
 
   test('GET /graph answers 404 without the graph option', async ({ nexus }) => {

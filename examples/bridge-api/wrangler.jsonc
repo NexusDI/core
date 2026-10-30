@@ -10,4 +10,6 @@
   // Empty, so src/entries/worker.ts builds OfflineMeridian. An environment that reads
   // the relay sets it.
   "vars": { "RELAY_URL": "" },
+  // Set SHIP_INTROSPECTION to "on" to serve GET /graph and GET /profile.
+  // Unset or "off", both answer 404 and the Worker never evaluates devtools.
 }

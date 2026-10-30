@@ -66,6 +66,9 @@ export default [
         'error',
         {
           enforceBuildableLibDependency: true,
+          // bridge-api loads @nexusdi/devtools with a dynamic import on its
+          // Worker entries, and with static imports everywhere else.
+          checkDynamicDependenciesExceptions: ['^@nexusdi/devtools$'],
           // Build-time tooling that never reaches a shipped artefact. The
           // eslint config is lint-only. @nexusdi/doc-examples is imported by
           // libs/core/vite.config.ts to run the README's documented examples

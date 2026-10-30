@@ -1,15 +1,18 @@
 import { Nexus } from '@nexusdi/core';
-import { profile } from '@nexusdi/devtools';
+import * as tools from '@nexusdi/devtools';
 import { createTestingContainer } from '@nexusdi/testing';
-import { expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
+import { introspect } from '../src/bridge/profile';
 import { SUBSPACE_LINK } from '../src/ship/contracts';
 import { Meridian, OfflineMeridian } from '../src/ship/meridian.module';
 import { bridgePlugins } from '../src/ship/plugins';
 import { FixedLink } from './doubles';
+import { calls } from './route-helpers';
+import { FRAMEWORKS } from './support';
 
 it('profiles the LifeSupportOptions factory as the async step of startup', async () => {
-  const profiler = profile();
+  const profiler = tools.profile();
   const ship = await Nexus.create(OfflineMeridian, {
     plugins: [...bridgePlugins(), profiler],
   });
@@ -41,7 +44,7 @@ it('profiles the LifeSupportOptions factory as the async step of startup', async
 });
 
 it('profiles the charts download of Meridian beside the LifeSupportOptions factory', async () => {
-  const profiler = profile();
+  const profiler = tools.profile();
   const ship = await createTestingContainer(Meridian)
     .override(SUBSPACE_LINK, { useClass: FixedLink })
     .create({ plugins: [...bridgePlugins(), profiler] });
@@ -77,4 +80,68 @@ it('profiles the charts download of Meridian beside the LifeSupportOptions facto
       expect.objectContaining({ token, module, kind: 'factory' }),
     );
   }
+});
+
+describe.each(FRAMEWORKS)('GET /profile on %s', (framework) => {
+  const call = calls[framework];
+
+  it('answers 404 when the profile option is off', async () => {
+    await using ship = await Nexus.create(OfflineMeridian, {
+      plugins: bridgePlugins(),
+    });
+    expect((await call(ship, 'GET', '/profile')).status).toBe(404);
+  });
+
+  it('answers the table and the critical path of startup when it is on', async () => {
+    const introspection = introspect(tools);
+    await using ship = await createTestingContainer(Meridian)
+      .override(SUBSPACE_LINK, { useClass: FixedLink })
+      .create({ plugins: [...bridgePlugins(), ...introspection.plugins] });
+    const { status, body } = await call(
+      ship,
+      'GET',
+      '/profile',
+      undefined,
+      introspection.options(ship),
+    );
+    expect(status).toBe(200);
+    const { table, criticalPath } = body as {
+      table: string;
+      criticalPath: { path: unknown[] } | null;
+    };
+    expect(table).toContain('LifeSupportOptions');
+    expect(table).toContain('NavCharts');
+    expect(criticalPath?.path.length).toBeGreaterThan(0);
+  });
+});
+
+describe.each(FRAMEWORKS)('GET /graph and /profile on %s', (framework) => {
+  const call = calls[framework];
+
+  it.each(['/graph', '/profile'])(
+    'answers 404 on %s when the option answers undefined',
+    async (path) => {
+      await using ship = await Nexus.create(OfflineMeridian, {
+        plugins: bridgePlugins(),
+      });
+      const { status } = await call(ship, 'GET', path, undefined, {
+        graph: async () => undefined,
+        profile: async () => undefined,
+      });
+      expect(status).toBe(404);
+    },
+  );
+
+  it('answers 500 when the option throws while it answers', async () => {
+    await using ship = await Nexus.create(OfflineMeridian, {
+      plugins: bridgePlugins(),
+    });
+    const circular: Record<string, unknown> = {};
+    circular['self'] = circular;
+    const { status } = await call(ship, 'GET', '/profile', undefined, {
+      profile: () => circular as never,
+      log: () => undefined,
+    });
+    expect(status).toBe(500);
+  });
 });

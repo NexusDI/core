@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/entries/server.hono.ts"
+    "dev": "SHIP_INTROSPECTION=on tsx watch src/entries/server.hono.ts"
   },
   "exports": {
     "./contracts": "./src/ship/contracts.ts",

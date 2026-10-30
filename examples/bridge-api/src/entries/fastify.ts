@@ -65,8 +65,13 @@ export async function createBridge(
   // Outside the encapsulated context that registers the adapter,
   // so they get no scope handle.
   bridge.get('/health', async () => 'ok');
-  bridge.get('/graph', async (_req, reply) =>
-    options.graph ? options.graph() : reply.callNotFound(),
+  bridge.get(
+    '/graph',
+    async (_req, reply) => (await options.graph?.()) ?? reply.callNotFound(),
+  );
+  bridge.get(
+    '/profile',
+    async (_req, reply) => (await options.profile?.()) ?? reply.callNotFound(),
   );
   await bridge.register(async (scoped) => {
     await scoped.register(di.encapsulatedPlugin);

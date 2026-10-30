@@ -70,10 +70,17 @@ export function createBridge(
   bridge.get('/health', (_req, res) => {
     res.send('ok');
   });
-  bridge.get('/graph', (_req, res, next) => {
-    if (options.graph) res.json(options.graph());
-    else next();
-  });
+  for (const [path, read] of [
+    ['/graph', options.graph],
+    ['/profile', options.profile],
+  ] as const) {
+    bridge.get(path, (_req, res, next) => {
+      if (!read) return next();
+      Promise.resolve(read())
+        .then((answer) => (answer ? res.json(answer) : next()))
+        .catch(next);
+    });
+  }
   bridge.use(di.middleware);
   options.mount?.(bridge, di);
   bridge.get(
