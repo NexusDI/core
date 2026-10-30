@@ -307,6 +307,7 @@ export const errorCases: readonly ErrorCase[] = [
     error: new NotReadyError({
       owner: 'PowerRouter',
       target: 'ShieldGrid',
+      provider: null,
       path: [],
       contributor: null,
     }),
@@ -314,6 +315,25 @@ export const errorCases: readonly ErrorCase[] = [
     fields: {
       owner: 'PowerRouter',
       target: 'ShieldGrid',
+      provider: null,
+      path: [],
+      contributor: null,
+    },
+  },
+  {
+    name: 'NotReadyError (alias)',
+    error: new NotReadyError({
+      owner: 'PowerRouter',
+      target: 'Shields',
+      provider: 'ShieldGrid',
+      path: [],
+      contributor: null,
+    }),
+    code: 'NEXUS_NOT_READY',
+    fields: {
+      owner: 'PowerRouter',
+      target: 'Shields',
+      provider: 'ShieldGrid',
       path: [],
       contributor: null,
     },
@@ -323,6 +343,7 @@ export const errorCases: readonly ErrorCase[] = [
     error: new NotReadyError({
       owner: 'PowerRouter',
       target: 'Conduits',
+      provider: null,
       path: [],
       contributor: 'PlasmaConduit (module Engineering)',
     }),
@@ -330,6 +351,7 @@ export const errorCases: readonly ErrorCase[] = [
     fields: {
       owner: 'PowerRouter',
       target: 'Conduits',
+      provider: null,
       path: [],
       contributor: 'PlasmaConduit (module Engineering)',
     },
@@ -339,6 +361,7 @@ export const errorCases: readonly ErrorCase[] = [
     error: new NotReadyError({
       owner: 'PowerRouter',
       target: 'Conduits',
+      provider: null,
       path: [],
       contributor: 'useExisting #1 (module Engineering)',
     }),
@@ -346,6 +369,7 @@ export const errorCases: readonly ErrorCase[] = [
     fields: {
       owner: 'PowerRouter',
       target: 'Conduits',
+      provider: null,
       path: [],
       contributor: 'useExisting #1 (module Engineering)',
     },

@@ -26,13 +26,15 @@ function notReady(
   owner: ThunkOwner,
   target: ProviderRecord,
   container: ContainerState,
+  named: ProviderRecord,
 ): NotReadyError {
   const path = constructionStack.contains(target.id, container)
     ? constructionStack.cycleFrom(target.id, container)
     : [];
   return new NotReadyError({
     owner: owner.name,
-    target: target.name,
+    target: named.name,
+    provider: named === target ? null : target.name,
     path,
     contributor: null,
   });
@@ -70,10 +72,12 @@ type LazyStep =
  */
 function lazyStep(id: string, owner: ThunkOwner, ctx: Ctx): LazyStep {
   const { bp, container } = ctx;
+  let named: ProviderRecord | undefined;
   for (;;) {
     if (id === REQUEST_ID) return { build: id, ctx };
     const target = bp.providers.get(id);
     if (target === undefined) return { build: id, ctx };
+    named ??= target;
     if (target.kind === 'alias') {
       id = bp.bindings.get(id)?.target ?? '';
       continue;
@@ -91,7 +95,7 @@ function lazyStep(id: string, owner: ThunkOwner, ctx: Ctx): LazyStep {
         !bp.deferred.has(id) ||
         constructionStack.contains(id, container.root)
       )
-        return notReady(owner, target, container.root);
+        return notReady(owner, target, container.root, named);
       return {
         build: id,
         ctx: { bp, container: container.root, owner: container.root },
@@ -100,10 +104,10 @@ function lazyStep(id: string, owner: ThunkOwner, ctx: Ctx): LazyStep {
     if (target.lifetime === 'scoped') {
       if (container.kind === 'root') return { build: id, ctx };
       if (constructionStack.contains(id, container))
-        return notReady(owner, target, container);
+        return notReady(owner, target, container, named);
       if (container.slots.has(id)) {
         if (!container.slots.isSettled(id))
-          return notReady(owner, target, container);
+          return notReady(owner, target, container, named);
         return { value: live(container.slots.value(id), container) };
       }
       // A scoped class and a deferred scoped factory build on demand (spec
@@ -114,13 +118,13 @@ function lazyStep(id: string, owner: ThunkOwner, ctx: Ctx): LazyStep {
       // constructionStack.top() as resolveScoped's own NotReadyError falls
       // back to for a caller reached synchronously.
       if (target.kind === 'factory' && !bp.deferred.has(id))
-        return notReady(owner, target, container);
+        return notReady(owner, target, container, named);
       return { build: id, ctx: { bp, container, owner: container } };
     }
 
     // A transient builds on demand, unless it is the one being built right now.
     if (constructionStack.contains(id, container))
-      return notReady(owner, target, container);
+      return notReady(owner, target, container, named);
     const transientOwner: TransientOwner =
       container.kind === 'scope'
         ? container
@@ -205,13 +209,14 @@ export function makeListThunk(
       const steps: LazyStep[] = [];
       for (const id of targetIds) {
         const step = lazyStep(id, owner, ctx);
-        // The contribution is the record of `id`, before any alias hop. Its
-        // name is the multi token's, so `target` stays the token the thunk
-        // collects when the contribution is an alias.
+        // The contribution record carries the multi token's name, so `target`
+        // from lazyStep already names the token. `provider` stays null since
+        // `contributor` names the contribution.
         if (step instanceof NotReadyError)
           throw new NotReadyError({
             owner: step.owner,
-            target: ctx.bp.providers.get(id)?.name ?? step.target,
+            target: step.target,
+            provider: null,
             path: step.path,
             contributor: contributorOf(ctx.bp, id),
           });

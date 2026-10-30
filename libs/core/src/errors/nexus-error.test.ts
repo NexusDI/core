@@ -38,7 +38,7 @@ const FIELD_ORDER: Readonly<Record<string, readonly string[]>> = {
   LoadGrantError: ['module', 'grant', 'reason'],
   UnreadContributionError: ['token', 'module', 'provider'],
   ProviderError: ['token', 'module', 'path', 'alsoFailed', 'disposalErrors'],
-  NotReadyError: ['owner', 'target', 'path', 'contributor'],
+  NotReadyError: ['owner', 'target', 'provider', 'path', 'contributor'],
   AsyncTransientError: ['token', 'module'],
   LazyAsyncError: ['token', 'module'],
   NotVisibleError: ['token', 'owners', 'entry'],

@@ -203,6 +203,11 @@ exports[`NexusError > keeps the message of ModuleOptionsError (missing) 1`] = `
   Fix: import Comms.forRoot(options) or Comms.forRootAsync({ useFactory })."
 `;
 
+exports[`NexusError > keeps the message of NotReadyError (alias) 1`] = `
+"[NEXUS_NOT_READY] PowerRouter called its lazy(Shields) thunk before ShieldGrid, which Shields aliases, was ready.
+  Fix: call the thunk after startup, from a method, and not from a constructor, a factory's continuation or onInit."
+`;
+
 exports[`NexusError > keeps the message of NotReadyError (lazy all alias contribut… 1`] = `
 "[NEXUS_NOT_READY] PowerRouter called its lazy(all(Conduits)) thunk before the contribution useExisting #1 (module Engineering) was ready.
   Fix: call the thunk after startup, from a method, and not from a constructor, a factory's continuation or onInit."

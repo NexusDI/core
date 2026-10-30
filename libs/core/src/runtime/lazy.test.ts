@@ -12,6 +12,7 @@ import { all, lazy } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
 import { MultiToken, Token } from '../definitions/token.js';
 import { makeListThunk, makeThunk, type ResolveId } from './lazy.js';
+import { coreText } from '../text/index.js';
 import { Nexus } from './nexus.js';
 import { rootState } from '../../test-support/root-state.js';
 import type { TransientOwner } from './state.js';
@@ -116,7 +117,133 @@ describe('lazy', () => {
     gateB.resolve('b');
     expect(await rejected(creating)).toMatchObject({
       token: 'A',
-      cause: { code: 'NEXUS_NOT_READY', owner: 'A', target: 'B', path: [] },
+      cause: {
+        code: 'NEXUS_NOT_READY',
+        owner: 'A',
+        target: 'B',
+        provider: null,
+        path: [],
+      },
+    });
+  });
+
+  it('names the token the thunk was given and the provider an alias reaches when a lazy(ALIAS) thunk runs too early', async () => {
+    interface IAlpha {
+      readonly n: number;
+    }
+    const ALPHA = new Token<IAlpha>('Alpha');
+    const ALIAS = new Token<IAlpha>('Alias');
+    class Consumer {
+      constructor(alias: () => IAlpha) {
+        alias();
+      }
+    }
+    const error = await rejected(
+      Nexus.create(
+        defineModule({
+          name: 'Test',
+          providers: [
+            provide(Consumer, { deps: [lazy(ALIAS)] }),
+            provide(ALPHA, { useFactory: () => ({ n: 1 }), deps: [Consumer] }),
+            provide(ALIAS, { useExisting: ALPHA }),
+          ],
+        }),
+      ),
+    );
+    expect(error).toMatchObject({
+      code: 'NEXUS_PROVIDER_FAILED',
+      cause: {
+        code: 'NEXUS_NOT_READY',
+        owner: 'Consumer',
+        target: 'Alias',
+        provider: 'Alpha',
+        path: [],
+        contributor: null,
+      },
+    });
+    const cause = (
+      error as { cause: Parameters<typeof coreText.NEXUS_NOT_READY>[0] }
+    ).cause;
+    expect(coreText.NEXUS_NOT_READY(cause).message).toMatch(
+      /^Consumer called its lazy\(Alias\) thunk before Alpha, which Alias aliases, was ready\./,
+    );
+  });
+
+  it('names the alias token and the provider it reaches when a scoped target is not settled', async () => {
+    const gateBus = deferred();
+    const gateHandler = deferred<IHandler>();
+    interface IHandler {
+      readonly name: string;
+    }
+    interface IBus {
+      readonly ready: true;
+    }
+    const BUS = new Token<IBus>('Bus');
+    const HANDLER = new Token<IHandler>('Handler');
+    const ALIAS = new Token<IHandler>('HandlerAlias');
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'Root',
+        providers: [
+          provide(BUS, {
+            useFactory: async (handler): Promise<IBus> => {
+              await gateBus.promise;
+              handler();
+              return { ready: true };
+            },
+            deps: [lazy(ALIAS)],
+            lifetime: 'scoped',
+          }),
+          provide(HANDLER, {
+            useFactory: () => gateHandler.promise,
+            deps: [],
+            lifetime: 'scoped',
+          }),
+          provide(ALIAS, { useExisting: HANDLER }),
+        ],
+      }),
+    );
+    const creating = ship.createScope();
+    gateBus.resolve();
+    await flush();
+    gateHandler.resolve({ name: 'late' });
+    expect(await rejected(creating)).toMatchObject({
+      cause: {
+        code: 'NEXUS_NOT_READY',
+        owner: 'Bus',
+        target: 'HandlerAlias',
+        provider: 'Handler',
+      },
+    });
+  });
+
+  it('names the token the thunk was given across a two-hop alias chain', async () => {
+    interface IAlpha {
+      readonly n: number;
+    }
+    const ALPHA = new Token<IAlpha>('Alpha');
+    const A1 = new Token<IAlpha>('A1');
+    const A2 = new Token<IAlpha>('A2');
+    class Consumer {
+      constructor(alias: () => IAlpha) {
+        alias();
+      }
+    }
+    const error = await rejected(
+      Nexus.create(
+        defineModule({
+          name: 'Test',
+          providers: [
+            provide(Consumer, { deps: [lazy(A2)] }),
+            provide(ALPHA, { useFactory: () => ({ n: 1 }), deps: [Consumer] }),
+            provide(A1, { useExisting: ALPHA }),
+            provide(A2, { useExisting: A1 }),
+          ],
+        }),
+      ),
+    );
+    expect(error).toMatchObject({
+      cause: { code: 'NEXUS_NOT_READY', target: 'A2', provider: 'Alpha' },
     });
   });
 
@@ -399,6 +526,7 @@ describe('lazy(all())', () => {
         cause: {
           code: 'NEXUS_NOT_READY',
           target: 'Handlers',
+          provider: null,
           contributor: 'Beta (module Dock)',
         },
       });
@@ -420,6 +548,7 @@ describe('lazy(all())', () => {
           code: 'NEXUS_NOT_READY',
           owner: 'Bus',
           target: 'Handlers',
+          provider: null,
           contributor: 'useExisting #1 (module Hangar)',
         },
       });
