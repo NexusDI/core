@@ -84,8 +84,11 @@ function exportsOfFile(file) {
     .sort((a, b) => a.info.name.localeCompare(b.info.name));
 }
 
-/** Each entry of the exports map that names a `@nexusdi/source` file. */
-function entriesOf(packageJson) {
+/**
+ * Each entry of the exports map that names a `@nexusdi/source` file: the
+ * specifier a reader writes and the absolute path of the source file.
+ */
+export function entriesOf(packageJson) {
   const manifest = JSON.parse(readFileSync(packageJson, 'utf8'));
   const entries = [];
 

@@ -2,6 +2,7 @@ import { basename } from 'node:path';
 
 import type { ExportInfo } from '@nexusdi/doc-examples/package-exports';
 
+import { executable, headingName } from './reference-site';
 import type { DocsPage } from './site';
 
 /**
@@ -54,11 +55,6 @@ const SLUGS: Readonly<Record<string, string>> = {
 const slugOf = (name: string): string =>
   SLUGS[name] ?? `api-${name.split('/').pop() ?? name}`;
 
-/** Whether a fence is one the repository compiles or runs. */
-const executable = (meta: string, lang: string): boolean =>
-  /(^|\s)(twoslash|executed)(\s|$)/.test(`${lang} ${meta}`) ||
-  /(^|\s)file=/.test(meta);
-
 /**
  * The lines of a fence a reader sees, those below its last `// ---cut---`,
  * with the import lines left out: an import names a symbol and calls nothing.
@@ -76,10 +72,6 @@ const names = (code: string, symbol: string): boolean =>
   new RegExp(`\\b${symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(
     code,
   );
-
-/** The name a `##` heading spells: `` `make` `` and `` `make()` `` both name `make`. */
-const headingName = (text: string): string =>
-  text.replace(/`/g, '').split(/[(<\s]/)[0] ?? '';
 
 const isError = (each: ExportInfo): boolean =>
   each.error || each.name.endsWith('Error');

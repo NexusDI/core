@@ -1,0 +1,192 @@
+{
+  "@nexusdi/core": {
+    "unnamed": [
+      "CheckOptions: CheckOptions.load",
+      "CheckOptions: CheckOptions.plugins",
+      "ConfigurableModuleConfig: ConfigurableModuleConfig.exports",
+      "ConfigurableModuleConfig: ConfigurableModuleConfig.global",
+      "ConfigurableModuleConfig: ConfigurableModuleConfig.imports",
+      "ConfigurableModuleConfig: ConfigurableModuleConfig.name",
+      "ConfigurableModuleConfig: ConfigurableModuleConfig.options",
+      "ConfigurableModuleConfig: ConfigurableModuleConfig.providers",
+      "ConfigurableModuleConfig: ConfigurableModuleConfig.schema",
+      "FactoryDefinition: FactoryDefinition.deps",
+      "FactoryDefinition: FactoryDefinition.eager",
+      "FactoryDefinition: FactoryDefinition.lifetime",
+      "ForRootAsyncConfig: ForRootAsyncConfig.deps",
+      "ForRootAsyncConfig: ForRootAsyncConfig.useFactory",
+      "LoadOptions: LoadOptions.imports",
+      "LookupOptions: LookupOptions.module",
+      "ModuleConfig: ModuleConfig.exports",
+      "ModuleConfig: ModuleConfig.global",
+      "ModuleConfig: ModuleConfig.imports",
+      "ModuleConfig: ModuleConfig.name",
+      "ModuleConfig: ModuleConfig.providers",
+      "Nexus: CheckOptions.plugins",
+      "Nexus: CreateOptions.plugins",
+      "Nexus: LookupOptions.module",
+      "Nexus: Nexus#createScope(options).request",
+      "NexusErrorOptions: NexusErrorOptions.hidden",
+      "NexusErrorOptions: NexusErrorOptions.text",
+      "OverrideDefinition: OverrideDefinition.deps",
+      "OverrideDefinition: OverrideDefinition.lifetime",
+      "OverrideDefinition: OverrideDefinition.useClass",
+      "OverrideDefinition: OverrideDefinition.useValue",
+      "RootConfig: RootConfig.exports",
+      "RootConfig: RootConfig.imports",
+      "RootConfig: RootConfig.providers",
+      "declareClass: declareClass(options).deps",
+      "declareClass: declareClass(options).lifetime",
+      "declareModuleClass: ModuleConfig.exports",
+      "declareModuleClass: ModuleConfig.global",
+      "declareModuleClass: ModuleConfig.imports",
+      "declareModuleClass: ModuleConfig.name",
+      "declareModuleClass: ModuleConfig.providers",
+      "defineModule: defineModule(config).exports",
+      "defineModule: defineModule(config).global",
+      "defineModule: defineModule(config).options",
+      "defineModule: defineModule(config).schema",
+      "provide: FactoryDefinition.deps",
+      "provide: FactoryDefinition.eager",
+      "provide: FactoryDefinition.useFactory",
+      "provide: provide(options).deps",
+      "provide: provide(options).eager"
+    ]
+  },
+  "@nexusdi/decorators": {
+    "unnamed": [
+      "Module: Module(config).exports",
+      "Module: Module(config).global",
+      "Module: Module(config).imports",
+      "ModuleDecoratorConfig: ModuleDecoratorConfig.exports",
+      "ModuleDecoratorConfig: ModuleDecoratorConfig.global",
+      "ModuleDecoratorConfig: ModuleDecoratorConfig.imports",
+      "ModuleDecoratorConfig: ModuleDecoratorConfig.providers"
+    ]
+  },
+  "@nexusdi/devtools": {
+    "unnamed": [
+      "DevtoolsOptions: DevtoolsOptions.annotate",
+      "DevtoolsOptions: DevtoolsOptions.text",
+      "DevtoolsOptions: DevtoolsOptions.trace",
+      "InspectOptions: InspectOptions.annotate",
+      "InspectOptions: InspectOptions.load",
+      "InspectOptions: InspectOptions.plugins",
+      "InspectOptions: InspectOptions.text",
+      "ProfileOptions: ProfileOptions.live",
+      "ProfileOptions: ProfileOptions.maxRuns",
+      "ProfileOptions: ProfileOptions.scopes",
+      "RenderOptions: RenderOptions.view",
+      "devtools: DevtoolsOptions.annotate",
+      "devtools: DevtoolsOptions.text",
+      "inspect: InspectOptions.annotate",
+      "inspect: InspectOptions.load",
+      "inspect: InspectOptions.plugins",
+      "inspect: InspectOptions.text",
+      "profile: ProfileOptions.live",
+      "profile: ProfileOptions.maxRuns",
+      "profile: ProfileOptions.scopes",
+      "profileStartup: RootConfig.imports",
+      "profileStartup: profileStartup(options).load",
+      "profileStartup: profileStartup(options).plugins",
+      "profileStartup: profileStartup(options).profiler",
+      "profileTable: profileTable(options).run",
+      "profileTable: profileTable(options).top",
+      "toChromeTrace: toChromeTrace(options).trackGroup",
+      "toDot: RenderOptions.view",
+      "toMermaid: RenderOptions.view"
+    ]
+  },
+  "@nexusdi/errors": {
+    "unnamed": [
+      "ErrorsOptions: ErrorsOptions.text",
+      "ExplainOptions: ExplainOptions.text",
+      "ExplainOptions: ExplainOptions.view",
+      "errors: ErrorsOptions.text"
+    ]
+  },
+  "@nexusdi/express": {
+    "unnamed": [
+      "nexus: NexusExpressOptions.log",
+      "nexus: NexusExpressOptions.request",
+      "nexus: NexusExpressOptions.scopes"
+    ]
+  },
+  "@nexusdi/fastify": {
+    "unnamed": [
+      "nexus: NexusFastifyOptions.log",
+      "nexus: NexusFastifyOptions.request",
+      "nexus: NexusFastifyOptions.scopes"
+    ]
+  },
+  "@nexusdi/hono": {
+    "unnamed": ["nexus: NexusHonoOptions.log", "nexus: NexusHonoOptions.scopes"]
+  },
+  "@nexusdi/interceptors": {
+    "unnamed": [
+      "InterceptorsOptions: InterceptorsOptions.bindings",
+      "InterceptorsOptions: InterceptorsOptions.exempt",
+      "InterceptorsOptions: InterceptorsOptions.global",
+      "InterceptorsOptions: InterceptorsOptions.imports",
+      "InterceptorsOptions: InterceptorsOptions.providers",
+      "InterceptorsOptions: InterceptorsOptions.register",
+      "interceptor: FactoryDefinition.eager",
+      "interceptor: FactoryDefinition.lifetime",
+      "interceptor: FactoryDefinition.useFactory",
+      "interceptor: interceptor(definition).lifetime",
+      "interceptor: interceptor(definition).useValue",
+      "interceptors: InterceptorsOptions.bindings",
+      "interceptors: InterceptorsOptions.exempt",
+      "interceptors: InterceptorsOptions.global"
+    ]
+  },
+  "@nexusdi/react": {
+    "unnamed": [
+      "NexusProvider: NexusProviderProps.children",
+      "NexusProvider: NexusProviderProps.dispose",
+      "NexusProvider: NexusProviderProps.scope",
+      "NexusProviderProps: NexusProviderProps.children",
+      "NexusProviderProps: NexusProviderProps.clientOnly",
+      "NexusProviderProps: NexusProviderProps.container",
+      "NexusProviderProps: NexusProviderProps.dispose",
+      "NexusProviderProps: NexusProviderProps.fallback",
+      "NexusProviderProps: NexusProviderProps.scope",
+      "ScopeProvider: ScopeProviderProps.children",
+      "ScopeProvider: ScopeProviderProps.request",
+      "ScopeProviderProps: ScopeProviderProps.children",
+      "ScopeProviderProps: ScopeProviderProps.fallback",
+      "ScopeProviderProps: ScopeProviderProps.request",
+      "SectionBoundaryProps: SectionBoundaryProps.children",
+      "SectionBoundaryProps: SectionBoundaryProps.errorFallback",
+      "SectionBoundaryProps: SectionBoundaryProps.fallback",
+      "SectionBoundaryProps: SectionBoundaryProps.onError",
+      "SectionBoundaryProps: SectionBoundaryProps.section",
+      "useService: LookupOptions.module"
+    ]
+  },
+  "@nexusdi/react-router": {
+    "unnamed": [
+      "nexus: NexusRouterOptions.log",
+      "nexus: NexusRouterOptions.request",
+      "nexus: NexusRouterOptions.scopes"
+    ]
+  },
+  "@nexusdi/testing": {
+    "unnamed": [
+      "ModuleOverrideOptions: ModuleOverrideOptions.lazy",
+      "OverrideOptions: OverrideOptions.lazy",
+      "TestingCreateOptions: TestingCreateOptions.plugins"
+    ]
+  },
+  "@nexusdi/vitest": {
+    "unnamed": [
+      "NexusFixturesOptions: NexusFixturesOptions.containerScope",
+      "NexusFixturesOptions: NexusFixturesOptions.create",
+      "NexusFixturesOptions: NexusFixturesOptions.setup",
+      "nexusFixtures: NexusFixturesOptions.containerScope",
+      "nexusFixtures: NexusFixturesOptions.create",
+      "nexusTest: NexusFixturesOptions.containerScope",
+      "nexusTest: NexusFixturesOptions.create"
+    ]
+  }
+}
