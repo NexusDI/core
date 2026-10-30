@@ -29,7 +29,7 @@ Depends on:
   code differ, the code wins.
 - `specs/2026-09-30-extension-principle-design.md` on `origin/spec/package-owned-errors`
   (P1 to P5, rulings V12 and V13 on this spec).
-- `specs/2026-09-23-docs-site-design.md` on `spec/docs-site-amend` at `5a1f0826`, whose
+- `specs/2026-09-23-docs-site-design.md`, whose
   Guides band this spec amends (section 15).
 - `RELEASING.md` and the `nexusdi-release` skill on `release/0.4`, for bootstrap and
   dist-tags (section 12).

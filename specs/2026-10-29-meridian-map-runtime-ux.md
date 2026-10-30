@@ -24,7 +24,7 @@ Depends on:
 - `specs/2026-10-28-extension-points-design.md` on `release/0.4`: K1 (a multi token
   collects every published contribution, and `load()` rejects one with
   `NEXUS_LOAD_CONTRIBUTION`), K2 and K4.
-- `specs/2026-09-23-docs-site-design.md` on `origin/spec/docs-site`: section 11 (the
+- `specs/2026-09-23-docs-site-design.md`: section 11 (the
   playground runtime and its sandbox), 12 (the graph and trace views), 13 (the Academy),
   14.4 (the mission guard) and 16 (accessibility and budgets).
 - `examples/meridian-systems/deck/meridian.geometry.json` at `9418d8a4`: 3 decks, 14

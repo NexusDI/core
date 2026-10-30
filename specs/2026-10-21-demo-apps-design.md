@@ -20,7 +20,7 @@ Depends on:
   are done on `release/0.4`.
 - `specs/2026-09-24-react-design.md`, sections 7 (section boundaries) and 9.1 (React
   Router 8 SSR), which the bridge console follows.
-- `specs/2026-09-23-docs-site-design.md` on `origin/spec/docs-site`, section 7.1 (the
+- `specs/2026-09-23-docs-site-design.md`, section 7.1 (the
   Meridian vocabulary), section 7.7 (the deny list) and inventory rows 24, 26, 31a, 32
   and 32b. Section 9 of this spec proposes rows for 7.1. Those rows land on
   `spec/docs-site` in a later change.
