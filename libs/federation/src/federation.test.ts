@@ -222,7 +222,9 @@ describe('federation', () => {
         }),
       );
     for (const graph of [root(patched, older), root(older, patched)])
-      expect(Nexus.check(graph, { plugins: [federation()] })).toBeUndefined();
+      expect(() =>
+        Nexus.check(graph, { plugins: [federation()] }),
+      ).not.toThrow();
   });
 
   it('checks each contributor of a contract multi token against an all() dependent, in either order', async () => {

@@ -8,6 +8,7 @@ import type { NexusRequest } from '../definitions/request.js';
 import type { InjectionToken, MultiToken } from '../definitions/token.js';
 import { BlueprintError, isLoadError } from '../errors/index.js';
 import { isThenable } from './build.js';
+import { checkSchemas } from './check-schemas.js';
 import { compileTraced, observerFailed } from './compile-traced.js';
 import { resolveDeps, validateDeps } from './deps.js';
 import { formatFor, formatThrown, guardAsync } from './format.js';
@@ -15,6 +16,7 @@ import { loadModule } from './load.js';
 import { getFrom, hasIn } from './lookup.js';
 import type {
   CheckOptions,
+  CheckReport,
   CreateOptions,
   LoadOptions,
   LookupOptions,
@@ -67,21 +69,30 @@ export class Nexus {
    * Compiles a root as create() would, without building it. Takes the same
    * root forms: a module, a provider array, or
    * `{ providers, imports, exports }`. Then compiles each module of
-   * `options.load` against it, as load() would. Calls no user code but the
-   * plugins' compile, tokenKey, observe and formatError hooks, so options
-   * schemas and setup hooks do not run. Throws one BlueprintError for the
-   * first compile that fails, and compiles no load after it.
+   * `options.load` against it, as load() would. After every compile passed,
+   * calls `validate` on the options schema of every forRoot() value, an async
+   * schema included, so a schema must stay free of side effects. It judges
+   * each result that comes back synchronously and discards its output. A
+   * schema that returns a promise is not awaited, and a forRootAsync() module
+   * with a schema is not validated; the returned report lists both in
+   * `unchecked`.
+   * No constructor, factory, onInit or setup hook runs; the plugins' compile,
+   * tokenKey, observe and formatError hooks do. Throws one BlueprintError for
+   * the first compile that fails, and compiles no load after it. Throws one
+   * BlueprintError for every rejected forRoot() value when every compile
+   * passed. A schema that throws propagates its exception.
    */
   static check<const R = UninferredRoot>(
     root: CheckedRoot<R>,
     options?: CheckOptions,
-  ): void;
-  static check(root: unknown, options?: CheckOptions): void {
+  ): CheckReport;
+  static check(root: unknown, options?: CheckOptions): CheckReport {
     const plugins = registerPlugins(options?.plugins);
     const canon = canonicalizer(plugins.tokenKey);
     // The last compile that passed. A load compiles against it, and a
     // LoadError, which carries no view of its own, is formatted with its view.
     let last: Blueprint | undefined;
+    let unchecked: CheckReport['unchecked'];
     try {
       const rootModule = rootModuleOf(root);
       const tracer = new Tracer(traceSinks(plugins));
@@ -106,6 +117,8 @@ export class Nexus {
           null,
         );
       }
+      // After every compile passed, so no user code runs for a broken graph.
+      unchecked = checkSchemas(last);
     } catch (error) {
       throw formatThrown(
         plugins,
@@ -113,6 +126,7 @@ export class Nexus {
         isLoadError(error) ? new BlueprintError([error]) : error,
       );
     }
+    return Object.freeze({ unchecked });
   }
 
   get<T>(token: MultiToken<T>, options?: LookupOptions): T[];

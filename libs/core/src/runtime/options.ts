@@ -26,4 +26,20 @@ export interface CheckOptions {
   readonly load?: readonly LoadEntry[];
 }
 
+/** What Nexus.check returns: the modules whose options it could not judge. */
+export interface CheckReport {
+  /**
+   * Each configurable module whose options check could not judge, in compile
+   * order. Check still calls the `validate` of an async schema and does not
+   * await the result. `reason` is `'async-schema'` when the schema's validate
+   * returned a promise, and `'for-root-async'` when the module was imported
+   * with forRootAsync(), whose options exist only once its factory ran. A
+   * minor release may add a reason; handle one you do not know.
+   */
+  readonly unchecked: readonly {
+    readonly module: string;
+    readonly reason: 'async-schema' | 'for-root-async';
+  }[];
+}
+
 export type { LoadEntry, LoadOptions };

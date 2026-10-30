@@ -110,6 +110,7 @@ export { loadOnce } from './runtime/load-once.js';
 export { Nexus } from './runtime/nexus.js';
 export type {
   CheckOptions,
+  CheckReport,
   CreateOptions,
   LoadEntry,
   LoadOptions,
