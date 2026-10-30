@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import deck from '../../../deck/meridian.deck.json';
 import type { DeckPlan } from '../../simulation/contracts';
+import { NO_SUBSPACE_LINK_NOTICE } from '../../text';
 import { shipState } from '../../../test/ship-state';
 import type { IReactorCore } from '../engineering/contracts';
 
@@ -29,16 +30,23 @@ describe('PhasedArray', () => {
     expect(new PhasedArray(store(), reactor(0), undefined).linked).toBe(false);
   });
 
-  it('queues a hail for the next tick', () => {
+  it('queues a hail for the next tick and notices that no link carries it', () => {
     const state = store();
     expect(new PhasedArray(state, reactor(0), undefined).hail()).toEqual({
       tick: 1,
+      notice: NO_SUBSPACE_LINK_NOTICE,
     });
     const ship = state.applyQueued(1);
     expect(ship.setpoints.comms).toEqual({ hail: true });
     expect(state.log()).toEqual([
       { tick: 1, change: { comms: { hail: true } } },
     ]);
+  });
+
+  it('queues a hail on a linked array with no notice', () => {
+    expect(new PhasedArray(store(), reactor(0), link).hail()).toStrictEqual({
+      tick: 1,
+    });
   });
 
   it('signs off with the tick and the reactor output as it disposes', async () => {

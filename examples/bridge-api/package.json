@@ -3,9 +3,6 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "scripts": {
-    "dev": "SHIP_INTROSPECTION=on tsx watch src/entries/server.hono.ts"
-  },
   "exports": {
     "./contracts": "./src/ship/contracts.ts",
     "./mission": "./src/bridge/mission.ts",

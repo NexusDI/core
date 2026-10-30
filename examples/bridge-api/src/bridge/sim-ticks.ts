@@ -8,9 +8,11 @@ const MAX_TICKS = 10_000;
  */
 export const SIM_BODY_LIMIT = 100 * 1024;
 
-/** The 400 body of `POST /sim/advance`, for a body `parseTicks` refuses. */
+/** The 400 body of `POST /sim/advance`, for a body `parseTicks` refuses: the `{ code, message, fix }` of every other refusal. */
 export const TICKS_REFUSED = {
-  error: `Send { "ticks": n } with n a whole number from 1 to ${MAX_TICKS}.`,
+  code: 'BRIDGE_BAD_TICKS',
+  message: `POST /sim/advance needs a whole number of ticks from 1 to ${MAX_TICKS.toLocaleString('en-US')}.`,
+  fix: `send { "ticks": n } with n a whole number from 1 to ${MAX_TICKS}.`,
 } as const;
 
 /**

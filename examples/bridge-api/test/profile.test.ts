@@ -2,12 +2,15 @@ import { Nexus } from '@nexusdi/core';
 import * as tools from '@nexusdi/devtools';
 import { SHIP_SYSTEMS } from '@nexusdi/meridian-systems';
 import { createTestingContainer } from '@nexusdi/testing';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { startRelay } from '../e2e/relay';
 
 import { introspect } from '../src/bridge/profile';
 import { SUBSPACE_LINK } from '../src/ship/contracts';
 import { Meridian, OfflineMeridian } from '../src/ship/meridian.module';
 import { bridgePlugins } from '../src/ship/plugins';
+import { relayMeridian } from '../src/ship/relay-meridian';
 import { FixedLink } from './doubles';
 import { calls } from './route-helpers';
 import { FRAMEWORKS } from './support';
@@ -42,6 +45,31 @@ it('profiles the LifeSupportOptions factory as the async step of startup', async
       kind: 'factory',
     }),
   );
+});
+
+describe('profile over the relay', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('lists the NavCharts download and the relay handshake onInit', async () => {
+    const relay = await startRelay();
+    try {
+      vi.stubEnv('RELAY_URL', relay.url);
+      const profiler = tools.profile();
+      const ship = await Nexus.create(relayMeridian(), {
+        plugins: [...bridgePlugins(), profiler],
+      });
+      await ship[Symbol.asyncDispose]();
+      const table = tools.profileTable(profiler.report());
+      expect(table).toContain('NavCharts');
+      expect(table).toContain('onInit');
+      expect(relay.downloads()).toBe(1);
+      expect(relay.handshakes()).toBe(1);
+    } finally {
+      await relay.close();
+    }
+  });
 });
 
 it('profiles the charts download of Meridian beside the LifeSupportOptions factory', async () => {

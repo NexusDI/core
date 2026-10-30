@@ -12,7 +12,7 @@ import {
   UnknownCompartmentError,
 } from './errors';
 import { ENGINEERING_ACTIONS } from './systems/engineering/contracts';
-import { formatNumber, shipText } from './text';
+import { formatNumber, NO_SUBSPACE_LINK_NOTICE, shipText } from './text';
 
 /** The text shipText gives `error`, laid out as core prints it. */
 function render(error: NexusError): string {
@@ -255,5 +255,15 @@ describe('MERIDIAN_UNCHARTED', () => {
   it('cuts a long star name from a request path', () => {
     const error = new UnchartedStarError({ star: 'x'.repeat(40), charted: [] });
     expect(render(error)).toContain(`'${'x'.repeat(32)}...'`);
+  });
+});
+
+describe('NO_SUBSPACE_LINK_NOTICE', () => {
+  it('words the hail that waits on a ship with no link', () => {
+    expect(NO_SUBSPACE_LINK_NOTICE).toEqual({
+      code: 'MERIDIAN_NO_SUBSPACE_LINK',
+      message:
+        'The ship binds no SUBSPACE_LINK, so the hail waits under "no subspace link".',
+    });
   });
 });

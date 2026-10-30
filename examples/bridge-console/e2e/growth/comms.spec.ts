@@ -26,8 +26,17 @@ test('hails from /systems/comms on the offline ship', async ({
     page
       .getByRole('status')
       .filter({ hasText: 'Queued for tick' })
-      .locator('p'),
+      .locator('p')
+      .first(),
   ).toHaveText(queuedAt(tick + 1));
+  await expect(
+    page.getByText(
+      'The ship binds no SUBSPACE_LINK, so the hail waits under "no subspace link".',
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/^Fix: Start the relay with .*dev-relay/),
+  ).toContainText('RELAY_URL');
 
   // The queued hail waits for a link the ship lacks, so the array stays silent.
   await frame(page, await advance(request, 10));

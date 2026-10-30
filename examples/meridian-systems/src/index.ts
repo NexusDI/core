@@ -35,6 +35,7 @@ export { isShipSystemClass, shipNotes } from './notes';
 export {
   COMMAND_DESK,
   COMMAND_HANDLERS,
+  type CommandNotice,
   type DeepPartial,
   type ICommandDesk,
   type ICommandHandler,

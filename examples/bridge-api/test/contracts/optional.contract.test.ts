@@ -36,7 +36,10 @@ it('the ship without SubspaceLink starts, queues a hail, reads no subspace link 
       '/commands',
       json({ system: 'comms', action: 'hail' }),
     ),
-  ).toEqual({ status: 202, body: { tick: 1 } });
+  ).toMatchObject({
+    status: 202,
+    body: { tick: 1, notice: { code: 'MERIDIAN_NO_SUBSPACE_LINK' } },
+  });
   await call(ship, 'POST', '/sim/advance', json({ ticks: 1 }));
   const { body } = await call(ship, 'GET', '/sim');
   const reading = body as ShipReading;

@@ -6,12 +6,13 @@ calls the bridge API (`examples/bridge-api`) over HTTP, and its client graph
 `BridgeClient` runs in the browser.
 
 The console's loaders call the bridge API at `BRIDGE_API_URL`, which
-defaults to `http://127.0.0.1:4211/`. The backend runs on the built
-libraries, and the console's build target builds them first:
+defaults to `http://127.0.0.1:3000/`, the port bridge-api listens on. The
+backend runs on the built libraries, and the console's build target builds
+them first:
 
 ```sh
 npx nx run @nexusdi/bridge-console:build
-(cd examples/bridge-api && PORT=4211 node --import tsx src/entries/server.hono.ts) &
+npx nx run @nexusdi/bridge-api:dev &
 npx nx run @nexusdi/bridge-console:dev
 ```
 

@@ -12,6 +12,7 @@ import {
 import { COMMS_ARRAY } from '../src/systems/comms/contracts';
 import { NAV_CHARTS } from '../src/systems/tactical/contracts';
 import { BUNDLED_CHARTS } from '../src/systems/tactical/star-charts';
+import { NO_SUBSPACE_LINK_NOTICE } from '../src/text';
 
 import { shipRoot } from './ship-root';
 import { shipTest } from './fixtures';
@@ -63,7 +64,7 @@ describe('comms on the offline ship', () => {
   }) => {
     const desk = ship.get(COMMAND_DESK);
     const loop = ship.get(TICK_LOOP);
-    expect(hail(desk)).toEqual({ tick: 1 });
+    expect(hail(desk)).toEqual({ tick: 1, notice: NO_SUBSPACE_LINK_NOTICE });
 
     const offline = (at: ShipSnapshot) => {
       expect(at.comms).toEqual({
@@ -83,7 +84,10 @@ describe('comms on the offline ship', () => {
     };
     offline(loop.advance(1));
     offline(loop.advance(19));
-    expect(hail(desk)).toEqual({ tick: 21 });
+    expect(hail(desk)).toEqual({
+      tick: 21,
+      notice: NO_SUBSPACE_LINK_NOTICE,
+    });
     const end = loop.advance(580);
     expect(end.tick).toBe(600);
     offline(end);

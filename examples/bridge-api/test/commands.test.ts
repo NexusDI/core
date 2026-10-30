@@ -6,18 +6,23 @@ import {
   type ICommandDesk,
   InterlockError,
   PowerBudgetError,
+  RelayError,
 } from '@nexusdi/meridian-systems';
-import { shipText } from '@nexusdi/meridian-systems/text';
+import {
+  NO_SUBSPACE_LINK_NOTICE,
+  shipText,
+} from '@nexusdi/meridian-systems/text';
 import { describe, expect, it } from 'vitest';
 
 import { answerCommand } from '../src/bridge/commands';
+import { RELAY_FIX, relayText } from '../src/bridge/relay-text';
 import { refusalOf, SHIP_TEXT } from '../src/bridge/refusal';
 import { systemPhaseText } from '../src/ship/black-box.plugin';
 import { FakeFlightLog } from './doubles';
 
 /** A desk whose submit() calls `answer`. */
 const desk = (
-  answer: () => { tick: number },
+  answer: () => { tick: number; notice?: { code: string; message: string } },
 ): Pick<ICommandDesk, 'submit'> => ({
   submit: answer,
 });
@@ -28,6 +33,36 @@ const refuse = (error: unknown) =>
   });
 
 describe('answerCommand', () => {
+  it('answers the notice of an accepted command with the fix from the bridge table', () => {
+    const hailed = desk(() => ({ tick: 1, notice: NO_SUBSPACE_LINK_NOTICE }));
+    expect(answerCommand(hailed, {}, new FakeFlightLog())).toEqual({
+      status: 202,
+      body: {
+        tick: 1,
+        notice: {
+          code: 'MERIDIAN_NO_SUBSPACE_LINK',
+          message:
+            'The ship binds no SUBSPACE_LINK, so the hail waits under "no subspace link".',
+          fix: 'Start the relay with `npx nx run @nexusdi/bridge-api:dev-relay` and set RELAY_URL to its address, or run `npx nx run @nexusdi/bridge-api:dev`, which starts both.',
+        },
+      },
+    });
+  });
+
+  it('answers a notice with a code the table does not hold without a fix', () => {
+    const noted = desk(() => ({
+      tick: 2,
+      notice: { code: 'OTHER', message: 'Something to know.' },
+    }));
+    expect(answerCommand(noted, {}, new FakeFlightLog())).toEqual({
+      status: 202,
+      body: {
+        tick: 2,
+        notice: { code: 'OTHER', message: 'Something to know.' },
+      },
+    });
+  });
+
   it('answers 202 with the tick that applies the command', () => {
     expect(
       answerCommand(
@@ -136,8 +171,37 @@ describe('answerCommand', () => {
 
 describe('refusalOf', () => {
   it('reads the ship, interceptor and system phase text from SHIP_TEXT', () => {
-    expect(SHIP_TEXT).toEqual([shipText, interceptorsText, systemPhaseText]);
+    expect(SHIP_TEXT).toEqual([
+      relayText,
+      shipText,
+      interceptorsText,
+      systemPhaseText,
+    ]);
   });
+
+  it.each([
+    [
+      'timeout',
+      'within 5,000 ms',
+      'The subspace relay did not answer the charts channel within 5,000 ms.',
+    ],
+    [
+      'malformed',
+      'a JSON object',
+      'The subspace relay answered the charts channel with a table the ship cannot read. The table must be a JSON object.',
+    ],
+  ] as const)(
+    'names RELAY_URL and dev-relay in the fix of a %s relay fault',
+    (reason, expected, message) => {
+      const error = new RelayError({ channel: 'charts', reason, expected });
+      expect(refusalOf(error)).toEqual({
+        code: 'MERIDIAN_RELAY',
+        message,
+        fix: 'Start the relay with `npx nx run @nexusdi/bridge-api:dev-relay` and set RELAY_URL to its address, or run `npx nx run @nexusdi/bridge-api:dev`, which starts both.',
+      });
+      expect(RELAY_FIX).toContain('RELAY_URL');
+    },
+  );
 
   it('words an InterlockError with the difference and the limit', () => {
     const error = new InterlockError({

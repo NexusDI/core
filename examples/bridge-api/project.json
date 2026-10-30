@@ -2,9 +2,26 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "@nexusdi/bridge-api",
   "targets": {
+    "dev-relay": {
+      "executor": "nx:run-commands",
+      "continuous": true,
+      "options": {
+        "cwd": "examples/bridge-api",
+        "command": "node --import tsx scripts/dev-relay.mjs"
+      }
+    },
     "dev": {
       "dependsOn": ["^build"],
-      "continuous": true
+      "executor": "nx:run-commands",
+      "continuous": true,
+      "options": {
+        "cwd": "examples/bridge-api",
+        "commands": [
+          "node --import tsx scripts/dev-relay.mjs",
+          "relay=http://127.0.0.1:${RELAY_PORT:-3100}; n=0; until curl -sf $relay/charts > /dev/null; do n=$((n+1)); if [ $n -ge 75 ]; then echo \"dev: no relay answered at $relay within 15 s; free the port or set RELAY_PORT\" >&2; exit 1; fi; sleep 0.2; done; RELAY_URL=$relay SHIP_INTROSPECTION=on tsx watch src/entries/server.hono.ts"
+        ],
+        "parallel": true
+      }
     },
     "test": {
       "dependsOn": ["^build"]
@@ -45,7 +62,7 @@
       "outputs": ["{projectRoot}/profile.json"],
       "options": {
         "cwd": "examples/bridge-api",
-        "command": "nexusdi profile src/ship/meridian.module.ts#OfflineMeridian --json profile.json"
+        "command": "node --import tsx scripts/dev-relay.mjs -- nexusdi profile src/ship/relay-meridian.ts#RelayMeridian --json profile.json"
       }
     },
     "bench": {
