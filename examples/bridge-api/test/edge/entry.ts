@@ -1,4 +1,5 @@
 import { Nexus } from '@nexusdi/core';
+import * as tools from '@nexusdi/devtools';
 
 import { honoMissionRoutes } from '../../e2e/fixtures/mission-routes';
 import { createBridge } from '../../src/entries/hono';
@@ -20,6 +21,7 @@ const counts = { create: 0, dispose: 0, waitUntil: 0 };
 
 const ready = Nexus.create(OfflineMeridian, {
   plugins: bridgePlugins({
+    tools,
     trace: (event) => {
       if (event.type === 'scope:create') counts.create += 1;
       if (event.type === 'scope:dispose') counts.dispose += 1;

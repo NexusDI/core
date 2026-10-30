@@ -1,6 +1,10 @@
 import { Nexus } from '@nexusdi/core';
-import { graph } from '@nexusdi/devtools';
-import { SUBSPACE_LINK, type ShipReading } from '@nexusdi/meridian-systems';
+import * as tools from '@nexusdi/devtools';
+import {
+  SUBSPACE_LINK,
+  shipNotes,
+  type ShipReading,
+} from '@nexusdi/meridian-systems';
 import { expect, it } from 'vitest';
 
 import { OfflineMeridian } from '../../src/ship/meridian.module';
@@ -9,14 +13,17 @@ import { calls, json } from '../route-helpers';
 
 it('the ship without SubspaceLink starts, queues a hail, reads no subspace link and serves the bundled charts', async () => {
   await using ship = await Nexus.create(OfflineMeridian, {
-    plugins: bridgePlugins({ dev: true }),
+    plugins: [
+      ...bridgePlugins({ dev: true }),
+      tools.devtools({ annotate: [shipNotes] }),
+    ],
   });
   // optional(SUBSPACE_LINK) leaves the array's dependency unbound.
   expect(ship.has(SUBSPACE_LINK)).toBe(false);
 
   // graph() lists the unbound dep on each provider that declared it optional.
   const unresolved = (token: string) =>
-    graph(ship).providers.find((provider) => provider.token === token)
+    tools.graph(ship).providers.find((provider) => provider.token === token)
       ?.unresolved;
   expect(unresolved('CommsArray')).toContain('SubspaceLink');
   expect(unresolved('NavCharts')).toContain('SubspaceLink');

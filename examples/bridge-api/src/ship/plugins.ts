@@ -1,5 +1,5 @@
 import { provide, type NexusPlugin, type TraceEvent } from '@nexusdi/core';
-import { devtools, trace } from '@nexusdi/devtools';
+import type * as DevtoolsModule from '@nexusdi/devtools';
 import { errors } from '@nexusdi/errors';
 import {
   interceptors,
@@ -7,11 +7,7 @@ import {
   type Interceptor,
   type Next,
 } from '@nexusdi/interceptors';
-import {
-  BLAST_DOORS,
-  type IBlastDoors,
-  shipNotes,
-} from '@nexusdi/meridian-systems';
+import { BLAST_DOORS, type IBlastDoors } from '@nexusdi/meridian-systems';
 import { PressureInterlock } from '@nexusdi/meridian-systems/interlock';
 
 import { SHIP_TEXT } from '../bridge/refusal';
@@ -71,21 +67,33 @@ class FlightRecorder implements Interceptor {
 const NO_SCOPES: IScopeSource = { current: () => undefined };
 
 /**
+ * The part of `@nexusdi/devtools` the plugins use. The caller passes the
+ * module, so a Worker entry loads it with a dynamic import only when it needs
+ * it, and this file imports none of it.
+ */
+export type PluginTools = Pick<typeof DevtoolsModule, 'trace'>;
+
+interface BasePluginOptions {
+  /** The request scopes the flight recorder reads. Without them it records nothing. */
+  scopes?: IScopeSource;
+}
+
+/** Options of `bridgePlugins`. `trace` needs the devtools `tools`. */
+export type PluginOptions = BasePluginOptions & { dev?: boolean } & (
+    | { trace?: undefined; tools?: PluginTools }
+    | { trace: (event: TraceEvent) => void; tools: PluginTools }
+  );
+
+/**
  * The demo app's plugins. The interceptors always run: the audit on
  * NAV_CHARTS, and the flight recorder and the pressure interlock on
- * BLAST_DOORS. In development errors() with SHIP_TEXT and devtools() join
- * them, and `shipNotes` labels each simulation provider in graph() with its
- * system. No refusal body depends on errors(), since refusalOf reads
- * SHIP_TEXT itself.
+ * BLAST_DOORS. In development errors() with SHIP_TEXT joins them. No
+ * refusal body depends on errors(), since refusalOf reads SHIP_TEXT itself.
+ * The devtools() plugin that graph() and the profile need comes with
+ * `introspect`, which labels each simulation provider with `shipNotes`.
  */
-export function bridgePlugins(
-  options: {
-    dev?: boolean;
-    trace?: (event: TraceEvent) => void;
-    /** The request scopes the flight recorder reads. Without them it records nothing. */
-    scopes?: IScopeSource;
-  } = {},
-): NexusPlugin[] {
+export function bridgePlugins(options: PluginOptions = {}): NexusPlugin[] {
+  const { tools } = options;
   return [
     interceptors({
       imports: [AuditTrail],
@@ -106,10 +114,8 @@ export function bridgePlugins(
         },
       ],
     }),
-    ...(options.dev
-      ? [errors({ text: SHIP_TEXT }), devtools({ annotate: [shipNotes] })]
-      : []),
-    ...(options.trace ? [trace(options.trace)] : []),
+    ...(options.dev ? [errors({ text: SHIP_TEXT })] : []),
+    ...(options.trace && tools ? [tools.trace(options.trace)] : []),
   ];
 }
 

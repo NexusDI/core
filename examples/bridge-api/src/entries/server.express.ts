@@ -1,23 +1,31 @@
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 
-import { graph } from '@nexusdi/devtools';
+import * as devtools from '@nexusdi/devtools';
 import { nodeScopes } from '@nexusdi/node';
 
+import { introspect } from '../bridge/profile';
 import { stopOnSigterm } from '../env/drain';
-import { isDev, listening, port } from '../env/env';
+import { introspectionFromEnv, listening, port } from '../env/env';
 import { shipLog } from '../env/log';
 import { shipFromEnv } from '../env/ship';
 import { createBridge } from './express';
 
 // The bridge runs each request in its scope, and the flight recorder reads it.
 const scopes = nodeScopes();
-await using ship = await shipFromEnv(scopes);
+const introspection = introspectionFromEnv(process.env)
+  ? introspect(devtools)
+  : undefined;
+await using ship = await shipFromEnv(
+  scopes,
+  process.env,
+  introspection?.plugins,
+);
 const shutdown = new AbortController();
 const bridge = createBridge(ship, {
   scopes,
   log: shipLog(),
-  graph: isDev(process.env) ? () => graph(ship) : undefined,
+  ...introspection?.options(ship),
   shutdown: shutdown.signal,
 });
 const server = bridge.listen(port(), () =>

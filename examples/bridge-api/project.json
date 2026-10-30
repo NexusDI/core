@@ -39,6 +39,15 @@
         "command": "nexusdi graph src/ship/meridian.module.ts#Meridian --load src/ship/meridian.module.ts#FtlDrive --plugins src/ship/plugins.ts#graphPlugins -f json -o graph.json && git diff --exit-code graph.json"
       }
     },
+    "profile": {
+      "dependsOn": ["^build"],
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/profile.json"],
+      "options": {
+        "cwd": "examples/bridge-api",
+        "command": "nexusdi profile src/ship/meridian.module.ts#OfflineMeridian --json profile.json"
+      }
+    },
     "bench": {
       "dependsOn": ["^build"],
       "executor": "nx:run-commands",

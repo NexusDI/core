@@ -6,8 +6,8 @@ import { serve, type ServerType } from '@hono/node-server';
 import { defineModule, Nexus } from '@nexusdi/core';
 import { createBridge } from '@nexusdi/bridge-api/hono';
 import { bridgePlugins, OfflineMeridian } from '@nexusdi/bridge-api/ship';
-import { graph } from '@nexusdi/devtools';
-import { COMPARTMENT_IDS } from '@nexusdi/meridian-systems';
+import * as tools from '@nexusdi/devtools';
+import { COMPARTMENT_IDS, shipNotes } from '@nexusdi/meridian-systems';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { BridgeLink } from '../app/di/bridge-link.module';
@@ -54,10 +54,15 @@ beforeAll(async () => {
   backend = await Nexus.create(OfflineMeridian);
   ({ server, url: base } = await listen(recorded(createBridge(backend))));
   devBackend = await Nexus.create(OfflineMeridian, {
-    plugins: bridgePlugins({ dev: true }),
+    plugins: [
+      ...bridgePlugins({ dev: true }),
+      tools.devtools({ annotate: [shipNotes] }),
+    ],
   });
   ({ server: devServer, url: devBase } = await listen(
-    recorded(createBridge(devBackend, { graph: () => graph(devBackend) })),
+    recorded(
+      createBridge(devBackend, { graph: () => tools.graph(devBackend) }),
+    ),
   ));
   ({ server: broken, url: brokenBase } = await listen(
     () => new Response(null, { status: 500 }),

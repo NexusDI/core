@@ -2,6 +2,8 @@ import type { Scope } from '@nexusdi/core';
 import type { NexusGraph } from '@nexusdi/devtools';
 import type { NexusLog } from '@nexusdi/hono';
 
+import type { ProfileAnswer } from './profile';
+
 /** The options every framework entry's `createBridge` takes. */
 export interface BridgeOptions {
   scopes?: {
@@ -10,8 +12,14 @@ export interface BridgeOptions {
   };
   /** Receives each error the adapter maps to a 500 or 503, such as a `NEXUS_` error. */
   log?: NexusLog;
-  /** Draws the graph `GET /graph` answers. Without it, the route answers 404. */
-  graph?: () => NexusGraph;
+  /**
+   * Draws the graph `GET /graph` answers. Without it, or when it answers
+   * `undefined`, the route answers 404. A Worker awaits its first build here.
+   */
+  graph?: () => NexusGraph | undefined | Promise<NexusGraph | undefined>;
+  /** Reads what `GET /profile` answers, on the same terms as `graph`. */
+  profile?: () =>
+    ProfileAnswer | undefined | Promise<ProfileAnswer | undefined>;
   /** Ends every open `GET /telemetry` stream with `ship offline` when it aborts. */
   shutdown?: AbortSignal;
   /**

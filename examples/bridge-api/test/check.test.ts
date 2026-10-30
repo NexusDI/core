@@ -5,7 +5,8 @@ import {
   provide,
   Token,
 } from '@nexusdi/core';
-import { devtools, graph, inspect } from '@nexusdi/devtools';
+import * as tools from '@nexusdi/devtools';
+import { shipNotes } from '@nexusdi/meridian-systems';
 import { describe, expect, it } from 'vitest';
 
 import drawn from '../graph.json';
@@ -46,7 +47,7 @@ describe('the bridge API graph', () => {
     // JSON.stringify, which drops undefined fields.
     const live = JSON.parse(
       JSON.stringify(
-        inspect(Meridian, { plugins: graphPlugins, load: [FtlDrive] }),
+        tools.inspect(Meridian, { plugins: graphPlugins, load: [FtlDrive] }),
       ),
     );
     expect(
@@ -57,9 +58,9 @@ describe('the bridge API graph', () => {
 
   it('names the audit module AuditTrail, in the container and in graph.json', async () => {
     await using ship = await Nexus.create(OfflineMeridian, {
-      plugins: [...bridgePlugins(), devtools()],
+      plugins: [...bridgePlugins(), tools.devtools()],
     });
-    const names = graph(ship).modules.map((m) => m.name);
+    const names = tools.graph(ship).modules.map((m) => m.name);
     expect(names).toContain('AuditTrail');
     expect(names).not.toContain('Audit');
     const drawnNames = drawn.modules.map((m) => m.name);
@@ -69,9 +70,12 @@ describe('the bridge API graph', () => {
 
   it('labels the ship providers with their system in the development graph', async () => {
     await using ship = await Nexus.create(offlineMeridian(), {
-      plugins: bridgePlugins({ dev: true }),
+      plugins: [
+        ...bridgePlugins({ dev: true }),
+        tools.devtools({ annotate: [shipNotes] }),
+      ],
     });
-    const { modules, providers } = graph(ship);
+    const { modules, providers } = tools.graph(ship);
     // ShipSystems and CommandHandlers have a provider in each system module,
     // so a note is keyed by token and module.
     const moduleName = new Map(modules.map((m) => [m.id, m.name]));
@@ -174,10 +178,13 @@ describe('the bridge API graph', () => {
 
   it('labels the loaded FTL drive and its parts with their system in the development graph', async () => {
     await using ship = await Nexus.create(offlineMeridian(), {
-      plugins: bridgePlugins({ dev: true }),
+      plugins: [
+        ...bridgePlugins({ dev: true }),
+        tools.devtools({ annotate: [shipNotes] }),
+      ],
     });
     await ship.load(FtlDrive);
-    const { modules, providers } = graph(ship);
+    const { modules, providers } = tools.graph(ship);
     const ftl = modules.find((m) => m.name === 'FtlDrive');
     expect(
       providers

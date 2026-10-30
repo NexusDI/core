@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { isDev, port, setupFromEnv } from '../../src/env/env';
+import {
+  introspectionFromEnv,
+  isDev,
+  port,
+  setupFromEnv,
+} from '../../src/env/env';
 
 describe('setupFromEnv', () => {
   it('runs a live ship on seed 7 at dt 0.5 when no variable is set', () => {
@@ -58,5 +63,36 @@ describe('port', () => {
   it('reads PORT, or 3000 when it is unset', () => {
     expect(port({ PORT: '4211' })).toBe(4211);
     expect(port({})).toBe(3000);
+  });
+});
+
+describe('introspectionFromEnv', () => {
+  it('follows NODE_ENV on a Node entry when SHIP_INTROSPECTION is unset or empty', () => {
+    expect(introspectionFromEnv({})).toBe(true);
+    expect(introspectionFromEnv({ SHIP_INTROSPECTION: '' })).toBe(true);
+    expect(introspectionFromEnv({ NODE_ENV: 'production' })).toBe(false);
+  });
+
+  it('reads on and off over NODE_ENV', () => {
+    expect(
+      introspectionFromEnv({
+        NODE_ENV: 'production',
+        SHIP_INTROSPECTION: 'on',
+      }),
+    ).toBe(true);
+    expect(introspectionFromEnv({ SHIP_INTROSPECTION: 'off' })).toBe(false);
+  });
+
+  it('is off on a Worker entry when the variable is unset', () => {
+    expect(introspectionFromEnv({}, { worker: true })).toBe(false);
+    expect(
+      introspectionFromEnv({ SHIP_INTROSPECTION: 'on' }, { worker: true }),
+    ).toBe(true);
+  });
+
+  it('refuses any other value and quotes it', () => {
+    expect(() => introspectionFromEnv({ SHIP_INTROSPECTION: 'yes' })).toThrow(
+      "SHIP_INTROSPECTION is 'yes'. Set it to 'on' or 'off', or leave it unset to follow NODE_ENV.",
+    );
   });
 });

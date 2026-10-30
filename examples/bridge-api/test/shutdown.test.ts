@@ -1,4 +1,5 @@
 import { Nexus, type TraceEvent } from '@nexusdi/core';
+import * as tools from '@nexusdi/devtools';
 import { SHIP_STATE } from '@nexusdi/meridian-systems';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,7 +18,9 @@ describe('the ship shutdown', () => {
     const events: TraceEvent[] = [];
     const ship = await Nexus.create(
       offlineMeridian({ sim: { seed: 7, dt: 0.5 }, mode: 'live' }),
-      { plugins: bridgePlugins({ trace: (event) => events.push(event) }) },
+      {
+        plugins: bridgePlugins({ trace: (event) => events.push(event), tools }),
+      },
     );
     const state = ship.get(SHIP_STATE);
     state.queue({ reactor: { throttle: 1 } });

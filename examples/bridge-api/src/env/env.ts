@@ -35,6 +35,26 @@ export function setupFromEnv(env: Env = process.env): ShipSetup {
 export const isDev = (env: Env = process.env): boolean =>
   env.NODE_ENV !== 'production';
 
+/**
+ * Whether the entry serves GET /graph and GET /profile: SHIP_INTROSPECTION,
+ * `on` or `off`. Unset or empty, a Node entry follows NODE_ENV (on outside
+ * production) and a Worker entry is off.
+ */
+export function introspectionFromEnv(
+  env: Env = process.env,
+  options: { worker?: boolean } = {},
+): boolean {
+  const value = env.SHIP_INTROSPECTION || undefined;
+  if (value === 'on') return true;
+  if (value === 'off') return false;
+  if (value !== undefined) {
+    throw new Error(
+      `SHIP_INTROSPECTION is '${value}'. Set it to 'on' or 'off', or leave it unset to follow NODE_ENV.`,
+    );
+  }
+  return options.worker ? false : isDev(env);
+}
+
 /** The port the Node servers listen on: PORT, or 3000. */
 export const port = (env: Env = process.env): number =>
   Number(env.PORT ?? 3000);
