@@ -19,7 +19,7 @@ import {
 import { bridgePlugins, graphPlugins } from '../src/ship/plugins';
 
 describe('the bridge API graph', () => {
-  it('compiles with no user code', () => {
+  it('compiles the graph and runs its sync options schemas', () => {
     expect(() =>
       Nexus.check(Meridian, { plugins: bridgePlugins() }),
     ).not.toThrow();
