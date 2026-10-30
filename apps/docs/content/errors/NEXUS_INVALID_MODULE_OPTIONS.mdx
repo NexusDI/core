@@ -8,7 +8,7 @@ errorClass: ModuleOptionsError
 
 # NEXUS_INVALID_MODULE_OPTIONS
 
-`NEXUS_INVALID_MODULE_OPTIONS` means the options a configurable module received failed the module's `schema`, a Standard Schema validator such as a valibot or zod schema. Core validates the options when it builds them, so `Nexus.create` rejects with [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) for the options token, and this error is its `cause`.
+`NEXUS_INVALID_MODULE_OPTIONS` means the options a configurable module received failed the module's `schema`, a Standard Schema validator such as a valibot or zod schema. Core validates the options when it builds them, so `Nexus.create` rejects with [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) for the options token, and this error is its `cause`. `Nexus.check` runs the schema of a `forRoot()` value too, when it validates synchronously, and throws [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) with this error in its `errors`.
 
 ## Reproduce `NEXUS_INVALID_MODULE_OPTIONS`
 

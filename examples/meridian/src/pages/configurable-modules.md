@@ -231,6 +231,78 @@ console.log(hail);
 ```
 
 <!-- #endregion schema -->
+<!-- #region check-schema -->
+
+```ts @import.meta.vitest
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
+import * as v from 'valibot';
+
+const CommsSchema = v.object({
+  frequency: v.pipe(v.number(), v.integer(), v.minValue(1)),
+  transport: v.optional(v.picklist(['relay', 'laser']), 'relay'),
+});
+type CommsOptions = v.InferOutput<typeof CommsSchema>;
+interface ISubspaceLink {
+  hail(): string;
+}
+const COMMS_OPTIONS = new Token<CommsOptions>('CommsOptions');
+const SUBSPACE_LINK = new Token<ISubspaceLink>('SubspaceLink');
+
+class SubspaceRelay implements ISubspaceLink {
+  static deps = [COMMS_OPTIONS] as const;
+  constructor(private readonly options: CommsOptions) {}
+  hail() {
+    return `${this.options.transport} on ${this.options.frequency}`;
+  }
+}
+
+const Comms = defineModule({
+  name: 'Comms',
+  options: COMMS_OPTIONS,
+  schema: CommsSchema,
+  providers: [provide(SUBSPACE_LINK, { useClass: SubspaceRelay })],
+  exports: [SUBSPACE_LINK],
+});
+
+let codes: string[] = [];
+try {
+  Nexus.check(
+    defineModule({
+      name: 'Meridian',
+      imports: [Comms.forRoot({ frequency: -5 })],
+    }),
+  );
+} catch (error) {
+  if (isNexusError(error, 'NEXUS_BLUEPRINT_INVALID')) {
+    codes = error.errors.map((each) => each.code);
+  }
+}
+const inner = codes; // -> ['NEXUS_INVALID_MODULE_OPTIONS']
+console.log(inner);
+
+const report = Nexus.check(
+  defineModule({
+    name: 'Meridian',
+    imports: [
+      Comms.forRootAsync({
+        useFactory: () => ({ frequency: 1420 }),
+        deps: [],
+      }),
+    ],
+  }),
+);
+const entries = report.unchecked;
+const skipped = entries.map((e) => `${e.module}: ${e.reason}`); // -> ['Comms: for-root-async']
+console.log(skipped);
+```
+
+<!-- #endregion check-schema -->
 
 <!-- #region missing-for-root -->
 
