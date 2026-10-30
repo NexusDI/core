@@ -28,6 +28,7 @@
     "@cloudflare/vitest-plugin": "1.4.6",
     "@edge-runtime/vm": "5.0.0",
     "@nexusdi/cli": "*",
+    "@nexusdi/doc-examples": "*",
     "@nexusdi/testing": "*",
     "@nexusdi/vitest": "*",
     "@types/express": "5.0.6",

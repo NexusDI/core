@@ -22,6 +22,7 @@ import {
 /** The demo READMEs the check covers. Each demo task appends its own. */
 export const DEMO_READMES: readonly string[] = [
   'examples/meridian-systems/README.md',
+  'examples/bridge-api/README.md',
 ];
 
 export type DemoRule = Rule | 'claim' | 'wiring';

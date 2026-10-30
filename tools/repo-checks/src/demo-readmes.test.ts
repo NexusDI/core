@@ -1,8 +1,15 @@
-import { readFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 
 import { workspaceRoot } from '@nx/devkit';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   DEMO_READMES,
@@ -118,10 +125,53 @@ describe('demo-readmes fixtures', () => {
   });
 });
 
+/** The config files a demo's vitest run may read, in the order this check tries them. */
+const CONFIG_FILES = [
+  'vitest.config.mts',
+  'vitest.config.ts',
+  'vite.config.ts',
+  'vite.config.mts',
+] as const;
+
+function vitestConfigPath(dir: string): string {
+  const file = CONFIG_FILES.find((name) => existsSync(join(dir, name)));
+  if (file === undefined)
+    throw new Error(
+      `${dir} holds none of ${CONFIG_FILES.join(', ')}; add the vitest config that runs the README.`,
+    );
+  return join(dir, file);
+}
+
+describe('the demo config lookup', () => {
+  const dirs: string[] = [];
+  const demo = (...files: string[]) => {
+    const dir = mkdtempSync(join(tmpdir(), 'demo-config-'));
+    dirs.push(dir);
+    for (const file of files) writeFileSync(join(dir, file), '');
+    return dir;
+  };
+  afterEach(() => {
+    for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true });
+  });
+
+  it('prefers vitest.config.mts, then falls back to vite.config.ts', () => {
+    expect(
+      vitestConfigPath(demo('vitest.config.mts', 'vite.config.ts')),
+    ).toMatch(/vitest\.config\.mts$/);
+    expect(vitestConfigPath(demo('vite.config.ts'))).toMatch(
+      /vite\.config\.ts$/,
+    );
+  });
+
+  it('names the files it looked for when a demo has none', () => {
+    expect(() => vitestConfigPath(demo())).toThrow(/vite\.config\.mts/);
+  });
+});
+
 describe('demo READMEs', () => {
   it.each(DEMO_READMES)('%s holds', (readme) => {
     const dir = dirname(join(workspaceRoot, readme));
-    const config = readFileSync(join(dir, 'vitest.config.mts'), 'utf8');
+    const config = readFileSync(vitestConfigPath(dir), 'utf8');
     const source = readFileSync(join(workspaceRoot, readme), 'utf8');
     expect(demoReadmeFaults({ source, config })).toEqual([]);
   });
