@@ -50,8 +50,8 @@ Route guards often require request-scoped dependencies, such as an authenticatio
 
 **Implementation details:**
 
-- **Type Inference:** Type the middleware array as `Route.MiddlewareFunction[]` from the route's generated types, or as `MiddlewareFunction<Response>[]`. TypeScript then infers the `args` within the injected function, removing the need for manual annotations.
-- **Request Flow:** To stop the request and prevent the loader from running, return a `Response`. To allow the request to proceed, return `next()`.
+- **Type Inference:** Type the middleware array as `Route.MiddlewareFunction[]` from the route's generated types, or as `MiddlewareFunction<Response>[]`. TypeScript then infers the `args` within the injected function, removing the need for manual annotations. A data-mode route object for `createStaticHandler` or `createBrowserRouter` takes `di.middleware` and `di.injectMiddleware` with no cast, and `di.load(module)` too, and there `next()` resolves `unknown`, as React Router types it. Declare a middleware outside the route object as `const guard: MiddlewareFunction = di.injectMiddleware(...)`, so TypeScript knows which mode it runs in.
+- **Request Flow:** To stop the request and prevent the loader from running, return a `Response`. To allow the request to proceed, return `next()`. In a browser router (`createBrowserRouter`) a guard stops the navigation by throwing a `Response` or `redirect()`.
 - **Error Handling:** An unhandled exception within the function reaches React Router. If the function returns without calling `next`, React Router invokes `next` automatically.
 - **Resolution Failures:** If the requested dependencies cannot be resolved, the middleware throws a `Response` with status 500 or 503, maintaining consistency with loader behavior.
 
@@ -60,6 +60,12 @@ Route guards often require request-scoped dependencies, such as an authenticatio
 ```
 
 In this example, a request from `guest` receives a `403 Forbidden` response, preventing the loader from ever executing. A request from `helm` passes the guard, allowing the loader to return `main drive fired`. The guard resolves dependencies from the scope that the root `di.middleware` opens, so the root middleware must run first. React Router runs the root route's middleware before a child route's.
+
+A data-mode app declares the same guard on a route object. React Router's static handler runs the root middleware, then the guard, then the loader:
+
+```ts file=examples/meridian/src/pages/react-router-ssr.md region=data-mode
+
+```
 
 A section returned by `di.load(module)` has the same method, `di.load(module).injectMiddleware`, which verifies the record after the section's first load.
 
@@ -109,7 +115,7 @@ A loader test puts a scope it owns into the router context with `existingScope(s
 
 ## When the Scope Is Disposed
 
-The adapter wraps the response body and disposes the scope when the body stream ends, errors or is cancelled, or when `request.signal` aborts. A deferred value that an `<Await>` renders streams inside that body, so it reads the scope before disposal. A response with no body, a `HEAD` request and a 204 or 304 dispose as soon as the middleware chain returns.
+The adapter wraps the response body and disposes the scope when the body stream ends, errors or is cancelled, or when `request.signal` aborts. A deferred value that an `<Await>` renders streams inside that body, so it reads the scope before disposal. A response with no body, a `HEAD` request and a 204 or 304 dispose as soon as the middleware chain returns. In a browser data router, `next()` resolves the loaders' results. `di.middleware` disposes the scope when the chain returns, and hands the results to React Router unchanged. A loader that returns a promise unawaited, for `<Await>`, must resolve its services before it returns, since the scope is gone when that promise settles.
 
 ## Errors
 
