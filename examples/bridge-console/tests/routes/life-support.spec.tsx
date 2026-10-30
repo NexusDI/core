@@ -569,7 +569,7 @@ describe('the life-support forms', () => {
     const command = vi.spyOn(scope.get(BRIDGE_LINK), 'command');
     fireEvent.click(screen.getByRole('button', { name }));
     expect((await screen.findByRole('status')).textContent).toBe(
-      'Queued for tick 1',
+      'Queued for tick 1.',
     );
     expect(command).toHaveBeenCalledOnce();
     return command.mock.calls[0]?.[0];
@@ -645,7 +645,7 @@ describe('the life-support forms', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Set habitat target' }));
     expect(
       await screen.findByText(
-        'life-support heater takes a target from 283 to 303 K.',
+        'MERIDIAN_BAD_COMMAND: life-support heater takes a target from 283 to 303 K.',
       ),
     ).toBeDefined();
     expect(
@@ -705,5 +705,69 @@ describe('the life-support action', () => {
       action: 'vent',
       compartment: 'airlock',
     });
+  });
+});
+
+describe('the habitat thermostat form', () => {
+  test('starts at the snapshot target and falls back to 293 K with no snapshot', async ({
+    renderRoute,
+  }) => {
+    const warm: ShipReading = {
+      ...shipAtStart,
+      setpoints: {
+        ...shipAtStart.setpoints,
+        lifeSupport: {
+          ...shipAtStart.setpoints.lifeSupport,
+          heaters: {
+            ...shipAtStart.setpoints.lifeSupport.heaters,
+            habitat: { on: true, target: 296 },
+          },
+        },
+      },
+    };
+    class Warm extends FakeBridgeLink {
+      override async snapshot() {
+        return warm;
+      }
+    }
+    await renderPage(renderRoute, withLink(Warm));
+    const field = screen.getByLabelText(
+      'Habitat heater target (K)',
+    ) as HTMLInputElement;
+    expect(field.value).toBe('296');
+  });
+
+  test('falls back to 293 K when the snapshot fails', async ({
+    renderRoute,
+  }) => {
+    await renderPage(renderRoute, withLink(FailingSnapshotLink));
+    expect(
+      (screen.getByLabelText('Habitat heater target (K)') as HTMLInputElement)
+        .value,
+    ).toBe('293');
+  });
+
+  test('starts the airlock pump at the snapshot mode', async ({
+    renderRoute,
+  }) => {
+    const filling: ShipReading = {
+      ...shipAtStart,
+      setpoints: {
+        ...shipAtStart.setpoints,
+        lifeSupport: {
+          ...shipAtStart.setpoints.lifeSupport,
+          pumps: { airlock: 'fill' },
+        },
+      },
+    };
+    class Filling extends FakeBridgeLink {
+      override async snapshot() {
+        return filling;
+      }
+    }
+    await renderPage(renderRoute, withLink(Filling));
+    expect(
+      (screen.getByLabelText('Airlock pump mode') as HTMLSelectElement).value,
+    ).toBe('fill');
   });
 });

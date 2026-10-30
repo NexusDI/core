@@ -177,7 +177,7 @@ describe('the hail button', () => {
       screen.getByRole('button', { name: 'Hail fleet traffic control' }),
     );
     expect((await screen.findByRole('status')).textContent).toBe(
-      'Queued for tick 1',
+      'Queued for tick 1.',
     );
     expect(command).toHaveBeenCalledOnce();
     expect(command.mock.calls[0]?.[0]).toStrictEqual({

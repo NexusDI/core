@@ -2,7 +2,7 @@ import type { ShipReading } from '@nexusdi/meridian-systems';
 import type { Locator } from '@playwright/test';
 
 import { expect, problems, test } from '../support';
-import { advance, bridgeApi, gauge, reading } from './ship';
+import { advance, bridgeApi, frame, gauge, reading, queuedAt } from './ship';
 
 test('cycles the airlock under the interlock on /airlock', async ({
   page,
@@ -43,9 +43,8 @@ test('cycles the airlock under the interlock on /airlock', async ({
   await page.goto('/airlock');
   await pump.selectOption('evacuate');
   await press('Set pump');
-  await expect(answer.locator('p')).toHaveText(`Queued for tick ${tick + 1}`);
-  await advance(request, 300);
-  await page.reload();
+  await expect(answer.locator('p')).toHaveText(queuedAt(tick + 1));
+  await frame(page, await advance(request, 300));
   await expect(
     gauge(page.getByLabel('Airlock pump and vent'), 'Pump'),
   ).toHaveText('evacuate');
@@ -55,7 +54,7 @@ test('cycles the airlock under the interlock on /airlock', async ({
   await door.selectOption('airlock-outer');
   await press('Open door');
   await expect(refusal).toHaveText([
-    /^The airlock-outer door holds [\d,]+ Pa of difference, above the 5,000 Pa interlock\.$/,
+    /^MERIDIAN_INTERLOCK: The airlock-outer door holds [\d,]+ Pa of difference, above the 5,000 Pa interlock\.$/,
     'Fix: bring both sides within 5,000 Pa of each other with a pump or a vent, then open the door.',
   ]);
 
@@ -64,8 +63,7 @@ test('cycles the airlock under the interlock on /airlock', async ({
   await pump.selectOption('off');
   await press('Set pump');
   await press('Open vent');
-  await advance(request, 40);
-  await page.reload();
+  await frame(page, await advance(request, 40));
   expect(await reading(airlockSide(outer))).toBeGreaterThanOrEqual(3.5);
   expect(await reading(airlockSide(outer))).toBeLessThanOrEqual(4.5);
   await door.selectOption('airlock-outer');
@@ -73,8 +71,7 @@ test('cycles the airlock under the interlock on /airlock', async ({
   await expect(answer.getByRole('listitem')).toHaveText([
     'survey-7: opened airlock-outer',
   ]);
-  await advance(request, 20);
-  await page.reload();
+  await frame(page, await advance(request, 20));
   await expect(gauge(outer, 'Door')).toHaveText('Open');
   await expect(airlockSide(outer)).toHaveText('0.0 kPa');
 
@@ -90,7 +87,7 @@ test('cycles the airlock under the interlock on /airlock', async ({
   await door.selectOption('habitat-airlock');
   await press('Open door');
   await expect(refusal.first()).toHaveText(
-    /^The habitat-airlock door holds [\d,]+ Pa of difference, above the 5,000 Pa interlock\.$/,
+    /^MERIDIAN_INTERLOCK: The habitat-airlock door holds [\d,]+ Pa of difference, above the 5,000 Pa interlock\.$/,
   );
   await advance(request, 114);
   await pump.selectOption('off');
@@ -100,8 +97,7 @@ test('cycles the airlock under the interlock on /airlock', async ({
   await expect(answer.getByRole('listitem')).toHaveText([
     'survey-7: opened habitat-airlock',
   ]);
-  await advance(request, 20);
-  await page.reload();
+  await frame(page, await advance(request, 20));
   await expect(gauge(inner, 'Door')).toHaveText('Open');
   const sides = [
     await reading(gauge(inner, 'Habitat side')),

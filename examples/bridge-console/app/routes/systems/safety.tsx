@@ -3,6 +3,7 @@ import type { CompartmentId, ShipReading } from '@nexusdi/meridian-systems';
 import type { CommandAnswer } from '../../di/contracts';
 import { fixed } from '../../fixed';
 import { snapshotLoader } from '../snapshot-loader.server';
+import { useShipReading } from '../../hooks/use-ship-reading';
 import type { Route } from './+types/safety';
 import { COMPARTMENT_NAMES } from './compartments';
 import { Door, DOOR_IDS } from './doors';
@@ -85,11 +86,12 @@ function SafetyGauges({ ship }: { ship: ShipReading }) {
 }
 
 export default function Safety({
-  loaderData: ship,
+  loaderData,
   actionData,
 }: Route.ComponentProps) {
+  const ship = useShipReading(loaderData);
   return (
-    <SystemPage answer={actionData}>
+    <SystemPage answer={actionData} ship={ship}>
       {ship === null ? <SnapshotOffline /> : <SafetyGauges ship={ship} />}
       <ControlSection title="Door control">
         <CommandSelect
@@ -118,3 +120,6 @@ export default function Safety({
     </SystemPage>
   );
 }
+
+/** The page's error boundary: an action that throws leaves the nav and shows the snapshot offline. */
+export { SystemErrorBoundary as ErrorBoundary } from './system-page';

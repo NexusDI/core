@@ -3,6 +3,7 @@ import type { ShipReading } from '@nexusdi/meridian-systems';
 import type { CommandAnswer } from '../../di/contracts';
 import { bearing, fixed, megawatts, turnRate } from '../../fixed';
 import { snapshotLoader } from '../snapshot-loader.server';
+import { useShipReading } from '../../hooks/use-ship-reading';
 import type { Route } from './+types/helm';
 import { allocated } from './allocated';
 import { systemAction } from './system-action.server';
@@ -73,12 +74,10 @@ function DriveGauges({ ship }: { ship: ShipReading }) {
   );
 }
 
-export default function Helm({
-  loaderData: ship,
-  actionData,
-}: Route.ComponentProps) {
+export default function Helm({ loaderData, actionData }: Route.ComponentProps) {
+  const ship = useShipReading(loaderData);
   return (
-    <SystemPage answer={actionData}>
+    <SystemPage answer={actionData} ship={ship}>
       {ship === null ? (
         <SnapshotOffline />
       ) : (
@@ -95,9 +94,12 @@ export default function Helm({
           command="burn"
           label="Burn level"
           button="Burn"
-          defaultValue={1}
+          defaultValue={loaderData?.setpoints.drive.throttle ?? 1}
         />
       </ControlSection>
     </SystemPage>
   );
 }
+
+/** The page's error boundary: an action that throws leaves the nav and shows the snapshot offline. */
+export { SystemErrorBoundary as ErrorBoundary } from './system-page';

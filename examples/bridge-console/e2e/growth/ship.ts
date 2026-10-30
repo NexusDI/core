@@ -1,4 +1,4 @@
-import type { APIRequestContext, Locator } from '@playwright/test';
+import type { APIRequestContext, Locator, Page } from '@playwright/test';
 
 import { GROWTH_PORTS } from '../../playwright.servers.mts';
 import { expect } from '../support';
@@ -26,3 +26,18 @@ export async function advance(
 export async function reading(value: Locator): Promise<number> {
   return Number((await value.innerText()).split(' ')[0]?.replaceAll(',', ''));
 }
+
+/**
+ * Waits until the page's status strip shows tick `tick`, which is the
+ * telemetry frame that follows an advance. The page is not reloaded, so the
+ * gauges that follow read what the frame carried.
+ */
+export async function frame(page: Page, tick: number) {
+  await expect(
+    page.getByRole('status', { name: 'Ship status' }).locator('dd').first(),
+  ).toHaveText(String(tick));
+}
+
+/** The first line of the answer band for a command queued for `tick`, with the thousands grouped. */
+export const queuedAt = (tick: number) =>
+  `Queued for tick ${tick.toLocaleString('en-US')}.`;

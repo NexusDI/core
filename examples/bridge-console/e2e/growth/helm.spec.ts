@@ -1,7 +1,7 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
 
 import { expect, problems, test } from '../support';
-import { advance, bridgeApi, gauge } from './ship';
+import { advance, bridgeApi, frame, gauge, queuedAt } from './ship';
 
 test('flies a course to Kepler-442b from /systems/helm', async ({
   page,
@@ -26,7 +26,7 @@ test('flies a course to Kepler-442b from /systems/helm', async ({
   await page.goto('/systems/engineering');
   await page.getByLabel('Throttle').fill('0.6');
   await page.getByRole('button', { name: 'Set throttle' }).click();
-  await expect(answer).toHaveText(`Queued for tick ${tick + 1}`);
+  await expect(answer).toHaveText(queuedAt(tick + 1));
   await advance(request, 10);
 
   await page.goto('/systems/helm');
@@ -35,11 +35,10 @@ test('flies a course to Kepler-442b from /systems/helm', async ({
   await expect(gauge(drive, 'Thrust')).toHaveText('0 N');
   await page.getByLabel('Star').selectOption('Kepler-442b');
   await page.getByRole('button', { name: 'Plot course' }).click();
-  await expect(answer).toHaveText(`Queued for tick ${tick + 11}`);
+  await expect(answer).toHaveText(queuedAt(tick + 11));
 
   // The turn settles in under 800 ticks, and the thrusters draw 0 W once it does.
-  await advance(request, 800);
-  await page.reload();
+  await frame(page, await advance(request, 800));
   await expect(gauge(helm, 'Heading')).toHaveText('42.0°');
   await expect(gauge(helm, 'Course')).toHaveText('42.0°');
   await expect(gauge(helm, 'Turn rate')).toHaveText('0.00 °/s');
@@ -47,11 +46,12 @@ test('flies a course to Kepler-442b from /systems/helm', async ({
   await expect(gauge(helm, 'Thruster power')).toHaveText('0.0 MW');
 
   // The burn on the course adds 0.0036 m/s² for 400 ticks of 0.5 s.
-  await expect(page.getByLabel('Burn level')).toHaveValue('1');
+  // The form starts at the snapshot's burn level, which is 0 before any burn.
+  await expect(page.getByLabel('Burn level')).toHaveValue('0');
+  await page.getByLabel('Burn level').fill('1');
   await page.getByRole('button', { name: 'Burn', exact: true }).click();
-  await expect(answer).toHaveText(`Queued for tick ${tick + 811}`);
-  await advance(request, 400);
-  await page.reload();
+  await expect(answer).toHaveText(queuedAt(tick + 811));
+  await frame(page, await advance(request, 400));
   await expect(gauge(drive, 'Thrust')).toHaveText('14,400 N');
   await expect(gauge(drive, 'Propellant flow')).toHaveText('0.288 kg/s');
   await expect(gauge(drive, 'Acceleration')).toHaveText('0.0036 m/s²');

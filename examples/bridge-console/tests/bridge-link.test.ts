@@ -379,6 +379,68 @@ describe("the bridge link's commands", () => {
   });
 });
 
+/** The address of a port nothing listens on. */
+async function deadUrl() {
+  const { server: closed, url } = await listen(() => new Response(null));
+  await new Promise((resolve) => closed.close(resolve));
+  return url;
+}
+
+describe('the bridge link when bridge-api is unreachable', () => {
+  it('answers a BRIDGE_OFFLINE refusal to a command', async () => {
+    const url = await deadUrl();
+    await using bridge = await linkTo(url);
+    expect(
+      await bridge.link.command({
+        system: 'engineering',
+        action: 'throttle',
+        level: 1,
+      }),
+    ).toStrictEqual({
+      accepted: false,
+      status: 503,
+      code: 'BRIDGE_OFFLINE',
+      message: `The bridge is unreachable at ${url}.`,
+      fix: 'Start bridge-api with `npx nx run @nexusdi/bridge-api:dev`, or set BRIDGE_API_URL to the address it listens on.',
+    });
+  });
+
+  it('answers the same reply to the FTL load', async () => {
+    const url = await deadUrl();
+    await using bridge = await linkTo(url);
+    expect(await bridge.link.loadFtl()).toMatchObject({
+      accepted: false,
+      status: 503,
+      code: 'BRIDGE_OFFLINE',
+    });
+  });
+
+  it('still rejects when the request aborts', async () => {
+    const reader = new AbortController();
+    reader.abort();
+    await using bridge = await linkTo(await deadUrl(), reader.signal);
+    await expect(
+      bridge.link.command({ system: 'engineering', action: 'throttle' }),
+    ).rejects.toMatchObject({ name: 'AbortError' });
+  });
+});
+
+it('passes a notice of the 202 answer through', async () => {
+  const notice = {
+    code: 'MERIDIAN_NO_SUBSPACE_LINK',
+    message: 'waits',
+    fix: 'Start it.',
+  };
+  using fetch = vi
+    .spyOn(globalThis, 'fetch')
+    .mockResolvedValue(Response.json({ tick: 3, notice }, { status: 202 }));
+  await using bridge = await linkTo(base);
+  expect(
+    await bridge.link.command({ system: 'comms', action: 'hail' }),
+  ).toStrictEqual({ accepted: true, tick: 3, notice });
+  expect(fetch).toHaveBeenCalledOnce();
+});
+
 describe("the bridge link's FTL section", () => {
   it('posts the load with no body and gives the rating of the loaded drive', async () => {
     using fetch = vi

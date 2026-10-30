@@ -12,7 +12,12 @@ import {
 
 import type { INavCharts } from '@nexusdi/meridian-systems/charts';
 
-import type { CommandAnswer, IBridgeLink } from '../app/di/contracts';
+import type {
+  BridgeOffline,
+  CommandAnswer,
+  IBridgeLink,
+  ITelemetryClient,
+} from '../app/di/contracts';
 
 /** The rating `POST /sections/ftl` answers for the Meridian's drive. */
 export const FTL_RATING: FtlRating = {
@@ -355,7 +360,7 @@ export class FakeBridgeLink implements IBridgeLink {
     };
   }
   /** Loads a drive with the Meridian's spool rating. */
-  async loadFtl(): Promise<FtlRating> {
+  async loadFtl(): Promise<FtlRating | BridgeOffline> {
     return FTL_RATING;
   }
 }
@@ -380,3 +385,34 @@ export const fakeBridgeLink = {
   useClass: FakeBridgeLink,
   lifetime: 'scoped',
 } as const;
+
+/**
+ * A TELEMETRY_CLIENT that a test drives: `push` sends a ship reading to every
+ * subscriber, and `drop` takes the stream offline.
+ */
+export class FakeTelemetry implements ITelemetryClient {
+  #subscribers = new Set<{
+    next: (ship: ShipReading) => void;
+    offline: (reason: string) => void;
+  }>();
+  subscribe(
+    next: (ship: ShipReading) => void,
+    offline: (reason: string) => void,
+  ) {
+    const subscriber = { next, offline };
+    this.#subscribers.add(subscriber);
+    return () => {
+      this.#subscribers.delete(subscriber);
+    };
+  }
+  /** Sends `ship` as the next frame. */
+  push(ship: ShipReading) {
+    for (const subscriber of [...this.#subscribers]) subscriber.next(ship);
+  }
+  /** Ends the stream with `reason`. */
+  drop(reason = 'telemetry lost') {
+    const lost = [...this.#subscribers];
+    this.#subscribers.clear();
+    for (const subscriber of lost) subscriber.offline(reason);
+  }
+}

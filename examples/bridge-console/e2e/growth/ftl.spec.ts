@@ -1,7 +1,7 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
 
 import { expect, problems, test } from '../support';
-import { advance, bridgeApi, gauge } from './ship';
+import { advance, bridgeApi, frame, gauge, queuedAt } from './ship';
 
 test('loads the drive, spools and jumps from /systems/ftl', async ({
   page,
@@ -25,17 +25,21 @@ test('loads the drive, spools and jumps from /systems/ftl', async ({
   await page.goto('/systems/engineering');
   await page.getByLabel('Throttle').fill('1');
   await page.getByRole('button', { name: 'Set throttle' }).click();
-  await expect(answer).toHaveText(`Queued for tick ${tick + 1}`);
+  await expect(answer).toHaveText(queuedAt(tick + 1));
   await page.goto('/systems/helm');
   await page.getByLabel('Burn level').fill('0');
   await page.getByRole('button', { name: 'Burn', exact: true }).click();
-  await expect(answer).toHaveText(`Queued for tick ${tick + 1}`);
-  await advance(request, 40);
+  await expect(answer).toHaveText(queuedAt(tick + 1));
+  await advance(request, 39);
 
   // No earlier case loads the drive, so the page reads the ship before it,
   // and the desk refuses a spool until the drive loads.
   await page.goto('/systems/ftl');
   await expect(gauge(ftl, 'Status')).toHaveText('not loaded');
+  // The last of the 40 ticks arrives as a frame. Loading the drive changes the
+  // ship without a tick, so the gauge must leave "not loaded" before any
+  // further advance.
+  await frame(page, await advance(request, 1));
   await page.getByRole('button', { name: 'Spool drive' }).click();
   await expect(page.getByRole('alert')).toContainText(
     "No ship system is named 'ftl'.",
@@ -46,19 +50,18 @@ test('loads the drive, spools and jumps from /systems/ftl', async ({
   ).toHaveText(
     'Drive loaded: the spool draws 900.0 MW, and a jump spends 90.0 GJ.',
   );
+  await expect(gauge(ftl, 'Status')).not.toHaveText('not loaded');
   await page.getByRole('button', { name: 'Spool drive' }).click();
-  await expect(answer).toHaveText(`Queued for tick ${tick + 41}`);
+  await expect(answer).toHaveText(queuedAt(tick + 41));
 
-  await advance(request, 200);
-  await page.reload();
+  await frame(page, await advance(request, 200));
   await expect(gauge(ftl, 'Status')).toHaveText('charged');
   await expect(gauge(ftl, 'Spool charge')).toHaveText('90.0 GJ');
 
   await page.getByLabel('Star').selectOption('Proxima-b');
   await page.getByRole('button', { name: 'Jump', exact: true }).click();
-  await expect(answer).toHaveText(`Queued for tick ${tick + 241}`);
-  await advance(request, 1);
-  await page.reload();
+  await expect(answer).toHaveText(queuedAt(tick + 241));
+  await frame(page, await advance(request, 1));
   await expect(gauge(ftl, 'Status')).toHaveText('idle');
   await expect(gauge(ftl, 'Spool charge')).toHaveText('0.0 GJ');
   await expect(gauge(ftl, 'Sector')).toHaveText('Proxima-b');

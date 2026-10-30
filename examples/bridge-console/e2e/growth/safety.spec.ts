@@ -1,7 +1,7 @@
 import type { ShipReading } from '@nexusdi/meridian-systems';
 
 import { expect, problems, test } from '../support';
-import { advance, bridgeApi, gauge } from './ship';
+import { advance, bridgeApi, frame, gauge, queuedAt } from './ship';
 
 test('works the doors and puts out a reactor bay fire on /systems/safety', async ({
   page,
@@ -24,7 +24,7 @@ test('works the doors and puts out a reactor bay fire on /systems/safety', async
   await page.goto('/systems/safety');
   await door.selectOption('bridge-habitat');
   await page.getByRole('button', { name: 'Open door' }).click();
-  await expect(answer.locator('p')).toHaveText(`Queued for tick ${tick + 1}`);
+  await expect(answer.locator('p')).toHaveText(queuedAt(tick + 1));
   await expect(answer.getByRole('listitem')).toHaveText([
     'survey-7: opened bridge-habitat',
   ]);
@@ -35,7 +35,7 @@ test('works the doors and puts out a reactor bay fire on /systems/safety', async
   await door.selectOption('airlock-outer');
   await page.getByRole('button', { name: 'Open door' }).click();
   await expect(page.getByRole('alert').locator('p')).toHaveText([
-    /^The airlock-outer door holds [\d,]+ Pa of difference, above the 5,000 Pa interlock\.$/,
+    /^MERIDIAN_INTERLOCK: The airlock-outer door holds [\d,]+ Pa of difference, above the 5,000 Pa interlock\.$/,
     'Fix: bring both sides within 5,000 Pa of each other with a pump or a vent, then open the door.',
   ]);
 
@@ -47,7 +47,7 @@ test('works the doors and puts out a reactor bay fire on /systems/safety', async
     'survey-7: closed bridge-habitat',
   ]);
   const shut = await advance(request, 1);
-  await page.reload();
+  await frame(page, shut);
   await expect(
     gauge(page.getByLabel('bridge-habitat door', { exact: true }), 'Door'),
   ).toHaveText('Shut');
@@ -56,19 +56,18 @@ test('works the doors and puts out a reactor bay fire on /systems/safety', async
   // tick after puts it out within 70 ticks.
   await room.selectOption('reactor-bay');
   await page.getByRole('button', { name: 'Drill' }).click();
-  await expect(answer.locator('p')).toHaveText(`Queued for tick ${shut + 1}`);
+  await expect(answer.locator('p')).toHaveText(queuedAt(shut + 1));
   await expect(answer.getByRole('listitem')).toHaveCount(0);
   const lit = await advance(request, 1);
-  await page.reload();
+  await frame(page, lit);
   await expect(alarms.getByRole('listitem')).toHaveText([
     'FIRE in reactor-bay',
   ]);
 
   await room.selectOption('reactor-bay');
   await page.getByRole('button', { name: 'Flood' }).click();
-  await expect(answer.locator('p')).toHaveText(`Queued for tick ${lit + 1}`);
-  await advance(request, 70);
-  await page.reload();
+  await expect(answer.locator('p')).toHaveText(queuedAt(lit + 1));
+  await frame(page, await advance(request, 70));
   await expect(page.getByText('No alarms')).toBeVisible();
   await expect(alarms).toHaveCount(0);
   expect(seen).toEqual([]);

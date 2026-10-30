@@ -8,6 +8,7 @@ import { Form } from 'react-router';
 import { Button, Section } from '../../components';
 import type { CommandAnswer } from '../../di/contracts';
 import { fixed, kilopascals } from '../../fixed';
+import { useShipReading } from '../../hooks/use-ship-reading';
 import type { Route } from './+types/life-support';
 import { AirlockControls } from './airlock-controls';
 import { COMPARTMENTS } from './compartments';
@@ -90,9 +91,10 @@ export default function LifeSupport({
   loaderData,
   actionData,
 }: Route.ComponentProps) {
-  const { ship, air } = loaderData;
+  const { ship: snapshot, air } = loaderData;
+  const ship = useShipReading(snapshot);
   return (
-    <SystemPage answer={actionData}>
+    <SystemPage answer={actionData} ship={ship}>
       {ship === null ? <SnapshotOffline /> : null}
       {COMPARTMENTS.map(([id, name]) => (
         <Compartment
@@ -118,13 +120,20 @@ export default function LifeSupport({
           min={283}
           max={303}
           step={0.1}
-          defaultValue={293}
+          defaultValue={
+            snapshot?.setpoints.lifeSupport.heaters.habitat?.target ?? 293
+          }
           hidden={{ compartment: 'habitat' }}
         />
       </ControlSection>
       <ControlSection title="Airlock pump and vent">
-        <AirlockControls />
+        <AirlockControls
+          pump={snapshot?.setpoints.lifeSupport.pumps.airlock ?? 'off'}
+        />
       </ControlSection>
     </SystemPage>
   );
 }
+
+/** The page's error boundary: an action that throws leaves the nav and shows the snapshot offline. */
+export { SystemErrorBoundary as ErrorBoundary } from './system-page';

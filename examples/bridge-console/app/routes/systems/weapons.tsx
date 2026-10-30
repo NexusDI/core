@@ -3,6 +3,7 @@ import type { ShipReading } from '@nexusdi/meridian-systems';
 import type { CommandAnswer } from '../../di/contracts';
 import { fixed, megawatts } from '../../fixed';
 import { snapshotLoader } from '../snapshot-loader.server';
+import { useShipReading } from '../../hooks/use-ship-reading';
 import type { Route } from './+types/weapons';
 import { allocated } from './allocated';
 import { systemAction } from './system-action.server';
@@ -60,11 +61,12 @@ function WeaponsGauges({ ship }: { ship: ShipReading }) {
 }
 
 export default function Weapons({
-  loaderData: ship,
+  loaderData,
   actionData,
 }: Route.ComponentProps) {
+  const ship = useShipReading(loaderData);
   return (
-    <SystemPage answer={actionData}>
+    <SystemPage answer={actionData} ship={ship}>
       {ship === null ? <SnapshotOffline /> : <WeaponsGauges ship={ship} />}
       <ControlSection title="Fire">
         <NumberForm
@@ -81,3 +83,6 @@ export default function Weapons({
     </SystemPage>
   );
 }
+
+/** The page's error boundary: an action that throws leaves the nav and shows the snapshot offline. */
+export { SystemErrorBoundary as ErrorBoundary } from './system-page';

@@ -154,19 +154,28 @@ describe('the system page pieces', () => {
   });
 
   it('shows no answer before a command', () => {
-    render(<SystemPage answer={undefined}>page</SystemPage>);
+    render(
+      <SystemPage answer={undefined} ship={null}>
+        page
+      </SystemPage>,
+    );
     expect(screen.queryByRole('status')).toBeNull();
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('shows the tick of an accepted command', () => {
-    render(<SystemPage answer={{ accepted: true, tick: 4 }}>page</SystemPage>);
-    expect(screen.getByRole('status').textContent).toBe('Queued for tick 4');
+    render(
+      <SystemPage answer={{ accepted: true, tick: 4 }} ship={null}>
+        page
+      </SystemPage>,
+    );
+    expect(screen.getByRole('status').textContent).toBe('Queued for tick 4.');
   });
 
   it('shows one line per flight-log entry under the tick', () => {
     render(
       <SystemPage
+        ship={null}
         answer={{
           accepted: true,
           tick: 4,
@@ -181,7 +190,7 @@ describe('the system page pieces', () => {
     );
     const status = screen.getByRole('status');
     expect(status.textContent).toBe(
-      'Queued for tick 4survey-7: opened bridge-habitatsurvey-7: closed airlock-outer',
+      'Queued for tick 4.survey-7: opened bridge-habitatsurvey-7: closed airlock-outer',
     );
     expect(
       [...status.querySelectorAll('li')].map((item) => item.textContent),
@@ -192,13 +201,18 @@ describe('the system page pieces', () => {
   });
 
   it('shows no list when the answer has no flight log', () => {
-    render(<SystemPage answer={{ accepted: true, tick: 4 }}>page</SystemPage>);
+    render(
+      <SystemPage answer={{ accepted: true, tick: 4 }} ship={null}>
+        page
+      </SystemPage>,
+    );
     expect(screen.getByRole('status').querySelector('li')).toBeNull();
   });
 
   it('shows a refusal and its fix', () => {
     render(
       <SystemPage
+        ship={null}
         answer={{
           accepted: false,
           status: 409,
@@ -211,7 +225,43 @@ describe('the system page pieces', () => {
       </SystemPage>,
     );
     expect(screen.getByRole('alert').textContent).toBe(
-      'Refused.Fix: Try later.',
+      'E: Refused.Fix: Try later.',
+    );
+  });
+
+  it('shows the notice and its fix under the queued line', () => {
+    render(
+      <SystemPage
+        ship={null}
+        answer={{
+          accepted: true,
+          tick: 4,
+          notice: { code: 'N', message: 'It waits.', fix: 'Start it.' },
+        }}
+      >
+        page
+      </SystemPage>,
+    );
+    expect(screen.getByRole('status').textContent).toBe(
+      'Queued for tick 4.It waits.Fix: Start it.',
+    );
+  });
+
+  it('shows a notice with no fix as its message alone', () => {
+    render(
+      <SystemPage
+        ship={null}
+        answer={{
+          accepted: true,
+          tick: 4,
+          notice: { code: 'N', message: 'It waits.' },
+        }}
+      >
+        page
+      </SystemPage>,
+    );
+    expect(screen.getByRole('status').textContent).toBe(
+      'Queued for tick 4.It waits.',
     );
   });
 

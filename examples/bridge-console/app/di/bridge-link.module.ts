@@ -18,7 +18,12 @@ import type {
 } from '@nexusdi/meridian-systems';
 import type { Course } from '@nexusdi/meridian-systems/charts';
 
-import { BRIDGE_LINK, type CommandAnswer, type IBridgeLink } from './contracts';
+import {
+  BRIDGE_LINK,
+  type BridgeOffline,
+  type CommandAnswer,
+  type IBridgeLink,
+} from './contracts';
 
 const BRIDGE_LINK_OPTIONS = new Token<{ readonly url: string }>(
   'BridgeLinkOptions',
@@ -77,9 +82,11 @@ class BridgeApiLink implements IBridgeLink {
   async command(cmd: ShipCommand): Promise<CommandAnswer> {
     return this.#post('commands', cmd);
   }
-  async loadFtl(): Promise<FtlRating> {
+  async loadFtl(): Promise<FtlRating | BridgeOffline> {
     const url = new URL('sections/ftl', this.options.url);
-    const res = await this.#fetch(url, 'POST');
+    const sent = await this.#reach(() => this.#fetch(url, 'POST'));
+    if ('accepted' in sent) return sent;
+    const res = sent;
     if (res.status !== 200) throw await rejection(res, url);
     return ((await res.json()) as { rating: FtlRating }).rating;
   }
@@ -90,23 +97,31 @@ class BridgeApiLink implements IBridgeLink {
    */
   async #post(path: string, body: unknown): Promise<CommandAnswer> {
     const url = new URL(path, this.options.url);
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        [MISSION_HEADER]: this.request.mission.id,
-      },
-      body: JSON.stringify(body),
-      signal: this.request.signal,
-    });
+    const sent = await this.#reach(() =>
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          [MISSION_HEADER]: this.request.mission.id,
+        },
+        body: JSON.stringify(body),
+        signal: this.request.signal,
+      }),
+    );
+    if ('accepted' in sent) return sent;
+    const res = sent;
     if (res.status === 202) {
-      const { tick, flightLog } = (await res.json()) as {
+      const { tick, flightLog, notice } = (await res.json()) as {
         tick: number;
         flightLog?: readonly string[];
+        notice?: { code: string; message: string; fix?: string };
       };
-      return flightLog === undefined
-        ? { accepted: true, tick }
-        : { accepted: true, tick, flightLog };
+      return {
+        accepted: true,
+        tick,
+        ...(flightLog === undefined ? {} : { flightLog }),
+        ...(notice === undefined ? {} : { notice }),
+      };
     }
     if (res.status === 400 || res.status === 409) {
       const refusal = (await res.json()) as {
@@ -117,6 +132,28 @@ class BridgeApiLink implements IBridgeLink {
       return { accepted: false, status: res.status, ...refusal };
     }
     throw await rejection(res, url);
+  }
+
+  /**
+   * Runs `send` and gives its response, or the `BridgeOffline` reply when the
+   * network fails. An abort of the request's signal still rejects, since the
+   * reader has left the page.
+   */
+  async #reach(
+    send: () => Promise<Response>,
+  ): Promise<Response | BridgeOffline> {
+    try {
+      return await send();
+    } catch (error) {
+      if (this.request.signal?.aborted) throw error;
+      return {
+        accepted: false,
+        status: 503,
+        code: 'BRIDGE_OFFLINE',
+        message: `The bridge is unreachable at ${this.options.url}.`,
+        fix: 'Start bridge-api with `npx nx run @nexusdi/bridge-api:dev`, or set BRIDGE_API_URL to the address it listens on.',
+      };
+    }
   }
 
   /** Fetches `path` and throws when the status is not ok. */

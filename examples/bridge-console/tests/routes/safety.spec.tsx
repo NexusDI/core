@@ -214,7 +214,7 @@ describe('the safety forms', () => {
     const command = vi.spyOn(scope.get(BRIDGE_LINK), 'command');
     fireEvent.click(screen.getByRole('button', { name }));
     expect((await screen.findByRole('status')).textContent).toBe(
-      'Queued for tick 1',
+      'Queued for tick 1.',
     );
     expect(command).toHaveBeenCalledOnce();
     return command.mock.calls[0]?.[0];
@@ -276,7 +276,7 @@ describe('the safety forms', () => {
     }
     await renderPage(renderRoute, withLink(LoggingLink));
     fireEvent.click(screen.getByRole('button', { name: 'Open door' }));
-    expect(await screen.findByText('Queued for tick 191')).toBeDefined();
+    expect(await screen.findByText('Queued for tick 191.')).toBeDefined();
     expect(screen.getByText('survey-9: opened bridge-habitat')).toBeDefined();
   });
 
@@ -297,7 +297,7 @@ describe('the safety forms', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open door' }));
     expect(
       await screen.findByText(
-        'The airlock-outer door holds 101,300 Pa of difference, above the 5,000 Pa interlock.',
+        'MERIDIAN_INTERLOCK: The airlock-outer door holds 101,300 Pa of difference, above the 5,000 Pa interlock.',
       ),
     ).toBeDefined();
     expect(
