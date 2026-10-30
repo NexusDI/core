@@ -40,6 +40,7 @@ describe('compile', () => {
       args: [{ kind: 'required', token: ReactorCore, ids: [reactor] }],
       props: [],
       target: null,
+      unresolved: [],
     });
   });
 
@@ -58,6 +59,9 @@ describe('compile', () => {
     expect(bp.edges).toEqual([]);
     expect(bp.bindings.get(idOf(bp, NAV_CHARTS))?.args).toEqual([
       { kind: 'optional', token: ReactorCore, ids: [] },
+    ]);
+    expect(bp.bindings.get(idOf(bp, NAV_CHARTS))?.unresolved).toEqual([
+      { kind: 'optional', written: ReactorCore },
     ]);
   });
 

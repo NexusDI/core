@@ -9,6 +9,7 @@ import { REQUEST } from '../definitions/request.js';
 import { PluginError, type NexusError } from '../errors/index.js';
 import {
   NO_ENTRIES,
+  NO_UNRESOLVED,
   type DepEntry,
   type ProviderRecord,
   type RecordShape,
@@ -349,7 +350,7 @@ export function rewriteProviders(
   for (const record of records) {
     const chosen = firstAnswer(
       hooks.provider,
-      providerView(record, null),
+      providerView(record, null, NO_UNRESOLVED),
       context,
       {
         hook: 'compile.provider',

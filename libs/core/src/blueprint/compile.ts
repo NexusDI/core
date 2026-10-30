@@ -381,6 +381,7 @@ export function compile(input: CompileInput): Blueprint {
             edges: bound.edges,
             replaced: replacedModules,
             rewrittenBy,
+            bindings: bound.bindings,
           },
           keying ?? sameToken,
         )

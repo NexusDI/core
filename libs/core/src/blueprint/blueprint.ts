@@ -99,11 +99,23 @@ export interface Binding {
   readonly ids: readonly string[];
 }
 
+/** A dependency that bound to no provider and resolves to undefined. */
+export interface UnresolvedDep {
+  readonly kind: 'optional';
+  /** The token the dependent named, before a tokenKey hook keyed it. */
+  readonly written: TokenKey;
+}
+
+/** The one frozen list every provider with no unresolved dep shares. */
+export const NO_UNRESOLVED: readonly UnresolvedDep[] = Object.freeze([]);
+
 export interface ProviderBindings {
   readonly args: readonly Binding[];
   readonly props: readonly Binding[];
   /** An alias's bound target. */
   readonly target: string | null;
+  /** The optional deps and properties that bound to nothing, in deps then property order. */
+  readonly unresolved: readonly UnresolvedDep[];
 }
 
 export interface Edge {

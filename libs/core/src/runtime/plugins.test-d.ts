@@ -59,6 +59,10 @@ describe('written', () => {
   it('holds a token on a provider view and an edge view, and the edge has no token', () => {
     expectTypeOf<ProviderView['written']>().toEqualTypeOf<AnyToken>();
     expectTypeOf<EdgeView['written']>().toEqualTypeOf<AnyToken>();
+    expectTypeOf<ProviderView['unresolved'][number]>().toEqualTypeOf<{
+      readonly kind: 'optional';
+      readonly written: AnyToken;
+    }>();
     expectTypeOf<
       'token' extends keyof EdgeView ? true : false
     >().toEqualTypeOf<false>();

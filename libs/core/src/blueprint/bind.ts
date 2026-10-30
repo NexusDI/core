@@ -6,7 +6,9 @@ import {
   type DepEntry,
   type Edge,
   type ModuleNode,
+  NO_UNRESOLVED,
   type ProviderBindings,
+  type UnresolvedDep,
   type ProviderRecord,
   type TokenKey,
 } from './blueprint.js';
@@ -62,6 +64,7 @@ export function bind(input: BindInput, errors: NexusError[]): BindResult {
       );
     };
 
+    let unresolved: UnresolvedDep[] | undefined;
     const bindOne = (dep: DepEntry): Binding => {
       const ids = lookup(dep.token);
       const written = dep.written ?? dep.token;
@@ -77,7 +80,11 @@ export function bind(input: BindInput, errors: NexusError[]): BindResult {
       }
       const [to] = ids;
       if (to === undefined) {
-        if (dep.kind !== 'optional') reportMissing(dep.token);
+        if (dep.kind === 'optional')
+          (unresolved ??= []).push(
+            Object.freeze({ kind: 'optional', written }),
+          );
+        else reportMissing(dep.token);
         return { kind: dep.kind, token: dep.token, ids: [] };
       }
       edges.push({ from: record.id, to, kind: dep.kind, written });
@@ -100,7 +107,13 @@ export function bind(input: BindInput, errors: NexusError[]): BindResult {
         target = to;
       }
     }
-    bindings.set(record.id, { args, props, target });
+    bindings.set(record.id, {
+      args,
+      props,
+      target,
+      unresolved:
+        unresolved === undefined ? NO_UNRESOLVED : Object.freeze(unresolved),
+    });
   }
 
   return { bindings, edges };

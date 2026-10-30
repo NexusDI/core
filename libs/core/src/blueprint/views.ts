@@ -11,12 +11,15 @@ import type {
   NearMiss,
   NexusErrorByCode,
 } from '../errors/index.js';
-import type {
-  Blueprint,
-  Edge,
-  ModuleNode,
-  ProviderRecord,
-  TokenKey,
+import {
+  type Blueprint,
+  type Edge,
+  type ModuleNode,
+  NO_UNRESOLVED,
+  type ProviderBindings,
+  type ProviderRecord,
+  type TokenKey,
+  type UnresolvedDep,
 } from './blueprint.js';
 
 /** What a compile hook, a check hook or an error formatter reads. Frozen. */
@@ -93,6 +96,19 @@ export interface ProviderView {
    * inline provider's ordering edges as its dependents' edges.
    */
   readonly inline: boolean;
+  /**
+   * The deps that bound to no provider: today each `optional()` dep or
+   * property with no visible provider, which resolves to `undefined`. In deps
+   * order, then property order. Empty for every other provider. `written` is
+   * the token the dependent named. A `compile.provider` hook runs before
+   * binding and sees an empty list. `kind` may gain a member in a minor
+   * release, such as an `all()` dep with no contribution, so handle a kind
+   * you do not know.
+   */
+  readonly unresolved: readonly {
+    readonly kind: 'optional';
+    readonly written: AnyToken;
+  }[];
 }
 
 /** One dependency edge of the compiled graph: the provider ids it joins and how the dependent asked. */
@@ -146,6 +162,8 @@ export interface ViewParts {
   readonly replaced: ReadonlyMap<ModuleDefinition, ModuleDefinition>;
   /** Provider id → the plugin whose compile.provider hook rewrote it. */
   readonly rewrittenBy: ReadonlyMap<string, string>;
+  /** Provider id → its bindings, which hold the unresolved deps. */
+  readonly bindings: ReadonlyMap<string, ProviderBindings>;
 }
 
 /** Maps a token to the key the visibility map uses. */
@@ -157,6 +175,7 @@ export const sameToken: Canonicalizer = (token) => token;
 export function providerView(
   record: ProviderRecord,
   rewrittenBy: string | null,
+  unresolved: readonly UnresolvedDep[],
 ): ProviderView {
   return Object.freeze({
     id: record.id,
@@ -170,6 +189,7 @@ export function providerView(
     implementation: record.kind === 'class' ? (record.useClass ?? null) : null,
     rewrittenBy,
     inline: isInline(record),
+    unresolved,
   });
 }
 
@@ -198,7 +218,11 @@ export function buildView(
   );
   const providers = Object.freeze(
     [...parts.records].map((r) =>
-      providerView(r, parts.rewrittenBy.get(r.id) ?? null),
+      providerView(
+        r,
+        parts.rewrittenBy.get(r.id) ?? null,
+        parts.bindings.get(r.id)?.unresolved ?? NO_UNRESOLVED,
+      ),
     ),
   );
   const edges = Object.freeze(
@@ -252,6 +276,7 @@ export function viewOfBlueprint(
         edges: bp.edges,
         replaced: bp.replacedModules,
         rewrittenBy: bp.rewrittenBy,
+        bindings: bp.bindings,
       },
       canon,
     );
@@ -294,7 +319,11 @@ export function providerViewIn(
   }
   let view = views.get(record.id);
   if (view === undefined) {
-    view = providerView(record, bp.rewrittenBy.get(record.id) ?? null);
+    view = providerView(
+      record,
+      bp.rewrittenBy.get(record.id) ?? null,
+      bp.bindings.get(record.id)?.unresolved ?? NO_UNRESOLVED,
+    );
     views.set(record.id, view);
   }
   return view;
