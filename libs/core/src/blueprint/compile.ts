@@ -36,7 +36,13 @@ import { computeLevels } from './levels.js';
 import { splitEntry, type LoadEntry } from './load-entry.js';
 import { checkLifetimes } from './lifetimes.js';
 import { providerRecord } from './records.js';
-import { cyclePath, findCycles, successorsOf } from './tarjan.js';
+import {
+  cyclePath,
+  findCycles,
+  orderingEdgesFrom,
+  stepKinds,
+  successorsOf,
+} from './tarjan.js';
 import {
   adoptView,
   buildView,
@@ -334,13 +340,20 @@ export function compile(input: CompileInput): Blueprint {
 
   // Pass 4: cycles, ignoring lazy edges.
   const strong = successorsOf(bound.edges, ordersBuild);
+  let byFrom: ReturnType<typeof orderingEdgesFrom> | undefined;
   for (const component of findCycles([...providers.keys()], strong)) {
     const path = cyclePath(
       component,
       strong,
       (id) => providers.get(id)?.index ?? 0,
     );
-    errors.push(new CircularDependencyError({ path: path.map(nameOf) }));
+    byFrom ??= orderingEdgesFrom(bound.edges);
+    errors.push(
+      new CircularDependencyError({
+        path: path.map(nameOf),
+        kinds: stepKinds(path, byFrom),
+      }),
+    );
   }
 
   // Pass 5: lifetimes, following every edge kind.

@@ -241,7 +241,11 @@ describe('lazy(all())', () => {
     );
     expect(error).toMatchObject({
       errors: [
-        { code: 'NEXUS_CIRCULAR_DEPENDENCY', path: ['Bus', 'Handlers', 'Bus'] },
+        {
+          code: 'NEXUS_CIRCULAR_DEPENDENCY',
+          path: ['Bus', 'Handlers', 'Bus'],
+          kinds: ['all', 'required'],
+        },
       ],
     });
   });

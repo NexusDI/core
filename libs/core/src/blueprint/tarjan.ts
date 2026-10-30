@@ -1,5 +1,7 @@
 import { unreachable } from '../definitions/unreachable.js';
+import type { CircularDependencyError } from '../errors/circular-dependency-error.js';
 import type { Edge, EdgeKind } from './blueprint.js';
+import { ordersBuild } from './build-order.js';
 
 /** Adjacency lists over the edges whose kind `include` accepts. */
 export function successorsOf(
@@ -146,4 +148,31 @@ export function cyclePath(
     }
   }
   return [start, start];
+}
+
+/** Ordering edges by their dependent, in edge order. */
+export function orderingEdgesFrom(edges: readonly Edge[]): Map<string, Edge[]> {
+  const byFrom = new Map<string, Edge[]>();
+  for (const edge of edges) {
+    if (!ordersBuild(edge.kind)) continue;
+    const list = byFrom.get(edge.from) ?? [];
+    list.push(edge);
+    byFrom.set(edge.from, list);
+  }
+  return byFrom;
+}
+
+/**
+ * The kind of each step of `path`: the first edge from `path[i]` to
+ * `path[i + 1]` in `byFrom` that orders the build.
+ */
+export function stepKinds(
+  path: readonly string[],
+  byFrom: ReadonlyMap<string, readonly Edge[]>,
+): CircularDependencyError['kinds'][number][] {
+  return path.slice(0, -1).map((from, i) => {
+    const edge = byFrom.get(from)?.find((e) => e.to === path[i + 1]);
+    if (edge === undefined || !ordersBuild(edge.kind)) return unreachable();
+    return edge.kind;
+  });
 }

@@ -48,7 +48,7 @@ const Engineering = defineModule({
 
 const thin = await Nexus.create(Engineering).catch((error: unknown) => error);
 if (!isNexusError(thin, 'NEXUS_BLUEPRINT_INVALID')) throw thin;
-const line = thin.errors[0]?.message; // -> '[NEXUS_CIRCULAR_DEPENDENCY] path=PowerRouter,ShieldGrid,PowerRouter. https://nexus.js.org/errors/NEXUS_CIRCULAR_DEPENDENCY'
+const line = thin.errors[0]?.message; // -> '[NEXUS_CIRCULAR_DEPENDENCY] path=PowerRouter,ShieldGrid,PowerRouter kinds=required,required. https://nexus.js.org/errors/NEXUS_CIRCULAR_DEPENDENCY'
 console.log(line);
 
 const full = await Nexus.create(Engineering, { plugins: [errors()] }).catch(

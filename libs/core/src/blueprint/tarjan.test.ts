@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import { compileErrors } from '../../test-support/compile.js';
 import { defineModule } from '../definitions/define-module.js';
-import { lazy } from '../definitions/modifiers.js';
+import { all, lazy, optional } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
-import { Token } from '../definitions/token.js';
+import { MultiToken, Token } from '../definitions/token.js';
 import { compile } from './compile.js';
 import { cyclePath, findCycles } from './tarjan.js';
 
@@ -75,6 +75,7 @@ describe('compile', () => {
       {
         code: 'NEXUS_CIRCULAR_DEPENDENCY',
         path: ['PowerRouter', 'ShieldGrid', 'PowerRouter'],
+        kinds: ['required', 'required'],
       },
     ]);
   });
@@ -101,7 +102,11 @@ describe('compile', () => {
       ],
     });
     expect(compileErrors(Root)).toMatchObject([
-      { code: 'NEXUS_CIRCULAR_DEPENDENCY', path: ['A', 'B', 'A'] },
+      {
+        code: 'NEXUS_CIRCULAR_DEPENDENCY',
+        path: ['A', 'B', 'A'],
+        kinds: ['alias', 'alias'],
+      },
     ]);
   });
 
@@ -112,7 +117,69 @@ describe('compile', () => {
       providers: [provide(NAME, { useFactory: (n) => n, deps: [NAME] })],
     });
     expect(compileErrors(Root)).toMatchObject([
-      { code: 'NEXUS_CIRCULAR_DEPENDENCY', path: ['Name', 'Name'] },
+      {
+        code: 'NEXUS_CIRCULAR_DEPENDENCY',
+        path: ['Name', 'Name'],
+        kinds: ['required'],
+      },
+    ]);
+  });
+
+  it('reports an all() step of a cycle as all', () => {
+    const ROUTER = new Token<string>('PowerRouter');
+    const POWER = new MultiToken<string>('PowerConsumer');
+    const Root = defineModule({
+      name: 'Root',
+      providers: [
+        provide(ROUTER, { useFactory: (p) => String(p), deps: [all(POWER)] }),
+        provide(POWER, {
+          useFactory: (r) => String(r),
+          deps: [ROUTER],
+        }),
+      ],
+    });
+    expect(compileErrors(Root)).toMatchObject([
+      {
+        code: 'NEXUS_CIRCULAR_DEPENDENCY',
+        path: ['PowerRouter', 'PowerConsumer', 'PowerRouter'],
+        kinds: ['all', 'required'],
+      },
+    ]);
+  });
+
+  it('reports the first ordering edge of a step that two edges join', () => {
+    const A = new Token<string>('A');
+    const B = new Token<string>('B');
+    const Root = defineModule({
+      name: 'Root',
+      providers: [
+        provide(A, {
+          useFactory: (...a: unknown[]) => String(a),
+          deps: [optional(B), B],
+        } as never),
+        provide(B, { useFactory: (a) => String(a), deps: [A] }),
+      ],
+    });
+    expect(compileErrors(Root)).toMatchObject([
+      { code: 'NEXUS_CIRCULAR_DEPENDENCY', kinds: ['optional', 'required'] },
+    ]);
+  });
+
+  it('skips a lazy edge on a step that a plain edge also joins', () => {
+    const A = new Token<string>('A');
+    const B = new Token<string>('B');
+    const Root = defineModule({
+      name: 'Root',
+      providers: [
+        provide(A, {
+          useFactory: (...a: unknown[]) => String(a),
+          deps: [lazy(B), B],
+        } as never),
+        provide(B, { useFactory: (a) => String(a), deps: [A] }),
+      ],
+    });
+    expect(compileErrors(Root)).toMatchObject([
+      { code: 'NEXUS_CIRCULAR_DEPENDENCY', kinds: ['required', 'required'] },
     ]);
   });
 
@@ -130,7 +197,11 @@ describe('compile', () => {
         providers: [node(A, B), node(B, C), node(C, A)],
       });
       expect(compileErrors(Root)).toMatchObject([
-        { code: 'NEXUS_CIRCULAR_DEPENDENCY', path: ['A', 'B', 'C', 'A'] },
+        {
+          code: 'NEXUS_CIRCULAR_DEPENDENCY',
+          path: ['A', 'B', 'C', 'A'],
+          kinds: ['required', 'required', 'required'],
+        },
       ]);
     });
 

@@ -30,7 +30,7 @@ Try it: save the region as `error.ts` and run `npx tsx error.ts`. It prints the 
 
 ```
 
-Try it: change `lazy(SHIELD_GRID)` in the deps of `PlasmaRouter` back to `SHIELD_GRID` in `fixed.ts` and run it again. `tsc` flags the `provide(POWER_ROUTER, ...)` call, because the constructor still expects a function. `Nexus.create` rejects with a `BlueprintError` whose message lists `[NEXUS_CIRCULAR_DEPENDENCY] path=PowerRouter,ShieldGrid,PowerRouter.` Restore `lazy(SHIELD_GRID)` and the program prints `0.4` again.
+Try it: change `lazy(SHIELD_GRID)` in the deps of `PlasmaRouter` back to `SHIELD_GRID` in `fixed.ts` and run it again. `tsc` flags the `provide(POWER_ROUTER, ...)` call, because the constructor still expects a function. `Nexus.create` rejects with a `BlueprintError` whose message lists `[NEXUS_CIRCULAR_DEPENDENCY] path=PowerRouter,ShieldGrid,PowerRouter kinds=required,required.` Restore `lazy(SHIELD_GRID)` and the program prints `0.4` again.
 
 ## Fields of `CircularDependencyError`
 
