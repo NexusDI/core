@@ -326,6 +326,18 @@ export const errorCases: readonly ErrorCase[] = [
     },
   },
   {
+    name: 'CircularDependencyError (all)',
+    error: new CircularDependencyError({
+      path: ['PowerRouter', 'PowerConsumer', 'PowerRouter'],
+      kinds: ['all', 'required'],
+    }),
+    code: 'NEXUS_CIRCULAR_DEPENDENCY',
+    fields: {
+      path: ['PowerRouter', 'PowerConsumer', 'PowerRouter'],
+      kinds: ['all', 'required'],
+    },
+  },
+  {
     name: 'LifetimeError',
     error: new LifetimeError({
       path: ['ShipComputer', 'Mission'],

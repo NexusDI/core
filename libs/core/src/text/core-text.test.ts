@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { BlueprintView, ErrorTextKit, NearMiss } from '../index.js';
 import {
+  CircularDependencyError,
   CoreNotSharedError,
   LoadGrantError,
   MissingProviderError,
@@ -130,6 +131,56 @@ describe('coreText', () => {
     );
     expect(text.message).toBe(
       'a provider was made by another copy of @nexusdi/core.',
+    );
+  });
+});
+
+describe('NEXUS_CIRCULAR_DEPENDENCY text', () => {
+  const message = (
+    path: string[],
+    kinds?: CircularDependencyError['kinds'][number][],
+  ): string =>
+    coreText.NEXUS_CIRCULAR_DEPENDENCY(
+      new CircularDependencyError({ path, kinds } as never),
+    ).message;
+
+  it('wraps the first step in lazy() for a required step', () => {
+    expect(
+      message(
+        ['ShieldGrid', 'PowerRouter', 'ShieldGrid'],
+        ['required', 'required'],
+      ),
+    ).toMatch(
+      /the dependency of ShieldGrid on PowerRouter: lazy\(PowerRouter\)\.$/,
+    );
+  });
+
+  it('wraps an all() step in lazy(all())', () => {
+    expect(
+      message(
+        ['PowerRouter', 'PowerConsumer', 'PowerRouter'],
+        ['all', 'required'],
+      ),
+    ).toMatch(
+      /the dependency of PowerRouter on PowerConsumer: lazy\(all\(PowerConsumer\)\)\.$/,
+    );
+  });
+
+  it('names the first step that is not an alias', () => {
+    expect(
+      message(['A', 'B', 'C', 'A'], ['alias', 'required', 'required']),
+    ).toMatch(/the dependency of B on C: lazy\(C\)\.$/);
+  });
+
+  it('says no lazy() breaks a cycle of aliases', () => {
+    const text = message(['A', 'B', 'A'], ['alias', 'alias']);
+    expect(text).toContain('lazy() cannot wrap an alias');
+    expect(text).not.toContain('lazy(B)');
+  });
+
+  it('keeps the rc.2 fix line for an error with no kinds', () => {
+    expect(message(['ShieldGrid', 'PowerRouter', 'ShieldGrid'])).toMatch(
+      /lazy\(PowerRouter\)\.$/,
     );
   });
 });
