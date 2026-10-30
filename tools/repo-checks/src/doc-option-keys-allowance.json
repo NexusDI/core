@@ -39,6 +39,7 @@
       "RootConfig: RootConfig.exports",
       "RootConfig: RootConfig.imports",
       "RootConfig: RootConfig.providers",
+      "Scope: LookupOptions.module",
       "declareClass: declareClass(options).deps",
       "declareClass: declareClass(options).lifetime",
       "declareModuleClass: ModuleConfig.exports",
@@ -114,6 +115,7 @@
   },
   "@nexusdi/express": {
     "unnamed": [
+      "NexusExpress: LoadOptions.imports",
       "nexus: NexusExpressOptions.log",
       "nexus: NexusExpressOptions.request",
       "nexus: NexusExpressOptions.scopes"
@@ -121,13 +123,18 @@
   },
   "@nexusdi/fastify": {
     "unnamed": [
+      "NexusFastify: LoadOptions.imports",
       "nexus: NexusFastifyOptions.log",
       "nexus: NexusFastifyOptions.request",
       "nexus: NexusFastifyOptions.scopes"
     ]
   },
   "@nexusdi/hono": {
-    "unnamed": ["nexus: NexusHonoOptions.log", "nexus: NexusHonoOptions.scopes"]
+    "unnamed": [
+      "NexusHono: LoadOptions.imports",
+      "nexus: NexusHonoOptions.log",
+      "nexus: NexusHonoOptions.scopes"
+    ]
   },
   "@nexusdi/interceptors": {
     "unnamed": [
@@ -176,6 +183,7 @@
   },
   "@nexusdi/react-router": {
     "unnamed": [
+      "NexusRouter: LoadOptions.imports",
       "nexus: NexusRouterOptions.log",
       "nexus: NexusRouterOptions.request",
       "nexus: NexusRouterOptions.scopes"
@@ -185,6 +193,18 @@
     "unnamed": [
       "ModuleOverrideOptions: ModuleOverrideOptions.lazy",
       "OverrideOptions: OverrideOptions.lazy",
+      "TestingContainerBuilder: FactoryDefinition.deps",
+      "TestingContainerBuilder: FactoryDefinition.eager",
+      "TestingContainerBuilder: FactoryDefinition.lifetime",
+      "TestingContainerBuilder: FactoryDefinition.useFactory",
+      "TestingContainerBuilder: ModuleOverrideOptions.lazy",
+      "TestingContainerBuilder: OverrideOptions.lazy",
+      "TestingContainerBuilder: TestingContainerBuilder#override(definition).deps",
+      "TestingContainerBuilder: TestingContainerBuilder#override(definition).lifetime",
+      "TestingContainerBuilder: TestingContainerBuilder#override(definition).useClass",
+      "TestingContainerBuilder: TestingContainerBuilder#override(definition).useValue",
+      "TestingContainerBuilder: TestingCreateOptions.onInit",
+      "TestingContainerBuilder: TestingCreateOptions.plugins",
       "TestingCreateOptions: TestingCreateOptions.plugins"
     ]
   },

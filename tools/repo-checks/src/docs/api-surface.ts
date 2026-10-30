@@ -160,7 +160,8 @@ export interface Callable {
   heading: string;
   /**
    * How a finding names it: `lazy`, `new Token`, `Nexus.create` for a static
-   * method and `Nexus#load` for an instance method.
+   * method, and `Nexus#load` for an instance method or `Scope#get` for an
+   * interface's method.
    */
   label: string;
   signatures: readonly ts.Signature[];
@@ -176,11 +177,17 @@ const isPublic = (member: ts.Symbol): boolean =>
     (declaration) => (ts.getCombinedModifierFlags(declaration) & HIDDEN) === 0,
   );
 
-/** The methods a class declares itself, with their call signatures. */
+/**
+ * The methods a class or an interface declares itself, with their call
+ * signatures. `methodOnly` keeps only members declared as methods, so an
+ * interface's function-typed property, such as a callback in an options
+ * type, is no method.
+ */
 function methodsOf(
   checker: ts.TypeChecker,
   type: ts.Type,
   owners: readonly ts.Declaration[],
+  methodOnly = false,
 ): { name: string; signatures: readonly ts.Signature[] }[] {
   return checker
     .getPropertiesOfType(type)
@@ -188,8 +195,12 @@ function methodsOf(
       (member) =>
         member.getName() !== 'prototype' &&
         isPublic(member) &&
-        (member.declarations ?? []).some((declaration) =>
-          owners.includes(declaration.parent as ts.Declaration),
+        (member.declarations ?? []).some(
+          (declaration) =>
+            owners.includes(declaration.parent as ts.Declaration) &&
+            (!methodOnly ||
+              ts.isMethodSignature(declaration) ||
+              ts.isMethodDeclaration(declaration)),
         ),
     )
     .map((member) => ({
@@ -205,17 +216,30 @@ function methodsOf(
 
 /**
  * The callables an export documents: its call signatures, its construct
- * signatures, and for a class each public static and instance method the
- * class declares. A method a class inherits is documented under the class
- * that declares it.
+ * signatures, for a class each public static and instance method the class
+ * declares, and for an interface each method it declares, which a caller
+ * reaches on a value the library hands out (`Scope#get`). A method a class
+ * or an interface inherits is documented under the one that declares it.
  */
 export function callablesOf(
   checker: ts.TypeChecker,
   { name, symbol }: SurfaceExport,
 ): Callable[] {
-  if ((symbol.flags & ts.SymbolFlags.Value) === 0) return [];
-  const type = checker.getTypeOfSymbol(symbol);
   const callables: Callable[] = [];
+  if (symbol.flags & ts.SymbolFlags.Interface)
+    for (const method of methodsOf(
+      checker,
+      checker.getDeclaredTypeOfSymbol(symbol),
+      (symbol.declarations ?? []).filter(ts.isInterfaceDeclaration),
+      true,
+    ))
+      callables.push({
+        heading: name,
+        label: `${name}#${method.name}`,
+        signatures: method.signatures,
+      });
+  if ((symbol.flags & ts.SymbolFlags.Value) === 0) return callables;
+  const type = checker.getTypeOfSymbol(symbol);
   const calls = type.getCallSignatures();
   const constructs = type.getConstructSignatures();
   if (calls.length > 0)

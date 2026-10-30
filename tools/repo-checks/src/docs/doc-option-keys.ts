@@ -34,8 +34,15 @@ import { stripFences, type DocsPage } from './site';
  *   `ModuleDefinition` is a value the library builds, and `load()` and
  *   devtools' `inspect()` take it as a module, never as options.
  *
- * Arrays, tuples, functions, class instances and types declared in a
- * TypeScript lib or under `node_modules` are no options type. A parameter
+ * A lib `Partial`, `Readonly`, `Required`, `Pick` or `Omit` of an options
+ * type is that options type, by its name: `Partial<LaunchOptions>` owes
+ * `LaunchOptions` keys, the ones `Pick` and `Omit` leave. Arrays, tuples,
+ * functions, class instances and other types declared in a TypeScript lib
+ * or under `node_modules` are no options type. Neither is a parameter typed
+ * by a named alias without one of those suffixes and with no suffixed
+ * member, even when its members are type literals: `observe(event:
+ * TraceEvent)` receives data, and no caller writes a `TraceEvent`. A rest parameter's tuple alias is exempt, since it
+ * only says how many arguments a call takes. A parameter
  * typed by a type parameter is read through its constraint, a rest
  * parameter through its tuple's elements, and a union through each member.
  *
@@ -46,9 +53,10 @@ import { stripFences, type DocsPage } from './site';
  * Each key is owed under one or more `##` headings:
  *
  * - each callable that takes the type owes it under its export's heading.
- *   A callable is an exported function, an exported class's constructor, or
- *   a public static or instance method the class declares, which the page
- *   documents under the class's heading (`Nexus#load` under `## Nexus`);
+ *   A callable is an exported function, an exported class's constructor, a
+ *   public static or instance method the class declares, or a method an
+ *   exported interface declares. The page documents a method under its
+ *   class's or interface's heading (`Nexus#load` under `## Nexus`);
  * - an exported options type owes its own keys under its own heading.
  *
  * Named is the key in that section, which runs from the heading to the next
@@ -65,13 +73,15 @@ import { stripFences, type DocsPage } from './site';
  * A bare word in prose does not count, since `imports` and `deps` are also
  * English. Neither does a key that is only spelled the same:
  * `defineModule({ imports })` in the `Nexus` example names
- * `ModuleConfig.imports`, never `LoadOptions.imports`. The caller drops each
+ * `ModuleConfig.imports`, never `LoadOptions.imports`. A code span is read
+ * as text, with no type checker behind it, so a span spelling a key names
+ * every key of that spelling the section owes. The caller drops each
  * entry's signature block, which names every key of an options type and
  * explains none.
  *
  * G10 owns a missing page and a missing heading, so a key whose heading is
  * absent is skipped here. Error classes of an exempt package are skipped as
- * G10 skips them.
+ * G10 skips them, by `isErrorClass`: a class whose name ends in `Error`.
  *
  * The allowance is the ratchet: it records each key the pages do not name
  * yet as `"<heading>: <type>.<key>"`, per package, and an entry no longer
@@ -132,6 +142,48 @@ function partsOf(
   );
 }
 
+/** The lib utility types that keep their argument's keys an options type. */
+const WRAPPERS = new Set(['Partial', 'Readonly', 'Required', 'Pick', 'Omit']);
+
+/**
+ * The type a lib utility type wraps, so `Partial<LaunchOptions>` reads as
+ * `LaunchOptions`, and undefined for any other type.
+ */
+function wrappedBy(program: ts.Program, type: ts.Type): ts.Type | undefined {
+  const alias = type.aliasSymbol;
+  if (!alias || !WRAPPERS.has(alias.getName())) return undefined;
+  const declarations = alias.declarations ?? [];
+  if (
+    declarations.length === 0 ||
+    !declarations.every((declaration) =>
+      isForeignDeclaration(program, declaration),
+    )
+  )
+    return undefined;
+  return type.aliasTypeArguments?.[0];
+}
+
+/**
+ * Whether a parameter's type is a named alias that is no options type, such
+ * as `TraceEvent`: a union of type literals a hook receives as data, which
+ * no caller writes as options. An alias that names a suffixed member, such
+ * as `RootRef` holding `RootConfig`, is read member by member, a generic
+ * alias through its constraint, and a lib utility type through what it
+ * wraps.
+ */
+function namesData(type: ts.Type): boolean {
+  const alias = type.aliasSymbol;
+  if (!alias || WRAPPERS.has(alias.getName()) || SUFFIX.test(alias.getName()))
+    return false;
+  // A generic alias such as `CheckedRoot<R>` resolves per call, so its
+  // constraint is read like any type parameter's.
+  if (type.flags & ts.TypeFlags.Instantiable) return false;
+  const members = type.isUnion() ? type.types : [type];
+  return !members.some((member) =>
+    SUFFIX.test(nameOf(member)?.getName() ?? ''),
+  );
+}
+
 interface Reader {
   program: ts.Program;
   checker: ts.TypeChecker;
@@ -145,6 +197,8 @@ interface Reader {
  */
 function optionsName(reader: Reader, type: ts.Type): string | null {
   const { program, checker, returned } = reader;
+  const wrapped = wrappedBy(program, type);
+  if (wrapped) return optionsName(reader, wrapped);
   if (type.isIntersection())
     return type.types.some((part) => optionsName(reader, part) !== null)
       ? (named(type) ?? 'literal')
@@ -280,6 +334,15 @@ function owedBy(
           declaration !== undefined &&
           ts.isParameter(declaration) &&
           declaration.dotDotDotToken !== undefined;
+        // The type the parameter writes, before `?` adds `undefined` and
+        // drops the alias.
+        const written =
+          declaration !== undefined &&
+          ts.isParameter(declaration) &&
+          declaration.type !== undefined
+            ? checker.getTypeFromTypeNode(declaration.type)
+            : checker.getTypeOfSymbol(parameter);
+        if (!rest && namesData(written)) continue;
         for (const part of partsOf(
           checker,
           checker.getTypeOfSymbol(parameter),
