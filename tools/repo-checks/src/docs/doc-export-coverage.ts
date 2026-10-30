@@ -2,7 +2,7 @@ import { basename } from 'node:path';
 
 import type { ExportInfo } from '@nexusdi/doc-examples/package-exports';
 
-import { executable, headingName } from './reference-site';
+import { executable, headingName } from './reference-text';
 import type { DocsPage } from './site';
 
 /**

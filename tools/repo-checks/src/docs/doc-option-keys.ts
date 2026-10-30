@@ -12,7 +12,7 @@ import {
   type SurfacePackage,
 } from './api-surface';
 import { fencePrograms, forEachShownNode } from './fence-programs';
-import { headingName, referencePageOf } from './reference-site';
+import { headingName, referencePageOf } from './reference-text';
 import { stripFences, type DocsPage } from './site';
 
 /**

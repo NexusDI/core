@@ -9,7 +9,7 @@ import {
   type SurfacePackage,
 } from './api-surface';
 import { fencePrograms, forEachShownNode } from './fence-programs';
-import { referencePageOf } from './reference-site';
+import { referencePageOf } from './reference-text';
 import type { DocsPage } from './site';
 
 /**
