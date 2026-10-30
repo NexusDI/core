@@ -50,6 +50,7 @@ const meta: MetaRecord = {
   profiling: { title: 'How do I find out what slows or stalls startup?' },
   'trace-events': { title: 'What the trace events promise' },
   'error-text': { title: 'Full error text' },
+  'build-an-extension-point': { title: 'Build an extension point' },
   'write-a-plugin': { title: 'Write a plugin' },
   federation: {
     title: 'How do I share tokens between a shell and its remotes?',
