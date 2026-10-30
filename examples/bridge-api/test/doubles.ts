@@ -107,6 +107,8 @@ export class RecordingAlarmSink implements IAlarmSink {
  */
 export class FixedLink implements ISubspaceLink {
   readonly signOffs: SignOffReport[] = [];
+  // Core calls onInit when it creates the link; no source file does.
+  // fallow-ignore-next-line unused-class-member
   async onInit(): Promise<void> {
     // The handshake needs no answer.
   }
@@ -128,6 +130,8 @@ export class FailingLink implements ISubspaceLink {
   calls = 0;
   readonly signOffs: SignOffReport[] = [];
   constructor(public failures = 0) {}
+  // Core calls onInit when it creates the link; no source file does.
+  // fallow-ignore-next-line unused-class-member
   async onInit(): Promise<void> {
     // The handshake needs no answer.
   }

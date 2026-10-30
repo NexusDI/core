@@ -391,8 +391,8 @@ export const spoolAndJump: GrowthCase = {
       fix: 'raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
     });
 
-    // Tick 1 applies the throttle. The reactor is still climbing, and the
-    // refusal at full throttle names the loads that hold the power.
+    // Tick 1 applies the throttle. The reactor is still climbing, so the
+    // fix tells the reader to wait. It names no loads, since none holds power.
     await advanceTo(fetch, 1, 1);
     await send(fetch, command('ftl', 'spool'), 409, {
       code: 'MERIDIAN_POWER_BUDGET',

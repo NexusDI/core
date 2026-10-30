@@ -37,7 +37,7 @@ export default function Sector({ loaderData }: Route.ComponentProps) {
     return (
       <div role="alert">
         <p>{`${code}: ${message}`}</p>
-        <p>{`Fix: ${fix}`}</p>
+        {fix === undefined ? null : <p>{`Fix: ${fix}`}</p>}
       </div>
     );
   }

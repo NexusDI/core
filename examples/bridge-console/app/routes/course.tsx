@@ -62,17 +62,26 @@ export default function Course({ loaderData }: Route.ComponentProps) {
             resolve={loaderData.flight}
             errorElement={<p>The bridge did not answer.</p>}
           >
-            {({ course, entries }) => (
-              <>
-                <FlightLogCommitted />
-                <p>{`${course.to}: heading ${course.heading}`}</p>
-                <ul>
-                  {entries.map((entry, at) => (
-                    <li key={`${at} ${entry}`}>{entry}</li>
-                  ))}
-                </ul>
-              </>
-            )}
+            {(answer) =>
+              'course' in answer ? (
+                <>
+                  <FlightLogCommitted />
+                  <p>{`${answer.course.to}: heading ${answer.course.heading}`}</p>
+                  <ul>
+                    {answer.entries.map((entry, at) => (
+                      <li key={`${at} ${entry}`}>{entry}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <div role="alert">
+                  <p>{`${answer.code}: ${answer.message}`}</p>
+                  {answer.fix === undefined ? null : (
+                    <p>{`Fix: ${answer.fix}`}</p>
+                  )}
+                </div>
+              )
+            }
           </Await>
         </Suspense>
       </Section>

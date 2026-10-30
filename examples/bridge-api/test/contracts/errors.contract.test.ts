@@ -14,10 +14,10 @@ import { bridgePlugins } from '../../src/ship/plugins';
 import { FakeFtlDrive } from '../doubles';
 import {
   expectFixLine,
-  expectOwnFixLine,
   expectTextWithoutFixLine,
   findCode,
-} from './fix-line';
+} from '@nexusdi/meridian-systems/test/fix-line';
+import { expectOwnFixLine } from './fix-line';
 
 const rejection = async (promise: Promise<unknown>): Promise<unknown> => {
   try {

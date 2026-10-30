@@ -1,7 +1,11 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
+
+// Each case starts node with tsx and a relay, which takes seconds on a busy
+// CI runner.
+vi.setConfig({ testTimeout: 30_000 });
 
 /** Runs scripts/dev-relay.mjs with `command` after `--`, as the profile target does. */
 function runWith(command: string) {

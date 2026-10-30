@@ -132,7 +132,7 @@ describe('Home route', () => {
     ).toBeDefined();
   });
 
-  test('shows the refusal, not a 500, for a sector the console does not chart', async ({
+  test('shows the refusal for a sector the console does not chart', async ({
     renderRoute,
   }) => {
     const elsewhere: ShipReading = {

@@ -16,6 +16,7 @@ import type { INavCharts } from '@nexusdi/meridian-systems/charts';
 import type {
   BridgeOffline,
   CommandAnswer,
+  CourseAnswer,
   IBridgeLink,
   ITelemetryClient,
 } from '../app/di/contracts';
@@ -319,7 +320,7 @@ const snapshotEvent = (ship: ShipReading) =>
 export class FakeBridgeLink implements IBridgeLink {
   static deps = [REQUEST] as const;
   constructor(private readonly request: NexusRequest) {}
-  async course(to: string) {
+  async course(to: string): Promise<CourseAnswer> {
     return {
       course: { to, heading: 42 },
       entries: [`${this.request.mission.id}: plotting ${to}`],

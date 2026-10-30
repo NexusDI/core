@@ -4,10 +4,11 @@ import { cases, type Leg } from '../../e2e/cases';
 import { honoMissionRoutes } from '../../e2e/fixtures/mission-routes';
 import { createBridge } from '../../src/entries/hono';
 import { OfflineMeridian } from '../../src/ship/meridian.module';
+import { bridgePlugins } from '../../src/ship/plugins';
 import { serve } from './serve';
 
 // The bridge API's e2e cases on Deno or Bun, over OfflineMeridian, the
-// graph every runtime leg runs. Each mismatch is printed, and
+// graph every runtime leg runs, with the plugins the Node suite runs. Each mismatch is printed, and
 // any mismatch fails the run.
 const failures: string[] = [];
 for (const each of cases) {
@@ -17,7 +18,10 @@ for (const each of cases) {
       serve(
         createBridge(ship, { scopes, mount: honoMissionRoutes(scopes) }).fetch,
       ),
-    ship: (plugins = []) => Nexus.create(OfflineMeridian, { plugins }),
+    ship: (plugins = []) =>
+      Nexus.create(OfflineMeridian, {
+        plugins: [...bridgePlugins(), ...plugins],
+      }),
     check(what, actual, expected) {
       if (JSON.stringify(actual) !== JSON.stringify(expected))
         failures.push(

@@ -15,7 +15,10 @@ import {
 import { OfflineMeridian } from '../../src/ship/meridian.module';
 import { bridgePlugins } from '../../src/ship/plugins';
 import { calls } from '../route-helpers';
-import { expectFixLine, findCode } from './fix-line';
+import {
+  expectFixLine,
+  findCode,
+} from '@nexusdi/meridian-systems/test/fix-line';
 
 it('the black box keeps one construct event for the FTL drive after the section loads, and the ship systems stamped with their phases', async () => {
   const box = blackBox();

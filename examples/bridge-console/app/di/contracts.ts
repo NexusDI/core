@@ -55,9 +55,22 @@ export type CommandAnswer =
     }
   | BridgeOffline;
 
+/** The refusal bridge-api answers `GET /course/:to` with for an uncharted star. */
+export interface CourseRefusal {
+  readonly code: string;
+  readonly message: string;
+  readonly fix?: string;
+}
+
+/** What the link gives for a course: the plot with its flight log, or a refusal. */
+export type CourseAnswer =
+  | { readonly course: Course; readonly entries: readonly string[] }
+  | CourseRefusal;
+
 /** The console's link to bridge-api, over HTTP. */
 export interface IBridgeLink {
-  course(to: string): Promise<{ course: Course; entries: readonly string[] }>;
+  /** The course and the request's flight log, or the refusal for an uncharted star. */
+  course(to: string): Promise<CourseAnswer>;
   /** The ship now, with each compartment's pressure, from `GET /sim`. */
   snapshot(): Promise<ShipReading>;
   /**

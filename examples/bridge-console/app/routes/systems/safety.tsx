@@ -3,7 +3,6 @@ import type { CompartmentId, ShipReading } from '@nexusdi/meridian-systems';
 import type { CommandAnswer } from '../../di/contracts';
 import { fixed } from '../../fixed';
 import { snapshotLoader } from '../snapshot-loader.server';
-import { useShipReading } from '../../hooks/use-ship-reading';
 import type { Route } from './+types/safety';
 import { COMPARTMENT_NAMES } from './compartments';
 import { Door, DOOR_IDS } from './doors';
@@ -13,8 +12,7 @@ import {
   ControlSection,
   Gauges,
   ItemList,
-  SnapshotOffline,
-  SystemPage,
+  LiveSystemPage,
 } from './system-page';
 
 /** Sends the submitted form to bridge-api as a safety command. */
@@ -89,35 +87,41 @@ export default function Safety({
   loaderData,
   actionData,
 }: Route.ComponentProps) {
-  const ship = useShipReading(loaderData);
   return (
-    <SystemPage answer={actionData} ship={ship}>
-      {ship === null ? <SnapshotOffline /> : <SafetyGauges ship={ship} />}
-      <ControlSection title="Door control">
-        <CommandSelect
-          id="door"
-          label="Door"
-          options={DOOR_IDS}
-          commands={[
-            ['open', 'Open door'],
-            ['close', 'Close door'],
-          ]}
-        />
-      </ControlSection>
-      {ship === null ? null : (
-        <ControlSection title="Room control">
-          <CommandSelect
-            id="compartment"
-            label="Room"
-            options={Object.keys(ship.safety.flooded)}
-            commands={[
-              ['flood', 'Flood'],
-              ['drill', 'Drill'],
-            ]}
-          />
-        </ControlSection>
+    <LiveSystemPage
+      snapshot={loaderData}
+      answer={actionData}
+      gauges={(ship) => <SafetyGauges ship={ship} />}
+    >
+      {(ship) => (
+        <>
+          <ControlSection title="Door control">
+            <CommandSelect
+              id="door"
+              label="Door"
+              options={DOOR_IDS}
+              commands={[
+                ['open', 'Open door'],
+                ['close', 'Close door'],
+              ]}
+            />
+          </ControlSection>
+          {ship === null ? null : (
+            <ControlSection title="Room control">
+              <CommandSelect
+                id="compartment"
+                label="Room"
+                options={Object.keys(ship.safety.flooded)}
+                commands={[
+                  ['flood', 'Flood'],
+                  ['drill', 'Drill'],
+                ]}
+              />
+            </ControlSection>
+          )}
+        </>
       )}
-    </SystemPage>
+    </LiveSystemPage>
   );
 }
 

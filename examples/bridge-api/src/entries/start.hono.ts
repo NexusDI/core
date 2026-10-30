@@ -2,15 +2,12 @@ import { once } from 'node:events';
 import type { Server } from 'node:http';
 
 import { serve } from '@hono/node-server';
-import * as devtools from '@nexusdi/devtools';
-import { nodeScopes } from '@nexusdi/node';
+import type { nodeScopes } from '@nexusdi/node';
 
-import { introspect } from '../bridge/profile';
 import { shellOrigins } from '../env/cors';
 import { stopOnSigterm } from '../env/drain';
-import { introspectionFromEnv, listening, port } from '../env/env';
-import { shipLog } from '../env/log';
-import { shipFromEnv } from '../env/ship';
+import { nodeBridgeParts } from '../env/bridge-parts';
+import { listening, port } from '../env/env';
 import { createBridge, type HonoMount } from './hono';
 
 /**
@@ -22,22 +19,10 @@ import { createBridge, type HonoMount } from './hono';
 export async function startHono(
   mount?: (scopes: ReturnType<typeof nodeScopes>) => HonoMount,
 ): Promise<void> {
-  // The bridge runs each request in its scope, and the flight recorder reads it.
-  const scopes = nodeScopes();
-  const introspection = introspectionFromEnv(process.env)
-    ? introspect(devtools)
-    : undefined;
-  await using ship = await shipFromEnv(
-    scopes,
-    process.env,
-    introspection?.plugins,
-  );
-  const shutdown = new AbortController();
+  const { scopes, ship: built, shutdown, options } = await nodeBridgeParts();
+  await using ship = built;
   const bridge = createBridge(ship, {
-    scopes,
-    log: shipLog(),
-    ...introspection?.options(ship),
-    shutdown: shutdown.signal,
+    ...options,
     origins: shellOrigins(),
     mount: mount?.(scopes),
   });

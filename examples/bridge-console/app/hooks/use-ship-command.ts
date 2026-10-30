@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState } from 'react';
 import type { ShipReading } from '@nexusdi/meridian-systems';
 
 import type { CommandAnswer } from '../di/contracts';
@@ -34,12 +34,19 @@ export type AnswerBand =
 /**
  * The band for `answer` against the latest `ship` reading. An accepted
  * command is queued until a reading reaches its tick, then applied at the
- * tick of that reading.
+ * tick the desk gave in the answer.
  */
 export function answerBand(
   answer: CommandAnswer,
   ship: ShipReading | null,
 ): AnswerBand {
+  return bandOf(
+    answer,
+    answer.accepted && ship !== null && ship.tick >= answer.tick,
+  );
+}
+
+function bandOf(answer: CommandAnswer, applied: boolean): AnswerBand {
   if (!answer.accepted) {
     return {
       state: 'refused',
@@ -52,11 +59,11 @@ export function answerBand(
     ...(answer.flightLog === undefined ? {} : { flightLog: answer.flightLog }),
     ...(answer.notice === undefined ? {} : { notice: answer.notice }),
   };
-  if (ship !== null && ship.tick >= answer.tick) {
+  if (applied) {
     return {
       state: 'applied',
       tick: answer.tick,
-      appliedAt: ship.tick,
+      appliedAt: answer.tick,
       ...extras,
     };
   }
@@ -65,14 +72,17 @@ export function answerBand(
 
 /**
  * The band for a route action's `answer`, or undefined before the action
- * answers. The route action names the system, so the hook takes none.
+ * answers. The route action names the system, so the hook takes none. Once
+ * the band reads applied it stays applied for that answer, also when the
+ * stream goes offline.
  */
 export function useShipCommand(
   answer: CommandAnswer | undefined,
   ship: ShipReading | null,
 ): AnswerBand | undefined {
-  return useMemo(
-    () => (answer === undefined ? undefined : answerBand(answer, ship)),
-    [answer, ship],
-  );
+  const [appliedFor, setAppliedFor] = useState<CommandAnswer | undefined>();
+  if (answer === undefined) return undefined;
+  const band = answerBand(answer, ship);
+  if (band.state === 'applied' && appliedFor !== answer) setAppliedFor(answer);
+  return appliedFor === answer ? bandOf(answer, true) : band;
 }

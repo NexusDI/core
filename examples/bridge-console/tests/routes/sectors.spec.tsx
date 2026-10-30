@@ -1,10 +1,19 @@
-import { describe, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 import { loaderArgs, test } from '../support/console';
 
 vi.mock('../../app/nexus.server', () => import('../support/nexus-server'));
 
-const { loader, middleware } = await import('../../app/routes/sectors');
+type SectorProps = Parameters<
+  typeof import('../../app/routes/sectors').default
+>[0];
+
+const {
+  default: Sector,
+  loader,
+  middleware,
+} = await import('../../app/routes/sectors');
 
 describe('the lazy sectors route', () => {
   test('loads Navigation before its loader resolves NAV_ROUTES', async ({
@@ -43,5 +52,11 @@ describe('the lazy sectors route', () => {
         },
       },
     });
+  });
+
+  it('leaves out the fix line when a refusal has none', () => {
+    const loaderData = { refusal: { code: 'MERIDIAN_X', message: 'no' } };
+    render(<Sector {...({ loaderData } as unknown as SectorProps)} />);
+    expect(screen.getByRole('alert').textContent).toBe('MERIDIAN_X: no');
   });
 });
