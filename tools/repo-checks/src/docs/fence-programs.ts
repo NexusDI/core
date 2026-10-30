@@ -7,7 +7,7 @@ import {
   type ExtraFile,
   type SurfacePackage,
 } from './api-surface';
-import { executable, headingName, hiddenLines } from './reference-site';
+import { executable, headingName, hiddenLines } from './reference-text';
 import type { DocsPage } from './site';
 
 /**
