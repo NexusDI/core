@@ -64,7 +64,7 @@ export class PlasmaRouter implements IPowerRouter {
    * Runs the tick's own `allocatePower` over the current loads with `load` in
    * place of the load of its id, at the reactor's current electric output.
    * `available` in the refusal is the output less what the trial gave the
-   * loads served before `load`.
+   * loads served before `load`, and `ahead` names those that got power.
    */
   divert(load: PowerLoad): void {
     const ship = this.state.snapshot();
@@ -75,14 +75,19 @@ export class PlasmaRouter implements IPowerRouter {
     const trial = allocatePower(ship.reactor.electric, loads);
     if (!trial.shed.includes(load.id)) return;
     let available = trial.output;
+    const ahead: string[] = [];
     for (const entry of trial.loads) {
       if (entry.id === load.id) break;
       available -= entry.allocated;
+      if (entry.allocated > 0) ahead.push(entry.id);
     }
     throw new PowerBudgetError({
       consumer: load.id,
       demand: load.demand,
       available,
+      throttle: ship.setpoints.reactor.throttle,
+      ahead,
+      climbing: ship.reactor.level < ship.setpoints.reactor.throttle,
     });
   }
 

@@ -78,6 +78,27 @@ export const NO_SUBSPACE_LINK_NOTICE = {
 } as const;
 
 /**
+ * Raising the throttle only helps below full throttle. At full throttle the
+ * fix depends on whether the reactor still climbs. A climbing reactor needs
+ * time, and the loads ahead are the way to spool sooner. At full output
+ * only the loads ahead can free power, and with none ahead the demand is
+ * above what the reactor can give.
+ */
+function budgetFix(error: PowerBudgetError): string {
+  if (error.throttle < 1)
+    return 'raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.';
+  const ahead = error.ahead.join(', ');
+  if (error.climbing) {
+    return error.ahead.length === 0
+      ? 'the reactor is at full throttle, so wait for the output to climb.'
+      : `the reactor is at full throttle and still climbing, so wait for the output to climb, or lower a load ahead of the ${error.consumer} to spool sooner: ${ahead}.`;
+  }
+  return error.ahead.length === 0
+    ? `the reactor's full output of ${megawatts(error.available)} MW is below the ${megawatts(error.demand)} MW the ${error.consumer} needs.`
+    : `the reactor is at full throttle, so lower a load ahead of the ${error.consumer}: ${ahead}.`;
+}
+
+/**
  * The text of the `MERIDIAN_*` codes. Register it with
  * `errors({ text: [shipText] })`, or pass it to
  * `explain(error, { text: [shipText] })`; without it those errors keep
@@ -86,7 +107,7 @@ export const NO_SUBSPACE_LINK_NOTICE = {
 export const shipText = {
   MERIDIAN_POWER_BUDGET: (error: PowerBudgetError) => ({
     message: `The ${error.consumer} load needs ${megawatts(error.demand)} MW, and the router has ${megawatts(error.available)} MW free beside the loads above it.`,
-    fix: 'raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.',
+    fix: budgetFix(error),
   }),
   MERIDIAN_BAD_COMMAND: (error: BadCommandError) =>
     Object.hasOwn(BAD_COMMAND, error.reason)

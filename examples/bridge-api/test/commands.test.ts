@@ -99,6 +99,9 @@ describe('answerCommand', () => {
       consumer: 'shields',
       demand: 200e6,
       available: 193.6e6,
+      throttle: 0,
+      ahead: [],
+      climbing: false,
     });
     expect(answerCommand(refuse(error), {}, new FakeFlightLog())).toEqual({
       status: 409,

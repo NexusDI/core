@@ -136,6 +136,9 @@ describe('EngineeringCommands', () => {
       consumer: 'shields',
       demand: 200e6,
       available: 193.6e6,
+      throttle: 0,
+      ahead: [],
+      climbing: false,
     });
     const { commands } = build({
       raise() {

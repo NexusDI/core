@@ -23,6 +23,9 @@ function build({ dt = 0.5, refuse = false } = {}) {
           consumer: load.id,
           demand: load.demand,
           available: 0,
+          throttle: 0,
+          ahead: [],
+          climbing: false,
         });
       }
     },

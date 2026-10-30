@@ -13,6 +13,11 @@ bundle wrote.
 the contract's `COMMAND_LINK`. The panel's `Steer for Kepler-442b` and `Burn at 0.5`
 buttons send them, and its status line shows the receipt text the shell words.
 
+`REACTOR_ORDERS` binds `ReactorOrders`, which sends `engineering throttle` the same way, and
+the `Reactor to full throttle` button raises the reactor so the burn has power. `BURN_BOARD`
+binds `BurnBoard`, which reads the contract's `STATION_TELEMETRY` and shows what the power
+router serves the main drive, in MW, `shed`, or `telemetry offline` once the stream drops.
+
 It serves on port 4302, and the shell (`examples/federation-shell`) loads it on
 `/command`.
 

@@ -700,18 +700,26 @@ The library raises six codes of its own through core's `errorBase`, and augments
 
 ### MERIDIAN_POWER_BUDGET
 
-`PowerBudgetError` says that the power router cannot fit a load at the reactor's current output. `POWER_ROUTER.divert(load)` throws it. `divert` has three callers: `SHIELD_GRID.raise()`, `FTL_DRIVE.spool()` and `WEAPON_MOUNT.fire()`. `consumer` holds the id of the load, such as `shields`. `demand` and `available` hold, in W, the power the load asks for and the output less what the loads served before it got.
+`PowerBudgetError` says that the power router cannot fit a load at the reactor's current output. `POWER_ROUTER.divert(load)` throws it. `divert` has three callers: `SHIELD_GRID.raise()`, `FTL_DRIVE.spool()` and `WEAPON_MOUNT.fire()`. `consumer` holds the id of the load, such as `shields`. `demand` and `available` hold, in W, the power the load asks for and the output less what the loads served before it got. `throttle` holds the reactor's throttle setpoint, and `ahead` holds the ids of the loads that hold power before `consumer`, in the router's priority order. `climbing` is true while the reactor's level is below that setpoint, so the output is still rising. The one-line message leaves out `climbing`.
 
 The one-line message and the text of `shipText`:
 
 ```text
-[MERIDIAN_POWER_BUDGET] consumer=shields demand=200000000 available=193600000. https://github.com/NexusDI/core/tree/main/examples/meridian-systems#MERIDIAN_POWER_BUDGET
+[MERIDIAN_POWER_BUDGET] consumer=shields demand=200000000 available=193600000 throttle=0.4 ahead=life-support. https://github.com/NexusDI/core/tree/main/examples/meridian-systems#MERIDIAN_POWER_BUDGET
 
 The shields load needs 200 MW, and the router has 193.6 MW free beside the loads above it.
 Fix: raise the reactor throttle and wait for the output to climb, or lower a load of higher priority.
 ```
 
 To clear it, raise the throttle and advance the ship until `REACTOR.output` covers the load, or lower a load the router serves first. `bridge-api` answers it with 409.
+
+At a throttle of 1 raising the throttle cannot help, so the fix reads `throttle`, `climbing` and `ahead`. While the reactor climbs it says to wait, and when `ahead` is not empty it also names those loads as the ones to lower to spool sooner. At full output it names the loads in `ahead`, or, when none is ahead, it gives the reactor's full output and the demand:
+
+```text
+Fix: the reactor is at full throttle and still climbing, so wait for the output to climb, or lower a load ahead of the ftl-spool to spool sooner: life-support, shields.
+Fix: the reactor is at full throttle, so lower a load ahead of the ftl-spool: life-support, shields.
+Fix: the reactor's full output of 290.4 MW is below the 300 MW the ftl-spool needs.
+```
 
 <a id="MERIDIAN_BAD_COMMAND"></a>
 
