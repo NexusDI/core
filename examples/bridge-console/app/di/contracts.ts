@@ -26,6 +26,12 @@ export type CommandAnswer =
       readonly accepted: true;
       readonly tick: number;
       readonly flightLog?: readonly string[];
+      /** A note from the system on its own outcome, such as a hail with no link. */
+      readonly notice?: {
+        readonly code: string;
+        readonly message: string;
+        readonly fix?: string;
+      };
     }
   | {
       readonly accepted: false;

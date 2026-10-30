@@ -15,4 +15,24 @@ export default [
     // doc comment on sharedRules says why each rule is there.
     rules: sharedRules,
   },
+  {
+    // The seam for MeridianOS: components take data through props. Hooks in
+    // app/hooks/ read the container. Type imports stay allowed.
+    files: ['app/components/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@nexusdi/*', '!@nexusdi/meridian-ui'],
+              allowTypeImports: true,
+              message:
+                'Components take data through props. Read the container in app/hooks/.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];

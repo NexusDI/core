@@ -76,3 +76,121 @@ describe('the event source telemetry client', () => {
     expect(offline).not.toHaveBeenCalled();
   });
 });
+
+describe('the shared event source', () => {
+  it('opens one source for every subscriber', async () => {
+    await using ship = await Nexus.create(TelemetryClient);
+    const client = ship.get(TELEMETRY_CLIENT);
+    const [a, b] = [vi.fn(), vi.fn()];
+    client.subscribe(a, vi.fn());
+    client.subscribe(b, vi.fn());
+    expect(FakeEventSource.opened).toHaveLength(1);
+    FakeEventSource.opened[0].emit('snapshot', JSON.stringify(shipAtStart));
+    expect(a).toHaveBeenCalledWith(shipAtStart);
+    expect(b).toHaveBeenCalledWith(shipAtStart);
+  });
+
+  it('keeps the source open until the last subscriber leaves', async () => {
+    await using ship = await Nexus.create(TelemetryClient);
+    const client = ship.get(TELEMETRY_CLIENT);
+    const first = client.subscribe(vi.fn(), vi.fn());
+    const second = client.subscribe(vi.fn(), vi.fn());
+    first();
+    expect(FakeEventSource.opened[0].closed).toBe(false);
+    second();
+    expect(FakeEventSource.opened[0].closed).toBe(true);
+  });
+
+  it('calls offline on every subscriber and clears the set', async () => {
+    await using ship = await Nexus.create(TelemetryClient);
+    const client = ship.get(TELEMETRY_CLIENT);
+    const [a, b, next] = [vi.fn(), vi.fn(), vi.fn()];
+    client.subscribe(next, a);
+    client.subscribe(next, b);
+    FakeEventSource.opened[0].emit('offline', 'ship offline');
+    expect(a).toHaveBeenCalledWith('ship offline');
+    expect(b).toHaveBeenCalledWith('ship offline');
+    expect(FakeEventSource.opened[0].closed).toBe(true);
+    client.subscribe(next, vi.fn());
+    FakeEventSource.opened[1].emit('offline', 'again');
+    FakeEventSource.opened[1].dispatchEvent(new Event('error'));
+    expect(a).toHaveBeenCalledTimes(1);
+    expect(b).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens a new source for a subscribe after offline', async () => {
+    await using ship = await Nexus.create(TelemetryClient);
+    const client = ship.get(TELEMETRY_CLIENT);
+    const stale = vi.fn();
+    client.subscribe(vi.fn(), stale);
+    FakeEventSource.opened[0].dispatchEvent(new Event('error'));
+    const next = vi.fn();
+    client.subscribe(next, vi.fn());
+    expect(FakeEventSource.opened).toHaveLength(2);
+    FakeEventSource.opened[1].emit('snapshot', JSON.stringify(shipAtStart));
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(stale).toHaveBeenCalledTimes(1);
+    FakeEventSource.opened[1].dispatchEvent(new Event('error'));
+    expect(stale).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call a stale subscriber for a snapshot on the new source', async () => {
+    await using ship = await Nexus.create(TelemetryClient);
+    const client = ship.get(TELEMETRY_CLIENT);
+    const staleNext = vi.fn();
+    client.subscribe(staleNext, vi.fn());
+    FakeEventSource.opened[0].dispatchEvent(new Event('error'));
+    client.subscribe(vi.fn(), vi.fn());
+    FakeEventSource.opened[1].emit('snapshot', JSON.stringify(shipAtStart));
+    expect(staleNext).not.toHaveBeenCalled();
+  });
+
+  it('is safe to call an unsubscribe twice', async () => {
+    await using ship = await Nexus.create(TelemetryClient);
+    const client = ship.get(TELEMETRY_CLIENT);
+    const first = client.subscribe(vi.fn(), vi.fn());
+    client.subscribe(vi.fn(), vi.fn());
+    first();
+    first();
+    expect(FakeEventSource.opened[0].closed).toBe(false);
+  });
+
+  it.each([
+    [
+      'an offline event',
+      (source: FakeEventSource) => source.emit('offline', 'x'),
+    ],
+    [
+      'an error event',
+      (source: FakeEventSource) => source.dispatchEvent(new Event('error')),
+    ],
+  ])(
+    'opens a new source for a subscribe inside the callback of %s',
+    async (_name, lose) => {
+      await using ship = await Nexus.create(TelemetryClient);
+      const client = ship.get(TELEMETRY_CLIENT);
+      const again = vi.fn();
+      const resubscribe = vi.fn(() => {
+        client.subscribe(again, vi.fn());
+      });
+      client.subscribe(vi.fn(), resubscribe);
+      lose(FakeEventSource.opened[0]);
+      expect(resubscribe).toHaveBeenCalledTimes(1);
+      expect(FakeEventSource.opened).toHaveLength(2);
+      expect(FakeEventSource.opened[1].closed).toBe(false);
+      FakeEventSource.opened[1].emit('snapshot', JSON.stringify(shipAtStart));
+      expect(again).toHaveBeenCalledTimes(1);
+      expect(resubscribe).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('closes nothing for an unsubscribe after offline cleared the set', async () => {
+    await using ship = await Nexus.create(TelemetryClient);
+    const client = ship.get(TELEMETRY_CLIENT);
+    const stale = client.subscribe(vi.fn(), vi.fn());
+    FakeEventSource.opened[0].dispatchEvent(new Event('error'));
+    client.subscribe(vi.fn(), vi.fn());
+    stale();
+    expect(FakeEventSource.opened[1].closed).toBe(false);
+  });
+});

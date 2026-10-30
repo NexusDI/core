@@ -3,6 +3,7 @@ import type { ShipReading } from '@nexusdi/meridian-systems';
 import { describe, expect, vi } from 'vitest';
 
 import { WATCH_LOG } from '../../app/di/contracts';
+import type { INavCharts } from '@nexusdi/meridian-systems/charts';
 import {
   FailingSnapshotLink,
   FixedCharts,
@@ -20,6 +21,20 @@ const jumped: ShipReading = {
   ...shipAtStart,
   ftl: { status: 'idle', charge: 0, sector: 'Proxima-b', jumped: 12 },
 };
+
+/** Charts that throw for a star they lack, as the real charts do. */
+class RefusingCharts implements INavCharts {
+  has(to: string) {
+    return to === 'Proxima-b' || to === 'Kepler-442b';
+  }
+  plot(to: string) {
+    if (!this.has(to)) throw new Error(`${to} is not charted`);
+    return { to, heading: 42 };
+  }
+  stars() {
+    return ['Kepler-442b', 'Proxima-b'];
+  }
+}
 
 describe('Home route', () => {
   test('renders the mission and a fresh watch log from the request scope', async ({
@@ -89,5 +104,20 @@ describe('Home route', () => {
       to: 'Kepler-442b',
       heading: 42,
     });
+  });
+
+  test('shows the refusal for a star the charts do not hold, without throwing', async ({
+    renderRoute,
+  }) => {
+    await renderRoute(home, { path: '/', browser: withCharts(RefusingCharts) });
+    const input = await screen.findByRole('textbox', {
+      name: /plot a course/i,
+    });
+    fireEvent.change(input, { target: { value: 'V' } });
+    expect(await screen.findByText('V is not charted')).toBeDefined();
+    fireEvent.change(input, { target: { value: 'Proxima-b' } });
+    expect(
+      await screen.findByText('heading 42', { exact: false, selector: 'span' }),
+    ).toBeDefined();
   });
 });
