@@ -105,6 +105,7 @@ export {
   type CommsStatus,
   type ICommsArray,
   type ISubspaceLink,
+  type SignOffReport,
   SUBSPACE_LINK,
 } from './systems/comms/contracts';
 

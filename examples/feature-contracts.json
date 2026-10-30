@@ -3,7 +3,7 @@
     {
       "feature": "dispose order",
       "file": "bridge-api/test/contracts/dispose-order.contract.test.ts",
-      "test": "on shutdown the stream sends event: offline, the telemetry feed disposes before the reactor scram, and a later request answers 503 with NEXUS_DISPOSED"
+      "test": "on shutdown the stream sends event: offline, the relay sign-off and the telemetry feed go before the reactor scram, and a later request answers 503 with NEXUS_DISPOSED"
     },
     {
       "feature": "NEXUS_SCOPE_REQUIRED with its fix line",

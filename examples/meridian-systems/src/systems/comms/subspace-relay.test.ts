@@ -22,6 +22,70 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** Stubs fetch to record the method and URL of each call. */
+function stubCalls(
+  response: () => Response = () => new Response(null, { status: 204 }),
+): string[] {
+  const calls: string[] = [];
+  vi.stubGlobal('fetch', (url: URL | string, init?: RequestInit) => {
+    calls.push(`${init?.method ?? 'GET'} ${String(url)}`);
+    return Promise.resolve(response());
+  });
+  return calls;
+}
+
+describe('SubspaceRelay handshake and sign-off', () => {
+  it('opens the link with a POST to handshake on its frequency in onInit', async () => {
+    const calls = stubCalls();
+    await new SubspaceRelay(options('https://relay.test')).onInit();
+    expect(calls).toEqual(['POST https://relay.test/handshake?frequency=1420']);
+  });
+
+  it('signs off with a POST of the report to signoff', async () => {
+    const bodies: string[] = [];
+    const calls: string[] = [];
+    vi.stubGlobal('fetch', (url: URL | string, init: RequestInit) => {
+      calls.push(`${init.method} ${String(url)}`);
+      bodies.push(String(init.body));
+      return Promise.resolve(new Response(null, { status: 204 }));
+    });
+    await new SubspaceRelay(options('https://relay.test')).signOff({
+      tick: 12,
+      output: 3e6,
+    });
+    expect(calls).toEqual(['POST https://relay.test/signoff?frequency=1420']);
+    expect(bodies).toEqual([JSON.stringify({ tick: 12, output: 3e6 })]);
+  });
+
+  it('fails onInit with the status of a relay that refuses the handshake', async () => {
+    stubCalls(() => new Response(null, { status: 403 }));
+    await expect(
+      new SubspaceRelay(options('https://relay.test')).onInit(),
+    ).rejects.toThrow(new Error('The relay answered 403 for handshake.'));
+  });
+
+  it('fails onInit with MERIDIAN_RELAY when the relay does not answer in time', async () => {
+    vi.stubGlobal(
+      'fetch',
+      (_url: URL, init: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init.signal?.addEventListener('abort', () =>
+            reject(init.signal?.reason),
+          );
+        }),
+    );
+    const relay = new SubspaceRelay({
+      ...options('https://relay.test'),
+      relayTimeout: 20,
+    });
+    await expect(relay.onInit()).rejects.toMatchObject({
+      code: 'MERIDIAN_RELAY',
+      reason: 'timeout',
+      channel: 'handshake',
+    });
+  });
+});
+
 describe('SubspaceRelay', () => {
   it.each(['https://relay.test', 'https://relay.test/'])(
     'asks %s for the channel on its frequency',

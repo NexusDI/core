@@ -135,7 +135,9 @@
       "id": "m8",
       "name": "Comms",
       "global": false,
-      "imports": [],
+      "imports": [
+        "m5"
+      ],
       "grants": [],
       "exports": [
         "p35",
@@ -1599,6 +1601,11 @@
     {
       "from": "p35",
       "to": "p2",
+      "kind": "required"
+    },
+    {
+      "from": "p35",
+      "to": "p12",
       "kind": "required"
     },
     {

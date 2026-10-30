@@ -277,11 +277,12 @@ describe('the helm and the drive', () => {
       );
     });
     await using linked = await Nexus.create(relayGraph());
-    expect(fetched).toHaveLength(1);
+    // The handshake and the charts download.
+    expect(fetched).toHaveLength(2);
     course(linked.get(COMMAND_DESK), 'Kepler-442b');
     expect(linked.get(TICK_LOOP).advance(1).setpoints.helm.heading).toBe(
       toRadians(90),
     );
-    expect(fetched).toHaveLength(1);
+    expect(fetched).toHaveLength(2);
   });
 });
