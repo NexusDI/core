@@ -1,0 +1,82 @@
+{
+  "modules": [
+    {
+      "id": "m0",
+      "name": "Meridian",
+      "global": false,
+      "imports": ["m1"],
+      "grants": [],
+      "exports": []
+    },
+    {
+      "id": "m1",
+      "name": "Navigation",
+      "global": false,
+      "imports": [],
+      "grants": [],
+      "exports": ["p1"]
+    },
+    {
+      "id": "m2",
+      "name": "Science",
+      "global": false,
+      "imports": ["m0"],
+      "grants": ["m0"],
+      "exports": []
+    }
+  ],
+  "providers": [
+    {
+      "id": "p0",
+      "token": "ShipComputer",
+      "module": "m0",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "unresolved": [],
+      "implementation": "ShipComputer",
+      "internal": false
+    },
+    {
+      "id": "p1",
+      "token": "NavCharts",
+      "module": "m1",
+      "lifetime": "singleton",
+      "kind": "class",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "unresolved": [],
+      "implementation": "StellarCharts",
+      "internal": false
+    },
+    {
+      "id": "request",
+      "token": "REQUEST",
+      "module": "m0",
+      "lifetime": "scoped",
+      "kind": "value",
+      "eager": true,
+      "async": null,
+      "notes": [],
+      "unresolved": [],
+      "implementation": null,
+      "internal": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "p0",
+      "to": "p1",
+      "kind": "required"
+    }
+  ],
+  "unchecked": [
+    {
+      "module": "Uplink",
+      "reason": "async-schema"
+    }
+  ]
+}

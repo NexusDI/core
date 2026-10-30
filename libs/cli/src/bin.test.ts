@@ -101,6 +101,40 @@ describe('nexusdi graph, JavaScript entries', () => {
     expect(run.stderr).toContain('NavCharts');
   });
 
+  it('warns on stderr for each module whose options it left unchecked and exits 0', () => {
+    const run = runCli(['graph', 'unchecked.module.js', '-f', 'json'], {
+      cwd: JS,
+    });
+    expect(run.status).toBe(0);
+    expect(JSON.parse(run.stdout)).toMatchObject({
+      unchecked: [
+        { module: 'Uplink', reason: 'async-schema' },
+        { module: 'Comms', reason: 'for-root-async' },
+      ],
+    });
+    expect(run.stderr).toBe(
+      'nexusdi: warning: the options of Uplink are unchecked: its schema is async, so only Nexus.create validates them.\n' +
+        'nexusdi: warning: the options of Comms are unchecked: forRootAsync() gives them only at create, so only Nexus.create validates them.\n',
+    );
+  });
+
+  it('exits 1 with the message when a forRoot() options schema throws', () => {
+    const run = runCli(['graph', 'schema-throws.module.js'], { cwd: JS });
+    expect(run.status).toBe(1);
+    expect(run.stdout).toBe('');
+    expect(
+      run.stderr.startsWith(
+        'nexusdi: the check threw an error that is not a NexusError, as a forRoot() options schema that throws does: frequency must be a number\n',
+      ),
+    ).toBe(true);
+    expect(run.stderr).toContain('schema-throws.module.js');
+    expect(
+      run.stderr.endsWith(
+        '  If a frame points at a schema, return the problem as issues from its validate() so the command names the module. Otherwise report the stack to NexusDI.\n',
+      ),
+    ).toBe(true);
+  });
+
   it("exits 2 with core's fix line when the export is not a module", () => {
     const run = runCli(['graph', 'not-a-module.js'], { cwd: JS });
     expect(run.status).toBe(2);
@@ -173,6 +207,16 @@ describe('nexusdi graph, JavaScript entries', () => {
     const run = runCli(['graph', 'graph.json', '-f', 'dot'], { cwd: JSON_DIR });
     expect(run.status).toBe(0);
     expect(run.stdout).toContain('NavCharts');
+  });
+
+  it('warns for a .json entry that lists unchecked modules', () => {
+    const run = runCli(['graph', 'unchecked-graph.json', '-f', 'dot'], {
+      cwd: JSON_DIR,
+    });
+    expect(run.status).toBe(0);
+    expect(run.stderr).toBe(
+      'nexusdi: warning: the options of Uplink are unchecked: its schema is async, so only Nexus.create validates them.\n',
+    );
   });
 
   it('draws the grant of a .json graph as a dashed edge', () => {
