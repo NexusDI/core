@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { UnchartedStarError } from '../../errors';
+
 import { BUNDLED_CHARTS, StarCharts } from './star-charts';
 
 const UNCHARTED = [
@@ -34,9 +36,22 @@ describe('StarCharts', () => {
     expect(relayed.stars()).toEqual(['Kepler-442b', 'Proxima-b']);
   });
 
-  it.each(UNCHARTED)('does not hold %s and plots it heading 0', (to) => {
+  it.each(UNCHARTED)('does not hold %s and refuses to plot it', (to) => {
     expect(charts.has(to)).toBe(false);
-    expect(charts.plot(to)).toEqual({ to, heading: 0 });
+    expect(() => charts.plot(to)).toThrow(UnchartedStarError);
+  });
+
+  it('names the star and the charted stars on the refusal', () => {
+    try {
+      charts.plot('Vega');
+      expect.unreachable();
+    } catch (error) {
+      expect(error).toBeInstanceOf(UnchartedStarError);
+      expect({ ...(error as UnchartedStarError) }).toEqual({
+        star: 'Vega',
+        charted: ['Kepler-442b', 'Proxima-b', 'TRAPPIST-1e'],
+      });
+    }
   });
 
   it.each([
@@ -49,9 +64,6 @@ describe('StarCharts', () => {
     >;
     const relayed = new StarCharts(downloaded);
     expect(relayed.has('Kepler-442b')).toBe(false);
-    expect(relayed.plot('Kepler-442b')).toEqual({
-      to: 'Kepler-442b',
-      heading: 0,
-    });
+    expect(() => relayed.plot('Kepler-442b')).toThrow(UnchartedStarError);
   });
 });

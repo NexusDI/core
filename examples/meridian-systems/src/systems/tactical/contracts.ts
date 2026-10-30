@@ -10,7 +10,7 @@ export interface Course {
 export interface INavCharts {
   /** True when the charts hold a heading for `to`. A key of Object.prototype is no star. */
   has(to: string): boolean;
-  /** The course to `to`, or heading 0 for a star the charts do not hold. */
+  /** The course to `to`. Throws UnchartedStarError for a star the charts do not hold. */
   plot(to: string): Course;
   /** The names of the stars the charts hold, in chart order. */
   stars(): readonly string[];

@@ -288,6 +288,13 @@ export const courseAndBurn: GrowthCase = {
     await send(fetch, command('helm', 'course', { to: 'Kepler-442b' }), 202, {
       tick: 11,
     });
+    const uncharted = await fetch('/course/Vega');
+    expectEqual('GET /course/Vega status', uncharted.status, 404);
+    expectEqual('GET /course/Vega answer', await uncharted.json(), {
+      code: 'MERIDIAN_UNCHARTED',
+      message: "No star is charted as 'Vega'.",
+      fix: 'plot a course to a charted star: Kepler-442b, Proxima-b, TRAPPIST-1e.',
+    });
 
     let ship = await advanceTo(fetch, 790, 800);
     expectEqual('helm at tick 800', ship.helm, {

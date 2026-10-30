@@ -5,6 +5,7 @@ export {
   InterlockError,
   PowerBudgetError,
   RelayError,
+  UnchartedStarError,
   UnknownCompartmentError,
   type BadArgumentProblem,
   type BadCommandReason,

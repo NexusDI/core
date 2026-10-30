@@ -143,9 +143,11 @@ describe('the bridge link', () => {
 
   it('encodes the destination in the path', async () => {
     await using bridge = await linkTo(base);
-    const answer = await bridge.link.course('Proxima b');
+    // No chart holds 'Proxima b', so bridge-api answers 404 on the path.
+    await expect(bridge.link.course('Proxima b')).rejects.toThrow(
+      'bridge-api answered 404 for /course/Proxima%20b',
+    );
     expect(paths.at(-1)).toBe('/course/Proxima%20b');
-    expect(answer.entries).toEqual(['survey-9: plotting Proxima b']);
   });
 
   it("rejects with the backend's status when it answers 404", async () => {

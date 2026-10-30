@@ -29,6 +29,7 @@ import { answerAlarms } from '../bridge/alarms';
 import { answerAudit } from '../bridge/audit';
 import { answerAtmosphere } from '../bridge/atmosphere';
 import { answerCommand } from '../bridge/commands';
+import { answerCourse } from '../bridge/course';
 import { compartmentOf } from '../bridge/compartment-of';
 import { answerFtlSection, ftlRating } from '../bridge/ftl';
 import { readJson } from '../bridge/json-body';
@@ -98,11 +99,8 @@ export function createBridge(
       { charts: NAV_CHARTS, log: FLIGHT_LOG },
       ({ charts, log }, req, res) => {
         const to = String(req.params.to);
-        log.record(`plotting ${to}`);
-        res.json({
-          course: charts.plot(to),
-          entries: log.entries(),
-        });
+        const answer = answerCourse(charts, log, to);
+        res.status(answer.status).json(answer.body);
       },
     ),
   );

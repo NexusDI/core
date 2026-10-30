@@ -36,6 +36,20 @@ test('navigates to the lazy sectors route through a .data request', async ({
   expect(seen).toEqual([]);
 });
 
+test('answers 404 with the refusal for a sector the charts do not hold', async ({
+  page,
+}) => {
+  const res = await page.goto('/sectors/Vega');
+  expect(res?.status()).toBe(404);
+  const refusal = page.getByRole('alert');
+  await expect(refusal).toContainText(
+    "MERIDIAN_UNCHARTED: No star is charted as 'Vega'.",
+  );
+  await expect(refusal).toContainText(
+    'Fix: plot a course to a charted star: Kepler-442b, Proxima-b, TRAPPIST-1e.',
+  );
+});
+
 test('answers 404 for a path no route matches', async ({ page }) => {
   const res = await page.goto('/uncharted');
   expect(res?.status()).toBe(404);

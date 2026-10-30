@@ -8,6 +8,7 @@ import {
   type FtlRating,
   type ShipCommand,
   type ShipReading,
+  UnchartedStarError,
 } from '@nexusdi/meridian-systems';
 
 import type { INavCharts } from '@nexusdi/meridian-systems/charts';
@@ -50,10 +51,10 @@ export class FakeCharts implements INavCharts {
     return Object.hasOwn(FAKE_STARS, to);
   }
   plot(to: string) {
-    return {
-      to,
-      heading: this.has(to) ? FAKE_STARS[to as keyof typeof FAKE_STARS] : 0,
-    };
+    if (!this.has(to)) {
+      throw new UnchartedStarError({ star: to, charted: this.stars() });
+    }
+    return { to, heading: FAKE_STARS[to as keyof typeof FAKE_STARS] };
   }
   stars() {
     return Object.keys(FAKE_STARS);

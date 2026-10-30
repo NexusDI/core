@@ -7,6 +7,7 @@ import {
   InterlockError,
   PowerBudgetError,
   RelayError,
+  UnchartedStarError,
   UnknownCompartmentError,
 } from './errors';
 import { ENGINEERING_ACTIONS } from './systems/engineering/contracts';
@@ -216,5 +217,32 @@ describe('RelayError', () => {
     expect(relayFault().message).toBe(
       `[MERIDIAN_RELAY] channel=charts reason=timeout expected=within 5,000 ms. ${DOCS}MERIDIAN_RELAY`,
     );
+  });
+});
+
+const uncharted = () =>
+  new UnchartedStarError({
+    star: 'Vega',
+    charted: ['Kepler-442b', 'Proxima-b'],
+  });
+
+describe('UnchartedStarError', () => {
+  it('carries its code, its name and its fields', () => {
+    const error = uncharted();
+    expect(error).toBeInstanceOf(NexusError);
+    expect(error.code).toBe('MERIDIAN_UNCHARTED');
+    expect(error.name).toBe('UnchartedStarError');
+    expect({ ...error }).toEqual({
+      star: 'Vega',
+      charted: ['Kepler-442b', 'Proxima-b'],
+    });
+  });
+
+  it('narrows through isNexusError by its code', () => {
+    const error: unknown = uncharted();
+    expect(isNexusError(error, 'MERIDIAN_UNCHARTED')).toBe(true);
+    expect(isNexusError(error, 'MERIDIAN_RELAY')).toBe(false);
+    if (isNexusError(error, 'MERIDIAN_UNCHARTED'))
+      expectTypeOf(error).toEqualTypeOf<UnchartedStarError>();
   });
 });

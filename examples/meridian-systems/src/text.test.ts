@@ -8,6 +8,7 @@ import {
   InterlockError,
   PowerBudgetError,
   RelayError,
+  UnchartedStarError,
   UnknownCompartmentError,
 } from './errors';
 import { ENGINEERING_ACTIONS } from './systems/engineering/contracts';
@@ -234,5 +235,25 @@ describe('MERIDIAN_RELAY', () => {
         '  Fix: check what the relay serves on that channel.',
       ].join('\n'),
     );
+  });
+});
+
+describe('MERIDIAN_UNCHARTED', () => {
+  it('words a star the charts do not hold and lists the charted ones', () => {
+    const error = new UnchartedStarError({
+      star: 'Vega',
+      charted: ['Kepler-442b', 'Proxima-b', 'TRAPPIST-1e'],
+    });
+    expect(render(error)).toBe(
+      [
+        "[MERIDIAN_UNCHARTED] No star is charted as 'Vega'.",
+        '  Fix: plot a course to a charted star: Kepler-442b, Proxima-b, TRAPPIST-1e.',
+      ].join('\n'),
+    );
+  });
+
+  it('cuts a long star name from a request path', () => {
+    const error = new UnchartedStarError({ star: 'x'.repeat(40), charted: [] });
+    expect(render(error)).toContain(`'${'x'.repeat(32)}...'`);
   });
 });

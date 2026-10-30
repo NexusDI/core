@@ -13,12 +13,14 @@ import {
 } from '../components';
 import { CoursePlotter } from '../components/CoursePlotter';
 import { BRIDGE_LINK, WATCH_LOG } from '../di/contracts';
+import { plotOrRefuse } from '../di/uncharted';
 import { di } from '../nexus.server';
 import type { Route } from './+types/home';
 
 /**
  * The mission's id, the heading to its target star, or to the sector the
- * ship jumped to once it has jumped, and the request's watch log. A snapshot
+ * ship jumped to once it has jumped (the refusal when the console does not
+ * chart that sector), and the request's watch log. A snapshot
  * that fails leaves the line on the mission's target.
  */
 export const loader = di.inject(
@@ -33,7 +35,7 @@ export const loader = di.inject(
         : request.mission.target;
     return {
       mission: request.mission.id,
-      course: charts.plot(star),
+      course: plotOrRefuse(charts, star),
       entries: log.entries(),
     };
   },
@@ -51,23 +53,12 @@ export const action: (
 );
 
 /**
- * The plotter over the client graph's charts. It turns a refusal the charts
- * throw into the `{ refused }` answer the component shows.
+ * The plotter over the client graph's charts. It turns the `UnchartedStarError` the
+ * charts throw into the `{ refused }` answer the component shows.
  */
 function Plotter() {
   const charts = useService(NAV_CHARTS);
-  return (
-    <CoursePlotter
-      plot={(to) => {
-        try {
-          return charts.plot(to);
-        } catch (error) {
-          if (error instanceof Error) return { refused: error.message };
-          throw error;
-        }
-      }}
-    />
-  );
+  return <CoursePlotter plot={(to) => plotOrRefuse(charts, to)} />;
 }
 
 export default function Home({ loaderData, actionData }: Route.ComponentProps) {
@@ -82,7 +73,9 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
           <CardContent>
             <p>{loaderData.mission}</p>
             <p>
-              {`${loaderData.course.to}: heading ${loaderData.course.heading}`}
+              {'refused' in loaderData.course
+                ? loaderData.course.refused
+                : `${loaderData.course.to}: heading ${loaderData.course.heading}`}
             </p>
           </CardContent>
         </Card>

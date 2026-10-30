@@ -23,6 +23,7 @@ import { answerAlarms } from '../bridge/alarms';
 import { answerAudit } from '../bridge/audit';
 import { answerAtmosphere } from '../bridge/atmosphere';
 import { answerCommand } from '../bridge/commands';
+import { answerCourse } from '../bridge/course';
 import { compartmentOf } from '../bridge/compartment-of';
 import { answerFtlSection, ftlRating } from '../bridge/ftl';
 import { readJson } from '../bridge/json-body';
@@ -98,9 +99,9 @@ export async function createBridge(
       '/course/:to',
       di.inject(
         { charts: NAV_CHARTS, log: FLIGHT_LOG },
-        async ({ charts, log }, req) => {
-          log.record(`plotting ${req.params.to}`);
-          return { course: charts.plot(req.params.to), entries: log.entries() };
+        async ({ charts, log }, req, reply) => {
+          const answer = answerCourse(charts, log, req.params.to);
+          return reply.code(answer.status).send(answer.body);
         },
       ),
     );
