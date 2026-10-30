@@ -27,6 +27,7 @@ describe('benchmarks workflow', () => {
         'libs/core/**',
         'examples/toolchain-matrix/**',
         'tools/bench-kit/**',
+        '.nvmrc',
       ]),
     );
     expect(runs('bench-check')).toContain('nx run @nexusdi/benchmarks:check');
@@ -39,6 +40,29 @@ describe('benchmarks workflow', () => {
     );
     expect(runs('changes')).toContain('^libs/core/src/');
     expect(runs('dispatch')).toContain('nx run @nexusdi/core:bench-dispatch');
+  });
+  it('runs K14 on a pull request that edits the harness or bench-kit', () => {
+    expect(runs('changes')).toContain('^libs/core/bench/');
+    expect(runs('changes')).toContain('^tools/bench-kit/src/');
+    expect(wf.jobs.dispatch.if).toContain(
+      "needs.changes.outputs.core == 'true'",
+    );
+  });
+  it('runs the sensitivity check on every event but a core-only pull request', () => {
+    const job = wf.jobs['bench-sensitivity'];
+    expect(job.needs).toBe('changes');
+    // A skipped `changes` job skips its dependents unless the condition
+    // names a status function.
+    expect(job.if).toContain('!cancelled()');
+    expect(job.if).toContain("github.event_name != 'pull_request'");
+    expect(job.if).toContain("needs.changes.outputs.sensitivity == 'true'");
+    expect(job['timeout-minutes']).toBeLessThanOrEqual(20);
+    expect(runs('bench-sensitivity')).toContain(
+      'nx run @nexusdi/core:bench-sensitivity',
+    );
+    expect(runs('changes')).toContain('^libs/core/bench/');
+    expect(runs('changes')).toContain('^tools/bench-kit/src/');
+    expect(runs('changes')).toContain('^\\.nvmrc$');
   });
   it('runs the full suite weekly, by hand and on a core tag', () => {
     expect(wf.on.schedule).toEqual([{ cron: '0 4 * * 1' }]);
