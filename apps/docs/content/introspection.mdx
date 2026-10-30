@@ -39,7 +39,7 @@ The `graph(ship)` function returns the entire compiled dependency graph as a str
 
 ### Checking a Graph Without Building It
 
-`inspect(root)` compiles a graph with `Nexus.check` and builds nothing, so no constructor runs. It takes the root forms `Nexus.create` takes and returns the same JSON as `graph()`, with every provider's `async` set to `null`, since nothing ran. It throws the `BlueprintError` that `Nexus.check` throws.
+`inspect(root)` compiles a graph with `Nexus.check` and builds nothing, so no constructor runs. It takes the root forms `Nexus.create` takes and returns the same JSON as `graph()`, with every provider's `async` set to `null`, since nothing ran. It throws the `BlueprintError` that `Nexus.check` throws. Like `Nexus.check`, it calls each `forRoot()` options schema and fails on a synchronous rejection. It returns no `unchecked` list, so call `Nexus.check` to learn which modules only `Nexus.create` can validate.
 
 You can also use `toMermaid()` or `toDot()` to convert this JSON graph into text that can be rendered as a visual diagram using Mermaid.js or Graphviz. Both take the graph, as in `toMermaid(graph)`. Neither imports a Node module, so both run in a browser too.
 

@@ -26,7 +26,7 @@ The `nexusdi graph` command takes an entry point (the file defining your root mo
 npx nexusdi graph src/meridian.module.ts#Meridian
 ```
 
-The command imports the entry file and checks the graph with `inspect()` from `@nexusdi/devtools`, which runs no constructor. Importing the file still runs its top-level code, so a file that starts the app starts it. Point the command at the file that defines the root module, and keep the `Nexus.create` call that starts the app in another file, such as `main.ts`.
+The command imports the entry file and checks the graph with `inspect()` from `@nexusdi/devtools`, which runs no constructor. It calls each `forRoot()` options schema, so a value that a synchronous schema rejects makes the command exit with code 1. An async schema and a `forRootAsync()` module pass the command unvalidated. Importing the file still runs its top-level code, so a file that starts the app starts it. Point the command at the file that defines the root module, and keep the `Nexus.create` call that starts the app in another file, such as `main.ts`.
 
 The default output is Mermaid, which GitHub and GitLab draw with nothing installed. `toMermaid` from `@nexusdi/devtools` writes the same text from a graph in your own code:
 
@@ -111,7 +111,7 @@ A value that is not a `NexusGraph` throws `DevtoolsError` with the code [NEXUS_D
 
 ## CI/CD Integration
 
-The `nexusdi graph` command is ideal for CI pipelines. It exits with code `0` if the graph is valid and code `1` if there are wiring mistakes. Code `2` means the arguments or an input file are wrong, and code `3` means a package the command needs is missing, such as `@nexusdi/devtools` or `@viz-js/viz`. A CI job runs the command and uploads the graph, and the job fails on any nonzero exit code. By adding this to your pipeline, you can prevent broken dependency graphs from ever being merged into your main branch. [`examples/bridge-api`](https://github.com/NexusDI/core/tree/release/0.4/examples/bridge-api) runs the command as its `graph` target, which also fails when the drawn graph differs from the committed `graph.json`.
+The `nexusdi graph` command is ideal for CI pipelines. It exits with code `0` if the graph is valid and code `1` if there are wiring mistakes or a `forRoot()` value that its schema rejects. Code `2` means the arguments or an input file are wrong, and code `3` means a package the command needs is missing, such as `@nexusdi/devtools` or `@viz-js/viz`. A CI job runs the command and uploads the graph, and the job fails on any nonzero exit code. By adding this to your pipeline, you can prevent broken dependency graphs from ever being merged into your main branch. [`examples/bridge-api`](https://github.com/NexusDI/core/tree/release/0.4/examples/bridge-api) runs the command as its `graph` target, which also fails when the drawn graph differs from the committed `graph.json`.
 
 ```bash
 # Fail the build if the graph is invalid
@@ -120,9 +120,9 @@ npx nexusdi graph src/meridian.module.ts#Meridian -f json -o graph.json
 
 The command exits with one of four codes. For codes 2 and 3, the message on stderr starts with `nexusdi:` and ends with the command or install line that fixes it.
 
-| Code | Meaning                                                                                              |
-| ---- | ---------------------------------------------------------------------------------------------------- |
-| 0    | The graph was written.                                                                               |
-| 1    | The graph is invalid. stderr holds the `BlueprintError` text.                                        |
-| 2    | The command or its input is wrong, such as an unknown flag or a `.json` entry that is not a graph.   |
-| 3    | Something is missing: `@nexusdi/core`, `@nexusdi/devtools`, tsx, `@viz-js/viz` or `@resvg/resvg-js`. |
+| Code | Meaning                                                                                                |
+| ---- | ------------------------------------------------------------------------------------------------------ |
+| 0    | The graph was written.                                                                                 |
+| 1    | The graph is invalid, or a `forRoot()` value fails its schema. stderr holds the `BlueprintError` text. |
+| 2    | The command or its input is wrong, such as an unknown flag or a `.json` entry that is not a graph.     |
+| 3    | Something is missing: `@nexusdi/core`, `@nexusdi/devtools`, tsx, `@viz-js/viz` or `@resvg/resvg-js`.   |
