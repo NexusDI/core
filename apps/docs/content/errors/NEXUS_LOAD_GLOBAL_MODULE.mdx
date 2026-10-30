@@ -8,7 +8,7 @@ errorClass: LoadError
 
 # NEXUS_LOAD_GLOBAL_MODULE
 
-`NEXUS_LOAD_GLOBAL_MODULE` means `ship.load()` received a module defined with `global: true`, or a module that imports a global module the graph does not hold yet. Every module's view of the global modules is computed at `create`, so a global module can join the graph only at startup. `load()` rejects with it directly. `Nexus.check` with the `load` option reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
+`NEXUS_LOAD_GLOBAL_MODULE` means `ship.load()` received a module defined with `global: true`, or a module that imports a global module the graph does not hold yet. Every module's view of the global modules is computed at `create`, so a global module can join the graph only at startup. `load()` rejects with it directly. `Nexus.check` with the `load` option reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). `load()` accepts a module the graph holds when a plugin's `compile.module` hook replaces it with a fresh object on every compile. It rejects a held module that a `compile.module` hook makes global during the load.
 
 ## Reproduce `NEXUS_LOAD_GLOBAL_MODULE`
 
@@ -36,4 +36,4 @@ The same error appears for a plain module that imports a new global module. With
 
 `LoadError` has one field:
 
-- `module`: the name of the global module that `load()` found missing from the graph: the module passed to it, or one that module imports.
+- `module`: the name of the global module that `load()` found missing from the graph: the module passed to it, one that module imports, or a held module a `compile.module` hook made global during the load.
