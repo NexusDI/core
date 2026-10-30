@@ -7,7 +7,7 @@ package: '@nexusdi/testing'
 
 # `@nexusdi/testing`
 
-A test that wants the real module graph with a few providers or modules replaced builds its container through `@nexusdi/testing`. `createTestingContainer(root)` returns a `TestingContainerBuilder`: `override()` replaces every provider of a token, `overrideModule()` puts a stub wherever the graph meets a module, and `create()` builds a plain `Nexus` with the replacements in place. Each `override()` and `overrideModule()` call returns a new builder and leaves the one it was called on unchanged, so a `beforeEach` can extend one base builder. When an override matches nothing in the graph, or a stub leaves out an export of the module it replaces, `create()` rejects with a `BlueprintError` whose `errors` list holds one `OverrideError` for each. An `overrideModule()` passed `{ lazy: true }` is never reported unused, and its stub is checked when `ship.load()` brings the module in. Each export has one entry below, with what the package's tests state about it.
+A test that wants the real module graph with a few providers or modules replaced builds its container through `@nexusdi/testing`. `createTestingContainer(root)` returns a `TestingContainerBuilder`: `override()` replaces every provider of a token, `overrideModule()` puts a stub wherever the graph meets a module, and `create()` builds a plain `Nexus` with the replacements in place. Each `override()` and `overrideModule()` call returns a new builder and leaves the one it was called on unchanged, so a `beforeEach` can extend one base builder. When an override matches nothing in the graph, or a stub leaves out an export of the module it replaces, `create()` rejects with a `BlueprintError` whose `errors` list holds one `OverrideError` for each. An `override()` or `overrideModule()` passed `{ lazy: true }` is never reported unused. For a lazy `overrideModule()`, the stub check runs at the `ship.load()` that brings the module in. Each export has one entry below, with what the package's tests state about it.
 
 <ApiFilter />
 
@@ -22,6 +22,10 @@ A test that wants the real module graph with a few providers or modules replaced
 ## `TestingCreateOptions`
 
 <!-- reference @nexusdi/testing#TestingCreateOptions -->
+
+## `OverrideOptions`
+
+<!-- reference @nexusdi/testing#OverrideOptions -->
 
 ## `ModuleOverrideOptions`
 

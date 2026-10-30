@@ -199,6 +199,59 @@ console.log(reply);
 
 <!-- #endregion override-module -->
 
+<!-- #region override-lazy -->
+
+```ts @import.meta.vitest
+import { Token, defineModule, provide } from '@nexusdi/core';
+import { createTestingContainer } from '@nexusdi/testing';
+
+interface IFtlDrive {
+  jump(to: string): string;
+}
+interface INavComputer {
+  plot(to: string): string;
+}
+const FTL_DRIVE = new Token<IFtlDrive>('FtlDrive');
+const NAV_COMPUTER = new Token<INavComputer>('NavComputer');
+
+class JumpDrive implements IFtlDrive {
+  jump(to: string) {
+    return `spooled and jumped to ${to}`;
+  }
+}
+class SimulatedDrive implements IFtlDrive {
+  jump(to: string) {
+    return `simulated jump to ${to}`;
+  }
+}
+class NavComputer implements INavComputer {
+  static deps = [FTL_DRIVE] as const;
+  constructor(private readonly drive: IFtlDrive) {}
+  plot(to: string) {
+    return this.drive.jump(to);
+  }
+}
+
+const Navigation = defineModule({
+  name: 'Navigation',
+  providers: [
+    provide(FTL_DRIVE, { useClass: JumpDrive }),
+    provide(NAV_COMPUTER, { useClass: NavComputer }),
+  ],
+  exports: [FTL_DRIVE, NAV_COMPUTER],
+});
+const Meridian = defineModule({ name: 'Meridian' });
+
+await using ship = await createTestingContainer(Meridian)
+  .override(FTL_DRIVE, { useClass: SimulatedDrive }, { lazy: true })
+  .create();
+await ship.load(Navigation);
+const reply = ship.get(NAV_COMPUTER).plot('Kepler-442b'); // -> 'simulated jump to Kepler-442b'
+console.log(reply);
+```
+
+<!-- #endregion override-lazy -->
+
 <!-- #region override-lifetime -->
 
 ```ts @import.meta.vitest

@@ -70,7 +70,15 @@ The stub module must export every token that the original module exported; other
 
 **Try it:** Delete `exports: [SUBSPACE_LINK]` from `CommsStub` and run the region. The process ends with the error, and the inner message reads `the stub for Comms does not export SubspaceLink, which Comms exports.` Put the export back and the region prints `loopback hail`.
 
-An `overrideModule()` for a module the graph never imports fails with `NEXUS_OVERRIDE_UNUSED`, and the message names the module, such as `override(Comms) matched no provider in the module graph.` Pass `{ lazy: true }` as the third argument when a later `ship.load()` brings the module in, and `create()` no longer reports it.
+An `overrideModule()` for a module the graph never imports fails with `NEXUS_OVERRIDE_UNUSED`, and the message names the module, such as `override(Comms) matched no provider in the module graph.` Pass `{ lazy: true }` as the third argument when a later [`ship.load()`](/load/) brings the module in, and `create()` no longer reports it. `override()` takes the same option for a token that a later `ship.load()` adds. The override then replaces every provider of that token the load adds, and the loaded module keeps its other providers. In the region, `Navigation` provides `FTL_DRIVE` and `NAV_COMPUTER`. The load replaces the drive, and `NAV_COMPUTER` stays the loaded provider and receives the simulated drive:
+
+```ts file=examples/meridian/src/pages/testing.md region=override-lazy
+
+```
+
+**Try it:** Run the region. It prints `simulated jump to Kepler-442b`. Remove `{ lazy: true }` and run it again. `create()` rejects with `NEXUS_BLUEPRINT_INVALID`, and the inner message reads `override(FtlDrive) matched no provider in the module graph.` Put `{ lazy: true }` back and the region prints `simulated jump to Kepler-442b` again.
+
+A `MultiToken` is a token that many providers contribute to, and a consumer reads all of them with `all()`. A lazy override of a `MultiToken` that a later `ship.load()` first adds replaces the first contribution each loaded module adds where it stands and drops that module's other contributions, so a consumer in a loaded module reads one entry, as at create. A contribution the loaded module exports still fails the load, as it does without the override.
 
 ## Advanced Testing Patterns
 
