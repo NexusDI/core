@@ -15,9 +15,10 @@
  * verdict is taken again over all 60 (spec 14.6). The job then fails on a
  * `fail`, and on an `inconclusive` whose median is above 1.03.
  *
- * Both workers run with TurboFan's cumulative inlining budget raised
- * (exec-argv.mjs), so the two builds inline the same callees except the hook
- * sites (spec 14.6, issue #206).
+ * The workers of the get cases run with TurboFan's cumulative inlining budget
+ * raised (exec-argv.mjs), so the two builds inline the same get-path callees
+ * except the hook sites. Every other case runs at V8 defaults (spec 14.6,
+ * issue #206).
  *
  * `--quick` runs 2 pairs of 2 warm-up and 5 measured rounds for a local
  * smoke test, with no verdict and no extension.
@@ -34,7 +35,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { buildDispatch } from './build.mjs';
-import { WORKER_EXEC_ARGV } from './exec-argv.mjs';
+import { execArgvFor } from './exec-argv.mjs';
 
 const quick = process.argv.includes('--quick');
 const warmup = quick ? 2 : 20;
@@ -49,8 +50,8 @@ const worker = join(import.meta.dirname, 'worker.mjs');
 /** Adds the measured samples and batch of pairs `from` to `to - 1` of `name` to `samples`. */
 async function measure(name, samples, from, to) {
   for (let pair = from; pair < to; pair++) {
-    const on = forkWorker('on', worker, [paths.on], WORKER_EXEC_ARGV);
-    const off = forkWorker('off', worker, [paths.off], WORKER_EXEC_ARGV);
+    const on = forkWorker('on', worker, [paths.on], execArgvFor(name));
+    const off = forkWorker('off', worker, [paths.off], execArgvFor(name));
     try {
       const s = await interleave([on, off], name, {
         warmup,
