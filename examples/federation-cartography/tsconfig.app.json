@@ -23,19 +23,22 @@
       "path": "../../libs/react/tsconfig.lib.json"
     },
     {
-      "path": "../federation-contracts/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/core/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/testing/tsconfig.lib.json"
     },
     {
       "path": "../../libs/vitest/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/testing/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/federation/tsconfig.lib.json"
+    },
+    {
+      "path": "../../tools/doc-examples"
+    },
+    {
+      "path": "../federation-contracts/tsconfig.lib.json"
     }
   ]
 }
