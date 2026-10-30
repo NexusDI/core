@@ -390,10 +390,12 @@ const plugin: Builder<PluginError> = (error) => {
       return text(
         `${error.plugin} ${PLUGIN_INVALID[error.reason as PluginInvalidReason](error.detail.join(', '))}`,
       );
-    case 'NEXUS_PLUGIN_VERSION':
+    case 'NEXUS_PLUGIN_VERSION': {
+      const newer = Number(error.apiVersion) > Math.max(...error.supported);
       return text(
-        `${error.plugin} was written for plugin API ${error.apiVersion}; this @nexusdi/core supports ${error.supported.join(', ')}.\n  Fix: install the plugin version built for this @nexusdi/core.`,
+        `${error.plugin} was written for plugin API ${error.apiVersion}; this @nexusdi/core supports ${error.supported.join(', ')}.\n  Fix: ${newer ? `install a @nexusdi/core that supports plugin API ${error.apiVersion}` : 'install the plugin version built for this @nexusdi/core'}.`,
       );
+    }
     case 'NEXUS_PLUGIN_CONFLICT':
       return text(
         `${error.plugins.join(' and ')} both rewrite ${error.target}; one plugin may rewrite a module or a provider.`,

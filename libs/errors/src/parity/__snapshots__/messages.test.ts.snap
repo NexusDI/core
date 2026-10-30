@@ -245,7 +245,7 @@ exports[`NexusError > keeps the message of PluginError (failed) 1`] = `"[NEXUS_P
 
 exports[`NexusError > keeps the message of PluginError (version) 1`] = `
 "[NEXUS_PLUGIN_VERSION] devtools was written for plugin API 2; this @nexusdi/core supports 1.
-  Fix: install the plugin version built for this @nexusdi/core."
+  Fix: install a @nexusdi/core that supports plugin API 2."
 `;
 
 exports[`NexusError > keeps the message of PluginError 1`] = `"[NEXUS_PLUGIN_INVALID] plugins[0] has no name; set name to a non-empty string."`;
