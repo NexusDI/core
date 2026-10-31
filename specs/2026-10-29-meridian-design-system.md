@@ -210,7 +210,9 @@ gives the radiator vanes a faint red-orange glow and paints the hazard parts `#e
 Those are material placeholders. The hull carries no livery accent hue, since a reader would take
 an accent near amber or red for a meaning colour on the deck. The paint-over uses
 `hull-paint` and `hull-shadow` alone, with `hazard` at the hatches and bay doors. The
-`MERIDIAN` and `SV-01` stencils in `hull-shadow` mark the ship.
+`MERIDIAN` and `SV-01` stencils in `hull-shadow` mark the ship. The bake of the painted
+cutaway grades the saturation of the paint inside each room to `roomSaturation`, 0.3 by
+default, so the room hues do not read as meaning colours (TL15). The owner may set it to 1.
 
 ### 4.6 Lifetimes, export kinds and syntax
 
@@ -456,7 +458,10 @@ to the package:
   the app can draw conduits, glyphs and focusable hotspots over the ship. The markup layer
   is `aria-hidden` and the overlay is not. `Schematic` takes three state tables (`rooms`,
   `fixtures` and `doors`) and the optional `viewBox`, `label` and `scope` props. `label` is
-  required with `children`.
+  required with `children`. An optional `base` (a `src`, its width and height, AVIF and
+  WebP sources, `sizes` and `loading`) makes the package render a `<picture alt="">` with
+  explicit dimensions under the markup, the style and the overlay in one box, and add a
+  `--painted` class (TL13).
 - `HullCrop` renders a crop of the cutaway around one hull section and sets its
   `view-transition-name` from a prop. The docs app wraps it in React's `<ViewTransition>`
   (9.3).
@@ -474,16 +479,20 @@ at run time, and marketing art, which is painted and lit once.
 
 ### 8.1 Views and their sources
 
-| View      | Where                                                                          | Source                                                                                              | Format                            |
-| --------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- | --------------------------------- |
-| hero      | front page top, feature pages, Academy hub, demo splash                        | marketing art: a lit paint-over of the `sv01-hero` three-quarter render of `build_ship.py`          | AVIF and WebP, 1x and 2x          |
-| schematic | front-page cutaway, feature-page crops, docs concept pages                     | vector: `ship_svg.py`'s side cutaway, with `data-room`, `data-door`, `data-fixture`                 | inline SVG                        |
-| deck map  | the MeridianOS deck view, Academy missions, front-page scenes after 0.4 (11.2) | runtime art: the layers of 8.2, placed by `SHIP_GEOMETRY` from `@nexusdi/meridian-systems/geometry` | PixiJS v8 canvas plus a DOM layer |
-| icon      | favicon, navbar mark, Ship-note glyph, Academy badges                          | vector: the top silhouette, hand-snapped to the pixel grid at each size                             | SVG, and PNG for the favicon      |
+| View      | Where                                                                              | Source                                                                                              | Format                            |
+| --------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------- |
+| hero      | front page top, feature pages, Academy hub, demo splash                            | marketing art: a lit paint-over of the `sv01-hero` three-quarter render of `build_ship.py`          | AVIF and WebP, 1x and 2x          |
+| cutaway   | front-page bay, ship systems strip crops                                           | marketing art: the painted `cutaway-cut-a-s211-h375` pass, orthographic at 25.6 px/m (8.3)          | AVIF and WebP, 1024 to 2048 wide  |
+| side      | ship systems strip backdrop, feature pages                                         | marketing art: the painted `side-ext-d-s211-h25-d-clip` pass, the same camera                       | AVIF and WebP, 1024 to 2048 wide  |
+| schematic | front-page state layer, feature-page crops, feature-page crops, docs concept pages | vector: `ship_svg.py`'s side cutaway, with `data-room`, `data-door`, `data-fixture`                 | inline SVG                        |
+| deck map  | the MeridianOS deck view, Academy missions, front-page scenes after 0.4 (11.2)     | runtime art: the layers of 8.2, placed by `SHIP_GEOMETRY` from `@nexusdi/meridian-systems/geometry` | PixiJS v8 canvas plus a DOM layer |
+| icon      | favicon, navbar mark, Ship-note glyph, Academy badges                              | vector: the top silhouette, hand-snapped to the pixel grid at each size                             | SVG, and PNG for the favicon      |
 
 The lit painted exteriors are marketing art for the front page and the feature pages
 alone. Until the paint-over is done, the hero uses the mesh render as it is. The schematic
-and the icon stay vector, so they theme, scale and print with no raster.
+and the icon stay vector, so they theme, scale and print with no raster. The front page
+bay and ship systems strip draw the schematic as the state layer over the painted
+`cutaway` (OR4, TL13), and its hit geometry stays the vector's.
 
 ### 8.2 Runtime layers
 
@@ -524,6 +533,10 @@ the light (8.4), so data stays crisp at every zoom.
   names its view (`deck-<id>`, `side`, `top`, `cutaway`), its pixels per metre and the pixel of the
   origin. The game places an image by its sidecar alone. The paint-over's output aligns
   through the sidecar with no change to any view.
+- Marketing scale: the painted `cutaway` and `side` views use 25.6 pixels per metre on the
+  frame `-5 -1.5 80 20` (2048 by 512, origin at pixel (128, 448)), with `u = (x + 5) * 25.6`
+  and `v = (17.5 - z) * 25.6`. Their sidecars hold a sha256 of the geometry's hull,
+  compartments, doors and conduits, and a test fails when it differs (TL18).
 - Props: a prop sprite is a transparent WebP per state, cut to the fixture's footprint
   in the geometry plus a 0.5 m margin for overhang, and anchored at the footprint's
   centre. A sprite is named `<fixture id>@<state>`, such as `bridge.forward-console@on`.
@@ -546,6 +559,10 @@ The schematic, the icon, and the conduits and overlay on the deck map are vector
   12% over its `screen` fill, an unpowered room keeps the plain fill with its emissive
   screens lit, and an alarmed room pulses an `alarm` fill at 12% (9.2). The site UX spec
   section 4.3 sets these fills for the front page.
+- Over the painted cutaway a powered room is `lamp` at 12%, an unpowered room a scrim of
+  `screen` at 60%, an alarm an `alarm` tint with a dashed outline of 2 screen pixels, and an
+  offline fixture the scrim with the same outline; a room with no state draws nothing
+  (TL13, TL16).
 - A conduit's kind shows by its line: power a solid 2px line, coolant a double line,
   atmosphere a line of round dots. Its hue shows its state: `data` flowing, `action` shed
   or throttled, `alarm` broken. Brightness shows the figure: a power conduit's `data`

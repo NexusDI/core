@@ -1616,7 +1616,9 @@ reduced-motion rule.
 
 Nothing in the runtime loads before the reader interacts. The static views are SVG and
 markup in the page's HTML. The console island, which does the section tracking, the tabs,
-the widget rendering and the trace replay, is limited to 35 kB gzipped (section 16.2).
+the widget rendering and the trace replay, is limited to 35 kB gzipped (section 16.2). The
+static export also carries the AVIF and WebP ship art that the front page references,
+which `checkArt` holds to its rows (site UX spec 12.2).
 
 ## 11. Playground runtime
 
