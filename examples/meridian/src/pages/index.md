@@ -26,6 +26,9 @@ interface ISurveyDrone {
 interface IFlightLog {
   readonly entries: string[];
 }
+interface IDiagnosticsPanel {
+  report(): string;
+}
 interface CommsOptions {
   readonly frequency: number;
   readonly transport: 'relay' | 'laser';
@@ -38,9 +41,15 @@ const SUBSPACE_LINK = new Token<ISubspaceLink>('SubspaceLink');
 const NAV_CHARTS = new Token<INavCharts>('NavCharts');
 const DRONE = new Token<ISurveyDrone>('SurveyDrone');
 const FLIGHT_LOG = new Token<IFlightLog>('FlightLog');
+const DIAGNOSTICS_PANEL = new Token<IDiagnosticsPanel>('DiagnosticsPanel');
+
+const shutdown: string[] = [];
 
 class FusionReactor implements IReactorCore {
   readonly output = 1.21;
+  async [Symbol.asyncDispose]() {
+    shutdown.push('reactor scram: control rods dropped');
+  }
 }
 class QuantumComputer implements IShipComputer {
   static deps = [REACTOR] as const;
@@ -54,11 +63,17 @@ class SubspaceRelay implements ISubspaceLink {
   send(message: string) {
     return `relay ${this.frequency}: ${message}`;
   }
+  [Symbol.dispose]() {
+    shutdown.push('subspace link closed');
+  }
 }
 class LaserLink implements ISubspaceLink {
   constructor(readonly frequency: number) {}
   send(message: string) {
     return `laser ${this.frequency}: ${message}`;
+  }
+  [Symbol.dispose]() {
+    shutdown.push('subspace link closed');
   }
 }
 class ScoutDrone implements ISurveyDrone {
@@ -70,6 +85,16 @@ class ScoutDrone implements ISurveyDrone {
 }
 class ShuttleFlightLog implements IFlightLog {
   readonly entries: string[] = [];
+}
+class StatusBoard implements IDiagnosticsPanel {
+  static deps = [COMPUTER, SUBSPACE_LINK] as const;
+  constructor(
+    private readonly computer: IShipComputer,
+    private readonly link: ISubspaceLink,
+  ) {}
+  report() {
+    return this.link.send(this.computer.status());
+  }
 }
 
 const Engineering = defineModule({
@@ -96,17 +121,20 @@ const Comms = defineModule({
   exports: [SUBSPACE_LINK],
 });
 
+// One forRoot() call. Tactical and Meridian import this constant, so the ship builds one link.
+const ShipComms = Comms.forRoot({ frequency: 1420, transport: 'laser' });
+
 const Tactical = defineModule({
   name: 'Tactical',
-  imports: [
-    Engineering,
-    Comms.forRoot({ frequency: 1420, transport: 'laser' }),
-  ],
+  imports: [Engineering, ShipComms],
   providers: [
     provide(NAV_CHARTS, {
-      useFactory: async (link) => ({
-        plot: (target: string) => link.send(`course to ${target}`),
-      }),
+      useFactory: async (link) => {
+        await new Promise((done) => setTimeout(done, 400)); // the chart download
+        return {
+          plot: (target: string) => link.send(`course to ${target}`),
+        };
+      },
       deps: [SUBSPACE_LINK],
     }),
     provide(DRONE, { useClass: ScoutDrone, lifetime: 'transient' }),
@@ -124,13 +152,21 @@ const BridgeApi = defineModule({
 
 const Meridian = defineModule({
   name: 'Meridian',
-  imports: [Tactical, BridgeApi],
+  imports: [Engineering, ShipComms, Tactical, BridgeApi],
+  providers: [provide(DIAGNOSTICS_PANEL, { useClass: StatusBoard })],
 });
 
-await using ship = await Nexus.create(Meridian);
+const ship = await Nexus.create(Meridian);
 
 const course = ship.get(NAV_CHARTS).plot('Kepler-442b'); // -> 'laser 1420: course to Kepler-442b'
 console.log(course);
+
+const panel = ship.get(DIAGNOSTICS_PANEL).report(); // -> 'laser 1420: ShipComputer online. Reactor output 1.21 GW.'
+console.log(panel);
+
+await ship[Symbol.asyncDispose]();
+const stopped = [...shutdown]; // -> ['subspace link closed', 'reactor scram: control rods dropped']
+console.log(stopped);
 ```
 
 <!-- #endregion meridian -->

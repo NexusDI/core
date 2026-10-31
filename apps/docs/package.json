@@ -55,11 +55,39 @@
           "{projectRoot}/public/code-classes.css"
         ]
       },
+      "scene-fixtures": {
+        "command": "node --experimental-strip-types tools/scene-fixtures.mjs",
+        "options": {
+          "cwd": "{projectRoot}"
+        },
+        "cache": true,
+        "dependsOn": [
+          "^build"
+        ],
+        "inputs": [
+          "{projectRoot}/tools/scene-fixtures.mjs",
+          "{workspaceRoot}/examples/meridian/src/scenes/*.ts",
+          "{workspaceRoot}/examples/meridian/package.json",
+          "{workspaceRoot}/libs/*/package.json",
+          "{workspaceRoot}/libs/*/src/**/*.ts",
+          "{workspaceRoot}/tsconfig.base.json"
+        ],
+        "outputs": [
+          "{projectRoot}/components/front-page/fixtures"
+        ]
+      },
       "build": {
         "dependsOn": [
           "^build",
           "benchmark-data",
-          "behaviour-data"
+          "behaviour-data",
+          "scene-fixtures",
+          {
+            "projects": [
+              "@nexusdi/meridian"
+            ],
+            "target": "typecheck"
+          }
         ],
         "inputs": [
           "default",
@@ -93,7 +121,14 @@
         "dependsOn": [
           "^build",
           "benchmark-data",
-          "behaviour-data"
+          "behaviour-data",
+          "scene-fixtures",
+          {
+            "projects": [
+              "@nexusdi/meridian"
+            ],
+            "target": "typecheck"
+          }
         ],
         "inputs": [
           "default",
@@ -110,7 +145,13 @@
       "test": {
         "dependsOn": [
           "^build",
-          "behaviour-data"
+          "behaviour-data",
+          "scene-fixtures"
+        ],
+        "inputs": [
+          "default",
+          "^production",
+          "{workspaceRoot}/examples/meridian-systems/deck/meridian.geometry.json"
         ]
       }
     }
@@ -140,6 +181,7 @@
     "@nexusdi/federation": "*",
     "@nexusdi/hono": "*",
     "@nexusdi/interceptors": "*",
+    "@nexusdi/meridian": "*",
     "@nexusdi/node": "*",
     "@nexusdi/react": "*",
     "@nexusdi/react-router": "*",
