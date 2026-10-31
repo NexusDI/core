@@ -18,6 +18,7 @@ import { DECK_OPTIONS, DECK_STATE } from '../state/tokens.js';
 import type { IDeckLayer, LayerContext } from './contracts.js';
 import {
   DEFAULT_RAMP_MS,
+  LAMP_GAIN,
   LightModel,
   hexToInt,
   kindGain,
@@ -265,7 +266,8 @@ export class LightLayer implements IDeckLayer {
           light.fixture === null
             ? undefined
             : model.fixture(light.fixture, now);
-        const level = lightLevel(light, levels, fixture) * kindGain(light.kind);
+        const level =
+          lightLevel(light, levels, fixture) * kindGain(light.kind) * LAMP_GAIN;
         sprite.alpha = level;
         sprite.visible = level > VISIBLE;
       }

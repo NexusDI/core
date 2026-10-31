@@ -16,9 +16,17 @@ import type {
 export const AMBIENT_UNPOWERED = 0.15;
 /** The light a powered room keeps between its lamp pools. */
 export const AMBIENT_POWERED = 0.35;
-/** An alarmed room keeps a dimmer ambient and half its lamps, so the red reads over saturated lamp light. */
-export const AMBIENT_ALARM = 0.25;
-export const ALARM_LAMP = 0.4;
+/** An alarmed room keeps the unpowered ambient and 30% of its lamps, so the red reads over the lamp light. */
+export const AMBIENT_ALARM = 0.15;
+export const ALARM_LAMP = 0.3;
+/**
+ * A lamp sprite shows at this share of its room's level. At full strength the
+ * pools of a powered room clip to white on the unlit albedo, and the 8-bit
+ * light texture has no headroom to hold them.
+ */
+export const LAMP_GAIN = 0.72;
+/** A sprite reaches this many times the radius the lights file lists. */
+export const REACH = 1.5;
 /** The alarm light pulses at this rate (design system 9.2). */
 export const ALARM_HZ = 1;
 /** The pulse falls to this share of its peak. */
@@ -236,13 +244,14 @@ export function tintOf(colour: string, palette: DeckPalette): number {
   return hexToInt(hex);
 }
 
-/** The size of a light's sprite in pixels of the frame: the housing's width plus the reach on each side. */
+/** The size of a light's sprite in pixels of the frame: the housing's width plus the reach on each side (`REACH` times the radius). */
 export function spriteSize(light: Pick<DeckLight, 'radius' | 'box'>): {
   readonly width: number;
   readonly height: number;
 } {
   const [left, , right] = light.box;
-  return { width: right - left + 2 * light.radius, height: 2 * light.radius };
+  const reach = light.radius * REACH;
+  return { width: right - left + 2 * reach, height: 2 * reach };
 }
 
 /** The glow of the light at `distance` from its centre as a share of its reach: 1 at the centre, 0 at the edge. */

@@ -10,6 +10,8 @@ import {
   AMBIENT_UNPOWERED,
   LevelTrack,
   LightModel,
+  LAMP_GAIN,
+  REACH,
   STANDBY_GLOW,
   falloff,
   fixtureTarget,
@@ -215,6 +217,13 @@ describe('the levels of a light', () => {
   });
 });
 
+describe('the tuned constants', () => {
+  it('start from the mock: lamps at 72% reaching 1.5 times the radius', () => {
+    expect(LAMP_GAIN).toBe(0.72);
+    expect(REACH).toBe(1.5);
+  });
+});
+
 describe('the tint and the sprite', () => {
   const palette = { lamp: '#e8b46a', glow: '#dfe6ea', alarm: '#ff0000' };
 
@@ -232,8 +241,8 @@ describe('the tint and the sprite', () => {
   it('sizes a sprite as the housing width plus the reach on each side', () => {
     expect(spriteSize({ radius: 64, box: [273.9, 340.5, 289.3, 343] })).toEqual(
       {
-        width: 289.3 - 273.9 + 128,
-        height: 128,
+        width: 289.3 - 273.9 + 2 * 64 * REACH,
+        height: 2 * 64 * REACH,
       },
     );
   });
