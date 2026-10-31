@@ -11,7 +11,7 @@ const here = import.meta.dirname;
 
 /**
  * Emits `dist/styles.css`: `src/styles.css` with its one `@import` replaced by
- * the generated token file. Nothing under `src/` imports a stylesheet, so
+ * the generated token file, and `dist/schematic.css` as it is. Nothing under `src/` imports a stylesheet, so
  * Vite's CSS pipeline never sees it.
  */
 function stylesheet(): Plugin {
@@ -32,6 +32,16 @@ function stylesheet(): Plugin {
           readFileSync(resolve(dirname(entry), specifier), 'utf8').trimEnd(),
       );
       this.emitFile({ type: 'asset', fileName: 'styles.css', source: inlined });
+      // The schematic's rules ship as their own entry: no `@import`, no tokens.
+      try {
+        this.emitFile({
+          type: 'asset',
+          fileName: 'schematic.css',
+          source: readFileSync(join(here, 'src', 'schematic.css'), 'utf8'),
+        });
+      } catch {
+        // No schematic stylesheet yet.
+      }
     },
   };
 }
