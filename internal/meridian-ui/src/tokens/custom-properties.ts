@@ -1,5 +1,5 @@
 import { channels } from './contrast.js';
-import { colour, HOLO_ALPHA, screen } from './colour.js';
+import { art, colour, HOLO_ALPHA, screen } from './colour.js';
 import {
   chamfer,
   elevation,
@@ -67,6 +67,9 @@ const shared: Declaration[] = [
     ([role, hex]) => [`--meridian-palette-light-${kebab(role)}`, hex] as const,
   ),
   ...Object.entries(screen).map(
+    ([role, hex]) => [customProperty(role), hex] as const,
+  ),
+  ...Object.entries(art).map(
     ([role, hex]) => [customProperty(role), hex] as const,
   ),
   ['--meridian-holo-backing', rgba(screen.holo, HOLO_ALPHA)],

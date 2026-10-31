@@ -37,6 +37,8 @@
   --meridian-screen: #0b1015;
   --meridian-screen-text: #e8ecf0;
   --meridian-holo: #0e2a33;
+  --meridian-hull-paint: #9aa1a8;
+  --meridian-lamp: #e8b46a;
   --meridian-holo-backing: rgb(14 42 51 / 0.94);
   --meridian-font-display: var(--font-display, 'Space Grotesk'), ui-sans-serif, system-ui, sans-serif;
   --meridian-font-body: var(--font-body, 'IBM Plex Sans'), ui-sans-serif, system-ui, sans-serif;

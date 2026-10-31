@@ -317,6 +317,106 @@
         <span class="meridian-holo__leader" aria-hidden="true"></span>
       </aside>
     </div>
+    <h2>Schematic</h2>
+    <p>
+      The committed cutaway with rooms in each state. Serve the repo root over
+      http so the fetch finds the SVG.
+    </p>
+    <div class="meridian-schematic" data-schematic="ship" id="schematic">
+      <div
+        class="meridian-schematic__art"
+        id="schematic-art"
+        aria-hidden="true"
+      ></div>
+      <style id="schematic-style"></style>
+      <svg
+        class="meridian-schematic__overlay"
+        viewBox="-2 0 76 18"
+        role="group"
+        aria-label="Ship hotspots"
+      >
+        <circle
+          cx="12"
+          cy="9"
+          r="0.6"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="0.15"
+          tabindex="0"
+          role="button"
+          aria-label="Bridge system"
+        />
+      </svg>
+    </div>
+    <h2>Switch</h2>
+    <p>
+      <label class="meridian-switch">
+        <input
+          class="meridian-switch__input"
+          type="checkbox"
+          role="switch"
+          name="reactor"
+          value="on"
+          checked
+        />
+        <span class="meridian-switch__rocker" aria-hidden="true"></span>
+        <span class="meridian-switch__label">Reactor</span>
+        <span class="meridian-switch__word meridian-switch__word--on"
+          >charged</span
+        >
+        <span class="meridian-switch__word meridian-switch__word--off"
+          >idle</span
+        >
+      </label>
+      <label class="meridian-switch">
+        <input
+          class="meridian-switch__input"
+          type="checkbox"
+          role="switch"
+          name="drive"
+          value="on"
+        />
+        <span class="meridian-switch__rocker" aria-hidden="true"></span>
+        <span class="meridian-switch__label">Drive</span>
+        <span class="meridian-switch__word meridian-switch__word--on"
+          >spooling</span
+        >
+        <span class="meridian-switch__word meridian-switch__word--off"
+          >idle</span
+        >
+      </label>
+      <label class="meridian-switch">
+        <input
+          class="meridian-switch__input"
+          type="checkbox"
+          role="switch"
+          name="comms"
+          value="on"
+          disabled
+        />
+        <span class="meridian-switch__rocker" aria-hidden="true"></span>
+        <span class="meridian-switch__label">Comms</span>
+        <span class="meridian-switch__word meridian-switch__word--on"
+          >linked</span
+        >
+        <span class="meridian-switch__word meridian-switch__word--off"
+          >offline</span
+        >
+      </label>
+    </p>
+    <h2>Step list</h2>
+    <ol class="meridian-steps">
+      <li class="meridian-steps__item meridian-steps__item--done">
+        Check the blueprint
+      </li>
+      <li
+        class="meridian-steps__item meridian-steps__item--current"
+        aria-current="step"
+      >
+        Build the modules
+      </li>
+      <li class="meridian-steps__item meridian-steps__item--todo">Launch</li>
+    </ol>
     <p>
       <button type="button" id="theme">Switch theme</button>
     </p>
@@ -364,6 +464,35 @@
         cell.innerHTML = `<span style="background: var(--meridian-${role})"></span><code>--meridian-${role}</code>`;
         host.append(cell);
       }
+      fetch('../../../apps/docs/components/front-page/meridian-schematic.svg')
+        .then((response) => response.text())
+        .then((svg) => {
+          document.getElementById('schematic-art').innerHTML = svg;
+        });
+      const rule = (attr, id, css) =>
+        `[data-schematic="ship"] [${attr}="${id}"]{${css}}`;
+      document.getElementById('schematic-style').textContent = [
+        ...['bridge', 'chart-room', 'habitat'].map((id) =>
+          rule('data-room', id, 'fill:var(--meridian-sv-room-powered)'),
+        ),
+        rule(
+          'data-room',
+          'reactor-bay',
+          'fill:var(--meridian-sv-room-alarm);stroke:var(--meridian-alarm);stroke-width:0.1;stroke-dasharray:0.4 0.2;animation:meridian-sv-alarm 1s ease-in-out infinite',
+        ),
+        rule('data-room', 'engineering', 'fill:var(--meridian-sv-room)'),
+        rule(
+          'data-fixture',
+          'bridge.helm',
+          'fill:var(--meridian-sv-fixture);opacity:0.35;stroke:var(--meridian-text-secondary);stroke-width:0.1;stroke-dasharray:0.3 0.2',
+        ),
+        rule(
+          'data-fixture',
+          'bridge.station-bank',
+          'fill:var(--meridian-sv-fixture-powered)',
+        ),
+        rule('data-door', 'bridge-habitat', 'fill:var(--meridian-alarm)'),
+      ].join('\n');
       document.getElementById('theme').addEventListener('click', () => {
         document.documentElement.classList.toggle('dark');
       });
