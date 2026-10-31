@@ -275,6 +275,12 @@
   justify-self: end;
 }
 
+.meridian-terminal__body {
+  max-block-size: 24rem;
+  overflow: auto;
+  padding: var(--meridian-space-3) var(--meridian-space-4);
+}
+
 .meridian-terminal__prompt {
   padding: var(--meridian-space-2) var(--meridian-space-4);
   border-block-start: 1px solid var(--meridian-seam);
@@ -429,14 +435,16 @@
   color: var(--meridian-action);
 }
 
-.meridian-button:disabled {
+.meridian-button:disabled,
+.meridian-button[aria-disabled='true'] {
   background: var(--meridian-plate-raised);
   border-color: var(--meridian-seam);
   color: var(--meridian-text-tertiary);
   cursor: not-allowed;
 }
 
-.meridian-button--quiet:disabled {
+.meridian-button--quiet:disabled,
+.meridian-button--quiet[aria-disabled='true'] {
   background: none;
   border-color: transparent;
 }
@@ -511,6 +519,16 @@
 
 .meridian-alert__code {
   font-weight: 600;
+}
+
+a.meridian-alert__code {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.meridian-alert__line {
+  display: block;
+  font-weight: 400;
 }
 
 .meridian-alert__actions {

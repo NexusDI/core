@@ -749,3 +749,72 @@ describe('StepList', () => {
     ).toBe(true);
   });
 });
+
+describe('Terminal tabs and body', () => {
+  it('renders a tab strip after the title and replaces the log with a body', () => {
+    render(
+      <Terminal
+        title="preflight.ts"
+        lines={[]}
+        states={{}}
+        tabs={<button type="button">Run</button>}
+        body={<pre>source text</pre>}
+        prompt="x"
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Run' })).toBeTruthy();
+    expect(screen.getByText('source text')).toBeTruthy();
+    expect(screen.queryByRole('log')).toBeNull();
+    expect(document.querySelector('.meridian-terminal__prompt')).toBeTruthy();
+  });
+});
+
+describe('Button focusable', () => {
+  it('stays in the tab order with aria-disabled and swallows its click', () => {
+    const onClick = vi.fn();
+    render(
+      <Button focusable disabled reason="Locked" id="go" onClick={onClick}>
+        Go
+      </Button>,
+    );
+    const button = screen.getByRole('button', { name: 'Go' });
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    expect(button.hasAttribute('disabled')).toBe(false);
+    expect(button.getAttribute('aria-describedby')).toBe('go-reason');
+    button.click();
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('passes the click through while enabled', () => {
+    const onClick = vi.fn();
+    render(
+      <Button focusable onClick={onClick}>
+        Go
+      </Button>,
+    );
+    screen.getByRole('button', { name: 'Go' }).click();
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Alert banner message and code link', () => {
+  it('prints a sentence under the code and links the code to its page', () => {
+    render(
+      <Alert
+        variant="banner"
+        code="NEXUS_MISSING_PROVIDER"
+        codeHref="/errors/NEXUS_MISSING_PROVIDER/"
+        subject="Tactical"
+        message="NavCharts cannot reach SubspaceLink."
+      />,
+    );
+    expect(
+      screen
+        .getByRole('link', { name: 'NEXUS_MISSING_PROVIDER' })
+        .getAttribute('href'),
+    ).toBe('/errors/NEXUS_MISSING_PROVIDER/');
+    expect(
+      screen.getByText('NavCharts cannot reach SubspaceLink.'),
+    ).toBeTruthy();
+  });
+});
