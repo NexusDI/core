@@ -25,6 +25,12 @@ export const ALARM_LAMP = 0.3;
  * light texture has no headroom to hold them.
  */
 export const LAMP_GAIN = 0.72;
+/**
+ * The light accumulates at 1 / HEADROOM of its strength in the 8-bit light
+ * texture, and the room clip scales it back, so overlapping tints keep their
+ * hue where they would clip a channel at a time.
+ */
+export const HEADROOM = 2;
 /** A sprite reaches this many times the radius the lights file lists. */
 export const REACH = 1.5;
 /** The alarm light pulses at this rate (design system 9.2). */
@@ -219,16 +225,6 @@ export function lightLevel(
 ): number {
   if (light.fixture !== null && fixture !== undefined) return fixture;
   return room?.lamp ?? 0;
-}
-
-/** The share of a light's level its sprite shows. A glow is softer than a lamp; an unknown kind shows in full. */
-export function kindGain(kind: string): number {
-  switch (kind) {
-    case 'glow':
-      return 0.8;
-    default:
-      return 1;
-  }
 }
 
 /** A `#rrggbb` string as a number. */
