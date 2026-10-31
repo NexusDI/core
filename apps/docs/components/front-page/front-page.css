@@ -358,14 +358,9 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
   margin-block-end: 0;
 }
 
-/* Type-checks (4.7). The compiler's overload message is long, so it wraps. */
+/* Type-checks (4.7) */
 .nexus-front__band pre {
   margin-block: var(--meridian-space-5) var(--meridian-space-3);
-}
-
-.nexus-front__band .twoslash-error-line {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }
 
 /* Ship systems (4.8) */
