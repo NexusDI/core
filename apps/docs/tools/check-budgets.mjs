@@ -58,8 +58,8 @@ export const GUIDE_SLACK = 5_000;
 
 /**
  * The ceiling on one page's HTML, gzipped, and on the elements it carries,
- * for every exported page. `/api/` is the heaviest, with core's ninety-six
- * entries, measured at 199,425 bytes gzipped and 13,604 elements with
+ * for every exported page. `/api/` is the heaviest, with core's ninety-eight
+ * entries, measured at 201,057 bytes gzipped and 13,621 elements with
  * `tools/popup-fold.mjs` folding its type panels out and
  * `tools/token-fold.mjs` folding its fences' token spans. The adapter
  * packages' entries sit on pages of their own, so they add nothing to it.
