@@ -46,8 +46,15 @@ export interface StageProps {
   coarse: boolean;
   /** Dims the physical conduits while the overlay shows the graph. */
   showGraph: boolean;
-  /** The lit canvas of the wide stage and whether it has presented its first frame. */
-  light: { canvas: ReactNode; lit: boolean } | null;
+  /**
+   * The lit canvas of the wide stage, the 2D canvas of each run of a phone's
+   * section, and whether the scene has presented its first frame.
+   */
+  light: {
+    canvas: ReactNode;
+    runCanvas: (run: number) => ReactNode;
+    lit: boolean;
+  } | null;
 }
 
 /**
@@ -153,7 +160,7 @@ function Hull({
   keep,
   light,
 }: {
-  light?: StageProps['light'];
+  light?: { canvas: ReactNode; lit: boolean } | null;
   markup: string;
   scope: string;
   parts: readonly Part[];
@@ -249,6 +256,14 @@ export function Stage(props: StageProps) {
                       parts={partsInRun(section, run)}
                       props={props}
                       ppm={ppmPhone}
+                      light={
+                        props.light
+                          ? {
+                              canvas: props.light.runCanvas(run),
+                              lit: props.light.lit,
+                            }
+                          : null
+                      }
                       keep={(point) => point[0] >= from && point[0] <= to}
                     />
                   </HullCrop>

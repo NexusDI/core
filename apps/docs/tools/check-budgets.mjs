@@ -208,29 +208,6 @@ const LAZY_ROWS = [
   { row: 'light', mark: LIGHT_MARK, label: 'bay light' },
 ];
 
-/**
- * What Turbopack may move out of a marked chunk into one with no marker: the
- * chunk then counts against the row of the code it holds.
- */
-export const PIXI_SIGNATURE = 'PixiJS';
-
-/** The rows of the chunks that no page names, with the marker and the shared code of each. */
-const LAZY_ROWS = [
-  { row: 'bay', mark: BAY_MARK, label: 'bay controller', signature: undefined },
-  {
-    row: 'runtime',
-    mark: RUNTIME_MARK,
-    label: 'core runtime',
-    signature: CORE_SIGNATURE,
-  },
-  {
-    row: 'light',
-    mark: LIGHT_MARK,
-    label: 'bay light',
-    signature: PIXI_SIGNATURE,
-  },
-];
-
 /** The row a chunk's source counts against: its marker's, or `page`. */
 export function classify(source) {
   for (const [kind, mark] of MARKS) if (source.includes(mark)) return kind;
@@ -417,35 +394,42 @@ export function checkMarkedChunks(out) {
   );
   const rows = [];
   const findings = [];
-  const total = { bay: [], runtime: [], light: [] };
-  for (const file of files) {
-    const source = readFileSync(file, 'utf8');
-    const kind = classify(source);
-    const shared =
-      kind === 'page'
-        ? LAZY_ROWS.find(
-            (lazy) => lazy.signature && source.includes(lazy.signature),
-          )
-        : undefined;
-    const row = shared ? shared.row : kind;
-    if (!(row in total)) continue;
-    total[row].push({
-      file: relative(out, file).split(sep).join('/'),
-      gzip: gzipSync(source).length,
-      split: Boolean(shared),
-    });
-  }
   for (const lazy of LAZY_ROWS) {
-    const chunks = total[lazy.row];
-    const gzip = chunks.reduce((sum, chunk) => sum + chunk.gzip, 0);
-    rows.push({ row: lazy.row, chunks, gzip });
-    if (chunks.length === 0)
+    const marked = [...sources].filter(
+      ([, source]) => classify(source) === lazy.row,
+    );
+    const markedPaths = new Set(marked.map(([path]) => path));
+    const listed = new Set(markedPaths);
+    for (const group of groups)
+      if (group.some((path) => markedPaths.has(path)))
+        for (const path of group) if (sources.has(path)) listed.add(path);
+    const chunks = [...listed].map((path) => ({
+      file: `_next/static/${path}`,
+      gzip: gzipSync(sources.get(path) ?? '').length,
+      split: !marked.some(([markedPath]) => markedPath === path),
+    }));
+    const media = new Set();
+    for (const path of listed)
+      for (const match of (sources.get(path) ?? '').matchAll(MEDIA))
+        media.add(match[1]);
+    let mediaBytes = 0;
+    for (const name of media) {
+      try {
+        mediaBytes += statSync(join(root, 'media', name)).size;
+      } catch {
+        // A path that names no file adds nothing.
+      }
+    }
+    const gzip =
+      chunks.reduce((sum, chunk) => sum + chunk.gzip, 0) + mediaBytes;
+    rows.push({ row: lazy.row, chunks, gzip, media: mediaBytes });
+    if (marked.length === 0)
       findings.push(
-        `No chunk under _next/static carries the ${lazy.mark} marker. The bay must load it with import().`,
+        `No chunk under _next/static carries the ${lazy.mark} marker. The bay must import its marker function after the import() so that a minifier keeps the string.`,
       );
     else if (gzip > BUDGETS[lazy.row])
       findings.push(
-        `The ${lazy.label} chunks are ${kB(gzip)} gzipped (${chunks.map((chunk) => chunk.file).join(', ')}), over the ${BUDGETS[lazy.row] / 1000} kB budget.`,
+        `The ${lazy.label} chunks are ${kB(gzip)} gzipped (${chunks.map((chunk) => chunk.file).join(', ')}${mediaBytes > 0 ? `, and ${kB(mediaBytes)} of media` : ''}), over the ${BUDGETS[lazy.row] / 1000} kB budget.`,
       );
   }
   return { findings, rows };

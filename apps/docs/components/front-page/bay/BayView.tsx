@@ -79,8 +79,14 @@ export interface BayViewProps {
   showGraph: boolean;
   acknowledged: boolean;
   announce: string;
+  /** The codes that have a page. The terminal links these and shows any other as text. */
+  errorPages: readonly string[];
   /** The lit canvas of the wide stage, when the bay has one. */
-  light?: { canvas: ReactNode; lit: boolean } | null;
+  light?: {
+    canvas: ReactNode;
+    runCanvas: (run: number) => ReactNode;
+    lit: boolean;
+  } | null;
   width: { wide: number; phone: number };
   coarse: boolean;
   actions: Actions | null;
@@ -128,7 +134,10 @@ function arrowTabs<Id extends string>(
 
 const tick = (n: number): string => `t ${String(n).padStart(4, '0')}`;
 
-function terminalLines(log: readonly Stamped[]): TerminalLine[] {
+function terminalLines(
+  log: readonly Stamped[],
+  errorPages: readonly string[],
+): TerminalLine[] {
   const newest = log[log.length - 1]?.block;
   return log
     .filter((line) => line.block === newest)
@@ -139,7 +148,11 @@ function terminalLines(log: readonly Stamped[]): TerminalLine[] {
         line.codes.map((code, at) => (
           <span key={code}>
             {at > 0 ? ' ' : null}
-            <a href={`/errors/${code}/`}>{code}</a>
+            {errorPages.includes(code) ? (
+              <a href={`/errors/${code}/`}>{code}</a>
+            ) : (
+              <span>{code}</span>
+            )}
           </span>
         ))
       ) : (
