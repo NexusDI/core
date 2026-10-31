@@ -474,8 +474,14 @@ export default function PreflightBay({
     : model.check === null
       ? 'Running pre-flight'
       : null;
+  const lastRunFailed =
+    model.launch === 'failed' || model.outcome?.lookup != null;
   const status =
-    model.check === null ? 'running' : failed ? 'alarm' : 'nominal';
+    model.check === null
+      ? 'running'
+      : failed || lastRunFailed
+        ? 'alarm'
+        : 'nominal';
   return (
     <div
       ref={rootRef}

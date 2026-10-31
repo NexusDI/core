@@ -328,28 +328,29 @@ export function Overlay({
         </marker>
       </defs>
       {graph ? <GraphEdges graph={graph} arrow={arrow} /> : null}
-      {view.sockets.map((socket) => (
-        <g
-          key={`socket-${socket.token}-${socket.at.join(',')}`}
-          className="bay-socket"
-          aria-hidden="true"
-        >
-          <rect
-            className="bay-socket__box"
-            x={socket.at[0] + s * 0.9}
-            y={socket.at[1] - s * 0.5}
-            width={socket.token.length * 0.36 + 0.9}
-            height={s}
-          />
-          <text
-            className="bay-socket__text"
-            x={socket.at[0] + s * 0.9 + 0.45}
-            y={socket.at[1] + s * 0.18}
+      {view.sockets.map((socket) => {
+        const width = socket.token.length * 0.36 + 0.9;
+        const x = socket.at[0] - width / 2;
+        const y = socket.at[1] + s * 0.95;
+        return (
+          <g
+            key={`socket-${socket.token}-${socket.at.join(',')}`}
+            className="bay-socket"
+            aria-hidden="true"
           >
-            {socket.token}
-          </text>
-        </g>
-      ))}
+            <rect
+              className="bay-socket__box"
+              x={x}
+              y={y}
+              width={width}
+              height={s}
+            />
+            <text className="bay-socket__text" x={x + 0.45} y={y + s * 0.68}>
+              {socket.token}
+            </text>
+          </g>
+        );
+      })}
       {parts.map((part) => {
         const interactive = handlers !== null;
         const classes = ['bay-part', `bay-part--${part.kind}`];
@@ -366,7 +367,7 @@ export function Overlay({
               onFocus: () => handlers.onHover(part.id),
               onBlur: () => handlers.onHover(null),
               ...press(part, handlers),
-              'data-part': part.id,
+              'data-bay-part': part.id,
             }
           : { 'aria-hidden': true as const };
         if (part.kind === 'conduit' && part.path) {

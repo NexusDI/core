@@ -934,6 +934,44 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
     display: none;
   }
 
+  /* The alert band first, then the tabs, the hint, the ship, and the legend after it. */
+  .nexus-bay__frame {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .nexus-bay__alert {
+    order: 0;
+  }
+
+  .nexus-bay__tabs {
+    order: 1;
+  }
+
+  .nexus-bay__toolbar {
+    order: 2;
+    flex-wrap: nowrap;
+    border-block-end: 0;
+  }
+
+  .nexus-bay__toolbar-title > span:first-child {
+    display: none;
+  }
+
+  .nexus-bay__toolbar-hint {
+    font-size: var(--meridian-text-micro);
+  }
+
+  .nexus-bay__panel {
+    order: 3;
+  }
+
+  .nexus-bay__legend {
+    order: 4;
+    border-block-start: 1px solid var(--meridian-seam);
+    border-block-end: 0;
+  }
+
   .nexus-bay__phone {
     display: block;
     padding-block-end: var(--meridian-space-2);

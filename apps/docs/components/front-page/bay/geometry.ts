@@ -8,8 +8,9 @@ import type {
  * Where each part of the ship a reader can click sits on the painted
  * cutaway (site UX spec 4.3, owner ruling OR3), in the cutaway's metre
  * coordinates: x along the hull, y down, the frame `-5 -1.5 80 20`. The
- * coordinates come from the tuned mock of the bay, whose 44 px spacing on a
- * phone `geometry.test.ts` checks again. This file holds data and pure
+ * coordinates come from the tuned mock of the bay, moved down 1.5 m for the
+ * registered frame of the painted art, and `geometry.test.ts` checks their
+ * spacing on a phone and a wide screen. This file holds data and pure
  * helpers only, and imports nothing from core, so the bay controller chunk
  * stays small.
  */
@@ -182,81 +183,81 @@ const PARTS: readonly Part[] = [
     'Meridian>Engineering',
     'meridian',
     [
-      [4.0, 10.4],
-      [4.0, 12.1],
+      [4.0, 11.9],
+      [4.0, 13.6],
     ],
-    [4.0, 11.2],
+    [4.0, 12.7],
   ),
-  system('ShipComputer', 'engineering', [8.47, 11.67]),
-  system('DiagnosticsPanel', 'meridian', [6.2, 10.4]),
+  system('ShipComputer', 'engineering', [8.47, 13.17]),
+  system('DiagnosticsPanel', 'meridian', [6.2, 11.9]),
   conduit(
     'Meridian>Tactical',
     'meridian',
     [
-      [8.4, 9.0],
-      [10.15, 9.0],
+      [8.4, 10.5],
+      [10.15, 10.5],
     ],
-    [8.85, 9.0],
+    [8.85, 10.5],
   ),
   conduit(
     'Meridian>Comms',
     'meridian',
     [
-      [7.0, 8.9],
-      [7.0, 5.9],
-      [11.88, 5.9],
+      [7.0, 10.4],
+      [7.0, 7.4],
+      [11.88, 7.4],
     ],
-    [7.0, 7.4],
+    [7.0, 8.9],
   ),
   conduit(
     'Tactical>Comms',
     'tactical',
     [
-      [10.6, 8.05],
-      [10.6, 5.6],
-      [11.95, 5.6],
+      [10.6, 9.55],
+      [10.6, 7.1],
+      [11.95, 7.1],
     ],
-    [10.6, 6.8],
+    [10.6, 8.3],
   ),
-  system('NavCharts', 'tactical', [10.75, 9.0]),
-  hatch('SubspaceLink', 'comms', [12.05, 5.6]),
-  hatch('NavCharts', 'tactical', [13.6, 8.05]),
+  system('NavCharts', 'tactical', [10.75, 10.5]),
+  hatch('SubspaceLink', 'comms', [12.05, 7.1]),
+  hatch('NavCharts', 'tactical', [13.6, 9.55]),
   {
     id: 'chart-server',
     kind: 'chart-server',
     key: 'chartServer',
     section: 'tactical',
-    at: [12.6, 10.7],
+    at: [12.6, 12.2],
     ship: 'Chart server link',
     code: 'chart room',
     module: 'Tactical',
   },
-  system('SubspaceLink', 'comms', [15.42, 5.37]),
+  system('SubspaceLink', 'comms', [15.42, 6.87]),
   conduit(
     'Meridian>BridgeApi',
     'meridian',
     [
-      [9.4, 10.6],
-      [9.4, 11.95],
-      [15.9, 11.95],
+      [9.4, 12.1],
+      [9.4, 13.45],
+      [15.9, 13.45],
     ],
-    [14.2, 11.95],
+    [14.2, 13.45],
   ),
-  system('FlightLog', 'bridgeapi', [16.0, 13.0]),
-  hatch('FlightLog', 'bridgeapi', [19.8, 11.25]),
-  system('ReactorCore', 'engineering', [28.7, 9.35]),
-  system('SurveyDrone', 'tactical', [31.62, 11.82]),
-  hatch('SurveyDrone', 'tactical', [34.6, 11.25]),
+  system('FlightLog', 'bridgeapi', [16.0, 14.5]),
+  hatch('FlightLog', 'bridgeapi', [19.8, 12.75]),
+  system('ReactorCore', 'engineering', [28.7, 10.85]),
+  system('SurveyDrone', 'tactical', [31.62, 13.32]),
+  hatch('SurveyDrone', 'tactical', [34.6, 12.75]),
   conduit(
     'Tactical>Engineering',
     'tactical',
     [
-      [36.6, 13.2],
-      [36.6, 10.35],
+      [36.6, 14.7],
+      [36.6, 11.85],
     ],
-    [36.6, 12.9],
+    [36.6, 14.4],
   ),
-  hatch('ShipComputer', 'engineering', [42.35, 8.05]),
+  hatch('ShipComputer', 'engineering', [42.35, 9.55]),
 ];
 
 /** Every clickable part, in hull order: bow to stern, then top to bottom. */
@@ -279,9 +280,7 @@ export function placardOf(part: Part): string {
 export const HIT_PX = { fine: 24, coarse: 44 } as const;
 
 /** The whole cutaway's frame in metres: `x y width height`. */
-export const FRAME: readonly [number, number, number, number] = [
-  -5, -1.5, 80, 20,
-];
+export const FRAME: readonly [number, number, number, number] = [-5, 0, 80, 20];
 
 /**
  * What one hull section shows on a phone (site UX spec 4.11, TL17): one crop
@@ -296,9 +295,9 @@ export interface SectionCrop {
 }
 
 export const CROPS: Readonly<Record<SectionId, SectionCrop>> = {
-  meridian: { y: [4.5, 13.5], runs: [[0.5, 17.0]], names: ['Bridge'] },
+  meridian: { y: [6.0, 15.0], runs: [[0.5, 17.0]], names: ['Bridge'] },
   engineering: {
-    y: [3.3, 15.9],
+    y: [4.8, 17.4],
     runs: [
       [1.5, 10.5],
       [26.5, 56.5],
@@ -306,15 +305,15 @@ export const CROPS: Readonly<Record<SectionId, SectionCrop>> = {
     names: ['Computer core', 'Engineering, reactor bay'],
   },
   tactical: {
-    y: [5.0, 17.1],
+    y: [6.5, 18.6],
     runs: [
       [8.5, 15.5],
       [29.5, 39.5],
     ],
     names: ['Chart room', 'Drone bay'],
   },
-  comms: { y: [3.5, 9.0], runs: [[9.5, 18.5]], names: ['Comms relay'] },
-  bridgeapi: { y: [9.5, 17.5], runs: [[12.0, 26.0]], names: ['Shuttle bay'] },
+  comms: { y: [5.0, 10.5], runs: [[9.5, 18.5]], names: ['Comms relay'] },
+  bridgeapi: { y: [11.0, 19.0], runs: [[12.0, 26.0]], names: ['Shuttle bay'] },
 };
 
 /** The width in px of the gap that a break mark takes between two runs. */

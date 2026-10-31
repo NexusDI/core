@@ -49,7 +49,11 @@ export const BEHAVIOUR_BUDGET = { raw: 1_850_000, gzip: 77_000 };
  * than `GUIDE_SLACK` gzipped bytes under it fails too, so a saving lowers the
  * ceiling in the same pull request.
  *
- * Measured at 1008.6 kB raw and 304.7 kB gzipped, so the ceilings stay at 1009 kB and
+ * Measured at 1009.6 kB raw and 304.9 kB gzipped, so the ceilings sit at 1010 kB and
+ * 305 kB. The pre-flight bay adds 1.0 kB of Meridian rules: the terminal's body, the
+ * focusable disabled button and the alert banner's line and code link.
+ *
+ * Measured earlier at 1008.6 kB raw and 304.7 kB gzipped, with the ceilings at 1009 kB and
  * 305 kB. The front page adds nothing to the total: `Styles.tsx` writes its
  * stylesheet, with the schematic rules of `@nexusdi/meridian-ui/schematic.css`,
  * into the front page's HTML, and `CopyIsland.tsx` loads its button with
@@ -68,7 +72,7 @@ export const BEHAVIOUR_BUDGET = { raw: 1_850_000, gzip: 77_000 };
  * with a `twoslash` fence.
  */
 export const GUIDE_PAGE = 'scopes/index.html';
-export const GUIDE_BUDGET = { raw: 1_009_000, gzip: 305_000 };
+export const GUIDE_BUDGET = { raw: 1_010_000, gzip: 305_000 };
 export const GUIDE_SLACK = 5_000;
 
 /**
