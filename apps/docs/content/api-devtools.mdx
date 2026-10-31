@@ -25,7 +25,7 @@ A container that wires the wrong provider or starts slowly leaves a developer as
 
 <!-- reference @nexusdi/devtools#inspect example=inspect -->
 
-`inspect(root, { load: [{ module, imports }] })` takes the same `load` list as `InspectOptions`. An entry is a module, or `{ module, imports }` with a grant.
+`inspect(root, { load })` takes the `load` list that `Nexus.check` takes, with entries `module` or `{ module, imports }`.
 
 ## `trace`
 
@@ -63,7 +63,7 @@ A container that wires the wrong provider or starts slowly leaves a developer as
 
 <!-- reference @nexusdi/devtools#InspectOptions -->
 
-`inspect(root, { load: [{ module, imports }] })` compiles each `load` entry after the root, with the grant that `load(module, { imports })` takes.
+`InspectOptions.load` lists the modules `inspect` compiles after the root. An entry is a module, or `{ module, imports }` with the load imports `load(module, { imports })` takes.
 
 ## `NexusGraph`
 
@@ -97,7 +97,7 @@ A container that wires the wrong provider or starts slowly leaves a developer as
 
 <!-- reference @nexusdi/devtools#profileStartup example=profile-startup -->
 
-`profileStartup(root)` takes any root `Nexus.create` takes, so a root object `{ imports: [...] }` profiles the startup of the modules its `imports` lists. `profileStartup(root, { load: [{ module, imports }] })` loads each entry in order, as `load(module, { imports })` does.
+`profileStartup(root)` takes any root `Nexus.create` takes. A root object lists the modules it imports in `imports`. `profileStartup(root, { load: [{ module, imports }] })` loads each entry in order, as `load(module, { imports })` does.
 
 ## `profileTable`
 

@@ -20,8 +20,6 @@
       "ModuleConfig: ModuleConfig.name",
       "ModuleConfig: ModuleConfig.providers",
       "Nexus: Nexus#createScope(options).request",
-      "Nexus: RootConfig.exports",
-      "Nexus: RootConfig.providers",
       "NexusErrorOptions: NexusErrorOptions.hidden",
       "NexusErrorOptions: NexusErrorOptions.text",
       "OverrideDefinition: OverrideDefinition.deps",

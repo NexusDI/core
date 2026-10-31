@@ -153,9 +153,9 @@ entry.imports[0] === Engineering; // -> true
 
 <!-- #endregion split-load-entry -->
 
-## Granting a load
+## Importing Host Modules into a Loaded Module
 
-`load(module, { imports })` lets the loaded module see the exports of host modules already in the graph, as if it imported them. `Nexus.check(root, { load: [{ module, imports }] })` takes the same grant.
+`load(module, { imports })` lets the loaded module and each module of its subtree that the graph did not hold see the exports of host modules already in the graph, as if they imported them. Each module in `imports` is a load import. A load import is wiring. It isolates nothing and is no security boundary. `Nexus.check(root, { load: [{ module, imports }] })` takes the same load imports.
 
 <!-- #region load-import -->
 
