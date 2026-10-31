@@ -294,3 +294,22 @@ console.log(sent);
 ```
 
 <!-- #endregion canonical -->
+
+<!-- #region version -->
+
+```ts @import.meta.vitest
+import { NEXUS_PLUGIN_API, SUPPORTED_PLUGIN_APIS } from '@nexusdi/core';
+
+// A plugin built for this core declares the version core exports.
+const declared = NEXUS_PLUGIN_API; // -> 1
+console.log(declared);
+// Core accepts every version in this list, in ascending order, and the list is frozen.
+const supported = [...SUPPORTED_PLUGIN_APIS]; // -> [1]
+console.log(supported);
+const frozen = Object.isFrozen(SUPPORTED_PLUGIN_APIS); // -> true
+console.log(frozen);
+const listed = SUPPORTED_PLUGIN_APIS.includes(NEXUS_PLUGIN_API); // -> true
+console.log(listed);
+```
+
+<!-- #endregion version -->
