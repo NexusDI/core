@@ -29,19 +29,6 @@ export function Band({
 }
 
 /**
- * The first link of the page content. The skip link Nextra renders reaches
- * the start of the content, and this one reaches the pre-flight bay (site UX
- * spec 13.8). Both show on focus.
- */
-export function SkipToBay() {
-  return (
-    <a className="nexus-front__skip" href="#pre-flight">
-      Skip to the pre-flight check
-    </a>
-  );
-}
-
-/**
  * The program under the bay, collapsed (site UX spec 4.1). A plain `details`:
  * the component map of the docs gives `details` a Nextra component that wraps
  * the summary in a heading, and this one is no heading of the page.
@@ -53,6 +40,11 @@ export function Program({ children }: { children: ReactNode }) {
       <div className="nexus-program__body">{children}</div>
     </details>
   );
+}
+
+/** The one line of "When to skip NexusDI" (site UX spec 4.9 and Q10). */
+export function WhenToSkip({ children }: { children: ReactNode }) {
+  return <div className="nexus-front__when-skip">{children}</div>;
 }
 
 /** The closing section's one primary button. */

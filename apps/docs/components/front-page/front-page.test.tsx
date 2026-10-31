@@ -5,6 +5,7 @@ import { shipSystems } from '../../app/ship-systems';
 import { features, placardOf, type SeedModule } from './features';
 import modules from './fixtures/modules.json';
 import { installOf } from './InstallLine';
+import { fixtureCentre } from './seed-ship';
 import { DependencyCount, PackageList } from './Proof';
 import ShipSystems from './ShipSystems';
 
@@ -34,6 +35,27 @@ describe('the ship systems strip', () => {
         feature.label,
       ).toBe(true);
     }
+  });
+
+  it('centres each feature on fixtures of the geometry, with no typed position', () => {
+    for (const feature of features) {
+      const [x, z] = fixtureCentre(feature.fixtures);
+      expect(x, feature.label).toBeGreaterThan(0);
+      expect(z, feature.label).toBeGreaterThan(0);
+    }
+    const router = fixtureCentre(['engineering.power-router']);
+    expect(router[0]).toBeCloseTo(37, 6);
+    expect(router[1]).toBeCloseTo(6.2, 6);
+    // The router with the shield spans both fixtures.
+    const both = fixtureCentre([
+      'engineering.power-router',
+      'reactor-bay.shadow-shield',
+    ]);
+    expect(both[0]).toBeCloseTo(40.15, 6);
+    expect(both[1]).toBeCloseTo(7.8, 6);
+    expect(() => fixtureCentre(['engineering.no-such-thing'])).toThrow(
+      /no fixture/,
+    );
   });
 
   it('names the module and its exports on the placard, from the seed', () => {
