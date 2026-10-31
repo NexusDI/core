@@ -3,6 +3,10 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const source = readFileSync(join(import.meta.dirname, 'styles.css'), 'utf8');
+const schematic = readFileSync(
+  join(import.meta.dirname, 'schematic.css'),
+  'utf8',
+);
 
 describe('src/styles.css', () => {
   it('imports the generated tokens first', () => {
@@ -71,35 +75,53 @@ describe('src/styles.css', () => {
     }
   });
 
+  it('keeps the schematic, hull crop, switch and step list out of the global sheet', () => {
+    expect(source).not.toMatch(/\.meridian-(schematic|hull-crop|switch|steps)/);
+    for (const name of ['schematic', 'hull-crop', 'switch', 'steps']) {
+      expect(schematic).toContain(`.meridian-${name}`);
+    }
+  });
+
   it('reads the art colours only inside the schematic rules', () => {
-    const body = source.replace(/\/\*[\s\S]*?\*\//g, '');
-    const rules = body.split(/(?<=\})\s*(?=[^{}]+\{)/);
-    const outside = rules.filter(
-      (rule) =>
-        /--meridian-(hull-paint|lamp)\b/.test(rule) &&
-        !/^\s*\.meridian-schematic\b/.test(rule),
-    );
-    expect(outside).toEqual([]);
+    const outside = (css: string) =>
+      css
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .split(/(?<=\})\s*(?=[^{}]+\{)/)
+        .filter(
+          (rule) =>
+            /--meridian-(hull-paint|lamp)\b/.test(rule) &&
+            !/^\s*\.meridian-schematic\b/.test(rule),
+        );
+    expect(outside(source)).toEqual([]);
+    expect(outside(schematic)).toEqual([]);
   });
 
   it('puts the schematic in the dark screen scope', () => {
-    expect(source).toMatch(
-      /\.meridian-holo,\s*\.meridian-schematic \{[^}]*--meridian-text: var\(--meridian-palette-dark-text\)/,
+    expect(schematic).toMatch(
+      /\.meridian-schematic \{[^}]*--meridian-text: var\(--meridian-palette-dark-text\)/,
     );
   });
 
-  it('carries no literal colour and reads only --meridian- properties', () => {
-    const body = source.replace(/\/\*[\s\S]*?\*\//g, '');
-    expect(body.match(/#[0-9a-f]{3,8}\b|rgb\(/gi) ?? []).toEqual([]);
-    const reads = [...body.matchAll(/var\((--[\w-]+)/g)].map(
-      (match) => match[1] ?? '',
-    );
-    expect(reads.filter((name) => !name.startsWith('--meridian-'))).toEqual([]);
-  });
+  it.each([
+    ['styles.css', source],
+    ['schematic.css', schematic],
+  ])(
+    'carries no literal colour in %s and reads only --meridian- properties',
+    (_name, css) => {
+      const body = css.replace(/\/\*[\s\S]*?\*\//g, '');
+      expect(body.match(/#[0-9a-f]{3,8}\b|rgb\(/gi) ?? []).toEqual([]);
+      const reads = [...body.matchAll(/var\((--[\w-]+)/g)].map(
+        (match) => match[1] ?? '',
+      );
+      expect(reads.filter((name) => !name.startsWith('--meridian-'))).toEqual(
+        [],
+      );
+    },
+  );
 
   describe('the painted schematic', () => {
     const painted =
-      /\.meridian-schematic--painted \{([^}]*)\}/.exec(source)?.[1] ?? '';
+      /\.meridian-schematic--painted \{([^}]*)\}/.exec(schematic)?.[1] ?? '';
 
     it('draws nothing for a room, fixture or open door with no state', () => {
       expect(painted).toContain('--meridian-sv-room: transparent;');
@@ -117,7 +139,7 @@ describe('src/styles.css', () => {
       expect(painted).toMatch(
         /--meridian-sv-room-unpowered: color-mix\(\s*in srgb,\s*var\(--meridian-screen\) 60%,\s*transparent\s*\);/,
       );
-      expect(source).toMatch(
+      expect(schematic).toMatch(
         /--meridian-sv-room-unpowered: var\(--meridian-sv-room\);/,
       );
     });
@@ -136,7 +158,7 @@ describe('src/styles.css', () => {
     it('gives an offline fixture a scrim at full opacity, and hides the hull', () => {
       expect(painted).toMatch(/--meridian-sv-fixture-offline: color-mix\(/);
       expect(painted).toContain('--meridian-sv-offline-opacity: 1;');
-      expect(source).toMatch(
+      expect(schematic).toMatch(
         /\.meridian-schematic--painted \.sv-hull \{\s*display: none;/,
       );
     });

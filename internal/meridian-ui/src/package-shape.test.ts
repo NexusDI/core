@@ -44,4 +44,9 @@ describe('the @nexusdi/meridian-ui manifest', () => {
     expect(tokens['@nexusdi/source']).toBe('./src/tokens/index.ts');
     expect(tokens['import']).toBe('./dist/tokens/index.js');
   });
+
+  it('publishes the stylesheets as two entries, the schematic rules apart', () => {
+    expect(manifest.exports['./styles.css']).toBe('./dist/styles.css');
+    expect(manifest.exports['./schematic.css']).toBe('./dist/schematic.css');
+  });
 });
