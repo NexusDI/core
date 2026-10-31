@@ -53,6 +53,20 @@ describe('the committed schematic cutaway', () => {
     );
   });
 
+  it('gives the chart room x 10 to 14 and the habitat the rooms around it', () => {
+    const rect = (room: string) =>
+      [
+        ...svg.matchAll(
+          new RegExp(
+            `<rect class="sv-room" x="([\\d.-]+)" y="[\\d.-]+" width="([\\d.-]+)" height="[\\d.-]+" data-room="${room}"`,
+            'g',
+          ),
+        ),
+      ].map((match) => [Number(match[1]), Number(match[1]) + Number(match[2])]);
+    expect(rect('chart-room')).toEqual([[10.05, expect.closeTo(13.95, 6)]]);
+    expect(rect('habitat').every(([from]) => (from ?? 0) >= 14)).toBe(true);
+  });
+
   it('draws no two doors over the same area', () => {
     const rects = [
       ...svg.matchAll(
