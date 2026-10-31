@@ -118,9 +118,11 @@ export const CONDENSED_FONTS = [500, 600].map((weight) =>
  * is the transfer size. `tools/ship-art.mjs` writes them, and each ceiling
  * sits at about 1.5 times the measured file. Measured on 2026-10-31, AVIF then
  * WebP: hero 1024 13,074 and 20,156; hero 1536 20,912 and 34,736; hero phone
- * crop 9,428 and 14,672; cutaway 1024 9,018 and 9,686, 1536 14,153 and 14,796,
- * 2048 19,439 and 21,362; side 1024 7,170 and 10,438, 1536 11,472 and 16,786,
- * 2048 15,860 and 23,668.
+ * crop 9,428 and 14,672; cutaway 1024 10,239 and 11,056, 1536 15,805 and 16,204,
+ * 2048 21,616 and 24,006; side 1024 7,170 and 10,438, 1536 11,472 and 16,786,
+ * 2048 15,860 and 23,668; unlit cutaway 1024 7,609 and 7,188, 1536 12,069 and
+ * 11,436, 2048 17,105 and 16,596 (the rows keep the ceilings of site UX 12.2:
+ * AVIF 15, 23 and 30 kB, WebP at 1.5 times).
  */
 export const ART_BUDGET = {
   'hero/meridian-hero-1024.avif': 19_600,
@@ -135,6 +137,12 @@ export const ART_BUDGET = {
   'cutaway/meridian-cutaway-1536.webp': 21_500,
   'cutaway/meridian-cutaway-2048.avif': 28_500,
   'cutaway/meridian-cutaway-2048.webp': 29_800,
+  'cutaway-unlit/meridian-cutaway-unlit-1024.avif': 15_000,
+  'cutaway-unlit/meridian-cutaway-unlit-1024.webp': 22_500,
+  'cutaway-unlit/meridian-cutaway-unlit-1536.avif': 23_000,
+  'cutaway-unlit/meridian-cutaway-unlit-1536.webp': 34_500,
+  'cutaway-unlit/meridian-cutaway-unlit-2048.avif': 30_000,
+  'cutaway-unlit/meridian-cutaway-unlit-2048.webp': 45_000,
   'side/meridian-side-1024.avif': 10_800,
   'side/meridian-side-1024.webp': 15_700,
   'side/meridian-side-1536.avif': 17_200,
@@ -145,13 +153,13 @@ export const ART_BUDGET = {
 
 /**
  * What a wide screen at twice the pixel density loads of the art: the hero at
- * 1536 and the cutaway and the side view at 2048, in AVIF. The sum row holds
- * the three together (measured 56,211 bytes).
+ * 1536, the bay's unlit cutaway and the side view at 2048, in AVIF. The sum row
+ * holds the three together.
  */
 export const ART_SUM = {
   files: [
     'hero/meridian-hero-1536.avif',
-    'cutaway/meridian-cutaway-2048.avif',
+    'cutaway-unlit/meridian-cutaway-unlit-2048.avif',
     'side/meridian-side-2048.avif',
   ],
   limit: 90_000,

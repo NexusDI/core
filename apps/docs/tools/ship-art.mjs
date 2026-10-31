@@ -20,13 +20,17 @@ import { screen } from '@nexusdi/meridian-ui/tokens';
  * with no seam. Widths are 1024, 1536 and 2048 and never pass the master's
  * width.
  *
- * The cutaway has two more steps. The painted pipes (37 of them: power,
+ * The cutaway has one more step. The painted pipes (37 of them: power,
  * coolant and atmosphere) never read as the page's dependency conduits, which
  * follow the placement routes (tech lead TL14), so a pipe mask, the geometry's
  * conduit paths projected 9 pixels wide, ANDed with a chroma key, turns each
- * painted pipe to grey at 55% of its luminance. And the rooms take a grade
- * (`roomSaturation`), since painted rooms carry hues the design system keeps
- * for meaning (TL15). The owner decides the grade: 1 leaves the paint alone.
+ * painted pipe to grey at 55% of its luminance.
+ *
+ * `cutaway-unlit` is the bay's runtime art (design system 8.1, OR5, TL22). Its
+ * master comes out of a separate bake that already removed the light, set the
+ * rooms to neutral swatches and greyed the pipes, so the row only re-encodes
+ * it. The master's ground is not the `screen` colour, so the row keeps the
+ * ground swap and none of the other steps.
  */
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -82,7 +86,12 @@ export const VIEWS = {
     pass: 'cutaway-cut-a-s211-h375',
     avif: 64,
     pipes: true,
-    roomSaturation: 0.3,
+    camera: true,
+  },
+  'cutaway-unlit': {
+    ground: [13, 13, 12],
+    pass: 'cutaway-unlit-v1',
+    avif: 64,
     camera: true,
   },
   side: {
@@ -189,19 +198,6 @@ export function isPipeHue(r, g, b) {
   return (
     (h >= 35 && h <= 70) || (h >= 80 && h <= 160) || (h >= 165 && h <= 205)
   );
-}
-
-/** The room rectangles, softened by one pixel, as 0 to 255. */
-async function roomMask(geometry, width, height) {
-  const rects = geometry.compartments
-    .flatMap((room) => room.boxes)
-    .map((box) => {
-      const [x0, v0] = project(box.x[0], box.z[1]);
-      const [x1, v1] = project(box.x[1], box.z[0]);
-      return `<rect x="${x0}" y="${v0}" width="${x1 - x0}" height="${v1 - v0}" fill="white"/>`;
-    })
-    .join('');
-  return shapes(width, height, rects, 1);
 }
 
 /** HSV saturation, 0 to 1. */
@@ -316,15 +312,17 @@ export async function bake(view, options = {}) {
   const { width, height } = info;
   const out = Buffer.from(data);
 
-  const ground = groundOf(data, width, height, row.ground);
-  for (let at = 0; at < width * height; at += 1) {
-    if (ground[at]) {
-      out[at * 3] = SCREEN[0];
-      out[at * 3 + 1] = SCREEN[1];
-      out[at * 3 + 2] = SCREEN[2];
+  if (row.ground) {
+    const ground = groundOf(data, width, height, row.ground);
+    for (let at = 0; at < width * height; at += 1) {
+      if (ground[at]) {
+        out[at * 3] = SCREEN[0];
+        out[at * 3 + 1] = SCREEN[1];
+        out[at * 3 + 2] = SCREEN[2];
+      }
     }
+    if (row.stars) addStars(out, ground, width, height);
   }
-  if (row.stars) addStars(out, ground, width, height);
 
   if (row.pipes) {
     const geometry = readGeometry();
@@ -350,20 +348,6 @@ export async function bake(view, options = {}) {
           at,
           k,
           (_value, luminance) => luminance * PIPE_LUMINANCE,
-        );
-      }
-    }
-
-    if (row.roomSaturation !== undefined && row.roomSaturation !== 1) {
-      const rooms = await roomMask(geometry, width, height);
-      for (let at = 0; at < width * height; at += 1) {
-        if (rooms[at] === 0) continue;
-        blendToward(
-          out,
-          at,
-          rooms[at] / 255,
-          (value, luminance) =>
-            luminance + (value - luminance) * row.roomSaturation,
         );
       }
     }
