@@ -6,7 +6,9 @@ owner's delegation of these PRs.
 
 Packages: no published package changes. New private package: `internal/meridian-deck`
 (`@nexusdi/meridian-deck`), the map runtime, beside `internal/meridian-ui`. The bridge
-console, the federation shell and `apps/docs` take it as a workspace dependency.
+console, the federation shell and `apps/docs` take it as a workspace dependency. It has two
+entries: `.` holds the deck state and imports no Pixi, and `./view` holds the Pixi view. The
+front page's pre-flight bay mounts `./view` at 0.4 to light its unlit cutaway (OR5, TL23).
 `examples/meridian-systems` gains the map files, the map schema and two geometry fields.
 
 Depends on:
@@ -48,8 +50,10 @@ This spec holds to two constraints:
 
 1. Every number stays in the DOM. The canvas is art, and a reader with a screen reader, a keyboard, forced colours or no WebGL gets every reading and every control from the DOM layer.
 2. The runtime is one package. The demo apps (the bridge console and the federation shell)
-   and the Academy mount it, and front-page scenes may mount it after 0.4 (site UX U4). A
-   surface differs from another only in its maps and the source of its events.
+   and the Academy mount it. The front page's pre-flight bay mounts its `./view` entry at
+   0.4 to light the unlit cutaway (OR5), and the other front-page scenes may mount it after
+   0.4 (site UX U4). A surface differs from another only in its maps and the source of its
+   events.
 
 ## 2. Decisions
 
@@ -111,29 +115,32 @@ The runtime is two layers, so the DOM works before the canvas exists:
 
 The tokens, all interface-first:
 
-| Token             | Interface         | Bound to                                                         | Module              | Lifetime           |
-| ----------------- | ----------------- | ---------------------------------------------------------------- | ------------------- | ------------------ |
-| `DECK_OPTIONS`    | `DeckOptions`     | the `forRoot()` value: asset base URL, `reducedMotion`           | `DeckState`         | value              |
-| `DECK_SOURCE`     | `IDeckSource`     | one source class of 4.8, such as `TelemetryDeckSource`           | the app             | singleton          |
-| `DECK_BINDINGS`   | `IDeckBinding`    | one class per ship system, multi token                           | each binding module | singleton          |
-| `DECK_STATE`      | `IDeckState`      | `DeckStateStore` over `DECK_SOURCE` and `all(DECK_BINDINGS)`     | `DeckState`         | singleton          |
-| `MAP`             | `MapDefinition`   | `mapOfRequest`, a factory over `REQUEST`                         | `DeckState`         | scoped             |
-| `SCENE`           | `IScene`          | `MapScene`: this map's triggers, state overrides and scene hooks | `DeckState`         | scoped             |
-| `SCENE_RUNNER`    | `ISceneRunner`    | `SceneRunner`, which a loaded scene module attaches to           | `DeckState`         | singleton          |
-| `DECK_CAMERA`     | `IDeckCamera`     | `MetreCamera`, which moves to the camera target in `DECK_STATE`  | `DeckView`          | singleton, private |
-| `DECK_COMPOSITOR` | `IDeckCompositor` | `LayerCompositor` over `all(DECK_LAYERS)`                        | `DeckView`          | singleton, private |
-| `DECK_LAYERS`     | `IDeckLayer`      | one class per layer of 4.2, multi token, private to `DeckView`   | `DeckView`          | singleton          |
-| `PIXI_APP`        | `IPixiHost`       | `PixiHost`, an async factory that awaits `Application.init()`    | `DeckView`          | singleton, private |
+| Token             | Interface         | Bound to                                                                                 | Module              | Lifetime                   |
+| ----------------- | ----------------- | ---------------------------------------------------------------------------------------- | ------------------- | -------------------------- |
+| `DECK_OPTIONS`    | `DeckOptions`     | the `forRoot()` value: the scene, the palette, `reducedMotion`                           | `DeckState`         | value, exported            |
+| `DECK_SOURCE`     | `IDeckSource`     | one source class of 4.8, in the app's own global module                                  | the app             | singleton, plain           |
+| `DECK_BINDINGS`   | `IDeckBinding`    | one class per ship system, multi token                                                   | each binding module | singleton                  |
+| `DECK_STATE`      | `IDeckState`      | `DeckStateStore` over `DECK_SOURCE` and `all(DECK_BINDINGS)`                             | `DeckState`         | singleton                  |
+| `MAP`             | `MapDefinition`   | `mapOfRequest`, a factory over `REQUEST`                                                 | `DeckState`         | scoped                     |
+| `SCENE`           | `IScene`          | `MapScene`: this map's triggers, state overrides and scene hooks                         | `DeckState`         | scoped                     |
+| `SCENE_RUNNER`    | `ISceneRunner`    | `SceneRunner`, which a loaded scene module attaches to                                   | `DeckState`         | singleton                  |
+| `DECK_CAMERA`     | `IDeckCamera`     | `MetreCamera`, which moves to the camera target in `DECK_STATE`                          | `DeckView`          | singleton, private         |
+| `DECK_COMPOSITOR` | `IDeckCompositor` | `LayerCompositor` over `all(DECK_LAYERS)`                                                | `DeckView`          | singleton, private         |
+| `DECK_LAYERS`     | `IDeckLayer`      | one class per layer of 4.2, multi token, private to `DeckView`                           | `DeckView`          | singleton                  |
+| `PIXI_APP`        | `IPixiHost`       | `createPixiHost`, an async factory on `WebGLRenderer`; its dispose destroys the renderer | `DeckView`          | singleton, private         |
+| `DECK_VIEW`       | `IDeckView`       | `DeckViewController`: `attach(canvas)`, `detach()`, `onStatus()`                         | `DeckView`          | singleton, the only export |
 
 ```ts
 // internal/meridian-deck/src/view/deck-view.module.ts
 export const DeckView = defineModule({
   name: 'DeckView',
-  imports: [DeckState],
+  // No import of DeckState: the app loads this module over its own DeckState
+  // instance (see the load fix below). DECK_OPTIONS and DECK_STATE come in
+  // through that load import.
   providers: [
     // Private: panels and scene hooks set the camera target and the holds in
     // DECK_STATE, which loads with the page. Only DeckView reads Pixi.
-    provide(PIXI_APP, { useFactory: createPixiHost, deps: [DECK_OPTIONS] }),
+    provide(PIXI_APP, { useFactory: createPixiHost }),
     provide(DECK_CAMERA, { useClass: MetreCamera }),
     provide(DECK_LAYERS, { useClass: BaseLayer }),
     provide(DECK_LAYERS, { useClass: PropLayer }),
@@ -142,10 +149,30 @@ export const DeckView = defineModule({
     provide(DECK_LAYERS, { useClass: OverlayLayer }),
     provide(DECK_LAYERS, { useClass: FocusLayer }),
     provide(DECK_COMPOSITOR, { useClass: LayerCompositor }),
+    provide(DECK_VIEW, { useClass: DeckViewController }),
   ],
-  exports: [],
+  exports: [DECK_VIEW],
 });
 ```
+
+`DECK_VIEW` is the one export. `IDeckView` holds no Pixi type: `attach(canvas)` resolves on
+the first frame the canvas presents and rejects on failure, `detach()` frees the renderer,
+and `onStatus(listener)` reports `lost` and `restored`. The front page's bay provides the
+`BaseLayer` and `LightLayer` alone; the other layers join as their surfaces need them.
+
+The wiring has two rules that the first draft of this block broke (OR5, TL23):
+
+- A `forRoot()` call carries the options token alone, and a `forRootAsync()` factory's deps
+  resolve inside the module, so `DeckState` cannot receive `DECK_SOURCE` from the module
+  that imports it (issue #308). The app binds `DECK_SOURCE` in its own `global: true` module
+  and exports it, and `DeckState` reads it as a global.
+- A module with `options` fails with `NEXUS_MODULE_OPTIONS_MISSING` when it is imported
+  bare, so `imports: [DeckState]` could not compile. The app declares
+  `const BayDeckState = DeckState.forRoot(...)` once, imports it in its root and runs
+  `load(DeckView, { imports: [BayDeckState] })`. A load import must already be in the graph
+  (`NEXUS_LOAD_IMPORT`, reason `not-in-graph`). `DeckState` exports `DECK_OPTIONS` beside
+  `DECK_STATE`, so the view reads the options through the load import. The deck runs in its
+  own container and never in the seed graph.
 
 Four container facts show in this wiring, and the console's own graph view draws them
 (5.5):
@@ -156,7 +183,7 @@ Four container facts show in this wiring, and the console's own graph view draws
 - `DECK_LAYERS` holds private contributions that `LayerCompositor` reads in its own module.
   `DECK_BINDINGS` holds published contributions, which the binding modules export at
   startup so `DeckStateStore` reads them across the graph (K1).
-- `DeckView` loads with `load()`, and its `PixiHost` destroys the Pixi application in its
+- `DeckView` loads with `load()`, and the host behind `PIXI_APP` destroys the renderer in its
   dispose.
 - Each map opens a scope. The deck screen renders inside a `ScopeProvider` whose request
   names the map, so `MAP` and `SCENE` belong to that map. A route change disposes the scope,
@@ -365,7 +392,7 @@ own state.
 
 A scene hook is a class in a scene module that the map names by id. The app registers its
 scene modules in a record from id to a dynamic import, and the runtime runs
-`load(module, { imports: [DeckState] })` when the map opens (K4). A map names a module by id. The format has no field for a URL or code, so a map file cannot make the reader's browser run code the
+`load(module, { imports: [BayDeckState] })` when the map opens (K4), where `BayDeckState` is the app's one `DeckState.forRoot()` instance, which the root already imports. A map names a module by id. The format has no field for a URL or code, so a map file cannot make the reader's browser run code the
 site did not build and test, the rule the docs-site seeds follow (11.9).
 
 ```ts
@@ -459,18 +486,18 @@ the tests never need WebGL.
 The budgets are soft. A build reports each figure against its row and fails nothing until
 a release cut reviews them.
 
-| Budget                                                           | Limit                                                            |
-| ---------------------------------------------------------------- | ---------------------------------------------------------------- |
-| the deck view section, Pixi and the layers                       | 260 kB gzipped; Pixi v8's minimal import measured about 176 kB   |
-| the deck state, the bindings and the DOM layer in the first load | 20 kB gzipped over the console's first load today                |
-| art for one deck: the base tiles and the prop atlas pages        | 1.2 MB transferred, WebP                                         |
-| GPU textures for a three-deck map                                | 96 MB; a deck base is 6.2 MB as RGBA, an atlas page 16 MB        |
-| light sprites per deck                                           | 48; the light texture renders at half the canvas resolution      |
-| frame time with an animation running                             | 6 ms of main-thread time at 1440 by 900, on a laptop GPU of 2020 |
-| a telemetry frame: bindings, diff and DOM update                 | 2 ms                                                             |
-| deck view interactive after its chunk arrives                    | 1.5 s with the CPU throttled four times                          |
-| interaction to next paint, a camera move included                | 200 ms                                                           |
-| cumulative layout shift                                          | 0.05; the deck frame reserves its box before the canvas mounts   |
+| Budget                                                           | Limit                                                                                                                         |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| the deck view section, Pixi and the layers                       | 260 kB gzipped; measured 110 kB for `WebGLRenderer` with the base and light layers (the `Application` import measures 153 kB) |
+| the deck state, the bindings and the DOM layer in the first load | 20 kB gzipped over the console's first load today                                                                             |
+| art for one deck: the base tiles and the prop atlas pages        | 1.2 MB transferred, WebP                                                                                                      |
+| GPU textures for a three-deck map                                | 96 MB; a deck base is 6.2 MB as RGBA, an atlas page 16 MB                                                                     |
+| light sprites per deck                                           | 48; the light texture renders at half the canvas resolution                                                                   |
+| frame time with an animation running                             | 6 ms of main-thread time at 1440 by 900, on a laptop GPU of 2020                                                              |
+| a telemetry frame: bindings, diff and DOM update                 | 2 ms                                                                                                                          |
+| deck view interactive after its chunk arrives                    | 1.5 s with the CPU throttled four times                                                                                       |
+| interaction to next paint, a camera move included                | 200 ms                                                                                                                        |
+| cumulative layout shift                                          | 0.05; the deck frame reserves its box before the canvas mounts                                                                |
 
 The ticker runs only while something animates: an alarm pulse, a conduit's flow, a camera
 move or a cross-fade. A still ship renders no frames. The ticker stops in a hidden tab and
@@ -1191,15 +1218,16 @@ per flow of 5.6 on the seeded ship that asserts the DOM layer and a screenshot o
 The demo apps' MeridianOS follows the growth-track rule of ship-systems 7.4: it merges when
 green and never blocks a release. The suggested order:
 
-| Step | Brings                                                                                   | Needs                                       |
-| ---- | ---------------------------------------------------------------------------------------- | ------------------------------------------- |
-| D1   | the geometry fields, the station fixtures, the map schema and its test, `fixture:` notes | none                                        |
-| D2   | `internal/meridian-deck`: deck state, bindings, DOM layer, schematic fallback            | D1                                          |
-| D3   | the station shell and the console panels as contributions, on the schematic              | D2, the demo refactor's seam                |
-| D4   | the Pixi deck view with the base and props layers, then light, conduits and overlay      | D3, the painted deck bases and prop sprites |
-| D5   | the flows of 5.6 with their e2e cases                                                    | D4                                          |
-| D6   | the federation bridge                                                                    | D4                                          |
-| D7   | the Academy, after the 0.4 launch                                                        | D4, the playground runtime                  |
+| Step | Brings                                                                                                                                 | Needs                                       |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| D0   | `internal/meridian-deck` with `DeckState`, and `DeckView` with the base and light layers, for the front page's lit cutaway (OR5, TL23) | none                                        |
+| D1   | the geometry fields, the station fixtures, the map schema and its test, `fixture:` notes                                               | none                                        |
+| D2   | `internal/meridian-deck`: deck state, bindings, DOM layer, schematic fallback                                                          | D1                                          |
+| D3   | the station shell and the console panels as contributions, on the schematic                                                            | D2, the demo refactor's seam                |
+| D4   | the Pixi deck view with the base and props layers, then light, conduits and overlay                                                    | D3, the painted deck bases and prop sprites |
+| D5   | the flows of 5.6 with their e2e cases                                                                                                  | D4                                          |
+| D6   | the federation bridge                                                                                                                  | D4                                          |
+| D7   | the Academy, after the 0.4 launch                                                                                                      | D4, the playground runtime                  |
 
 After D3 the reader has a working, accessible station before any painted art exists, so the painter never holds back the panels.
 
@@ -1312,3 +1340,14 @@ included (M8). Section 4.6 gains `{ "passed": "<mission id>" }`, valid on `acade
 alone and counted as a container condition, since a pass comes from a real run.
 `ProgressDeckSource` emits one `passed` event per mission with a pass of any version in the
 stores, and 4.8 lists it as a fifth source.
+
+Q10. The front page's pre-flight bay is lit by Pixi (OR5, TL22 to TL27).
+
+The owner asked for paint-overs exported without baked lighting, with Pixi adding the light
+so it can follow state. The bay draws the unlit cutaway (a de-lit `cutaway-cut-a-s211-h375`,
+bake `cutaway-unlit-v1`) and `DeckView` lights it. `internal/meridian-deck` lands as step D0,
+with the `.` entry free of Pixi and `./view` holding the renderer, the base and light layers.
+`DECK_SOURCE` is a plain token bound in the app's global module, and `DeckState.forRoot()` is
+declared once (TL23). The view loads after the bay is visible and idle, and not under
+`saveData`, `prefers-reduced-data`, without WebGL2 or in forced colours; the vector schematic
+stays the fallback (TL24, TL25).
