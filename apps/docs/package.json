@@ -146,7 +146,7 @@
     "@nexusdi/testing": "*",
     "@nexusdi/vitest": "*",
     "@nx/eslint-plugin": "23.3.0",
-    "@shikijs/themes": "3.23.0",
+    "@shikijs/themes": "4.5.0",
     "@shikijs/transformers": "3.23.0",
     "@shikijs/twoslash": "3.23.0",
     "@tailwindcss/postcss": "^4.3.3",
