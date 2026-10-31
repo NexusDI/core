@@ -1,0 +1,73 @@
+name: Owner approved
+
+# The "Main" ruleset requires this check, so a pull request into main merges
+# only after the owner adds the `owner-approved` label. Agents work through the
+# owner's login and the ruleset needs 0 approvals, so without it a green pull
+# request into main could merge by accident. Anyone with triage access can add
+# the label: this guards against an accident, not against an attacker.
+#
+# The approval belongs to a commit. A pass on a head commit starts only with
+# the labeled event for `owner-approved`, whose run reports on the head the
+# owner saw. Any other event on a labeled pull request passes only when that
+# commit already has a successful owner-approved run, so a pushed commit fails
+# and loses the label until the owner labels the pull request again. Event
+# payloads carry the label list from before a push, so no run trusts it alone.
+#
+# A push to main passes, because release.yml's plan requires every ruleset
+# check to be green on the commit it releases, and a rebase merge gives main a
+# new commit that no pull_request run reported on. Only a merged pull request
+# or the release deploy key can push to main.
+on:
+  pull_request:
+    branches:
+      - main
+    # edited covers a pull request retargeted onto main.
+    types: [opened, reopened, edited, synchronize, labeled, unlabeled]
+  push:
+    branches:
+      - main
+
+permissions: {}
+
+jobs:
+  owner-approved:
+    runs-on: ubuntu-latest
+    permissions:
+      checks: read
+      pull-requests: write
+    steps:
+      # On push the step is skipped and the job concludes success, which the
+      # release plan needs. A job-level `if` would conclude skipped.
+      - name: Check the owner approved this head commit
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          ACTION: ${{ github.event.action }}
+          LABEL: ${{ github.event.label.name }}
+        run: |
+          set -euo pipefail
+          # The payload holds the labels and head from when the event fired, so
+          # a pass also needs the label and this head to be current.
+          live=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels,headRefOid \
+            --jq '"\(.headRefOid) \([.labels[].name] | index("owner-approved") != null)"')
+          if [ "$live" != "$HEAD true" ]; then
+            echo "::error::A pull request into main needs the owner-approved label from the owner on its current head."
+            exit 1
+          fi
+          if [ "$ACTION" = labeled ] && [ "$LABEL" = owner-approved ]; then
+            echo "The owner approved $HEAD."
+            exit 0
+          fi
+          # filter=latest (the default) hides a success behind a later failure,
+          # which fails safe: the owner labels the pull request again.
+          approved=$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD/check-runs?check_name=owner-approved&status=completed" \
+            --jq '[.check_runs[] | select(.app.slug == "github-actions" and .conclusion == "success")] | length')
+          if [ "$approved" -gt 0 ]; then
+            echo "The owner approved $HEAD earlier."
+            exit 0
+          fi
+          gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label owner-approved
+          echo "::error::$HEAD arrived after the owner-approved label. The owner labels the pull request again after reviewing it."
+          exit 1
