@@ -15,7 +15,7 @@ An app declares its object graph as a tree of modules, and `@nexusdi/core` check
 
 <!-- reference @nexusdi/core#Nexus example=interfaces-and-tokens -->
 
-`Nexus.create(root, { plugins })` registers the plugins in array order. `Nexus.create` and `Nexus.check` take a root that is a module, a provider array or a root object whose `imports` lists the modules the root imports. `get(token, { module })` resolves as if called from inside that module, and `has`, `resolve` and `validate` take the same `{ module }`. The module must be in the graph. The option does not count as a reader of a private multi-token contribution, so a contribution only that module can see fails with `NEXUS_UNREAD_CONTRIBUTION`.
+`Nexus.create(root, { plugins })` registers the plugins in array order. `Nexus.create` and `Nexus.check` take a root that is a module, a provider array or a root object whose `imports` lists the modules the root imports. `get(token, { module })` resolves as if called from inside that module, and `has`, `resolve` and `validate` take the same `{ module }`. The module must be in the graph. The option does not count as a reader of a private multi-token contribution: a private contribution that no provider of its module reads fails with `NEXUS_UNREAD_CONTRIBUTION`.
 
 `load(module, { imports })` grants the loaded module the exports of host modules already in the graph, and `Nexus.check(root, { plugins, load: [{ module, imports }] })` takes the same grant per entry. A grant names host modules and never the root. It is wiring, and it is no isolation or security boundary.
 
