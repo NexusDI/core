@@ -25,14 +25,6 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
   display: none;
 }
 
-article:has(.nexus-front__screen) > main > .nexus-release {
-  padding-block: var(--meridian-space-3) 0;
-}
-
-article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
-  max-inline-size: none;
-}
-
 .nexus-visually-hidden {
   position: absolute;
   inline-size: 1px;

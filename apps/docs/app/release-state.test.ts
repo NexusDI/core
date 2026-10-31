@@ -10,6 +10,7 @@ import {
   compareVersions,
   inCandidacy,
   readReleaseState,
+  heroReleaseLine,
   releaseNotice,
 } from './release-state';
 
@@ -106,5 +107,39 @@ describe('inCandidacy', () => {
     expect(inCandidacy({ stable: '0.3.2', rc: '0.4.0-rc.0' })).toBe(true);
     expect(inCandidacy({ stable: '0.4.0', rc: '0.4.0-rc.3' })).toBe(false);
     expect(inCandidacy({ stable: '0.4.0', rc: null })).toBe(false);
+  });
+});
+
+describe('heroReleaseLine', () => {
+  it('names the current release and links the candidate page during the RC', () => {
+    expect(
+      heroReleaseLine({ stable: '0.3.2', rc: '0.4.0-rc.2' }, 'next'),
+    ).toEqual({
+      text: '0.3.2 is the current release. Its docs are at nexus.js.org.',
+      candidate: true,
+    });
+  });
+
+  it('says the docs run ahead of the release once no RC is newer, with no link', () => {
+    const line = {
+      text: 'These docs run ahead of 0.4.0, the current release. Its docs are at nexus.js.org.',
+      candidate: false,
+    };
+    expect(
+      heroReleaseLine({ stable: '0.4.0', rc: '0.4.0-rc.3' }, 'next'),
+    ).toEqual(line);
+    expect(heroReleaseLine({ stable: '0.4.0', rc: null }, 'next')).toEqual(
+      line,
+    );
+  });
+
+  it('is null wherever the notice is null, and where no release exists', () => {
+    expect(
+      heroReleaseLine({ stable: '0.4.0', rc: null }, 'release'),
+    ).toBeNull();
+    expect(heroReleaseLine({ stable: null, rc: null }, 'next')).toBeNull();
+    expect(
+      heroReleaseLine({ stable: null, rc: '0.4.0-rc.1' }, 'next'),
+    ).toBeNull();
   });
 });

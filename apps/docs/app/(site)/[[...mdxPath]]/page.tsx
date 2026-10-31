@@ -65,7 +65,8 @@ export default async function Page(props: PageProps) {
   const band = bandOf(params.mdxPath?.[0] ?? 'index');
 
   state ??= readReleaseState(process.cwd());
-  const notice = releaseNotice(state, readChannel());
+  // The front page carries the notice's facts in its hero (TL29).
+  const notice = params.mdxPath ? releaseNotice(state, readChannel()) : null;
 
   return (
     <Wrapper toc={toc} metadata={metadata} sourceCode={sourceCode}>
