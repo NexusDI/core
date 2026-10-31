@@ -761,7 +761,8 @@ def merged_lights(geometry):
     when it is longer than the rectangle, so the deck's room clip never cuts a light away.
     The port and starboard lamps of a room project to one box, so they share an entry that
     lists every id. The centre is the middle of the housing box, the radius is the light's
-    reach in pixels, and `gain` is the share of its level that its sprite and housing show.
+    reach in pixels, `gain` is the share of its level that its sprite shows, and `housing` is
+    the share that its housing shows.
     """
     pieces = room_pieces_px(geometry)
     groups = {}
@@ -781,6 +782,7 @@ def merged_lights(geometry):
             "fixture": light.get("fixture"),
             "emissive": light["emissive"],
             "gain": GLOW_GAIN if kind == "glow" else 1.0,
+            "housing": STRIP_HOUSING if u1 - u0 > STRIP_WIDTH else HOUSING,
             "centre": [round((u0 + u1) / 2, 1), round((v0 + v1) / 2, 1)],
             "radius": round(light["radius"] * PIXELS_PER_METRE, 1),
             "box": [round(u0, 1), round(v0, 1), round(u1, 1), round(v1, 1)],
@@ -793,14 +795,15 @@ def merged_lights(geometry):
     return list(groups.values())
 
 
-# A housing wider than this (in pixels) is a long strip, which reads as a white bar at full
-# strength, so it glows at 45%.
+# A housing wider than this (in pixels) is a long strip, which reads as a white bar at a
+# housing's usual strength, so it glows at 45% of its level and any other housing at 75%.
 STRIP_WIDTH = 128
-STRIP_GLOW = 115
+STRIP_HOUSING = 0.45
+HOUSING = 0.75
 
 
 def emissive_mask(lights):
-    """The housing of every emissive light that names no fixture, at 255 (a long strip at 115).
+    """The housing of every emissive light that names no fixture, at its `housing` share of 255.
 
     A light that names a fixture follows that fixture's level and not its room's lamp, so the
     deck draws its housing as a sprite of its own.
@@ -809,8 +812,7 @@ def emissive_mask(lights):
     grid = [[0] * width for _ in range(height)]
     for light in lights:
         if light["emissive"] and light["fixture"] is None:
-            wide = light["box"][2] - light["box"][0] > STRIP_WIDTH
-            fill_rect(grid, *light["box"], STRIP_GLOW if wide else 255, outward=True)
+            fill_rect(grid, *light["box"], round(255 * light["housing"]), outward=True)
     return grid
 
 

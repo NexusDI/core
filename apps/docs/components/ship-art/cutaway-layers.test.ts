@@ -10,6 +10,7 @@ interface Light {
   room: string;
   home: string;
   gain: number;
+  housing: number;
   kind: string;
   colour: string;
   fixture: string | null;
@@ -200,11 +201,17 @@ describe('the cutaway layers (design system 8.2 and 8.3)', () => {
       }
     }
     expect(lit).toBeGreaterThan(1000);
-    for (const [left, top, right, bottom] of boxes) {
+    for (const light of lights.filter(
+      (each) => each.emissive && each.fixture === null,
+    )) {
+      const [left, top, right, bottom] = light.box;
       const x = Math.round((left + right) / 2);
       const y = Math.floor((top + bottom) / 2);
-      // A long strip glows at 45%, so it does not read as a white bar.
-      expect(data[y * info.width + x]).toBe(right - left > 128 ? 115 : 255);
+      // A long strip glows at 45% of its level and any other housing at 75%.
+      expect(data[y * info.width + x], light.ids.join()).toBe(
+        Math.round(255 * light.housing),
+      );
+      expect(light.housing).toBe(right - left > 128 ? 0.45 : 0.75);
     }
   });
 
