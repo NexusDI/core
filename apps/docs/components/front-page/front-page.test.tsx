@@ -22,6 +22,7 @@ vi.mock('./art', () => {
   return {
     FRAME: [-5, 0, 80, 20],
     cutawayBase: base,
+    unlitCutawayBase: base,
     sideBase: base,
   };
 });

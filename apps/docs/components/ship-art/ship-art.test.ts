@@ -48,8 +48,8 @@ describe('the ship art sidecars (design system 8.3)', () => {
     }
   });
 
-  it('records the camera of the two side views and the geometry they paint', () => {
-    for (const view of ['cutaway', 'side']) {
+  it('records the camera of the side views and the geometry they paint', () => {
+    for (const view of ['cutaway', 'cutaway-unlit', 'side']) {
       expect(read(view)).toMatchObject({
         view,
         size: { width: 2048, height: 512 },
@@ -67,7 +67,7 @@ describe('the ship art sidecars (design system 8.3)', () => {
     expect(hero.geometry).toBeUndefined();
   });
 
-  it.each(['cutaway', 'side'])(
+  it.each(['cutaway', 'cutaway-unlit', 'side'])(
     'the %s sidecar carries the hash of the geometry it was painted from',
     (view) => {
       expect(
@@ -108,7 +108,7 @@ describe('the registration of the frame on the art', () => {
     ] as const;
   };
 
-  it.each(['cutaway', 'side'])(
+  it.each(['cutaway', 'cutaway-unlit', 'side'])(
     'puts the origin of the %s sidecar where x = 0 and z = 0 project',
     (view) => {
       const [u, v] = pixelOf(view, 0, 0);
@@ -174,11 +174,12 @@ describe('the painted pipes (tech lead TL14)', () => {
   // The test reads the bake and not the encoded files: a lossy codec moves
   // the ground colour (saturation 0.48) across 0.5. The pipe mask is 9 pixels
   // wide and the painted pipes are a little wider, so a few edge pixels keep
-  // their hue, and the test allows 0.1% of the band. The bake left 14 of
-  // 122,832. The bake grades the rooms, so a room hue does not count here:
-  // set `roomSaturation` back to 1 and this count would follow the paint.
+  // their hue, and the test allows 0.1% of the band.
+  //
+  // The test holds the bay's unlit cutaway, whose rooms carry neutral swatches.
+  // The lit cutaway keeps its painted room hues, so its band holds some.
   it('leaves at most 0.1% of the band around the conduits with a pipe hue', async () => {
-    const baked = await bake('cutaway');
+    const baked = await bake('cutaway-unlit');
     const { inBand, found } = await hued(baked.data);
     expect(inBand).toBeGreaterThan(100_000);
     expect(found).toBeLessThanOrEqual(Math.floor(inBand * 0.001));

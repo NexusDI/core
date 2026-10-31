@@ -6,6 +6,12 @@ import cutaway1536Avif from '../ship-art/cutaway/meridian-cutaway-1536.avif';
 import cutaway1536Webp from '../ship-art/cutaway/meridian-cutaway-1536.webp';
 import cutaway2048Avif from '../ship-art/cutaway/meridian-cutaway-2048.avif';
 import cutaway2048Webp from '../ship-art/cutaway/meridian-cutaway-2048.webp';
+import unlit1024Avif from '../ship-art/cutaway-unlit/meridian-cutaway-unlit-1024.avif';
+import unlit1024Webp from '../ship-art/cutaway-unlit/meridian-cutaway-unlit-1024.webp';
+import unlit1536Avif from '../ship-art/cutaway-unlit/meridian-cutaway-unlit-1536.avif';
+import unlit1536Webp from '../ship-art/cutaway-unlit/meridian-cutaway-unlit-1536.webp';
+import unlit2048Avif from '../ship-art/cutaway-unlit/meridian-cutaway-unlit-2048.avif';
+import unlit2048Webp from '../ship-art/cutaway-unlit/meridian-cutaway-unlit-2048.webp';
 import side1024Avif from '../ship-art/side/meridian-side-1024.avif';
 import side1024Webp from '../ship-art/side/meridian-side-1024.webp';
 import side1536Avif from '../ship-art/side/meridian-side-1536.avif';
@@ -30,6 +36,13 @@ const cutawayAvif = [cutaway1024Avif, cutaway1536Avif, cutaway2048Avif].map(
 const cutawayWebp = [cutaway1024Webp, cutaway1536Webp, cutaway2048Webp].map(
   (file) => ({ src: file.src, width: file.width }),
 );
+const unlitAvif = [unlit1024Avif, unlit1536Avif, unlit2048Avif].map(
+  (file, at) => ({ src: file.src, width: [1024, 1536, 2048][at] ?? 0 }),
+);
+const unlitWebp = [unlit1024Webp, unlit1536Webp, unlit2048Webp].map((file) => ({
+  src: file.src,
+  width: file.width,
+}));
 const sideAvif = [side1024Avif, side1536Avif, side2048Avif].map((file, at) => ({
   src: file.src,
   width: [1024, 1536, 2048][at] ?? 0,
@@ -51,6 +64,25 @@ export function cutawayBase(sizes: string): SchematicBase {
     sources: [
       { type: 'image/avif', srcSet: set(cutawayAvif) },
       { type: 'image/webp', srcSet: set(cutawayWebp) },
+    ],
+    sizes,
+    loading: 'lazy',
+  };
+}
+
+/**
+ * The unlit cutaway of the pre-flight bay (design system 8.1, OR5): the base
+ * that the deck view lights at run time, and that the painted tints of
+ * `Schematic` light without it.
+ */
+export function unlitCutawayBase(sizes: string): SchematicBase {
+  return {
+    src: unlit2048Webp.src,
+    width: unlit2048Webp.width,
+    height: unlit2048Webp.height,
+    sources: [
+      { type: 'image/avif', srcSet: set(unlitAvif) },
+      { type: 'image/webp', srcSet: set(unlitWebp) },
     ],
     sizes,
     loading: 'lazy',
