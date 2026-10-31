@@ -47,12 +47,9 @@ export const BEHAVIOUR_BUDGET = { raw: 1_850_000, gzip: 77_000 };
  * than `GUIDE_SLACK` gzipped bytes under it fails too, so a saving lowers the
  * ceiling in the same pull request.
  *
- * Measured at 982,246 bytes raw and 298,431 gzipped. The Meridian tokens and
- * chrome components PR (design system spec sections 4 to 7) added the
- * Terminal, Button, Status, Alert and HoloLabel classes to the stylesheet, so
- * the raw ceiling rose from 981,000 to 984,000.
- *
- * Measured earlier at 978,859 bytes raw and 297,242 gzipped. A guide carries
+ * Measured at 982,514 bytes raw and 298,476 gzipped. The Meridian stylesheet
+ * carries the Terminal, Button, Status, Alert and HoloLabel classes, so the raw
+ * ceiling sits at 984,000. A guide carries
  * `components/twoslash/TypeCards.tsx`, which every page's component map
  * holds, and not the popover it loads: that comes with `import()` on a page
  * with a `twoslash` fence.

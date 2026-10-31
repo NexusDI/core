@@ -70,7 +70,9 @@
 .nexus-bench__outcome--runtime-error,
 .nexus-bench__outcome--wrong-instance,
 .nexus-bench__detected--never {
-  color: var(--meridian-alarm);
+  /* A comparison result is no alarm (design system spec 4.2): the cell's word
+     says it, in a neutral colour. */
+  color: var(--meridian-text-secondary);
 }
 
 .nexus-bench__detail {
