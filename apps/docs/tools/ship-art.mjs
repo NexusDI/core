@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import sharp from 'sharp';
 
-import { screen } from '../../../internal/meridian-ui/src/tokens/colour.ts';
+import { screen } from '@nexusdi/meridian-ui/tokens';
 
 /**
  * Bakes the painted ship art (site UX spec 4.2, 4.3, 4.8 and 12.2; design
@@ -43,8 +43,7 @@ export const GEOMETRY_FILE = join(
 
 /** The orthographic camera of the side views: 25.6 pixels per metre. */
 export const PIXELS_PER_METRE = 25.6;
-export const FRAME = '-5 -1.5 80 20';
-const FRAME_BOX = FRAME.split(' ').map(Number);
+export const FRAME = '-5 0 80 20';
 const ORIGIN = [128, 448];
 /** u = (x + 5) * 25.6 and v = (17.5 - z) * 25.6, in metres. */
 export const project = (x, z) => [(x + 5) * 25.6, (17.5 - z) * 25.6];
@@ -151,6 +150,48 @@ export async function pipeMask(geometry, width, height) {
     .join('');
   const raster = await shapes(width, height, lines);
   return Uint8Array.from(raster, (value) => (value > 64 ? 1 : 0));
+}
+
+/**
+ * A band around each conduit path, `reach` pixels to either side, as one flag
+ * per pixel. Where the pipe mask covers the painted pipes, no painted pipe is
+ * left in the band.
+ */
+export async function pipeBand(geometry, width, height, reach) {
+  const lines = geometry.conduits
+    .map((conduit) => {
+      const points = conduit.path
+        .map(([x, , z]) => project(x, z).join(','))
+        .join(' ');
+      return `<polyline points="${points}" fill="none" stroke="white" stroke-width="${reach * 2 + 1}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    })
+    .join('');
+  const raster = await shapes(width, height, lines);
+  return Uint8Array.from(raster, (value) => (value > 128 ? 1 : 0));
+}
+
+/** HSV hue in degrees, 0 for a grey. */
+export function hue(r, g, b) {
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max === min) return 0;
+  const d = max - min;
+  const h =
+    max === r
+      ? ((g - b) / d) * 60
+      : max === g
+        ? (2 + (b - r) / d) * 60
+        : (4 + (r - g) / d) * 60;
+  return h < 0 ? h + 360 : h;
+}
+
+/** Whether a colour has the hue of a painted pipe: yellow, green or cyan, and saturated. */
+export function isPipeHue(r, g, b) {
+  if (saturation(r, g, b) <= 0.5) return false;
+  const h = hue(r, g, b);
+  return (
+    (h >= 35 && h <= 70) || (h >= 80 && h <= 160) || (h >= 165 && h <= 205)
+  );
 }
 
 /** The room rectangles, softened by one pixel, as 0 to 255. */
@@ -317,6 +358,37 @@ export async function bake(view, options = {}) {
   return { data: out, width, height };
 }
 
+/**
+ * The sha256 of everything a bake reads: the view's row, the constants of the
+ * steps, the master's bytes and, for the cutaway, the geometry. A sidecar
+ * carries it, and a test fails when a parameter changed with no rebake.
+ */
+export function bakeHash(view) {
+  const row = VIEWS[view];
+  return createHash('sha256')
+    .update(
+      JSON.stringify({
+        view,
+        row,
+        screen: SCREEN,
+        steps: {
+          REACH,
+          SEED,
+          STARS,
+          WIDTHS,
+          PIPE_KEY,
+          PIPE_LUMINANCE,
+          PIPE_WIDTH,
+        },
+        master: createHash('sha256')
+          .update(readFileSync(masterOf(view)))
+          .digest('hex'),
+        geometry: row.pipes ? geometryHash() : null,
+      }),
+    )
+    .digest('hex');
+}
+
 /** The sidecar of a view (design system 8.3). */
 export function sidecarOf(view, size) {
   const row = VIEWS[view];
@@ -325,6 +397,7 @@ export function sidecarOf(view, size) {
       view,
       camera: { projection: 'perspective' },
       source: row.pass,
+      bake: bakeHash(view),
     };
   }
   return {
@@ -339,6 +412,7 @@ export function sidecarOf(view, size) {
       v: '(17.5 - z) * 25.6',
     },
     source: row.pass,
+    bake: bakeHash(view),
     geometry: geometryHash(),
   };
 }
@@ -399,5 +473,3 @@ async function main() {
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   await main();
 }
-
-export { FRAME_BOX };
