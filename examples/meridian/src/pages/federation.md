@@ -96,7 +96,7 @@ interface INavRoutes {
 const meridian = defineContract({ key: 'meridian', version: '2.4.0' });
 const remoteMeridian = defineContract({ key: 'meridian', version: '2.4.0' });
 
-// The shell's contract module. The load below grants it to the section.
+// The shell's contract module. The load below imports it into the section.
 const NAV_CHARTS = meridian.token<INavCharts>('NavCharts');
 const Tactical = defineModule({
   name: 'Tactical',

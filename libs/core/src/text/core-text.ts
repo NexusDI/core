@@ -22,7 +22,7 @@ import type {
   LoadedAfterScopeError,
   LoadContributionError,
   LoadError,
-  LoadGrantError,
+  LoadImportError,
   MissingDepsError,
   MissingProviderError,
   ModuleImportCycleError,
@@ -259,22 +259,22 @@ const loadContribution: Builder<LoadContributionError> = (error) =>
       `  Fix: drop the contribution from ${error.module} and register the provider from its onInit through the collector's registry, and unregister it on dispose.`,
   );
 
-const LOAD_GRANT_TEXT: Readonly<
-  Record<LoadGrantError['reason'], (error: LoadGrantError) => string>
+const LOAD_IMPORT_TEXT: Readonly<
+  Record<LoadImportError['reason'], (error: LoadImportError) => string>
 > = {
   'not-in-graph': (error) =>
-    `${error.module} is loaded with a grant for ${error.grant}, and the graph holds no module with that definition.\n` +
-    `  Fix: grant the object the host imported (a forRoot() call makes a new one), or import ${error.grant} from a host module first.`,
+    `${error.module} is loaded with an import of ${error.imported}, and the graph holds no module with that definition.\n` +
+    `  Fix: list the object the host imported in imports (a forRoot() call makes a new one), or import ${error.imported} from a host module first.`,
   root: (error) =>
-    `${error.module} is loaded with a grant for ${error.grant}, the root module, and a grant never names the root.\n` +
-    `  Fix: grant the host module that provides what ${error.module} needs, and export it from there.`,
+    `${error.module} is loaded with an import of ${error.imported}, the root module, and a load import never names the root.\n` +
+    `  Fix: list the host module that provides what ${error.module} needs in imports, and export it from there.`,
   'already-loaded': (error) =>
-    `${error.module} is already in the graph with its grant fixed, and a grant applies only when a module joins the graph. This load asks for another set of grants, which includes ${error.grant}.\n` +
-    `  Fix: repeat the load with the grant ${error.module} has, or leave the grant out.`,
+    `${error.module} is already in the graph with its load imports fixed, and load imports apply only when a module joins the graph. This load asks for another set of imports, which includes ${error.imported}.\n` +
+    `  Fix: repeat the load with the imports ${error.module} has, or leave imports out.`,
 };
 
-const loadGrant: Builder<LoadGrantError> = (error) =>
-  text(LOAD_GRANT_TEXT[error.reason](error));
+const loadImport: Builder<LoadImportError> = (error) =>
+  text(LOAD_IMPORT_TEXT[error.reason](error));
 
 const unreadContribution: Builder<UnreadContributionError> = (error) =>
   text(
@@ -428,7 +428,7 @@ export const coreText = {
   NEXUS_MODULE_OPTIONS_MISSING: moduleOptions,
   NEXUS_LOAD_GLOBAL_MODULE: load,
   NEXUS_LOAD_CONTRIBUTION: loadContribution,
-  NEXUS_LOAD_GRANT: loadGrant,
+  NEXUS_LOAD_IMPORT: loadImport,
   NEXUS_UNREAD_CONTRIBUTION: unreadContribution,
   NEXUS_INVALID_MODULE_OPTIONS: moduleOptions,
   NEXUS_PROVIDER_FAILED: provider,

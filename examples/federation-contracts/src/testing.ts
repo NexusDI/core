@@ -82,7 +82,7 @@ export class FakeStationTelemetry implements IFakeTelemetry {
 /**
  * What the shell's Tactical gives a loaded remote, over fakes: the three
  * contract tokens, and the doubles behind two of them for a test to read. A
- * test grants it to the station it loads, as the shell does.
+ * test imports it into the station it loads, as the shell does.
  */
 export const FakeTactical = defineModule({
   name: 'Tactical',
@@ -102,17 +102,17 @@ export const FakeTactical = defineModule({
   ],
 });
 
-/** The shell's root over fakes. A station test loads its station into it with `STATION_GRANT`. */
+/** The shell's root over fakes. A station test loads its station into it with `STATION_IMPORTS`. */
 export const FakeShell = defineModule({
   name: 'Meridian',
   imports: [FakeTactical],
 });
 
-/** The grant the shell gives each station it loads, over FakeTactical. */
-export const STATION_GRANT = { imports: [FakeTactical] } as const;
+/** The load imports the shell gives each station it loads, over FakeTactical. */
+export const STATION_IMPORTS = { imports: [FakeTactical] } as const;
 
-/** The load entry of `station` with its grant, for `Nexus.check(FakeShell, { load })`. */
-export const grantedLoad = (station: ModuleRef): LoadEntry => ({
+/** The load entry of `station` with its load imports, for `Nexus.check(FakeShell, { load })`. */
+export const stationLoad = (station: ModuleRef): LoadEntry => ({
   module: station,
-  ...STATION_GRANT,
+  ...STATION_IMPORTS,
 });

@@ -4,7 +4,7 @@ import {
   ESCAPE_FIXTURE,
   HOSTILE_IDS,
   FIXTURE,
-  GRANTED,
+  LOAD_IMPORTED,
   WITH_INTERNAL,
   WITH_REQUEST,
 } from '../../test-support/graph-fixture.js';
@@ -50,8 +50,8 @@ describe('toMermaid', () => {
     );
   });
 
-  it('draws a grant as a dashed edge and an import as a solid edge, each once', () => {
-    const out = toMermaid(GRANTED, { view: 'modules' });
+  it('draws a load import as a dashed edge and an import as a solid edge, each once', () => {
+    const out = toMermaid(LOAD_IMPORTED, { view: 'modules' });
     expect(out).toContain('  m2 --> m1\n');
     expect(out).toContain('  m2 -.-> m0\n');
     expect(out).not.toContain('m2 --> m0');

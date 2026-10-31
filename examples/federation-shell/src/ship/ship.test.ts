@@ -20,7 +20,7 @@ describe('the shell', () => {
     ).not.toThrow();
   });
 
-  it('keeps Tactical out of the globals, since the shell grants it to each station', () => {
+  it('keeps Tactical out of the globals, since the shell imports it into each station', () => {
     expect(Tactical.global).toBeFalsy();
     expect(Meridian.imports).toContain(Tactical);
   });

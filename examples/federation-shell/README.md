@@ -30,7 +30,7 @@ Each station bundles its own copy of the contract's tokens. The challenge is ens
 
 The shell solves this by owning a versioned contract, `meridian` in `@nexusdi/federation-contracts`, while each station acts as a remote that loads into the shell's container at runtime.
 
-**The contract** is `meridian` (version 2.4.0) from `@nexusdi/federation-contracts`. It defines `NAV_CHARTS`, `STATION_TELEMETRY`, and `COMMAND_LINK`. The shell's Tactical module provides and exports these tokens without polluting the globals. Each station accesses Tactical only through a grant: its section loads with `{ imports: [Tactical] }`.
+**The contract** is `meridian` (version 2.4.0) from `@nexusdi/federation-contracts`. It defines `NAV_CHARTS`, `STATION_TELEMETRY`, and `COMMAND_LINK`. The shell's Tactical module provides and exports these tokens without polluting the globals. Each station accesses Tactical only through a load import: its section loads with `{ imports: [Tactical] }`.
 
 **The shell's container** is `ship`. `createShip()` in `src/ship/ship.ts` builds it with `federation()` from `@nexusdi/federation`. `federation()` binds a remote's copy of a contract token to the shell's copy using a key and name (e.g., `meridian/NavCharts`) and verifies that the shell's version satisfies the one the remote was built against.
 

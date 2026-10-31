@@ -34,7 +34,7 @@ const RUNTIME_EXPORTS: string[] = [
   'LifetimeError',
   'loadOnce',
   'LoadContributionError',
-  'LoadGrantError',
+  'LoadImportError',
   'LoadedAfterScopeError',
   'LoadError',
   'MissingDepsError',

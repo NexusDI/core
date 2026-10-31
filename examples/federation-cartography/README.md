@@ -18,7 +18,7 @@ The station demonstrates how a remote module exposes its functionality and resol
 
 **Contract Binding.** The module binds `NAV_ROUTES` to `SectorRoutes`, which reads this bundle's own copy of the contract's `NAV_CHARTS`. To ensure the shell and remote use the same instance, `federation()` in the shell binds that copy to the shell's via the key `meridian/NavCharts`.
 
-**Dependency Grants.** Because a remote cannot import `Tactical` directly, the shell loads the section with a grant of its `Tactical` module.
+**Load Imports.** Because a remote cannot import `Tactical` directly, the shell loads the section with a load import of its `Tactical` module.
 
 ## Identifying Federation Failures
 
@@ -30,13 +30,13 @@ The federation system prevents runtime crashes by catching configuration and ver
 
 ## Testing the Station
 
-You can verify the station's loading logic and grant using a fake shell. `STATION_GRANT` grants the fake Tactical, as the shell grants its own. The following example loads the module and verifies the `NAV_ROUTES` resolution. It also checks `DRIFT_VERSION`, the version the drift build carries.
+You can verify the station's loading logic and load import using a fake shell. `STATION_IMPORTS` imports the fake Tactical, as the shell imports its own. The following example loads the module and verifies the `NAV_ROUTES` resolution. It also checks `DRIFT_VERSION`, the version the drift build carries.
 
 ```ts @import.meta.vitest
 import { Nexus } from '@nexusdi/core';
 import {
   FakeShell,
-  STATION_GRANT,
+  STATION_IMPORTS,
 } from '@nexusdi/federation-contracts/testing';
 
 import { MERIDIAN_CONTRACT_VERSION as DRIFT_VERSION } from './drift/version';
@@ -46,7 +46,7 @@ import {
 } from './src/cartography-station.module';
 
 await using ship = await Nexus.create(FakeShell);
-await ship.load(CartographyStation, STATION_GRANT);
+await ship.load(CartographyStation, STATION_IMPORTS);
 ship.get(NAV_ROUTES).find('Kepler-442b'); // -> 'Kepler-442b: heading 42'
 DRIFT_VERSION; // -> '2.5.0'
 ```

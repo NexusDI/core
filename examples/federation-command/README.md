@@ -34,14 +34,14 @@ The module binds four station tokens, and their classes read the contract's thre
 
 ## Testing the Station
 
-You can verify the station's logic by loading the module into a fake shell and inspecting the recording link to see which orders were dispatched. `STATION_GRANT` grants the fake Tactical, as the shell grants its own.
+You can verify the station's logic by loading the module into a fake shell and inspecting the recording link to see which orders were dispatched. `STATION_IMPORTS` imports the fake Tactical, as the shell imports its own.
 
 ```ts @import.meta.vitest
 import { Nexus } from '@nexusdi/core';
 import {
   FakeShell,
   RECORDING_LINK,
-  STATION_GRANT,
+  STATION_IMPORTS,
 } from '@nexusdi/federation-contracts/testing';
 
 import {
@@ -51,7 +51,7 @@ import {
 } from './src/command-station.module';
 
 await using ship = await Nexus.create(FakeShell);
-await ship.load(CommandStation, STATION_GRANT);
+await ship.load(CommandStation, STATION_IMPORTS);
 ship.get(COURSE_PLOTTER).course('Kepler-442b'); // -> 'course to Kepler-442b, heading 42'
 await ship.get(HELM_ORDERS).burn(0.5);
 ship.get(RECORDING_LINK).sent; // -> [{ system: 'helm', action: 'burn', level: 0.5 }]

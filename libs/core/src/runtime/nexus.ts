@@ -197,8 +197,8 @@ export class Nexus {
    *
    * `options.imports` names modules the graph already holds. Each module the
    * load adds sees their exports, as if it imported them. A repeat load of a
-   * module does nothing when it grants nothing or the same set, and rejects
-   * with NEXUS_LOAD_GRANT for another set.
+   * module does nothing when it imports nothing or the same set, and rejects
+   * with NEXUS_LOAD_IMPORT for another set.
    */
   load(module: ModuleRef, options?: LoadOptions): Promise<void> {
     return guardAsync(this.#state, loadModule(this.#state, module, options));

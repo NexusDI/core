@@ -1,5 +1,5 @@
 import type { Blueprint } from '../blueprint/blueprint.js';
-import { heldId, sameGrant } from '../blueprint/compile.js';
+import { heldId, sameLoadImports } from '../blueprint/compile.js';
 import { entryOf, type LoadOptions } from '../blueprint/load-entry.js';
 import { isForeign } from '../definitions/brand.js';
 import { resolveModuleRef } from '../definitions/define-module.js';
@@ -51,13 +51,13 @@ async function loadNow(
     // moduleByReplaced finds the module that stands in for it, so a loaded
     // original is not added again under its own identity.
     const existing = heldId(current, definition);
-    const granted = options?.imports ?? [];
-    // A repeat of a root import does nothing when it grants nothing or the
+    const imported = options?.imports ?? [];
+    // A repeat of a root import does nothing when it imports nothing or the
     // set the module has. Another set goes to compile(), which rejects it.
     if (
       existing === undefined ||
       !current.modules.get(current.root)?.imports.includes(existing) ||
-      !sameGrant(current, existing, granted)
+      !sameLoadImports(current, existing, imported)
     ) {
       // With `previous`, compile() rejects a global module the graph lacks.
       const next = compileTraced(

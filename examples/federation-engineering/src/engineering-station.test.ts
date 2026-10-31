@@ -7,8 +7,8 @@ import type {
 import {
   FAKE_TELEMETRY,
   FakeShell,
-  grantedLoad,
-  STATION_GRANT,
+  stationLoad,
+  STATION_IMPORTS,
 } from '@nexusdi/federation-contracts/testing';
 import { nexusTest } from '@nexusdi/vitest';
 import { describe, expect, test as base } from 'vitest';
@@ -54,10 +54,10 @@ const online = (reading: TelemetryReading | null): TelemetryState => ({
   reading,
 });
 
-/** A fresh shell per test with EngineeringStation loaded under the grant, as the shell loads it. */
+/** A fresh shell per test with EngineeringStation loaded with the station imports, as the shell loads it. */
 const test = nexusTest(base, FakeShell).extend<{ station: Nexus }>({
   station: async ({ nexus }, serve) => {
-    await nexus.load(EngineeringStation, STATION_GRANT);
+    await nexus.load(EngineeringStation, STATION_IMPORTS);
     await serve(nexus);
   },
 });
@@ -101,7 +101,7 @@ describe('EngineeringStation', () => {
     expect(() =>
       Nexus.check(FakeShell, {
         plugins: [federation()],
-        load: [grantedLoad(EngineeringStation)],
+        load: [stationLoad(EngineeringStation)],
       }),
     ).not.toThrow();
   });

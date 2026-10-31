@@ -66,9 +66,9 @@ export function toDot(graph: NexusGraph, options: RenderOptions = {}): string {
         ])}, shape=box${m.global ? ', style=bold' : ''}];`,
       );
     for (const m of graph.modules)
-      for (const { to, granted } of moduleEdges(m))
+      for (const { to, loadImport } of moduleEdges(m))
         lines.push(
-          `  ${quote(m.id)} -> ${quote(to)}${granted ? ' [style=dashed]' : ''};`,
+          `  ${quote(m.id)} -> ${quote(to)}${loadImport ? ' [style=dashed]' : ''};`,
         );
   } else {
     const exported = exportedIds(graph);

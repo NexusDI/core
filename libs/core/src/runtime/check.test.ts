@@ -311,7 +311,7 @@ describe('Nexus.check', () => {
     expect(views[0]?.modules.map((m) => m.name)).toEqual(['Root']);
   });
 
-  describe('load entries with a grant', () => {
+  describe('load entries with a load import', () => {
     const CHARTS = new Token<string>('Charts');
     const Navigation = defineModule({
       name: 'Navigation',
@@ -326,7 +326,7 @@ describe('Nexus.check', () => {
     const Root = defineModule({ name: 'Root', imports: [Wrapper] });
     const Science = defineModule({ name: 'Science', providers: [Plotter] });
 
-    it('accepts a module with imports and compiles the grant', () => {
+    it('accepts a module with imports and compiles the load import', () => {
       expect(
         Nexus.check(Root, {
           load: [{ module: Science, imports: [Navigation] }],
@@ -334,7 +334,7 @@ describe('Nexus.check', () => {
       ).toEqual({ unchecked: [] });
     });
 
-    it('reports a missing provider when the entry has no grant', () => {
+    it('reports a missing provider when the entry has no load import', () => {
       expect(
         thrown(() => Nexus.check(Root, { load: [Science] })),
       ).toMatchObject({
@@ -346,20 +346,30 @@ describe('Nexus.check', () => {
     it.each([
       ['not-in-graph', defineModule({ name: 'Hangar' }), 'Hangar'],
       ['root', Root, 'Root'],
-    ] as const)('reports %s inside a BlueprintError', (reason, grant, name) => {
-      expect(
-        thrown(() =>
-          Nexus.check(Root, { load: [{ module: Science, imports: [grant] }] }),
-        ),
-      ).toMatchObject({
-        code: 'NEXUS_BLUEPRINT_INVALID',
-        errors: [
-          { code: 'NEXUS_LOAD_GRANT', module: 'Science', grant: name, reason },
-        ],
-      });
-    });
+    ] as const)(
+      'reports %s inside a BlueprintError',
+      (reason, imported, name) => {
+        expect(
+          thrown(() =>
+            Nexus.check(Root, {
+              load: [{ module: Science, imports: [imported] }],
+            }),
+          ),
+        ).toMatchObject({
+          code: 'NEXUS_BLUEPRINT_INVALID',
+          errors: [
+            {
+              code: 'NEXUS_LOAD_IMPORT',
+              module: 'Science',
+              imported: name,
+              reason,
+            },
+          ],
+        });
+      },
+    );
 
-    it('reports already-loaded for a grant on a module the root imports', () => {
+    it('reports already-loaded for a load import on a module the root imports', () => {
       expect(
         thrown(() =>
           Nexus.check(Root, {
@@ -367,7 +377,7 @@ describe('Nexus.check', () => {
           }),
         ),
       ).toMatchObject({
-        errors: [{ code: 'NEXUS_LOAD_GRANT', reason: 'already-loaded' }],
+        errors: [{ code: 'NEXUS_LOAD_IMPORT', reason: 'already-loaded' }],
       });
     });
   });

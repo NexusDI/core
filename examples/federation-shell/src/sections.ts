@@ -45,7 +45,7 @@ export const SECTIONS: ReadonlyMap<string, StationSection> = new Map(
   STATIONS.map((station) => [
     station.id,
     {
-      // A remote cannot import the shell's Tactical, so each load grants it.
+      // A remote cannot import the shell's Tactical, so each load imports it.
       section: lazySection(
         station.id,
         async () =>

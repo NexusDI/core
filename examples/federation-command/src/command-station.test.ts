@@ -9,8 +9,8 @@ import {
   RECORDED_TICK,
   RECORDING_LINK,
   FakeShell,
-  grantedLoad,
-  STATION_GRANT,
+  stationLoad,
+  STATION_IMPORTS,
 } from '@nexusdi/federation-contracts/testing';
 import { nexusTest } from '@nexusdi/vitest';
 import { describe, expect, test as base } from 'vitest';
@@ -26,10 +26,10 @@ import {
   ReactorOrders,
 } from './command-station.module';
 
-/** A fresh shell per test with CommandStation loaded under the grant, as the shell loads it. */
+/** A fresh shell per test with CommandStation loaded with the station imports, as the shell loads it. */
 const test = nexusTest(base, FakeShell).extend<{ station: Nexus }>({
   station: async ({ nexus }, serve) => {
-    await nexus.load(CommandStation, STATION_GRANT);
+    await nexus.load(CommandStation, STATION_IMPORTS);
     await serve(nexus);
   },
 });
@@ -59,7 +59,7 @@ describe('CommandStation', () => {
     expect(() =>
       Nexus.check(FakeShell, {
         plugins: [federation()],
-        load: [grantedLoad(CommandStation)],
+        load: [stationLoad(CommandStation)],
       }),
     ).not.toThrow();
   });

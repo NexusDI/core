@@ -88,7 +88,7 @@ type InjectMiddleware = <
 
 /**
  * The route middleware `di.load(module, options?)` returns: it loads the
- * module once, with the grant in `options.imports`, and extends the
+ * module once, with the load imports in `options.imports`, and extends the
  * request's scope before the route's loaders run. It resolves what next()
  * resolves, so it fits a framework-mode middleware array and a data-mode
  * route object.
@@ -226,14 +226,14 @@ export function nexus(
     context: Readonly<RouterContextProvider>,
     checked: () => Promise<void>,
     section?: ModuleRef,
-    grant?: LoadOptions,
+    loadOptions?: LoadOptions,
   ): Promise<ResolvedDeps<D>> => {
     const result = await core.resolve({
       handle: () => handleOf(context),
       deps,
       checked,
       section,
-      options: grant,
+      options: loadOptions,
     });
     if (!('deps' in result)) return stop(result);
     return result.deps;
@@ -245,11 +245,11 @@ export function nexus(
       handler: (deps: ResolvedDeps<D>, args: A) => R,
       checked: () => Promise<void>,
       section?: ModuleRef,
-      grant?: LoadOptions,
+      loadOptions?: LoadOptions,
     ) =>
     async (args: A): Promise<Awaited<R>> =>
       await handler(
-        await depsFor(deps, args.context, checked, section, grant),
+        await depsFor(deps, args.context, checked, section, loadOptions),
         args,
       );
 
@@ -259,11 +259,11 @@ export function nexus(
       middleware: GuardMiddleware<D, A, R>,
       checked: () => Promise<void>,
       section?: ModuleRef,
-      grant?: LoadOptions,
+      loadOptions?: LoadOptions,
     ) =>
     async (args: A, next: Next<R>): Promise<R | void> =>
       await middleware(
-        await depsFor(deps, args.context, checked, section, grant),
+        await depsFor(deps, args.context, checked, section, loadOptions),
         args,
         next,
       );

@@ -2801,7 +2801,7 @@ Each station is a remote with a section package, loaded by the shell's routes.
 G9 adds `TELEMETRY_FEED` and `COMMAND_LINK` to the `meridian` contract, which moves its
 version to the next minor. The shell's `Tactical` provides them over HTTP to
 `bridge-api`, which adds `hono/cors` for the shell's origin in development and e2e. The
-shell's `Tactical` is not global: the shell's root imports it, and the shell grants it to
+shell's `Tactical` is not global: the shell's root imports it, and the shell imports it into
 each station's lazy section with `{ imports: [Tactical] }`.
 
 The shell reads `bridge-api`'s address from `/bridge.json` on first use, as it reads

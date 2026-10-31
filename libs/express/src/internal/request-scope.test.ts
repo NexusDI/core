@@ -573,7 +573,7 @@ describe('disposer, enterSection and definitionCheck', () => {
     await busy.close();
   });
 
-  it('passes the grant to the load', async () => {
+  it('passes the load imports to the load', async () => {
     const load = vi.fn((..._args: unknown[]) => Promise.resolve());
     const section = { name: 'Chart' } as never;
     const options = { imports: [{ name: 'Helm' } as never] };

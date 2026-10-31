@@ -22,7 +22,7 @@ export interface LookupOptions {
 export interface CheckOptions {
   /** Plugins, in order. Nexus.check runs their compile hooks, tokenKey, observe and formatError, and no setup. */
   readonly plugins?: readonly NexusPlugin[];
-  /** Modules to compile after the root, in order, as load() would. An entry with `imports` carries the grant load() would take. */
+  /** Modules to compile after the root, in order, as load() would. An entry with `imports` carries the load imports load() would take. */
   readonly load?: readonly LoadEntry[];
 }
 

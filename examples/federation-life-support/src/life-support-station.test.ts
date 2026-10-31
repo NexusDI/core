@@ -11,8 +11,8 @@ import {
   RECORDED_TICK,
   RECORDING_LINK,
   FakeShell,
-  grantedLoad,
-  STATION_GRANT,
+  stationLoad,
+  STATION_IMPORTS,
 } from '@nexusdi/federation-contracts/testing';
 import { nexusTest } from '@nexusdi/vitest';
 import { describe, expect, test as base } from 'vitest';
@@ -59,10 +59,10 @@ const online = (reading: TelemetryReading | null): TelemetryState => ({
   reading,
 });
 
-/** A fresh shell per test with LifeSupportStation loaded under the grant, as the shell loads it. */
+/** A fresh shell per test with LifeSupportStation loaded with the station imports, as the shell loads it. */
 const test = nexusTest(base, FakeShell).extend<{ station: Nexus }>({
   station: async ({ nexus }, serve) => {
-    await nexus.load(LifeSupportStation, STATION_GRANT);
+    await nexus.load(LifeSupportStation, STATION_IMPORTS);
     await serve(nexus);
   },
 });
@@ -156,7 +156,7 @@ describe('LifeSupportStation', () => {
     expect(() =>
       Nexus.check(FakeShell, {
         plugins: [federation()],
-        load: [grantedLoad(LifeSupportStation)],
+        load: [stationLoad(LifeSupportStation)],
       }),
     ).not.toThrow();
   });

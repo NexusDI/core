@@ -97,7 +97,7 @@ code; // -> 'NEXUS_NOT_VISIBLE'
 
 ## Loading once
 
-`loadOnce(container)` returns a load function that calls `container.load` once for each module and granted set.
+`loadOnce(container)` returns a load function that calls `container.load` once for each module and imported set.
 
 <!-- #region load-once -->
 
@@ -132,7 +132,7 @@ loadOnce(ship) === load; // -> true
 
 ## Splitting a load entry
 
-`splitLoadEntry(entry)` returns the module and the granted modules of a `LoadEntry`. A tool that loads entries calls `load(module, { imports })` with the parts, and a value that is neither form comes back as the module, so `load()` reports it.
+`splitLoadEntry(entry)` returns the module and the imported modules of a `LoadEntry`. A tool that loads entries calls `load(module, { imports })` with the parts, and a value that is neither form comes back as the module, so `load()` reports it.
 
 <!-- #region split-load-entry -->
 
@@ -146,9 +146,9 @@ const bare = splitLoadEntry(Survey);
 bare.module === Survey; // -> true
 bare.imports.length; // -> 0
 
-const granted = splitLoadEntry({ module: Survey, imports: [Engineering] });
-granted.module === Survey; // -> true
-granted.imports[0] === Engineering; // -> true
+const entry = splitLoadEntry({ module: Survey, imports: [Engineering] });
+entry.module === Survey; // -> true
+entry.imports[0] === Engineering; // -> true
 ```
 
 <!-- #endregion split-load-entry -->

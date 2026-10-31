@@ -10,7 +10,7 @@ export interface LoadOptions {
   readonly imports?: readonly ModuleRef[];
 }
 
-/** A module for Nexus.check to load, with its grant. */
+/** A module for Nexus.check to load, with its load imports. */
 export type LoadEntry =
   | ModuleRef
   | {
@@ -18,14 +18,14 @@ export type LoadEntry =
       readonly imports: readonly ModuleRef[];
     };
 
-/** The module of an entry and the modules it grants, in grant order. */
+/** The module of an entry and the modules it imports, in load import order. */
 export interface SplitEntry {
   readonly module: unknown;
   readonly imports: readonly unknown[];
 }
 
 /**
- * Splits an entry into its module and its grant. A module ref has no grant.
+ * Splits an entry into its module and its load imports. A module ref has none.
  * A value that is neither form is returned as the module, so the walk
  * reports it as an invalid module.
  */
@@ -44,10 +44,10 @@ export function splitEntry(entry: unknown): SplitEntry {
 }
 
 /**
- * Splits a load entry into its module and the modules it grants. A module ref
- * has no grant. A value that is neither form comes back as the module, so
- * load() reports it as an invalid module. Tools that load entries pass the
- * parts on to load() and keep no copy of this rule.
+ * Splits a load entry into its module and the modules it imports. A module
+ * ref has no load imports. A value that is neither form comes back as the
+ * module, so load() reports it as an invalid module. Tools that load entries
+ * pass the parts on to load() and keep no copy of this rule.
  */
 export function splitLoadEntry(entry: LoadEntry): {
   readonly module: ModuleRef;

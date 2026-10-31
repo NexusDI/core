@@ -70,7 +70,7 @@ function stationOn(token: Token<unknown>) {
 
 /**
  * The errors `Nexus.check` reports for a shell at `version` that loads
- * `remote` with its Tactical granted, as the shell loads a station.
+ * `remote` with its Tactical in the load imports, as the shell loads a station.
  */
 function checkAgainst(version: string, remote = Cartography): unknown[] {
   const tactical = shellAt(version);

@@ -11,7 +11,7 @@
         "name": "Meridian",
         "global": false,
         "imports": ["m1"],
-        "grants": [],
+        "loadImports": [],
         "exports": []
       },
       {
@@ -19,7 +19,7 @@
         "name": "Tactical",
         "global": false,
         "imports": ["m2"],
-        "grants": [],
+        "loadImports": [],
         "exports": ["p2", "p1", "m2"]
       },
       {
@@ -27,7 +27,7 @@
         "name": "Engineering",
         "global": false,
         "imports": [],
-        "grants": [],
+        "loadImports": [],
         "exports": ["p4", "p5"]
       }
     ],

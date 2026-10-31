@@ -20,7 +20,7 @@ export async function profileStartup(
   root: RootRef,
   options: {
     readonly plugins?: readonly NexusPlugin[];
-    /** Modules to load in order. An entry `{ module, imports }` loads with that grant, as `Nexus.load(module, { imports })` does. */
+    /** Modules to load in order. An entry `{ module, imports }` loads with those load imports, as `Nexus.load(module, { imports })` does. */
     readonly load?: readonly LoadEntry[];
     /** Pass one to read report() while the run is still going, as the CLI's --timeout does. */
     readonly profiler?: Profiler;

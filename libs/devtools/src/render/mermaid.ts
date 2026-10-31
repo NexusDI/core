@@ -89,8 +89,10 @@ export function toMermaid(
       if (m.global) bold.push(name(m.id));
     }
     for (const m of graph.modules)
-      for (const { to, granted } of moduleEdges(m))
-        lines.push(`  ${name(m.id)} ${granted ? '-.->' : '-->'} ${name(to)}`);
+      for (const { to, loadImport } of moduleEdges(m))
+        lines.push(
+          `  ${name(m.id)} ${loadImport ? '-.->' : '-->'} ${name(to)}`,
+        );
   } else {
     for (const m of graph.modules) {
       const members = membersOf(drawn, m.id);

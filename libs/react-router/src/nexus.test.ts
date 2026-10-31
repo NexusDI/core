@@ -310,7 +310,7 @@ describe('nexus', () => {
     expect(count(events, 'scope:extend')).toBe(0);
   });
 
-  it("loads a lazy route with a grant once and lets its loader inject a token built from the granted module's export", async () => {
+  it("loads a lazy route with a load import once and lets its loader inject a token built from the imported module's export", async () => {
     const HELM = new Token<string>('Helm');
     const COURSE = new Token<string>('Course');
     const Helm = defineModule({

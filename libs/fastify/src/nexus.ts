@@ -111,7 +111,7 @@ type Inject = <
   handler: FastifyHandler<D, G>,
 ) => Route<G>;
 
-/** The `onRequest` hook `di.load(module, options?)` returns: it loads the module once, with the grant in `options.imports`, and extends the request's scope before the section's handlers run. */
+/** The `onRequest` hook `di.load(module, options?)` returns: it loads the module once, with the load imports in `options.imports`, and extends the request's scope before the section's handlers run. */
 export interface SectionHook extends onRequestAsyncHookHandler {
   /** Like di.inject, validated after the section's first successful load. */
   inject: Inject;
@@ -241,7 +241,7 @@ export function nexus(
     handler: FastifyHandler<D, G>,
     checked: () => Promise<void>,
     section?: ModuleRef,
-    grant?: LoadOptions,
+    loadOptions?: LoadOptions,
   ): Route<G> => {
     const run = async (
       req: FastifyRequest<G>,
@@ -252,7 +252,7 @@ export function nexus(
         deps,
         checked,
         section,
-        options: grant,
+        options: loadOptions,
         log: logOf(req),
       });
       if (!('deps' in result)) return stop(result, reply);
@@ -270,7 +270,7 @@ export function nexus(
       hook: FastifyHook<D, G>,
       checked: () => Promise<void>,
       section?: ModuleRef,
-      grant?: LoadOptions,
+      loadOptions?: LoadOptions,
     ): Hook<G> =>
     // Two parameters: Fastify refuses an async hook that also takes done.
     async (req, reply) => {
@@ -279,7 +279,7 @@ export function nexus(
         deps,
         checked,
         section,
-        options: grant,
+        options: loadOptions,
         log: logOf(req),
       });
       if (!('deps' in result)) return stop(result, reply);

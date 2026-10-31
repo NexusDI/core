@@ -29,13 +29,13 @@ The station demonstrates how to bind local services to shared federated contract
 
 ## Testing the Station
 
-You can verify the station's logic by loading the module into a fake shell and passing one telemetry reading to `gauges()`. `STATION_GRANT` grants the fake Tactical, as the shell grants its own.
+You can verify the station's logic by loading the module into a fake shell and passing one telemetry reading to `gauges()`. `STATION_IMPORTS` imports the fake Tactical, as the shell imports its own.
 
 ```ts @import.meta.vitest
 import { Nexus } from '@nexusdi/core';
 import {
   FakeShell,
-  STATION_GRANT,
+  STATION_IMPORTS,
 } from '@nexusdi/federation-contracts/testing';
 
 import {
@@ -55,7 +55,7 @@ const reading = {
 };
 
 await using ship = await Nexus.create(FakeShell);
-await ship.load(EngineeringStation, STATION_GRANT);
+await ship.load(EngineeringStation, STATION_IMPORTS);
 ship.get(ENGINE_ROOM).gauges({ status: 'online', reading })?.[1]; // -> ['Electric output', '1,234.6 MW']
 ```
 

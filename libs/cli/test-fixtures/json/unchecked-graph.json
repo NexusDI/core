@@ -5,7 +5,7 @@
       "name": "Meridian",
       "global": false,
       "imports": ["m1"],
-      "grants": [],
+      "loadImports": [],
       "exports": []
     },
     {
@@ -13,7 +13,7 @@
       "name": "Navigation",
       "global": false,
       "imports": [],
-      "grants": [],
+      "loadImports": [],
       "exports": ["p1"]
     },
     {
@@ -21,7 +21,7 @@
       "name": "Science",
       "global": false,
       "imports": ["m0"],
-      "grants": ["m0"],
+      "loadImports": ["m0"],
       "exports": []
     }
   ],

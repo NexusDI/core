@@ -26,16 +26,17 @@ export interface NexusGraph {
     id: string;
     name: string;
     global: boolean;
-    /** Module ids: the imports the module declares, then the ids a load grant added. */
+    /** Module ids: the imports the module declares, then the ids a load import added. */
     imports: string[];
     /**
-     * Module ids a load grant added to `imports` beyond the module's own
-     * imports, in grant order. A granted module the module already imports
-     * stays out of it. toDot and toMermaid draw a grant as a dashed edge and
-     * the other imports as solid edges. A graph file written before grants
-     * existed has no such field; parseGraph reads it as [].
+     * Module ids a load import added to `imports` beyond the module's own
+     * imports, in load import order. A load import of a module the module
+     * already imports stays out of it. toDot and toMermaid draw a load import
+     * as a dashed edge and the other imports as solid edges. A graph file
+     * written before load imports existed has no such field; parseGraph reads
+     * it as [].
      */
-    grants: string[];
+    loadImports: string[];
     /** Provider ids and module ids. */
     exports: string[];
   }>;
@@ -138,7 +139,7 @@ export function graphOf(
       name: m.name,
       global: m.global,
       imports: [...m.imports],
-      grants: [...m.grants],
+      loadImports: [...m.loadImports],
       exports: [...m.exports],
     })),
     providers: view.providers.map((p) => ({

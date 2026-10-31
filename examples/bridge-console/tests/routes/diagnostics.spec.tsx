@@ -40,7 +40,7 @@ const shipGraph: NexusGraph = {
       name: 'Meridian',
       global: false,
       imports: ['m1', 'm2'],
-      grants: [],
+      loadImports: [],
       exports: [],
     },
     {
@@ -48,7 +48,7 @@ const shipGraph: NexusGraph = {
       name: 'Simulation',
       global: false,
       imports: [],
-      grants: [],
+      loadImports: [],
       exports: ['p1'],
     },
     {
@@ -56,7 +56,7 @@ const shipGraph: NexusGraph = {
       name: 'Telemetry',
       global: false,
       imports: ['m1'],
-      grants: [],
+      loadImports: [],
       exports: ['p2'],
     },
   ],

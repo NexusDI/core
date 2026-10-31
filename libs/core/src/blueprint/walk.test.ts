@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { thrown } from '../../test-support/catch.js';
 import { compileErrors } from '../../test-support/compile.js';
-import { LoadGrantError } from '../errors/index.js';
+import { LoadImportError } from '../errors/index.js';
 import type { Blueprint } from './blueprint.js';
 import {
   declareModuleClass,
@@ -228,7 +228,7 @@ describe('compile', () => {
   });
 });
 
-describe('compile with a grant', () => {
+describe('compile with a load import', () => {
   const Engineering = defineModule({
     name: 'Engineering',
     providers: [ReactorCore],
@@ -252,7 +252,7 @@ describe('compile with a grant', () => {
     return node.id;
   };
 
-  it('records the grant on each new module of the entry and adds it to the imports', () => {
+  it('records the load import on each new module of the entry and adds it to the imports', () => {
     const Deep = defineModule({ name: 'Deep', providers: [Sensors] });
     const Science = defineModule({
       name: 'Science',
@@ -267,17 +267,17 @@ describe('compile with a grant', () => {
     const engineering = idOf(bp, 'Engineering');
     for (const name of ['Science', 'Deep']) {
       const node = bp.modules.get(idOf(bp, name));
-      expect(node?.grants).toEqual([engineering]);
+      expect(node?.loadImports).toEqual([engineering]);
       expect(node?.imports).toContain(engineering);
     }
-    expect(bp.modules.get(idOf(bp, 'Host'))?.grants).toEqual([]);
+    expect(bp.modules.get(idOf(bp, 'Host'))?.loadImports).toEqual([]);
     expect(bp.modules.get(idOf(bp, 'Host'))?.imports).not.toContain(
       engineering,
     );
     expect(idOf(bp, 'Engineering')).toBe(idOf(first, 'Engineering'));
   });
 
-  it('gives a module the graph held no grant, and keeps an earlier grant as it is', () => {
+  it('gives a module the graph held no load import, and keeps an earlier load import as it is', () => {
     const Science = defineModule({ name: 'Science' });
     const second = compile({
       root: Host,
@@ -293,42 +293,41 @@ describe('compile with a grant', () => {
       ],
       previous: second,
     });
-    expect(third.modules.get(idOf(third, 'Science'))?.grants).toEqual([
+    expect(third.modules.get(idOf(third, 'Science'))?.loadImports).toEqual([
       idOf(third, 'Engineering'),
     ]);
-    expect(third.modules.get(idOf(third, 'Hold'))?.grants).toEqual([]);
-    expect(third.modules.get(idOf(third, 'Lab'))?.grants).toEqual([
+    expect(third.modules.get(idOf(third, 'Hold'))?.loadImports).toEqual([]);
+    expect(third.modules.get(idOf(third, 'Lab'))?.loadImports).toEqual([
       idOf(third, 'Navigation'),
     ]);
   });
 
-  describe('a module that already imports a granted module', () => {
+  describe('a module that already imports a load-imported module', () => {
     const Deep = defineModule({ name: 'Deep' });
     const Science = defineModule({
       name: 'Science',
       imports: [Engineering, Deep],
     });
-    const granted = compile({
+    const loadImported = compile({
       root: Host,
       extraImports: [{ module: Science, imports: [Engineering, Navigation] }],
       previous: first,
     });
 
-    it('lists in grants only the ids the grant added, and keeps the declared import in imports', () => {
-      const engineering = idOf(granted, 'Engineering');
-      const navigation = idOf(granted, 'Navigation');
-      const science = granted.modules.get(idOf(granted, 'Science'));
+    it('lists in loadImports only the ids the load import added, and keeps the declared import in imports', () => {
+      const engineering = idOf(loadImported, 'Engineering');
+      const navigation = idOf(loadImported, 'Navigation');
+      const science = loadImported.modules.get(idOf(loadImported, 'Science'));
       expect(science?.imports.filter((id) => id === engineering)).toHaveLength(
         1,
       );
-      expect(science?.grants).toEqual([navigation]);
-      expect(granted.modules.get(idOf(granted, 'Deep'))?.grants).toEqual([
-        engineering,
-        navigation,
-      ]);
+      expect(science?.loadImports).toEqual([navigation]);
+      expect(
+        loadImported.modules.get(idOf(loadImported, 'Deep'))?.loadImports,
+      ).toEqual([engineering, navigation]);
     });
 
-    it('still reads the whole granted set as the recorded one', () => {
+    it('still reads the whole imported set as the recorded one', () => {
       const repeat = (imports: unknown[]) =>
         compile({
           root: Host,
@@ -336,11 +335,11 @@ describe('compile with a grant', () => {
             { module: Science, imports: [Engineering, Navigation] },
             { module: Science, imports: imports as never },
           ],
-          previous: granted,
+          previous: loadImported,
         });
       expect(() => repeat([Navigation, Engineering])).not.toThrow();
       expect(thrown(() => repeat([Engineering]))).toMatchObject({
-        code: 'NEXUS_LOAD_GRANT',
+        code: 'NEXUS_LOAD_IMPORT',
         reason: 'already-loaded',
       });
     });
@@ -354,23 +353,23 @@ describe('compile with a grant', () => {
               { module: Science, imports: [Engineering, Navigation] },
               { module, imports: imports as never },
             ],
-            previous: granted,
+            previous: loadImported,
           }),
         );
       expect(repeat(Science, [Engineering, Hold])).toMatchObject({
         reason: 'already-loaded',
-        grant: 'Hold',
+        imported: 'Hold',
       });
       expect(repeat(Science, [Navigation])).toMatchObject({
         reason: 'already-loaded',
-        grant: 'Navigation',
+        imported: 'Navigation',
       });
     });
   });
 
-  it('throws LoadGrantError alone, ahead of the walk, for each reason', () => {
+  it('throws LoadImportError alone, ahead of the walk, for each reason', () => {
     const Science = defineModule({ name: 'Science' });
-    const grantTo = (imports: unknown[], module = Science): unknown =>
+    const importInto = (imports: unknown[], module = Science): unknown =>
       thrown(() =>
         compile({
           root: Host,
@@ -378,13 +377,16 @@ describe('compile with a grant', () => {
           previous: first,
         }),
       );
-    expect(grantTo([defineModule({ name: 'Hangar' })])).toMatchObject({
-      code: 'NEXUS_LOAD_GRANT',
+    expect(importInto([defineModule({ name: 'Hangar' })])).toMatchObject({
+      code: 'NEXUS_LOAD_IMPORT',
       module: 'Science',
-      grant: 'Hangar',
+      imported: 'Hangar',
       reason: 'not-in-graph',
     });
-    expect(grantTo([Host])).toBeInstanceOf(LoadGrantError);
-    expect(grantTo([Host])).toMatchObject({ reason: 'root', grant: 'Host' });
+    expect(importInto([Host])).toBeInstanceOf(LoadImportError);
+    expect(importInto([Host])).toMatchObject({
+      reason: 'root',
+      imported: 'Host',
+    });
   });
 });

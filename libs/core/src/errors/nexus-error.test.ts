@@ -35,7 +35,7 @@ const FIELD_ORDER: Readonly<Record<string, readonly string[]>> = {
   ModuleOptionsError: ['module', 'issues'],
   LoadError: ['module'],
   LoadContributionError: ['module', 'token'],
-  LoadGrantError: ['module', 'grant', 'reason'],
+  LoadImportError: ['module', 'imported', 'reason'],
   UnreadContributionError: ['token', 'module', 'provider'],
   ProviderError: ['token', 'module', 'path', 'alsoFailed', 'disposalErrors'],
   NotReadyError: ['owner', 'target', 'provider', 'path', 'contributor'],

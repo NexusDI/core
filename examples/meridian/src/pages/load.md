@@ -376,7 +376,7 @@ console.log(token);
 
 <!-- #endregion load-contribution -->
 
-<!-- #region load-grant -->
+<!-- #region load-import -->
 
 ```ts @import.meta.vitest
 import {
@@ -433,9 +433,9 @@ const course = ship.get(DRONE).survey(); // -> 'course to Kepler-442b'
 console.log(course);
 ```
 
-<!-- #endregion load-grant -->
+<!-- #endregion load-import -->
 
-<!-- #region load-grant-reasons -->
+<!-- #region load-import-reasons -->
 
 ```ts @import.meta.vitest
 import {
@@ -474,10 +474,10 @@ const Meridian = defineModule({
   imports: [Tactical, Engineering],
 });
 
-// The reason a load's grant is refused, or 'none' when the load resolves.
+// The reason a load's imports are refused, or 'none' when the load resolves.
 const reasonOf = async (load: Promise<void>) => {
   const error = await load.catch((caught: unknown) => caught);
-  return isNexusError(error, 'NEXUS_LOAD_GRANT') ? error.reason : 'none';
+  return isNexusError(error, 'NEXUS_LOAD_IMPORT') ? error.reason : 'none';
 };
 
 await using ship = await Nexus.create(Meridian);
@@ -497,7 +497,7 @@ const wired = await reasonOf(ship.load(Tactical, { imports: [Engineering] })); /
 console.log(wired);
 ```
 
-<!-- #endregion load-grant-reasons -->
+<!-- #endregion load-import-reasons -->
 
 <!-- #region lazy-route -->
 
