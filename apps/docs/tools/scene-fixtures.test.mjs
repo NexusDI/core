@@ -171,7 +171,7 @@ describe('the scene fixtures', () => {
       ]);
     expect(
       fixture.check.withErrors.error.entries.map((e) => e.fields.module),
-    ).toContain('Tactical');
+    ).toEqual(['Meridian', 'Tactical']);
   });
 
   it('passes the check with the drone hatch closed and refuses the root lookup', () => {
