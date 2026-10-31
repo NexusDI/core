@@ -20,8 +20,8 @@ const STAGE = '(min-width: 640px) 1312px, 880px';
 /** A crop frames this many metres: 11 along the hull and 6.4 up, at the side view's scale (tech lead TL19). */
 const CROP = [11, 6.4] as const;
 /** The top and bottom of the painted hull, in metres from the frame's top edge (rows 107 and 460 of the side master). */
-const HULL_TOP = 4.2;
-const HULL_BOTTOM = 17.9;
+const HULL_TOP = 4.18;
+const HULL_BOTTOM = 17.97;
 
 /** The crop of a feature, in the cutaway's frame: its anchor a little above the middle. */
 function cropOf(

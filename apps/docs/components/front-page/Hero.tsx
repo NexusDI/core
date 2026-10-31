@@ -18,7 +18,7 @@ export default function Hero({ children }: { children: ReactNode }) {
       <HeroArt />
       <div className="nexus-hero__copy">
         {children}
-        <InstallLine />
+        <InstallLine releaseLine />
         <p className="nexus-hero__actions">
           <Link
             className="meridian-button meridian-button--primary"
