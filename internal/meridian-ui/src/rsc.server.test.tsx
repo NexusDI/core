@@ -6,10 +6,14 @@ import {
   Button,
   ConsoleFrame,
   HoloLabel,
+  HullCrop,
   Marker,
   Notice,
   Panel,
+  Schematic,
   Status,
+  StepList,
+  Switch,
   Terminal,
 } from './index.js';
 
@@ -48,6 +52,20 @@ describe('@nexusdi/meridian-ui under react-server', () => {
         Status({ word: 'ok', states: { ok: 'nominal' } }),
         Alert({ variant: 'banner', code: 'HYPOXIA', subject: 'airlock' }),
         HoloLabel({ title: 'Core', readouts: [{ label: 'MW', value: 1 }] }),
+        HullCrop({
+          full: [0, 0, 10, 10],
+          crop: [0, 0, 5, 5],
+          transitionName: 'crop',
+          children: Schematic({ markup: '<svg viewBox="0 0 10 10"></svg>' }),
+        }),
+        Switch({
+          name: 'n',
+          value: 'v',
+          label: 'L',
+          onWord: 'on',
+          offWord: 'off',
+        }),
+        StepList({ steps: [{ id: 'a', label: 'A' }], current: 'a' }),
       ],
     });
     const classes = flatten(tree)
@@ -63,5 +81,9 @@ describe('@nexusdi/meridian-ui under react-server', () => {
       'meridian-alert meridian-alert--banner meridian-alert--alarm',
     );
     expect(classes).toContain('meridian-holo');
+    expect(classes).toContain('meridian-hull-crop');
+    expect(classes).toContain('meridian-schematic');
+    expect(classes).toContain('meridian-switch');
+    expect(classes).toContain('meridian-steps');
   });
 });
