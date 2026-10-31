@@ -49,13 +49,15 @@ export const BEHAVIOUR_BUDGET = { raw: 1_850_000, gzip: 77_000 };
  *
  * Measured at 982,514 bytes raw and 298,476 gzipped. The Meridian stylesheet
  * carries the Terminal, Button, Status, Alert and HoloLabel classes, so the raw
- * ceiling sits at 984,000. A guide carries
+ * ceiling sits at 984,000. The Schematic, HullCrop, Switch and StepList classes
+ * measured 987.8 kB raw and 300.2 kB gzipped in CI, so the ceilings are
+ * 989,000 raw and 301,000 gzipped. A guide carries
  * `components/twoslash/TypeCards.tsx`, which every page's component map
  * holds, and not the popover it loads: that comes with `import()` on a page
  * with a `twoslash` fence.
  */
 export const GUIDE_PAGE = 'scopes/index.html';
-export const GUIDE_BUDGET = { raw: 984_000, gzip: 299_000 };
+export const GUIDE_BUDGET = { raw: 989_000, gzip: 301_000 };
 export const GUIDE_SLACK = 5_000;
 
 /**

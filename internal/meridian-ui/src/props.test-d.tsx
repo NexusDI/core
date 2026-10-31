@@ -5,12 +5,20 @@ import type {
   Alert,
   Button,
   ConsoleFrame,
+  DoorState,
+  FixtureState,
   HoloLabel,
+  HullCrop,
   Marker,
   Notice,
   Panel,
+  RoomState,
+  Schematic,
   Status,
   StatusState,
+  Step,
+  StepList,
+  Switch,
   Terminal,
 } from './index.js';
 
@@ -110,6 +118,79 @@ describe('component props', () => {
     >().toEqualTypeOf<string>();
     expectTypeOf<ComponentProps<typeof Terminal>['states']>().toEqualTypeOf<
       Readonly<Record<string, StatusState>>
+    >();
+  });
+
+  it('limits the schematic states to the names of design system 8.4', () => {
+    expectTypeOf<RoomState>().toEqualTypeOf<
+      'powered' | 'unpowered' | 'alarm'
+    >();
+    expectTypeOf<FixtureState>().toEqualTypeOf<
+      'powered' | 'unpowered' | 'alarm' | 'offline'
+    >();
+    expectTypeOf<DoorState>().toEqualTypeOf<'open' | 'closed'>();
+    expectTypeOf<ComponentProps<typeof Schematic>['rooms']>().toEqualTypeOf<
+      Readonly<Record<string, RoomState>> | undefined
+    >();
+    expectTypeOf<
+      ComponentProps<typeof Schematic>['markup']
+    >().toEqualTypeOf<string>();
+  });
+
+  it('takes one click handler on a schematic', () => {
+    expectTypeOf<ComponentProps<typeof Schematic>['onClick']>()
+      .parameter(0)
+      .toExtend<import('react').MouseEvent<HTMLElement>>();
+  });
+
+  it('takes an optional transition name and a crop on a hull crop', () => {
+    expectTypeOf<
+      ComponentProps<typeof HullCrop>['transitionName']
+    >().toEqualTypeOf<string | undefined>();
+    expectTypeOf<readonly [number, number, number, number]>().toExtend<
+      ComponentProps<typeof HullCrop>['crop']
+    >();
+  });
+
+  it('requires a label with the overlay children of a schematic', () => {
+    expectTypeOf<ComponentProps<typeof Schematic>>().toExtend<{
+      markup: string;
+    }>();
+    expectTypeOf<{
+      markup: string;
+      children: import('react').ReactNode;
+      label: string;
+    }>().toExtend<ComponentProps<typeof Schematic>>();
+    expectTypeOf<{
+      markup: string;
+      children: import('react').ReactNode;
+    }>().not.toExtend<ComponentProps<typeof Schematic>>();
+    expectTypeOf<{ markup: string }>().toExtend<
+      ComponentProps<typeof Schematic>
+    >();
+  });
+
+  it('requires a name, a value and both state words on a switch', () => {
+    expectTypeOf<
+      ComponentProps<typeof Switch>['name']
+    >().toEqualTypeOf<string>();
+    expectTypeOf<
+      ComponentProps<typeof Switch>['value']
+    >().toEqualTypeOf<string>();
+    expectTypeOf<
+      ComponentProps<typeof Switch>['onWord']
+    >().toEqualTypeOf<string>();
+    expectTypeOf<
+      ComponentProps<typeof Switch>['offWord']
+    >().toEqualTypeOf<string>();
+  });
+
+  it('keys the steps by id', () => {
+    expectTypeOf<ComponentProps<typeof StepList>['steps']>().toEqualTypeOf<
+      readonly Step[]
+    >();
+    expectTypeOf<ComponentProps<typeof StepList>['current']>().toEqualTypeOf<
+      string | undefined
     >();
   });
 });

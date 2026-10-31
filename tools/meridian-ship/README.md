@@ -21,6 +21,12 @@ The SVGs alone, from the repo root:
 python3 tools/meridian-ship/ship_svg.py --out <dir>
 ```
 
+The schematic cutaway for the docs front page, from the repo root:
+
+```sh
+python3 -I tools/meridian-ship/ship_svg.py --schematic --out apps/docs/components/front-page
+```
+
 The mesh, the renders and the SVGs need Blender 5.2 or later, with no add-ons:
 
 ```sh
@@ -54,6 +60,30 @@ The outputs:
 - `sv01-side.svg`, `sv01-top.svg`, `sv01-cutaway.svg`, `sv01-deck-<deck>.svg`:
   vector outlines in metres, one SVG unit per metre. Each room carries
   `data-room`, each fixture `data-fixture` and each door `data-door`.
+
+## The schematic variant
+
+`--schematic` writes one file, `meridian-schematic.svg`, and no other. It draws
+the same side cutaway with no `fill`, no `stroke` colour, no text and no room
+ids as labels. Every part carries a class and an id attribute:
+
+| Part               | Class        | Attribute                                       |
+| ------------------ | ------------ | ----------------------------------------------- |
+| hull volume        | `sv-hull`    | `data-volume`                                   |
+| exterior hull part | `sv-hull`    | `data-part` (`exterior-<n>`, in the code order) |
+| room box           | `sv-room`    | `data-room` (on every box of a room)            |
+| fixture            | `sv-fixture` | `data-fixture`                                  |
+| door               | `sv-door`    | `data-door`                                     |
+
+The docs front page inlines the file and paints it with CSS. The committed copy
+is `apps/docs/components/front-page/meridian-schematic.svg`. The output has no
+stamp and no path, so the same geometry gives the same bytes.
+
+After a change to the geometry or the script, regenerate the committed copy with
+the command above. `npx nx run meridian-ship:check-schematic` regenerates into a
+temporary directory and fails when the committed file differs. It needs
+`python3` on the path and never skips. CI runs it after `actions/setup-python`
+at 3.12.
 
 A run takes a few seconds and under 1 GB of memory. Nothing in the scripts is
 random and the PNGs carry no stamp metadata, so the same geometry gives the

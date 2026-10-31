@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   Alert,
@@ -8,13 +8,18 @@ import {
   Chip,
   ConsoleFrame,
   HoloLabel,
+  HullCrop,
   Marker,
   Notice,
   NOTICE_LABELS,
   Panel,
+  Schematic,
   Status,
   STATUS_GLYPHS,
+  StepList,
+  Switch,
   Terminal,
+  cssEscape,
 } from '../index.js';
 
 describe('Panel', () => {
@@ -377,5 +382,290 @@ describe('HoloLabel', () => {
       <HoloLabel title="Hull" readouts={[{ label: 'Plates', value: 12 }]} />,
     );
     expect(container.querySelector('.meridian-holo__leader')).toBeNull();
+  });
+});
+
+const MARKUP =
+  '<svg viewBox="-2 0 76 18"><rect data-room="bridge"/><rect data-door="a-b"/></svg>';
+
+describe('cssEscape', () => {
+  it('escapes what CSS.escape escapes', () => {
+    expect(cssEscape('bridge.helm')).toBe('bridge\\.helm');
+    expect(cssEscape('1room')).toBe('\\31 room');
+    expect(cssEscape('a"]{}')).toBe('a\\"\\]\\{\\}');
+    expect(cssEscape('-')).toBe('\\-');
+    expect(cssEscape('ok_id-2')).toBe('ok_id-2');
+  });
+});
+
+describe('Schematic', () => {
+  it('renders the markup aria-hidden and a style block for each state', () => {
+    const { container } = render(
+      <Schematic
+        markup={MARKUP}
+        rooms={{ bridge: 'powered', galley: 'alarm' }}
+        fixtures={{ 'bridge.helm': 'offline' }}
+        doors={{ 'a-b': 'closed' }}
+      />,
+    );
+    const art = container.querySelector('.meridian-schematic__art');
+    expect(art?.getAttribute('aria-hidden')).toBe('true');
+    expect(art?.querySelector('[data-room="bridge"]')).not.toBeNull();
+    const css = container.querySelector('style')?.textContent ?? '';
+    expect(css).toContain(
+      '.meridian-schematic[data-schematic="ship"] [data-room="bridge"]{fill:var(--meridian-sv-room-powered)}',
+    );
+    expect(css).toContain('[data-room="galley"]');
+    expect(css).toContain('animation:meridian-sv-alarm 1s');
+    expect(css).toContain('[data-fixture="bridge\\.helm"]');
+    expect(css).toContain('[data-door="a-b"]{fill:url(#meridian-hazard-ship);');
+    expect(css).toContain('stroke:var(--meridian-alarm)');
+    expect(css).not.toMatch(/#[0-9a-f]{3,8}\b|rgb\(/i);
+  });
+
+  it('escapes an id that tries to leave the selector', () => {
+    const { container } = render(
+      <Schematic
+        markup={MARKUP}
+        rooms={{ 'x"]{}</style><b>': 'powered' } as never}
+      />,
+    );
+    const css = container.querySelector('style')?.textContent ?? '';
+    expect(css).not.toContain('</style>');
+    expect(css).toContain('x\\"\\]\\{\\}\\<\\/style\\>\\<b\\>');
+    expect(container.querySelectorAll('style')).toHaveLength(1);
+  });
+
+  it('gives a fixture in alarm a heavy dashed outline', () => {
+    const { container } = render(
+      <Schematic markup={MARKUP} fixtures={{ helm: 'alarm' }} />,
+    );
+    const css = container.querySelector('style')?.textContent ?? '';
+    expect(css).toContain('stroke-width:0.12;stroke-dasharray:0.3 0.15');
+  });
+
+  it('skips a state it does not know and renders no style for none', () => {
+    const { container } = render(
+      <Schematic markup={MARKUP} rooms={{ bridge: 'flooded' as never }} />,
+    );
+    expect(container.querySelector('style')).toBeNull();
+  });
+
+  it('renders no overlay without children', () => {
+    const { container } = render(<Schematic markup={MARKUP} />);
+    expect(container.querySelector('.meridian-schematic__overlay')).toBeNull();
+  });
+
+  it('renders children in an accessible overlay on the markup viewBox', () => {
+    render(
+      <Schematic markup={MARKUP} label="Ship hotspots">
+        <a href="#bridge" aria-label="Bridge">
+          <circle data-hotspot="bridge" r="1" />
+        </a>
+      </Schematic>,
+    );
+    const overlay = screen.getByRole('group', { name: 'Ship hotspots' });
+    expect(overlay.tagName.toLowerCase()).toBe('svg');
+    expect(overlay.getAttribute('viewBox')).toBe('-2 0 76 18');
+    expect(overlay.getAttribute('aria-hidden')).toBeNull();
+    expect(screen.getByLabelText('Bridge').getAttribute('href')).toBe(
+      '#bridge',
+    );
+  });
+
+  it('lets a prop override the overlay viewBox', () => {
+    const { container } = render(
+      <Schematic markup={MARKUP} viewBox="0 0 10 10" label="Ship">
+        <g />
+      </Schematic>,
+    );
+    expect(
+      container
+        .querySelector('.meridian-schematic__overlay')
+        ?.getAttribute('viewBox'),
+    ).toBe('0 0 10 10');
+  });
+
+  it('passes one click to the app, which delegates on the target', () => {
+    const onClick = vi.fn();
+    const { container } = render(
+      <Schematic markup={MARKUP} onClick={onClick} />,
+    );
+    (container.querySelector('[data-room="bridge"]') as Element).dispatchEvent(
+      new MouseEvent('click', { bubbles: true }),
+    );
+    expect(onClick).toHaveBeenCalledTimes(1);
+    const target = onClick.mock.calls[0]?.[0].target as Element;
+    expect(target.getAttribute('data-room')).toBe('bridge');
+  });
+
+  it('scopes the selectors by the scope prop', () => {
+    const { container } = render(
+      <Schematic
+        markup={MARKUP}
+        scope="crop"
+        rooms={{ bridge: 'unpowered' }}
+      />,
+    );
+    expect(container.firstElementChild?.getAttribute('data-schematic')).toBe(
+      'crop',
+    );
+    expect(container.querySelector('style')?.textContent).toContain(
+      '[data-schematic="crop"]',
+    );
+  });
+});
+
+describe('Schematic hazard patterns', () => {
+  it('gives two schematics distinct pattern ids that their rules reference', () => {
+    const { container } = render(
+      <>
+        <Schematic markup={MARKUP} scope="bay" doors={{ 'a-b': 'closed' }} />
+        <Schematic markup={MARKUP} scope="crop" doors={{ 'a-b': 'closed' }} />
+      </>,
+    );
+    const ids = [...container.querySelectorAll('pattern')].map(
+      (pattern) => pattern.id,
+    );
+    expect(ids).toEqual(['meridian-hazard-bay', 'meridian-hazard-crop']);
+    const styles = [...container.querySelectorAll('style')].map(
+      (style) => style.textContent ?? '',
+    );
+    expect(styles[0]).toContain('url(#meridian-hazard-bay)');
+    expect(styles[1]).toContain('url(#meridian-hazard-crop)');
+  });
+
+  it('renders no pattern when no door is closed', () => {
+    const { container } = render(
+      <Schematic markup={MARKUP} doors={{ 'a-b': 'open' }} />,
+    );
+    expect(container.querySelector('pattern')).toBeNull();
+  });
+});
+
+describe('HullCrop', () => {
+  it('sets the view-transition-name and sizes the stage to the crop', () => {
+    const { container } = render(
+      <HullCrop
+        full={[-2, 0, 76, 18]}
+        crop={[0, 4, 19, 9]}
+        transitionName="hull-engineering"
+      >
+        <i />
+      </HullCrop>,
+    );
+    const crop = container.firstElementChild as HTMLElement;
+    expect(crop.className).toBe('meridian-hull-crop');
+    expect(crop.style.getPropertyValue('view-transition-name')).toBe(
+      'hull-engineering',
+    );
+    const stage = crop.firstElementChild as HTMLElement;
+    expect(stage.style.width).toBe('400%');
+    expect(stage.style.insetInlineStart).toBe(`${(-2 / 19) * 100}%`);
+    expect(stage.style.insetBlockStart).toBe(`${(-4 / 9) * 100}%`);
+  });
+});
+
+describe('HullCrop without a transition name', () => {
+  it('sets no view-transition-name', () => {
+    const { container } = render(
+      <HullCrop full={[0, 0, 10, 10]} crop={[0, 0, 5, 5]} />,
+    );
+    expect(
+      (container.firstElementChild as HTMLElement).style.getPropertyValue(
+        'view-transition-name',
+      ),
+    ).toBe('');
+  });
+});
+
+describe('Switch', () => {
+  it('renders a checkbox with the switch role, name and value', () => {
+    render(
+      <Switch
+        name="reactor"
+        value="on"
+        label="Reactor"
+        onWord="charged"
+        offWord="idle"
+        defaultChecked
+      />,
+    );
+    const input = screen.getByRole('switch', { name: /Reactor/ });
+    expect(input.getAttribute('type')).toBe('checkbox');
+    expect(input.getAttribute('name')).toBe('reactor');
+    expect(input.getAttribute('value')).toBe('on');
+    expect((input as HTMLInputElement).checked).toBe(true);
+  });
+
+  it('takes both state words from props and the rocker is aria-hidden', () => {
+    const { container } = render(
+      <Switch name="n" value="v" label="L" onWord="spooling" offWord="idle" />,
+    );
+    expect(
+      container.querySelector('.meridian-switch__word--on')?.textContent,
+    ).toBe('spooling');
+    expect(
+      container.querySelector('.meridian-switch__word--off')?.textContent,
+    ).toBe('idle');
+    expect(
+      container
+        .querySelector('.meridian-switch__rocker')
+        ?.getAttribute('aria-hidden'),
+    ).toBe('true');
+  });
+
+  it('submits in a form: an unchecked switch sends nothing', () => {
+    const { container } = render(
+      <form>
+        <Switch
+          name="a"
+          value="1"
+          label="A"
+          onWord="on"
+          offWord="off"
+          defaultChecked
+        />
+        <Switch name="b" value="2" label="B" onWord="on" offWord="off" />
+      </form>,
+    );
+    const data = new FormData(
+      container.querySelector('form') as HTMLFormElement,
+    );
+    expect([...data.entries()]).toEqual([['a', '1']]);
+  });
+});
+
+describe('StepList', () => {
+  const steps = [
+    { id: 'check', label: 'Check' },
+    { id: 'build', label: 'Build' },
+    { id: 'launch', label: 'Launch' },
+  ];
+
+  it('renders an ordered list and marks the current step', () => {
+    render(<StepList steps={steps} current="build" />);
+    const list = screen.getByRole('list');
+    expect(list.tagName).toBe('OL');
+    const items = screen.getAllByRole('listitem');
+    expect(items.map((item) => item.getAttribute('aria-current'))).toEqual([
+      null,
+      'step',
+      null,
+    ]);
+    expect(items.map((item) => item.className)).toEqual([
+      'meridian-steps__item meridian-steps__item--done',
+      'meridian-steps__item meridian-steps__item--current',
+      'meridian-steps__item meridian-steps__item--todo',
+    ]);
+  });
+
+  it('marks no step when current names none', () => {
+    render(<StepList steps={steps} />);
+    expect(
+      screen
+        .getAllByRole('listitem')
+        .every((item) => item.getAttribute('aria-current') === null),
+    ).toBe(true);
   });
 });
