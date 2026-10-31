@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { SEED } from '@nexusdi/meridian/scenes/front-page';
 import { describe, expect, it } from 'vitest';
 
-import { DRILLS, fixtureOf, zeroMs } from './scene-fixtures.mjs';
+import { DRILLS, fixtureOf, modulesOf, zeroMs } from './scene-fixtures.mjs';
 
 const dir = join(
   import.meta.dirname,
@@ -53,6 +54,21 @@ describe('the scene fixtures', () => {
       const again = JSON.parse(JSON.stringify(await fixtureOf(drill)));
       expect(again).toEqual(read(drill.id));
     }
+  });
+
+  it('lists the modules of the seed with the tokens each exports', () => {
+    const modules = modulesOf(SEED);
+    expect(modules.map((each) => each.name)).toEqual([
+      'Meridian',
+      'Engineering',
+      'Comms',
+      'Tactical',
+      'BridgeApi',
+    ]);
+    expect(modules.find((each) => each.name === 'Tactical')?.exports).toEqual([
+      'NavCharts',
+      'SurveyDrone',
+    ]);
   });
 
   it('holds no time in any trace event', () => {

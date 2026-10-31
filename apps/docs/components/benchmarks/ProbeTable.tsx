@@ -10,12 +10,22 @@ import {
 } from './format';
 import { Frame } from './Frame';
 
-/** `probes.json`: where each library reports each wiring mistake, in its documented variant. */
-export function ProbeTable({ library }: { library?: LibraryId }) {
+/**
+ * `probes.json`: where each library reports each wiring mistake, in its
+ * documented variant. `library` keeps one library beside NexusDI, and `probes`
+ * limits the rows to the probes it names, in the order it names them.
+ */
+export function ProbeTable({
+  library,
+  probes: only,
+}: {
+  library?: LibraryId;
+  probes?: readonly Probe[];
+}) {
   const columns = libraryEntries(data).filter(
     ([id]) => library === undefined || id === library || id === 'nexusdi',
   );
-  const probes = Object.keys(PROBE_LABELS) as Probe[];
+  const probes = only ?? (Object.keys(PROBE_LABELS) as Probe[]);
   return (
     <Frame label="Wiring-mistake probes">
       <table className="nexus-bench__table">

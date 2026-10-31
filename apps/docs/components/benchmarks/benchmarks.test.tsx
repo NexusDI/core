@@ -178,6 +178,17 @@ describe('ProbeTable', () => {
     expect(headers).toEqual(['Mistake', 'NexusDI', 'tsyringe']);
     expect(headers).not.toContain('needle-di');
   });
+
+  it('shows only the probes it is given, in the order given', () => {
+    render(<ProbeTable probes={['cycle', 'missing-provider']} />);
+    const rows = screen
+      .getAllByRole('rowheader', { hidden: true })
+      .map((header) => header.textContent);
+    expect(rows).toEqual([
+      'Two providers depend on each other',
+      'A provider is never registered',
+    ]);
+  });
 });
 
 describe('MeasuredWith', () => {
