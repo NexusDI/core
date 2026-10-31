@@ -65,3 +65,7 @@ examples/bridge-api/worker-configuration.d.ts
 # `docs:scene-fixtures` writes the front page's fixtures here, and
 # `apps/docs/.gitignore` keeps them out of git.
 apps/docs/components/front-page/fixtures
+# `ship_svg.py --cutaway-layers` writes the lights one entry to a line, and
+# check-schematic compares the file with a fresh run, so a format pass would
+# fail the next check.
+apps/docs/components/ship-art/cutaway/meridian-cutaway-lights.json
