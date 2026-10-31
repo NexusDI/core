@@ -524,7 +524,7 @@ with `useBackBuffer`. The light texture stays 8-bit, since a float texture is 8-
 software GL and the pools would clip. A powered room keeps an ambient of 0.3, an unpowered
 one 0.15 and an alarmed one 0.1. A lamp sprite shows at 0.45 of its room's level and a glow
 sprite (a light that names a fixture) at 0.3 of its fixture's, both reaching the radius of
-the light in the geometry, so the brightest pool of a powered room stays under the clip. An
+the light in the geometry, so the brightest pool of a powered room stays under the clip. A fixture that stands by while its section starts glows at 0.5 of its full level. An
 alarmed room keeps 10% of its lamps. Its alarm light peaks at 0.85 and pulses down to 0.6 of
 that at 1 Hz, and the alarm sprite draws again in the additive housing pass at 15% of its
 level. A housing glows at 75% of its level, and a long strip (wider than 5 m) at 45%. The lights

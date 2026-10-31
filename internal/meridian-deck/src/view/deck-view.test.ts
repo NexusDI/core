@@ -28,6 +28,8 @@ function fakeCanvas() {
   };
 }
 
+const compositorFrames = new Set<() => void>();
+
 function setup(options: { slowStart?: boolean } = {}) {
   const renderer = {} as WebGLRenderer;
   let release!: () => void;
@@ -42,7 +44,12 @@ function setup(options: { slowStart?: boolean } = {}) {
   const compositor: IDeckCompositor = {
     mount: vi.fn(() => Promise.resolve()),
     render: vi.fn(),
-    onFrame: vi.fn(() => () => {}),
+    onFrame: vi.fn((listener: () => void) => {
+      compositorFrames.add(listener);
+      return () => {
+        compositorFrames.delete(listener);
+      };
+    }),
     unmount: vi.fn(),
   };
   const view = new DeckViewController(host, compositor, OPTIONS);
@@ -119,13 +126,24 @@ describe('DeckViewController', () => {
     expect(compositor.render).toHaveBeenCalledTimes(2);
   });
 
-  it('hands onFrame to the compositor and returns its way to stop', () => {
+  it('tells a frame listener of every rendered frame, across a detach and an attach, until it stops', async () => {
+    compositorFrames.clear();
     const { view, compositor } = setup();
-    const stop = vi.fn();
-    vi.mocked(compositor.onFrame).mockReturnValueOnce(stop);
-    const listener = vi.fn();
-    expect(view.onFrame(listener)).toBe(stop);
-    expect(compositor.onFrame).toHaveBeenCalledWith(listener);
+    vi.mocked(compositor.render).mockImplementation(() => {
+      for (const listener of [...compositorFrames]) listener();
+    });
+    const heard = vi.fn();
+    const stop = view.onFrame(heard);
+    const { canvas } = fakeCanvas();
+    // Registered before attach, so it hears the frame that attach draws.
+    await view.attach(canvas);
+    expect(heard).toHaveBeenCalledTimes(1);
+    view.detach();
+    await view.attach(canvas);
+    expect(heard).toHaveBeenCalledTimes(2);
+    stop();
+    await view.attach(canvas);
+    expect(heard).toHaveBeenCalledTimes(2);
   });
 
   it('frees the layers when a mount fails, and rejects with its error', async () => {

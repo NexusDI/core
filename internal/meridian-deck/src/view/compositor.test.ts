@@ -80,8 +80,14 @@ describe('LayerCompositor', () => {
     stop();
     compositor.render();
     expect(heard).toHaveBeenCalledOnce();
-    compositor.unmount();
+    // A listener registered before unmount does not hear a later mount.
     compositor.onFrame(heard);
+    compositor.unmount();
+    await compositor.mount(
+      drawing,
+      OPTIONS.scene,
+      new AbortController().signal,
+    );
     compositor.render();
     expect(heard).toHaveBeenCalledOnce();
   });

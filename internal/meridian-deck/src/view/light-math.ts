@@ -27,7 +27,7 @@ export const ALARM_LAMP = 0.1;
 export const LAMP_GAIN = 0.45;
 /** A sprite of a light that names a fixture (a glow) shows at this share of its level. */
 export const GLOW_GAIN = 0.3;
-/** The alarm sprite's peak level. It stays under 1, so the second sprite never shows. */
+/** The alarm sprite's peak level, under 1 so that one sprite carries it. */
 export const ALARM_PEAK = 0.85;
 /** The alarm sprite also draws in the emissive pass at this share of its level. */
 export const ALARM_GLOW = 0.15;
