@@ -86,10 +86,10 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
   --meridian-focus: var(--meridian-palette-dark-action);
   --meridian-button-primary-border: transparent;
   position: relative;
-  background: var(--meridian-space);
+  background: var(--meridian-screen);
   color: var(--meridian-text);
   /* The ground reaches both edges of the window whatever the article's width. */
-  box-shadow: 0 0 0 100vmax var(--meridian-space);
+  box-shadow: 0 0 0 100vmax var(--meridian-screen);
   clip-path: inset(0 -100vmax);
 }
 
