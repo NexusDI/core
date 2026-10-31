@@ -118,10 +118,9 @@ export const CONDENSED_FONTS = [500, 600].map((weight) =>
  * is the transfer size. `tools/ship-art.mjs` writes them, and each ceiling
  * sits at about 1.5 times the measured file. Measured on 2026-10-31, AVIF then
  * WebP: hero 1024 13,074 and 20,156; hero 1536 20,912 and 34,736; hero phone
- * crop 9,428 and 14,672; cutaway 1024 10,239 and 11,056, 1536 15,805 and 16,204,
- * 2048 21,616 and 24,006; side 1024 7,170 and 10,438, 1536 11,472 and 16,786,
- * 2048 15,860 and 23,668; unlit cutaway 1024 7,609 and 7,188, 1536 12,069 and
- * 11,436, 2048 17,105 and 16,596 (the rows keep the ceilings of site UX 12.2:
+ * crop 9,428 and 14,672; side 1024 7,170 and 10,438, 1536 11,472 and 16,786,
+ * 2048 15,860 and 23,668; unlit cutaway 1024 7,546 and 7,106, 1536 11,877 and
+ * 11,214, 2048 16,190 and 16,406 (the rows keep the ceilings of site UX 12.2:
  * AVIF 15, 23 and 30 kB, WebP at 1.5 times).
  */
 export const ART_BUDGET = {
@@ -131,12 +130,6 @@ export const ART_BUDGET = {
   'hero/meridian-hero-1536.webp': 52_100,
   'hero/meridian-hero-phone-720.avif': 14_200,
   'hero/meridian-hero-phone-720.webp': 22_000,
-  'cutaway/meridian-cutaway-1024.avif': 13_800,
-  'cutaway/meridian-cutaway-1024.webp': 14_200,
-  'cutaway/meridian-cutaway-1536.avif': 21_000,
-  'cutaway/meridian-cutaway-1536.webp': 21_500,
-  'cutaway/meridian-cutaway-2048.avif': 28_500,
-  'cutaway/meridian-cutaway-2048.webp': 29_800,
   'cutaway-unlit/meridian-cutaway-unlit-1024.avif': 15_000,
   'cutaway-unlit/meridian-cutaway-unlit-1024.webp': 22_500,
   'cutaway-unlit/meridian-cutaway-unlit-1536.avif': 23_000,

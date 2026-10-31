@@ -1,11 +1,5 @@
 import type { SchematicBase } from '@nexusdi/meridian-ui';
 
-import cutaway1024Avif from '../ship-art/cutaway/meridian-cutaway-1024.avif';
-import cutaway1024Webp from '../ship-art/cutaway/meridian-cutaway-1024.webp';
-import cutaway1536Avif from '../ship-art/cutaway/meridian-cutaway-1536.avif';
-import cutaway1536Webp from '../ship-art/cutaway/meridian-cutaway-1536.webp';
-import cutaway2048Avif from '../ship-art/cutaway/meridian-cutaway-2048.avif';
-import cutaway2048Webp from '../ship-art/cutaway/meridian-cutaway-2048.webp';
 import unlit1024Avif from '../ship-art/cutaway-unlit/meridian-cutaway-unlit-1024.avif';
 import unlit1024Webp from '../ship-art/cutaway-unlit/meridian-cutaway-unlit-1024.webp';
 import unlit1536Avif from '../ship-art/cutaway-unlit/meridian-cutaway-unlit-1536.avif';
@@ -22,9 +16,9 @@ import side2048Webp from '../ship-art/side/meridian-side-2048.webp';
 /**
  * The painted views as `Schematic` and the strip take them (design system
  * 8.1 and 8.3). Next reads no size from an AVIF file, so each set takes its
- * width and height from the WebP file of the same name. The cutaway's sources
- * are one set that the bay and the ship systems strip share, so the browser
- * loads each file once whichever of them asks first.
+ * width and height from the WebP file of the same name. The unlit cutaway's
+ * sources are one set that the bay and the ship systems crops share, so the
+ * browser loads each file once whichever of them asks first (TL30).
  */
 
 const set = (files: readonly { src: string; width: number }[]): string =>
@@ -46,10 +40,6 @@ const sourcesOf = (
   { type: 'image/webp', srcSet: set(webp) },
 ];
 
-const cutawaySources = sourcesOf(
-  [cutaway1024Avif, cutaway1536Avif, cutaway2048Avif],
-  [cutaway1024Webp, cutaway1536Webp, cutaway2048Webp],
-);
 const unlitSources = sourcesOf(
   [unlit1024Avif, unlit1536Avif, unlit2048Avif],
   [unlit1024Webp, unlit1536Webp, unlit2048Webp],
@@ -74,10 +64,6 @@ const baseOf = (
   sizes,
   loading: 'lazy',
 });
-
-/** The painted cutaway for a `Schematic`, with the `sizes` of where it is shown. */
-export const cutawayBase = (sizes: string): SchematicBase =>
-  baseOf(cutaway2048Webp, cutawaySources, sizes);
 
 /**
  * The unlit cutaway of the pre-flight bay (design system 8.1, OR5): the base

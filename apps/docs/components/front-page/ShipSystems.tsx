@@ -41,7 +41,7 @@ function cropOf(
  * hull, and under it one crop per feature, each a link to the concept page
  * of its feature (tech lead TL9). A leader line runs from the part of the
  * hull where the feature lives to its crop. Each crop is a `HullCrop` around
- * the painted cutaway with the seed lit, at the side view's scale. A placard
+ * the unlit cutaway with the seed tints (TL25), at the side view's scale. A placard
  * names the module that holds the feature and its exports, which
  * `scene-fixtures.mjs` reads from `inspect()` of the seed. It opens on hover
  * and focus and sits in the DOM at all times, so a screen reader reads it as

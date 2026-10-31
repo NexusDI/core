@@ -92,10 +92,7 @@ export function Preflight({ children }: { children: ReactNode }) {
       <div className="nexus-bay__inner">
         <div className="nexus-bay__head">{children}</div>
         <div className="nexus-bay__ship">
-          <Cutaway
-            unlit
-            sizes="(min-width: 1440px) 1344px, calc(100vw - 2rem)"
-          />
+          <Cutaway sizes="(min-width: 1440px) 1344px, calc(100vw - 2rem)" />
         </div>
         <div className="nexus-bay__terminal">
           <Terminal title="preflight.ts" lines={checkLines()} states={STATES} />

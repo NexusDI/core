@@ -49,7 +49,7 @@ describe('the ship art sidecars (design system 8.3)', () => {
   });
 
   it('records the camera of the side views and the geometry they paint', () => {
-    for (const view of ['cutaway', 'cutaway-unlit', 'side']) {
+    for (const view of ['cutaway-unlit', 'side']) {
       expect(read(view)).toMatchObject({
         view,
         size: { width: 2048, height: 512 },
@@ -67,7 +67,7 @@ describe('the ship art sidecars (design system 8.3)', () => {
     expect(hero.geometry).toBeUndefined();
   });
 
-  it.each(['cutaway', 'cutaway-unlit', 'side'])(
+  it.each(['cutaway-unlit', 'side'])(
     'the %s sidecar carries the hash of the geometry it was painted from',
     (view) => {
       expect(
@@ -108,7 +108,7 @@ describe('the registration of the frame on the art', () => {
     ] as const;
   };
 
-  it.each(['cutaway', 'cutaway-unlit', 'side'])(
+  it.each(['cutaway-unlit', 'side'])(
     'puts the origin of the %s sidecar where x = 0 and z = 0 project',
     (view) => {
       const [u, v] = pixelOf(view, 0, 0);
@@ -137,6 +137,29 @@ describe('the registration of the frame on the art', () => {
   });
 });
 
+describe('the unlit cutaway outside the craft', () => {
+  it('holds nothing but the ground above the hull and in the corners', async () => {
+    const baked = await bake('cutaway-unlit');
+    const stray = (x: number, y: number) => {
+      const at = (y * baked.width + x) * 3;
+      return (
+        baked.data[at] !== SCREEN[0] ||
+        baked.data[at + 1] !== SCREEN[1] ||
+        baked.data[at + 2] !== SCREEN[2]
+      );
+    };
+    let found = 0;
+    // The hull's highest point is row 107 of the frame, and the nozzle ends before column 2000.
+    for (let y = 0; y < 90; y += 1) {
+      for (let x = 0; x < baked.width; x += 1) if (stray(x, y)) found += 1;
+    }
+    for (let y = 0; y < baked.height; y += 1) {
+      for (let x = 2010; x < baked.width; x += 1) if (stray(x, y)) found += 1;
+    }
+    expect(found).toBe(0);
+  }, 60_000);
+});
+
 describe('the painted pipes (tech lead TL14)', () => {
   const W = 2048;
   const H = 512;
@@ -162,14 +185,12 @@ describe('the painted pipes (tech lead TL14)', () => {
     return { inBand, found };
   }
 
-  it('finds painted pipes in the master, so the count below can fail', async () => {
-    const { data } = await sharp(masterOf('cutaway'))
-      .removeAlpha()
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-    const { found } = await hued(data);
-    expect(found).toBeGreaterThan(10_000);
-  }, 60_000);
+  it('finds a pipe hue in the yellow, green and cyan of the painted pipes, so the count below can fail', () => {
+    expect(isPipeHue(224, 168, 0)).toBe(true);
+    expect(isPipeHue(40, 200, 90)).toBe(true);
+    expect(isPipeHue(40, 190, 210)).toBe(true);
+    expect(isPipeHue(120, 120, 124)).toBe(false);
+  });
 
   // The test reads the bake. A lossy codec moves
   // the ground colour (saturation 0.48) across 0.5. The pipe mask is 9 pixels
