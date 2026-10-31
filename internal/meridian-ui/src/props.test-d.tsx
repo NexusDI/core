@@ -57,15 +57,33 @@ describe('component props', () => {
     >();
   });
 
-  it('requires an id and a disabled button for a reason', () => {
+  it('takes a reason with a computed disabled and an id, and refuses a bare disabled', () => {
     expectTypeOf<{
       reason: string;
       id: string;
-      disabled: true;
+      disabled: boolean;
     }>().toExtend<ComponentProps<typeof Button>>();
     expectTypeOf<{ reason: string }>().not.toExtend<
       ComponentProps<typeof Button>
     >();
+    expectTypeOf<{ disabled: true }>().not.toExtend<
+      ComponentProps<typeof Button>
+    >();
+    expectTypeOf<{ disabled: false }>().toExtend<
+      ComponentProps<typeof Button>
+    >();
+  });
+
+  it('needs an id on the dialog for its labels', () => {
+    expectTypeOf<{
+      variant: 'dialog';
+      message: string;
+    }>().not.toExtend<ComponentProps<typeof Alert>>();
+    expectTypeOf<{
+      variant: 'dialog';
+      id: string;
+      message: string;
+    }>().toExtend<ComponentProps<typeof Alert>>();
   });
 
   it('limits an alert to a banner or a dialog', () => {
