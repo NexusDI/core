@@ -16,16 +16,39 @@ export class LayerCompositor implements IDeckCompositor {
 
   constructor(private readonly layers: readonly IDeckLayer[]) {}
 
-  async mount(renderer: WebGLRenderer, scene: DeckScene): Promise<void> {
+  /**
+   * Mounts each layer in turn. When `signal` aborts, the layer that was still
+   * loading unmounts as it finishes (unless a newer mount has the stage), and
+   * the mount rejects.
+   */
+  async mount(
+    renderer: WebGLRenderer,
+    scene: DeckScene,
+    signal: AbortSignal,
+  ): Promise<void> {
     this.unmount();
     this.renderer = renderer;
     const stage = new Container();
     this.stage = stage;
     for (const layer of this.layers) {
+      signal.throwIfAborted();
       const slot = new Container();
       stage.addChild(slot);
       this.mounted.push(layer);
-      await layer.mount({ renderer, slot, scene, render: () => this.render() });
+      try {
+        await layer.mount({
+          renderer,
+          slot,
+          scene,
+          signal,
+          render: () => this.render(),
+        });
+      } finally {
+        // A layer that finished after the abort still holds what it built. When
+        // no newer mount owns the stage, unmounting it frees that.
+        if (signal.aborted && this.stage === undefined) layer.unmount();
+      }
+      signal.throwIfAborted();
     }
   }
 

@@ -5,42 +5,50 @@ import 'pixi.js/filters';
 
 import type { FrameSize, IPixiHost } from './contracts.js';
 
-/** Holds the renderer between `start()` and `stop()`. */
+/** Holds the renderer of one canvas between `start()` and `release()`. */
 class PixiHost implements IPixiHost, Disposable {
-  private current: WebGLRenderer | undefined;
+  private renderer: WebGLRenderer | undefined;
+  private canvas: HTMLCanvasElement | undefined;
+  private starting: Promise<WebGLRenderer> | undefined;
 
-  async start(
-    canvas: HTMLCanvasElement,
-    size: FrameSize,
-  ): Promise<WebGLRenderer> {
-    this.stop();
-    const renderer = new WebGLRenderer();
-    this.current = renderer;
-    await renderer.init({
-      canvas,
-      width: size.width,
-      height: size.height,
-      resolution: 1,
-      autoDensity: false,
-      antialias: false,
-      backgroundAlpha: 1,
-      background: 0x000000,
-      manageImports: false,
-    });
-    if (this.current !== renderer) {
-      renderer.destroy();
-      throw new Error('The deck view was detached before it started.');
+  start(canvas: HTMLCanvasElement, size: FrameSize): Promise<WebGLRenderer> {
+    if (this.canvas === canvas && this.starting !== undefined) {
+      return this.starting;
     }
-    return renderer;
+    this.release();
+    const renderer = new WebGLRenderer();
+    this.renderer = renderer;
+    this.canvas = canvas;
+    const starting = renderer
+      .init({
+        canvas,
+        width: size.width,
+        height: size.height,
+        resolution: 1,
+        autoDensity: false,
+        antialias: false,
+        backgroundAlpha: 1,
+        background: 0x000000,
+        manageImports: false,
+      })
+      .then(() => renderer);
+    this.starting = starting;
+    // A failed start leaves nothing to reuse, so the next start tries again.
+    starting.catch(() => {
+      if (this.renderer === renderer) this.release();
+    });
+    return starting;
   }
 
-  stop(): void {
-    this.current?.destroy();
-    this.current = undefined;
+  release(): void {
+    this.renderer?.destroy();
+    this.renderer = undefined;
+    this.canvas = undefined;
+    this.starting = undefined;
   }
 
   [Symbol.dispose](): void {
-    this.stop();
+    this.release();
   }
 }
 

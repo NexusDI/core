@@ -18,8 +18,9 @@ async function decoded(image: DeckImage): Promise<DeckImage> {
 export class BaseLayer implements IDeckLayer {
   private sprite: Sprite | undefined;
 
-  async mount({ slot, scene }: LayerContext): Promise<void> {
+  async mount({ slot, scene, signal }: LayerContext): Promise<void> {
     const image = await decoded(scene.base);
+    signal.throwIfAborted();
     const texture = new Texture({
       source: new ImageSource({ resource: image, autoGenerateMipmaps: false }),
     });

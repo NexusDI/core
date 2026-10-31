@@ -1,18 +1,19 @@
 import type { DeckOptions } from '../state/contracts.js';
 import { DECK_OPTIONS } from '../state/tokens.js';
 
-import type {
-  DeckViewStatus,
-  IDeckCompositor,
-  IDeckView,
-  IPixiHost,
-} from './contracts.js';
+import type { IDeckCompositor, IPixiHost } from './contracts.js';
+import type { DeckViewStatus, IDeckView } from './deck-view-contract.js';
 import { DECK_COMPOSITOR, PIXI_APP } from './tokens.js';
 
-/** Resolves after the browser has drawn the frame that `render()` queued. */
+/**
+ * Resolves after the browser has painted the frame that `render()` queued: the
+ * first callback runs before that paint, and the second after it.
+ */
 function presented(): Promise<void> {
   return new Promise((resolve) => {
-    requestAnimationFrame(() => resolve());
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => resolve());
+    });
   });
 }
 
@@ -21,7 +22,7 @@ export class DeckViewController implements IDeckView, Disposable {
   static deps = [PIXI_APP, DECK_COMPOSITOR, DECK_OPTIONS] as const;
 
   private readonly listeners = new Set<(status: DeckViewStatus) => void>();
-  private generation = 0;
+  private abort: AbortController | undefined;
   private unlisten: (() => void) | undefined;
 
   constructor(
@@ -32,29 +33,33 @@ export class DeckViewController implements IDeckView, Disposable {
 
   async attach(canvas: HTMLCanvasElement): Promise<void> {
     this.detach();
-    const generation = this.generation;
+    const abort = new AbortController();
+    this.abort = abort;
+    const { signal } = abort;
     const { scene } = this.options;
     try {
+      // The host keeps the renderer of a canvas, so a second attach on it
+      // (the retry of TL25) starts from a live context.
       const renderer = await this.host.start(canvas, scene.legend.size);
-      this.assertCurrent(generation);
-      await this.compositor.mount(renderer, scene);
-      this.assertCurrent(generation);
+      signal.throwIfAborted();
+      await this.compositor.mount(renderer, scene, signal);
+      signal.throwIfAborted();
       this.listen(canvas);
       this.compositor.render();
       await presented();
-      this.assertCurrent(generation);
+      signal.throwIfAborted();
     } catch (error) {
-      if (generation === this.generation) this.detach();
+      if (!signal.aborted) this.detach();
       throw error;
     }
   }
 
   detach(): void {
-    this.generation += 1;
+    this.abort?.abort();
+    this.abort = undefined;
     this.unlisten?.();
     this.unlisten = undefined;
     this.compositor.unmount();
-    this.host.stop();
   }
 
   onStatus(listener: (status: DeckViewStatus) => void): () => void {
@@ -64,15 +69,10 @@ export class DeckViewController implements IDeckView, Disposable {
     };
   }
 
+  /** The host destroys the renderer in its own dispose. */
   [Symbol.dispose](): void {
     this.detach();
     this.listeners.clear();
-  }
-
-  private assertCurrent(generation: number): void {
-    if (generation !== this.generation) {
-      throw new Error('The deck view was detached before it presented.');
-    }
   }
 
   /** Pixi restores its own context. The view reports both turns and redraws on the way back. */

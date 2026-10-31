@@ -2,29 +2,15 @@ import type { Container, WebGLRenderer } from 'pixi.js';
 
 import type { DeckScene } from '../state/contracts.js';
 
-/** What the view reports about its context: the GPU took it away, or gave it back. */
-export type DeckViewStatus = 'lost' | 'restored';
-
 /**
- * The deck view as an app sees it. It holds no Pixi type, so the page's
- * controller types against this interface alone.
+ * The renderer on a canvas. Private to the view module. `start()` keeps the
+ * renderer it made for a canvas, so a second `start()` on that canvas returns
+ * it. A host destroys the renderer when its container disposes, and `release()`
+ * does so at once.
  */
-export interface IDeckView {
-  /**
-   * Draws the lit scene on `canvas`. It resolves on the first frame the canvas
-   * presents, and rejects when the renderer, a texture or a mask fails to load.
-   */
-  attach(canvas: HTMLCanvasElement): Promise<void>;
-  /** Stops drawing and frees the renderer. A later `attach()` starts afresh. */
-  detach(): void;
-  /** Calls `listener` when the context is lost and when it comes back. Returns the way to stop. */
-  onStatus(listener: (status: DeckViewStatus) => void): () => void;
-}
-
-/** The renderer on a canvas. Private to the view module. */
 export interface IPixiHost {
   start(canvas: HTMLCanvasElement, size: FrameSize): Promise<WebGLRenderer>;
-  stop(): void;
+  release(): void;
 }
 
 export interface FrameSize {
@@ -40,6 +26,8 @@ export interface LayerContext {
   readonly scene: DeckScene;
   /** Draws a frame now. */
   render(): void;
+  /** Aborts when the view detaches, so a layer that is still loading stops and frees what it made. */
+  readonly signal: AbortSignal;
 }
 
 /** One layer of the view. */
@@ -52,7 +40,11 @@ export interface IDeckLayer {
 
 /** Stacks the layers into one stage and draws it. */
 export interface IDeckCompositor {
-  mount(renderer: WebGLRenderer, scene: DeckScene): Promise<void>;
+  mount(
+    renderer: WebGLRenderer,
+    scene: DeckScene,
+    signal: AbortSignal,
+  ): Promise<void>;
   render(): void;
   unmount(): void;
 }

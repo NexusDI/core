@@ -1,11 +1,7 @@
 import { MultiToken, Token } from '@nexusdi/core';
 
-import type {
-  IDeckCompositor,
-  IDeckLayer,
-  IDeckView,
-  IPixiHost,
-} from './contracts.js';
+import type { IDeckCompositor, IDeckLayer, IPixiHost } from './contracts.js';
+import type { IDeckView } from './deck-view-contract.js';
 
 /** The one token `DeckView` exports. */
 export const DECK_VIEW = new Token<IDeckView>('DeckView');
