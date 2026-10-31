@@ -393,7 +393,7 @@ test.describe('the front page vitals', () => {
     expect(cls).toBeLessThan(0.01);
   });
 
-  test('on a phone the LCP element is the headline and nothing shifts', async ({
+  test('on a phone the LCP element is in the hero, never the bay, and nothing shifts', async ({
     page,
     browserName,
   }) => {
@@ -403,7 +403,8 @@ test.describe('the front page vitals', () => {
     );
     await page.setViewportSize({ width: 390, height: 844 });
     const { lcp, cls } = await vitals(page);
-    expect(lcp.startsWith('h1:')).toBe(true);
+    // The headline or the stacked hero art, whichever paints the larger area.
+    expect(lcp === 'img:hero-art' || lcp.startsWith('h1:')).toBe(true);
     expect(cls).toBeLessThan(0.01);
   });
 });
