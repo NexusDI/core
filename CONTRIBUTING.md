@@ -89,6 +89,7 @@ own):
 - **docs**: Changes to documentation and to `apps/docs`
 - **docs-e2e**: Changes to `apps/docs-e2e`
 - **meridian-ui**: Changes to `internal/meridian-ui`
+- **meridian-deck**: Changes to `internal/meridian-deck`
 - **meridian**: Changes to `examples/meridian`
 - **doc-examples**: Changes to `tools/doc-examples`
 - **bench-kit**: Changes to `tools/bench-kit`
