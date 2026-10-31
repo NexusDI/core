@@ -42,6 +42,7 @@
     "tools/**/*.mjs",
     "generated/*.json",
     "components/front-page/fixtures/*.json",
+    "components/ship-art/cutaway/*.json",
     "next-env.d.ts",
     ".next/types/**/*.ts",
     "mdx-components.js",
@@ -109,6 +110,9 @@
     },
     {
       "path": "../../libs/core"
+    },
+    {
+      "path": "../../internal/meridian-deck"
     },
     {
       "path": "../../internal/meridian-ui"

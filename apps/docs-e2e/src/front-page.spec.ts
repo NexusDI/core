@@ -268,6 +268,78 @@ test.describe('the bay without script or motion', () => {
   });
 });
 
+test.describe('the lit scene', () => {
+  const light = (page: Page) => page.locator('[data-light]');
+
+  test('with WebGL the deck view lights the stage and the tints drop away', async ({
+    page,
+    browserName,
+  }) => {
+    test.skip(
+      browserName !== 'chromium',
+      'The software GL of Chromium is the reference.',
+    );
+    await openBay(page);
+    await expect(light(page)).toHaveAttribute('data-light', 'on', {
+      timeout: 30_000,
+    });
+    await expect(page.locator('.meridian-schematic--lit')).toHaveCount(1);
+    await expect(page.locator('.nexus-bay__canvas')).toBeVisible();
+    // A fault still reads on the lit ship: the alarm outline and the banner stay.
+    await press(page, 'conduit-Tactical-Comms');
+    await expect(page.locator('.nexus-bay__alert')).toContainText(
+      'NEXUS_MISSING_PROVIDER',
+    );
+  });
+
+  test('without WebGL the page keeps the tints and every control works', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      const original = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (
+        this: HTMLCanvasElement,
+        kind: string,
+        ...rest: unknown[]
+      ) {
+        if (kind === 'webgl2' || kind === 'webgl') return null;
+        return (original as (...args: unknown[]) => unknown).call(
+          this,
+          kind,
+          ...rest,
+        );
+      } as typeof original;
+    });
+    await openBay(page);
+    await press(page, 'conduit-Tactical-Comms');
+    await expect(page.locator('.nexus-bay__alert')).toContainText(
+      'NEXUS_MISSING_PROVIDER',
+    );
+    await expect(light(page)).toHaveAttribute('data-light', 'off');
+    await expect(page.locator('.meridian-schematic--lit')).toHaveCount(0);
+    await expect(page.locator('.nexus-bay__canvas')).toHaveCSS('opacity', '0');
+  });
+
+  test('a reader who saves data keeps the tints', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'connection', {
+        value: { saveData: true },
+      });
+    });
+    await openBay(page);
+    await press(page, 'conduit-Tactical-Comms');
+    await expect(light(page)).toHaveAttribute('data-light', 'off');
+    await expect(page.locator('.meridian-schematic--lit')).toHaveCount(0);
+  });
+
+  test('a phone keeps the tints and loads no canvas', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openBay(page);
+    await expect(light(page)).toHaveAttribute('data-light', 'off');
+    await expect(page.locator('.nexus-bay__canvas')).toHaveCount(0);
+  });
+});
+
 test.describe('the front page vitals', () => {
   async function vitals(page: Page) {
     await page.addInitScript(() => {
@@ -395,6 +467,12 @@ test.describe('the bay baselines', () => {
             reducedMotion: 'reduce',
           });
           await openBay(page);
+          // The lit scene is part of the baseline where the viewport has one.
+          await expect(page.locator('[data-light]')).toHaveAttribute(
+            'data-light',
+            size.width >= 640 ? 'on' : 'off',
+            { timeout: 30_000 },
+          );
           await act(page);
           await page.evaluate(() => document.fonts.ready);
           // Put the bay just under the navbar, so the sticky alert band sits

@@ -1,14 +1,15 @@
 import type { SchematicBase } from '@nexusdi/meridian-ui';
 
-import { cutawayBase } from '../art';
+import { unlitCutawayBase } from '../art';
 
 /**
- * The one seam under the bay's stage. The painted, lit cutaway is the base
- * today. A later change swaps this function for an unlit base with a light
- * layer, and the controller, the overlay and the state tint layer stay as they
- * are: the stage reads its room, fixture and door state from the single table
- * `ShipView.light` (owner ruling OR5).
+ * The one seam under the bay's stage: the unlit cutaway (owner ruling OR5).
+ * Before the deck view presents its first frame, and wherever Pixi does not
+ * run, the Schematic's tints light it. Once the view presents, the canvas in
+ * the Schematic's layer slot carries the room light. Both read the single
+ * table `ShipView.light`, so a change of base touches neither the controller
+ * nor the overlay.
  */
 export function stageBase(sizes: string): SchematicBase {
-  return cutawayBase(sizes);
+  return unlitCutawayBase(sizes);
 }

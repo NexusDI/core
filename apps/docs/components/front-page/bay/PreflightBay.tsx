@@ -27,6 +27,7 @@ import {
   type LogLine,
 } from './terminal';
 import type * as Runtime from './run';
+import type { BayLight } from './light';
 
 /**
  * The bay controller (site UX spec 5.6, first chunk). It holds the state, the
@@ -49,6 +50,27 @@ console.log('pre-flight ok');
 `;
 
 const RUNTIME_MARGIN = '600px';
+
+/**
+ * Why the lit scene does not start, or null when it may (TL24): a reader who
+ * asked to save data, asked for reduced data, forces colours, or has no
+ * WebGL 2 loads nothing of it and keeps the tints.
+ */
+function litGate(): string | null {
+  const connection = (
+    navigator as Navigator & { connection?: { saveData?: boolean } }
+  ).connection;
+  if (connection?.saveData) return 'save-data';
+  if (window.matchMedia('(prefers-reduced-data: reduce)').matches)
+    return 'reduced-data';
+  if (window.matchMedia('(forced-colors: active)').matches)
+    return 'forced-colors';
+  const probe = document.createElement('canvas');
+  const gl = probe.getContext('webgl2');
+  if (!gl) return 'no-webgl2';
+  gl.getExtension('WEBGL_lose_context')?.loseContext();
+  return null;
+}
 
 export interface Initial {
   /** The codes that have a page under `/errors/`. */
@@ -87,8 +109,12 @@ interface Model {
   coarse: boolean;
 }
 
-const stampAll = (lines: readonly LogLine[], from: number): Stamped[] =>
-  lines.map((line, at) => ({ ...line, tick: from + at + 1 }));
+const stampAll = (
+  lines: readonly LogLine[],
+  from: number,
+  block: number,
+): Stamped[] =>
+  lines.map((line, at) => ({ ...line, tick: from + at + 1, block }));
 
 function initialModel(initial: Initial): Model {
   return {
@@ -101,7 +127,7 @@ function initialModel(initial: Initial): Model {
     launchedOnce: false,
     outcome: null,
     linked: null,
-    log: stampAll(initial.log, 0),
+    log: stampAll(initial.log, 0, 0),
     levels: initial.levels,
     currentLevel: undefined,
     exit: 0,
@@ -152,12 +178,16 @@ export default function PreflightBay({
     setModel(modelRef.current);
   }, []);
 
+  /** Adds lines to the terminal, in a new run unless `same` continues the last one. */
   const append = useCallback(
-    (lines: readonly LogLine[]) => {
+    (lines: readonly LogLine[], same = false) => {
       const log = modelRef.current.log;
-      const last = log[log.length - 1]?.tick ?? 0;
+      const last = log[log.length - 1];
+      const block = (last?.block ?? 0) + (same ? 0 : 1);
       patch({
-        log: [...log, ...stampAll(lines, last)].slice(-MAX_LINES),
+        log: [...log, ...stampAll(lines, last?.tick ?? 0, block)].slice(
+          -MAX_LINES,
+        ),
       });
     },
     [patch],
@@ -307,7 +337,7 @@ export default function PreflightBay({
       if (id !== runRef.current) return;
       autoplayRef.current = false;
       const lines = levelLines(events);
-      append(launchLines(outcome));
+      append(launchLines(outcome), true);
       patch({
         launch: outcome.ok ? 'launched' : 'failed',
         launchedOnce: true,
@@ -485,7 +515,6 @@ export default function PreflightBay({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const lightRef = useRef<BayLight | null>(null);
   const [lit, setLit] = useState(false);
-  const [lightMark, setLightMark] = useState<string | null>(null);
   const [lightPhase, setLightPhase] = useState<
     'off' | 'loading' | 'on' | 'failed'
   >('off');
@@ -504,20 +533,10 @@ export default function PreflightBay({
     let timer: ReturnType<typeof setTimeout> | undefined;
     let losses = 0;
     let unsubscribe: (() => void) | undefined;
-    const stage = () =>
-      root.querySelector<HTMLElement>('.meridian-schematic--painted');
-    // The class goes on in the frame itself, so the canvas shows and the tints
-    // drop away in one style write. The state follows so that React agrees.
     const show = () =>
       requestAnimationFrame(() => {
-        if (cancelled) return;
-        stage()?.classList.add('meridian-schematic--lit');
-        setLit(true);
+        if (!cancelled) setLit(true);
       });
-    const hide = () => {
-      stage()?.classList.remove('meridian-schematic--lit');
-      setLit(false);
-    };
     const start = async () => {
       setLightPhase('loading');
       try {
@@ -527,8 +546,7 @@ export default function PreflightBay({
         const canvas = canvasRef.current;
         if (!base || !canvas) throw new Error('The bay has no stage to light.');
         await base.decode();
-        const { bayLightMark, createLight } = await import('./light');
-        setLightMark(bayLightMark());
+        const { createLight } = await import('./light');
         if (cancelled) return;
         const light = await createLight({
           base,
@@ -544,7 +562,7 @@ export default function PreflightBay({
         unsubscribe = light.view.onStatus((status) => {
           if (status === 'lost') {
             losses += 1;
-            hide();
+            setLit(false);
             if (losses === 1) {
               timer = setTimeout(() => {
                 light.view
@@ -566,7 +584,7 @@ export default function PreflightBay({
         show();
       } catch {
         if (!cancelled) {
-          hide();
+          setLit(false);
           setLightPhase('failed');
         }
       }
@@ -625,7 +643,6 @@ export default function PreflightBay({
       data-runtime={runtimeMark ?? 'pending'}
       data-bay-mark={BAY_MARK}
       data-light={lightPhase}
-      data-light-mark={lightMark ?? undefined}
     >
       <BayView
         markup={markup}
@@ -666,7 +683,6 @@ export default function PreflightBay({
         width={{ wide: model.width, phone: model.width }}
         coarse={model.coarse}
         actions={actions}
-        errorPages={initial.errorPages}
         light={
           model.phone
             ? null

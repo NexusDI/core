@@ -23,6 +23,13 @@ vi.mock('../art', () => ({
     sources: [],
     sizes,
   }),
+  unlitCutawayBase: (sizes: string) => ({
+    src: '/art.webp',
+    width: 2048,
+    height: 512,
+    sources: [],
+    sizes,
+  }),
   sideBase: () => ({ src: '/art.webp', width: 2048, height: 512 }),
 }));
 

@@ -34,6 +34,8 @@ import { alarmedSections, type ShipView } from './ship-view';
 
 export interface Stamped extends LogLine {
   readonly tick: number;
+  /** The run the line belongs to. The terminal shows the newest run. */
+  readonly block: number;
 }
 
 export interface Actions extends PartHandlers {
@@ -77,8 +79,6 @@ export interface BayViewProps {
   showGraph: boolean;
   acknowledged: boolean;
   announce: string;
-  /** The codes that have a page. The terminal links these and shows any other as text. */
-  errorPages: readonly string[];
   /** The lit canvas of the wide stage, when the bay has one. */
   light?: { canvas: ReactNode; lit: boolean } | null;
   width: { wide: number; phone: number };
@@ -128,10 +128,7 @@ function arrowTabs<Id extends string>(
 
 const tick = (n: number): string => `t ${String(n).padStart(4, '0')}`;
 
-function terminalLines(
-  log: readonly Stamped[],
-  errorPages: readonly string[],
-): TerminalLine[] {
+function terminalLines(log: readonly Stamped[]): TerminalLine[] {
   const newest = log[log.length - 1]?.block;
   return log
     .filter((line) => line.block === newest)
@@ -142,11 +139,7 @@ function terminalLines(
         line.codes.map((code, at) => (
           <span key={code}>
             {at > 0 ? ' ' : null}
-            {errorPages.includes(code) ? (
-              <a href={`/errors/${code}/`}>{code}</a>
-            ) : (
-              <span>{code}</span>
-            )}
+            <a href={`/errors/${code}/`}>{code}</a>
           </span>
         ))
       ) : (
@@ -356,6 +349,7 @@ export function BayView(props: BayViewProps) {
             width={props.width}
             coarse={props.coarse}
             showGraph={props.showGraph}
+            light={props.light ?? null}
           />
         </div>
       </div>
@@ -454,15 +448,15 @@ export function BayView(props: BayViewProps) {
                   {props.checkWord}
                 </span>
               ) : null}
+              {props.caption ? (
+                <p className="nexus-bay__caption">{props.caption}</p>
+              ) : null}
             </div>
           ) : (
             <p className="nexus-bay__nojs">
               The pre-flight check runs in your browser with JavaScript.
             </p>
           )}
-          {props.caption ? (
-            <p className="nexus-bay__caption">{props.caption}</p>
-          ) : null}
         </div>
 
         <aside className="nexus-bay__side" aria-label="On the ship">

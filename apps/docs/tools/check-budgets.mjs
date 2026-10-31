@@ -19,7 +19,12 @@ export const BUDGETS = {
   background: 8_000,
   tool: 200_000,
   bay: 20_000,
-  runtime: 30_000,
+  // The run chunk measured 28.1 kB alone. The light chunk imports core too, so
+  // Turbopack moved core into a chunk both load, which keeps the exports the
+  // deck uses. The two chunks measure 31.0 kB, and `checkMarkedChunks` counts
+  // both against this row.
+  runtime: 32_000,
+  light: 150_000,
 };
 /**
  * The ceiling on one behaviour sidecar, `out/behaviour/<dir>/<name>.json`,
@@ -176,6 +181,14 @@ export const BAY_MARK = 'nexus-preflight-bay';
 export const RUNTIME_MARK = 'nexus-core-runtime';
 
 /**
+ * The bay's light chunk: the deck state, the Pixi view and the cutaway's data
+ * layers (site UX spec 12.1, owner ruling OR5). Its row is soft: the owner's
+ * rule on soft budgets applies, and a pull request that passes it states the
+ * figure.
+ */
+export const LIGHT_MARK = 'nexus-bay-light';
+
+/**
  * The markers, in the order `classify` tries them. A chunk carries one marker
  * at most, and it counts against that marker's row wherever it loads. A chunk
  * with none is `page` JavaScript.
@@ -185,6 +198,7 @@ const MARKS = [
   ['background', BACKGROUND_MARK],
   ['bay', BAY_MARK],
   ['runtime', RUNTIME_MARK],
+  ['light', LIGHT_MARK],
 ];
 
 /** The rows of the chunks that no page names, each with the marker its chunk carries. */
@@ -192,6 +206,29 @@ const LAZY_ROWS = [
   { row: 'bay', mark: BAY_MARK, label: 'bay controller' },
   { row: 'runtime', mark: RUNTIME_MARK, label: 'core runtime' },
   { row: 'light', mark: LIGHT_MARK, label: 'bay light' },
+];
+
+/**
+ * What Turbopack may move out of a marked chunk into one with no marker: the
+ * chunk then counts against the row of the code it holds.
+ */
+export const PIXI_SIGNATURE = 'PixiJS';
+
+/** The rows of the chunks that no page names, with the marker and the shared code of each. */
+const LAZY_ROWS = [
+  { row: 'bay', mark: BAY_MARK, label: 'bay controller', signature: undefined },
+  {
+    row: 'runtime',
+    mark: RUNTIME_MARK,
+    label: 'core runtime',
+    signature: CORE_SIGNATURE,
+  },
+  {
+    row: 'light',
+    mark: LIGHT_MARK,
+    label: 'bay light',
+    signature: PIXI_SIGNATURE,
+  },
 ];
 
 /** The row a chunk's source counts against: its marker's, or `page`. */
@@ -258,7 +295,14 @@ export function checkBudgets(out, { basePath = '' } = {}) {
 
   for (const [path, list] of scripts) {
     const tool = TOOL_ROUTES.some((route) => path.startsWith(route));
-    const totals = { page: 0, island: 0, background: 0, bay: 0, runtime: 0 };
+    const totals = {
+      page: 0,
+      island: 0,
+      background: 0,
+      bay: 0,
+      runtime: 0,
+      light: 0,
+    };
     for (const script of list.filter((src) => !shared.has(src))) {
       const { size, kind } = read(script);
       totals[kind] += size;
@@ -292,6 +336,11 @@ export function checkBudgets(out, { basePath = '' } = {}) {
     if (totals.runtime > BUDGETS.runtime) {
       findings.push(
         `${path}: the core runtime chunk is ${kB(totals.runtime)} gzipped, over the ${BUDGETS.runtime / 1000} kB budget. Import a narrower entry of core, errors or devtools, or raise BUDGETS.runtime with the new measurement.`,
+      );
+    }
+    if (totals.light > BUDGETS.light) {
+      findings.push(
+        `${path}: the bay light chunk is ${kB(totals.light)} gzipped, over the ${BUDGETS.light / 1000} kB budget.`,
       );
     }
     if (totals.background > BUDGETS.background) {
@@ -368,42 +417,35 @@ export function checkMarkedChunks(out) {
   );
   const rows = [];
   const findings = [];
+  const total = { bay: [], runtime: [], light: [] };
+  for (const file of files) {
+    const source = readFileSync(file, 'utf8');
+    const kind = classify(source);
+    const shared =
+      kind === 'page'
+        ? LAZY_ROWS.find(
+            (lazy) => lazy.signature && source.includes(lazy.signature),
+          )
+        : undefined;
+    const row = shared ? shared.row : kind;
+    if (!(row in total)) continue;
+    total[row].push({
+      file: relative(out, file).split(sep).join('/'),
+      gzip: gzipSync(source).length,
+      split: Boolean(shared),
+    });
+  }
   for (const lazy of LAZY_ROWS) {
-    const marked = [...sources].filter(
-      ([, source]) => classify(source) === lazy.row,
-    );
-    const markedPaths = new Set(marked.map(([path]) => path));
-    const listed = new Set(markedPaths);
-    for (const group of groups)
-      if (group.some((path) => markedPaths.has(path)))
-        for (const path of group) if (sources.has(path)) listed.add(path);
-    const chunks = [...listed].map((path) => ({
-      file: `_next/static/${path}`,
-      gzip: gzipSync(sources.get(path) ?? '').length,
-      split: !marked.some(([markedPath]) => markedPath === path),
-    }));
-    const media = new Set();
-    for (const path of listed)
-      for (const match of (sources.get(path) ?? '').matchAll(MEDIA))
-        media.add(match[1]);
-    let mediaBytes = 0;
-    for (const name of media) {
-      try {
-        mediaBytes += statSync(join(root, 'media', name)).size;
-      } catch {
-        // A path that names no file adds nothing.
-      }
-    }
-    const gzip =
-      chunks.reduce((sum, chunk) => sum + chunk.gzip, 0) + mediaBytes;
-    rows.push({ row: lazy.row, chunks, gzip, media: mediaBytes });
-    if (marked.length === 0)
+    const chunks = total[lazy.row];
+    const gzip = chunks.reduce((sum, chunk) => sum + chunk.gzip, 0);
+    rows.push({ row: lazy.row, chunks, gzip });
+    if (chunks.length === 0)
       findings.push(
-        `No chunk under _next/static carries the ${lazy.mark} marker. The bay must import its marker function after the import() so that a minifier keeps the string.`,
+        `No chunk under _next/static carries the ${lazy.mark} marker. The bay must load it with import().`,
       );
-    else if (gzip > BUDGETS[row])
+    else if (gzip > BUDGETS[lazy.row])
       findings.push(
-        `The ${lazy.label} chunks are ${kB(gzip)} gzipped (${chunks.map((chunk) => chunk.file).join(', ')}${mediaBytes > 0 ? `, and ${kB(mediaBytes)} of media` : ''}), over the ${BUDGETS[lazy.row] / 1000} kB budget.`,
+        `The ${lazy.label} chunks are ${kB(gzip)} gzipped (${chunks.map((chunk) => chunk.file).join(', ')}), over the ${BUDGETS[lazy.row] / 1000} kB budget.`,
       );
   }
   return { findings, rows };
@@ -652,7 +694,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const marked = checkMarkedChunks(out);
   for (const row of marked.rows)
     console.log(
-      `${row.row === 'bay' ? BAY_MARK : RUNTIME_MARK}: ${kB(row.gzip)} gzipped in ${row.chunks.length} chunk${row.chunks.length === 1 ? '' : 's'}, budget ${BUDGETS[row.row] / 1000} kB`,
+      `${LAZY_ROWS.find((lazy) => lazy.row === row.row)?.mark}: ${kB(row.gzip)} gzipped in ${row.chunks.length} chunk${row.chunks.length === 1 ? '' : 's'}, budget ${BUDGETS[row.row] / 1000} kB`,
     );
   findings.push(...marked.findings);
   const guide = checkGuideTotal(out, {

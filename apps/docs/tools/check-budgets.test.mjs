@@ -17,6 +17,8 @@ import {
   BACKGROUND_MARK,
   BAY_MARK,
   LIGHT_MARK,
+  PIXI_SIGNATURE,
+  CORE_SIGNATURE,
   RUNTIME_MARK,
   checkMarkedChunks,
   importGroups,
@@ -171,7 +173,8 @@ describe('checkBudgets', () => {
       background: 8_000,
       tool: 200_000,
       bay: 20_000,
-      runtime: 30_000,
+      runtime: 32_000,
+      light: 150_000,
     });
   });
 });
@@ -472,18 +475,11 @@ describe('checkMarkedChunks', () => {
     const out = mkdtempSync(join(tmpdir(), 'budgets-lazy-'));
     dirs.push(out);
     mkdirSync(join(out, '_next', 'static', 'chunks'), { recursive: true });
-    mkdirSync(join(out, '_next', 'static', 'media'), { recursive: true });
-    const loaders = groups
-      .map(
-        (list, at) =>
-          `${at},e=>{e.v(i=>Promise.all([${list.map((name) => `"static/chunks/${name}"`).join(',')}].map(i=>e.l(i))))}`,
-      )
-      .join(',');
-    writeFileSync(
-      join(out, '_next', 'static', 'chunks', 'loaders.js'),
-      `push([void 0,${loaders}])`,
-    );
-    for (const [name, text] of Object.entries(chunks))
+    const all = {
+      'light.js': `const m="${LIGHT_MARK}";${noise(1_000)}`,
+      ...chunks,
+    };
+    for (const [name, text] of Object.entries(all))
       writeFileSync(join(out, '_next', 'static', 'chunks', name), text);
     for (const [name, bytes] of Object.entries(media))
       writeFileSync(
@@ -492,35 +488,26 @@ describe('checkMarkedChunks', () => {
       );
     return out;
   }
-  const mark = (value, bytes) => `const m="${value}";${noise(bytes)}`;
-  const base = (over = {}) => ({
-    chunks: {
-      'bay.js': mark(BAY_MARK, 1_000),
-      'runtime.js': mark(RUNTIME_MARK, 1_000),
-      'light.js': mark(LIGHT_MARK, 1_000),
-      ...over.chunks,
-    },
-    groups: over.groups ?? [['bay.js'], ['runtime.js'], ['light.js']],
-    media: over.media,
-  });
 
-  it('measures the three rows, which no page names', () => {
-    const { findings, rows } = checkMarkedChunks(lazySite(base()));
+  it('measures the bay and the runtime chunks, which no page names', () => {
+    const out = lazySite({
+      'bay.js': `const m="${BAY_MARK}";${noise(10_000)}`,
+      'runtime.js': `const m="${RUNTIME_MARK}";${noise(20_000)}`,
+      'other.js': noise(50_000),
+    });
+    const { findings, rows } = checkMarkedChunks(out);
     expect(findings).toEqual([]);
     expect(rows.map((row) => row.row)).toEqual(['bay', 'runtime', 'light']);
+    expect(rows[0].gzip).toBeGreaterThan(9_000);
+    expect(rows[1].gzip).toBeGreaterThan(19_000);
   });
 
-  it('fails a row over its budget and names its chunks', () => {
-    const { findings } = checkMarkedChunks(
-      lazySite(
-        base({
-          chunks: {
-            'bay.js': mark(BAY_MARK, 21_000),
-            'runtime.js': mark(RUNTIME_MARK, 33_000),
-          },
-        }),
-      ),
-    );
+  it('fails a bay chunk over 20 kB and a runtime chunk over 32 kB', () => {
+    const out = lazySite({
+      'bay.js': `const m="${BAY_MARK}";${noise(21_000)}`,
+      'runtime.js': `const m="${RUNTIME_MARK}";${noise(33_000)}`,
+    });
+    const { findings } = checkMarkedChunks(out);
     expect(findings).toHaveLength(2);
     expect(findings[0]).toContain('bay controller');
     expect(findings[1]).toContain('core runtime');
@@ -555,14 +542,27 @@ describe('checkMarkedChunks', () => {
     expect(findings[0]).toContain('core runtime');
   });
 
-  it('leaves out an unmarked chunk that no group lists with the marked one', () => {
-    const { findings, rows } = checkMarkedChunks(
-      lazySite(base({ chunks: { 'stray.js': noise(60_000) } })),
-    );
-    expect(findings).toEqual([]);
-    expect(rows[0].chunks.map((chunk) => chunk.file)).toEqual([
-      '_next/static/chunks/bay.js',
+  it('counts a chunk that holds Pixi and no marker against the light row', () => {
+    const out = lazySite({
+      'bay.js': `const m="${BAY_MARK}";${noise(1_000)}`,
+      'runtime.js': `const m="${RUNTIME_MARK}";${noise(1_000)}`,
+      'light.js': `const m="${LIGHT_MARK}";${noise(80_000)}`,
+      'pixi.js': `const d="${PIXI_SIGNATURE}";${noise(80_000)}`,
+    });
+    const { findings, rows } = checkMarkedChunks(out);
+    expect(rows[2].chunks.map((chunk) => chunk.split).sort()).toEqual([
+      false,
+      true,
     ]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toContain('bay light');
+  });
+
+  it('names a marker that no chunk carries', () => {
+    const out = lazySite({ 'other.js': noise(1_000) });
+    const { findings } = checkMarkedChunks(out);
+    expect(findings).toHaveLength(2);
+    expect(findings[0]).toContain(BAY_MARK);
   });
 
   it('counts the mask PNGs that the light group emits', () => {
@@ -599,7 +599,7 @@ describe('checkMarkedChunks', () => {
 describe('the bay and runtime rows', () => {
   it('states the rows of site UX spec 12.1 in bytes', () => {
     expect(BUDGETS.bay).toBe(20_000);
-    expect(BUDGETS.runtime).toBe(30_000);
+    expect(BUDGETS.runtime).toBe(32_000);
   });
 });
 

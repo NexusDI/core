@@ -46,9 +46,20 @@ export interface StageProps {
   coarse: boolean;
   /** Dims the physical conduits while the overlay shows the graph. */
   showGraph: boolean;
+  /** The lit canvas of the wide stage and whether it has presented its first frame. */
+  light: { canvas: ReactNode; lit: boolean } | null;
 }
 
-const WIDE_SIZES = '(min-width: 1440px) 1344px, calc(100vw - 2rem)';
+/**
+ * The part of the cutaway the wide stage shows, in metres: the hull with a
+ * little margin, so the ship fills the frame. The picture draws at the ratio
+ * of the frame to this crop.
+ */
+const WIDE_CROP: readonly [number, number, number, number] = [
+  -1, 3.2, 72.5, 14.8,
+];
+
+const WIDE_SIZES = '(min-width: 1440px) 1536px, calc((100vw - 2rem) * 1.143)';
 
 const percent = (
   point: Point,
@@ -140,7 +151,9 @@ function Hull({
   props,
   ppm,
   keep,
+  light,
 }: {
+  light?: StageProps['light'];
   markup: string;
   scope: string;
   parts: readonly Part[];
@@ -154,6 +167,8 @@ function Hull({
       <Schematic
         markup={markup}
         base={stageBase(WIDE_SIZES)}
+        layer={light?.canvas}
+        lit={light?.lit}
         rooms={view.light.rooms}
         fixtures={view.light.fixtures}
         doors={view.light.doors}
@@ -201,14 +216,17 @@ export function Stage(props: StageProps) {
     <div className={className}>
       {wide ? (
         <div className="nexus-bay__wide">
-          <Hull
-            markup={markup}
-            scope="bay"
-            parts={PARTS_IN_HULL_ORDER}
-            props={props}
-            ppm={Math.min(props.width.wide, 1180) / FRAME[2]}
-            keep={() => true}
-          />
+          <HullCrop full={FRAME} crop={WIDE_CROP}>
+            <Hull
+              markup={markup}
+              scope="bay"
+              parts={PARTS_IN_HULL_ORDER}
+              props={props}
+              ppm={props.width.wide / WIDE_CROP[2]}
+              keep={() => true}
+              light={props.light}
+            />
+          </HullCrop>
         </div>
       ) : null}
       {phone ? (

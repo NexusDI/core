@@ -39,6 +39,12 @@ export interface LightTable {
   readonly rooms: Readonly<Record<string, RoomState>>;
   readonly fixtures: Readonly<Record<string, FixtureState>>;
   readonly doors: Readonly<Record<string, DoorState>>;
+  /**
+   * The glow of each fixture that a system drives: full when its provider is
+   * built, half while it starts or waits for a request, none while it idles or
+   * is offline. A fixture that no system drives follows the power of its room.
+   */
+  readonly glow: Readonly<Record<string, 'online' | 'standby' | 'offline'>>;
 }
 
 export type ConduitStatus = 'intact' | 'cut' | 'broken';
@@ -114,6 +120,17 @@ const isConduit = (id: string): id is ConduitId =>
 function anchorOf(id: string): Point {
   return partById(id)?.at ?? [0, 0];
 }
+
+const GLOW_OF_STATUS: Readonly<
+  Record<SystemStatus, 'online' | 'standby' | 'offline'>
+> = {
+  idle: 'offline',
+  active: 'standby',
+  nominal: 'online',
+  standby: 'standby',
+  alarm: 'online',
+  offline: 'offline',
+};
 
 const FIXTURE_OF_STATUS: Readonly<Record<SystemStatus, FixtureState>> = {
   idle: 'unpowered',
@@ -234,6 +251,7 @@ export function shipView(input: ShipInput): ShipView {
         : 'unpowered';
 
   const fixtures: Record<string, FixtureState> = {};
+  const glow: Record<string, 'online' | 'standby' | 'offline'> = {};
   const systems = {} as Record<SystemId, SystemStatus>;
   for (const id of SYSTEM_IDS) {
     const status: SystemStatus = state.systems[id]
@@ -245,7 +263,10 @@ export function shipView(input: ShipInput): ShipView {
       : 'offline';
     systems[id] = status;
     fixtures[PLACEMENT.providers[id]] = FIXTURE_OF_STATUS[status];
+    glow[PLACEMENT.providers[id]] = GLOW_OF_STATUS[status];
   }
+  glow[PLACEMENT.readout] =
+    rooms['bridge'] === 'powered' ? 'online' : 'offline';
   fixtures[PLACEMENT.readout] =
     rooms['bridge'] === 'powered' ? 'powered' : 'unpowered';
 
@@ -374,7 +395,7 @@ export function shipView(input: ShipInput): ShipView {
   }
 
   return {
-    light: { rooms, fixtures, doors },
+    light: { rooms, fixtures, doors, glow },
     systems,
     conduits,
     hatches,

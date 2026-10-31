@@ -207,7 +207,7 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
  * 1440 by 900 the whole loop fits one viewport.
  */
 .nexus-bay {
-  padding-block: var(--meridian-space-4) var(--meridian-space-5);
+  padding-block: var(--meridian-space-3) var(--meridian-space-4);
   scroll-margin-block-start: var(--meridian-space-8);
 }
 
@@ -395,8 +395,6 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
 
 .nexus-bay__wide {
   display: block;
-  max-inline-size: 1180px;
-  margin-inline: auto;
 }
 
 .nexus-bay__phone,
@@ -667,9 +665,23 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
   align-items: start;
 }
 
+/* The terminal shows the newest run from its first line, and scrolls for the rest. */
 .nexus-bay .meridian-terminal__log,
 .nexus-bay .meridian-terminal__body {
-  block-size: 7.25rem;
+  block-size: 12.25rem;
+  padding-block: var(--meridian-space-2);
+}
+
+.nexus-bay .meridian-terminal__log {
+  flex-direction: column;
+}
+
+.nexus-bay__canvas {
+  opacity: 0;
+}
+
+.meridian-schematic--lit .nexus-bay__canvas {
+  opacity: 1;
 }
 
 .nexus-bay__source {
@@ -772,6 +784,11 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
   align-items: center;
   gap: var(--meridian-space-2);
   font-size: var(--meridian-text-small);
+}
+
+.nexus-bay__launch .nexus-bay__caption {
+  flex: 1 1 18rem;
+  margin: 0;
 }
 
 .nexus-bay__nojs,
