@@ -9,6 +9,7 @@ import { BayView, type Actions, type Stamped } from './BayView';
 import { isSystemId, partById, type Part, type SectionId } from './geometry';
 import { entriesOf, type CheckResult, type LaunchOutcome } from './outcome';
 import { createPlayer, type Player } from './player';
+import { RunMirror } from './run-mirror';
 import {
   applyEvent,
   darkPower,
@@ -65,6 +66,10 @@ function litGate(): string | null {
     return 'reduced-data';
   if (window.matchMedia('(forced-colors: active)').matches)
     return 'forced-colors';
+  // Where the browser reports its memory, a phone with less than 4 GB keeps the tints.
+  const memory = (navigator as Navigator & { deviceMemory?: number })
+    .deviceMemory;
+  if (memory !== undefined && memory < 4) return 'low-memory';
   const probe = document.createElement('canvas');
   const gl = probe.getContext('webgl2');
   if (!gl) return 'no-webgl2';
@@ -508,13 +513,18 @@ export default function PreflightBay({
 
   const view = shipView(viewInput(model));
 
-  // The lit scene (owner ruling OR5, TL24 and TL25): the deck view draws the
-  // room light on a canvas in the Schematic's layer slot. It loads once the
-  // bay is half in view and the browser is idle, and never under the gates in
-  // `litGate`. The tints of the Schematic light the ship until the first frame.
+  // The lit scene (owner ruling OR5, TL24, TL25 and TL31): the deck view draws
+  // the room light. On a wide screen it draws on a canvas in the Schematic's
+  // layer slot. On a phone it draws on one canvas off the page, and the
+  // run mirror copies each frame to the crops of the section on show. It loads
+  // once the bay is half in view and the browser is idle, and never under the
+  // gates in `litGate`. The tints of the Schematic light the ship until the
+  // first frame.
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const mirrorRef = useRef(new RunMirror());
   const lightRef = useRef<BayLight | null>(null);
   const [lit, setLit] = useState(false);
+  const [lightMark, setLightMark] = useState<string | null>(null);
   const [lightPhase, setLightPhase] = useState<
     'off' | 'loading' | 'on' | 'failed'
   >('off');
@@ -526,30 +536,59 @@ export default function PreflightBay({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lightKey]);
 
+  // The crops of another section, or of another width, paint from the last frame.
+  useEffect(() => {
+    mirrorRef.current.show(model.section);
+  }, [model.section, model.width, model.phone]);
+
   useEffect(() => {
     const root = rootRef.current;
-    if (!root || model.phone || litGate() !== null) return;
+    if (!root || litGate() !== null) return;
+    const phone = model.phone;
+    const mirror = mirrorRef.current;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let losses = 0;
     let unsubscribe: (() => void) | undefined;
+    let stopFrames: (() => void) | undefined;
+    const stages = () =>
+      root.querySelectorAll<HTMLElement>('.meridian-schematic--painted');
+    // The class goes on in the frame itself, so the canvas shows and the tints
+    // drop away in one style write. The state follows so that React agrees.
     const show = () =>
       requestAnimationFrame(() => {
-        if (!cancelled) setLit(true);
+        if (cancelled) return;
+        for (const stage of stages())
+          stage.classList.add('meridian-schematic--lit');
+        setLit(true);
       });
+    const hide = () => {
+      for (const stage of stages())
+        stage.classList.remove('meridian-schematic--lit');
+      setLit(false);
+    };
     const start = async () => {
       setLightPhase('loading');
       try {
-        const base = root.querySelector<HTMLImageElement>(
+        const base = [
+          ...root.querySelectorAll<HTMLImageElement>(
+            '.meridian-schematic__base img',
+          ),
+        ].find((image) => image.complete && image.naturalWidth > 0);
+        const first = root.querySelector<HTMLImageElement>(
           '.meridian-schematic__base img',
         );
-        const canvas = canvasRef.current;
-        if (!base || !canvas) throw new Error('The bay has no stage to light.');
-        await base.decode();
-        const { createLight } = await import('./light');
+        const canvas = phone
+          ? document.createElement('canvas')
+          : canvasRef.current;
+        if (!(base ?? first) || !canvas)
+          throw new Error('The bay has no stage to light.');
+        await (base ?? first)?.decode();
+        const { bayLightMark, createLight } = await import('./light');
+        setLightMark(bayLightMark());
         if (cancelled) return;
         const light = await createLight({
-          base,
+          base: (base ?? first) as HTMLImageElement,
           reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)')
             .matches,
         });
@@ -559,10 +598,13 @@ export default function PreflightBay({
         }
         lightRef.current = light;
         light.source.update(shipView(viewInput(modelRef.current)).light);
+        // Before attach(): a still scene renders one frame, and the canvas
+        // holds it only inside this callback.
+        if (phone) stopFrames = light.view.onFrame(() => mirror.frame(canvas));
         unsubscribe = light.view.onStatus((status) => {
           if (status === 'lost') {
             losses += 1;
-            setLit(false);
+            hide();
             if (losses === 1) {
               timer = setTimeout(() => {
                 light.view
@@ -584,7 +626,7 @@ export default function PreflightBay({
         show();
       } catch {
         if (!cancelled) {
-          setLit(false);
+          hide();
           setLightPhase('failed');
         }
       }
@@ -614,6 +656,7 @@ export default function PreflightBay({
       near.disconnect();
       clearTimeout(timer);
       unsubscribe?.();
+      stopFrames?.();
       const light = lightRef.current;
       lightRef.current = null;
       setLit(false);
@@ -622,6 +665,15 @@ export default function PreflightBay({
       void light?.dispose();
     };
   }, [model.phone]);
+
+  /** The 2D canvas of a run on a phone: its crop of the lit scene. */
+  const runCanvas = (run: number) => (
+    <canvas
+      ref={(element) => mirrorRef.current.register(run, element)}
+      className="nexus-bay__canvas"
+      aria-hidden="true"
+    />
+  );
 
   const failed = model.check !== null && !model.check.ok;
   const locked = failed
@@ -643,6 +695,7 @@ export default function PreflightBay({
       data-runtime={runtimeMark ?? 'pending'}
       data-bay-mark={BAY_MARK}
       data-light={lightPhase}
+      data-light-mark={lightMark ?? undefined}
     >
       <BayView
         markup={markup}
@@ -683,20 +736,18 @@ export default function PreflightBay({
         width={{ wide: model.width, phone: model.width }}
         coarse={model.coarse}
         actions={actions}
-        light={
-          model.phone
-            ? null
-            : {
-                canvas: (
-                  <canvas
-                    ref={canvasRef}
-                    className="nexus-bay__canvas"
-                    aria-hidden="true"
-                  />
-                ),
-                lit,
-              }
-        }
+        errorPages={initial.errorPages}
+        light={{
+          canvas: (
+            <canvas
+              ref={canvasRef}
+              className="nexus-bay__canvas"
+              aria-hidden="true"
+            />
+          ),
+          runCanvas,
+          lit,
+        }}
       />
     </div>
   );

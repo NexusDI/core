@@ -332,11 +332,55 @@ test.describe('the lit scene', () => {
     await expect(page.locator('.meridian-schematic--lit')).toHaveCount(0);
   });
 
-  test('a phone keeps the tints and loads no canvas', async ({ page }) => {
+  test('a phone shows the lit scene on a 2D canvas for each run of the section', async ({
+    page,
+    browserName,
+  }) => {
+    test.skip(
+      browserName !== 'chromium',
+      'The software GL of Chromium is the reference.',
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openBay(page);
+    await expect(light(page)).toHaveAttribute('data-light', 'on', {
+      timeout: 30_000,
+    });
+    await expect(page.locator('.meridian-schematic--lit')).toHaveCount(2);
+    const canvases = page.locator('.nexus-bay__phone canvas.nexus-bay__canvas');
+    await expect(canvases).toHaveCount(2);
+    // A run's canvas holds the crop of a frame, not a blank: some pixel is not clear.
+    const painted = await canvases.first().evaluate((element) => {
+      const canvas = element as HTMLCanvasElement;
+      const data = canvas
+        .getContext('2d')
+        ?.getImageData(0, 0, canvas.width, canvas.height).data;
+      return data ? data.some((value, at) => at % 4 === 3 && value > 0) : false;
+    });
+    expect(painted).toBe(true);
+    // Another section paints from the last frame, with no frame of its own.
+    await page.getByRole('tab', { name: 'Comms' }).click();
+    const comms = page.locator('.nexus-bay__phone canvas.nexus-bay__canvas');
+    await expect(comms).toHaveCount(1);
+    const again = await comms.first().evaluate((element) => {
+      const canvas = element as HTMLCanvasElement;
+      const data = canvas
+        .getContext('2d')
+        ?.getImageData(0, 0, canvas.width, canvas.height).data;
+      return data ? data.some((value, at) => at % 4 === 3 && value > 0) : false;
+    });
+    expect(again).toBe(true);
+  });
+
+  test('a phone with less than 4 GB of memory keeps the tints', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'deviceMemory', { value: 2 });
+    });
     await page.setViewportSize({ width: 390, height: 844 });
     await openBay(page);
     await expect(light(page)).toHaveAttribute('data-light', 'off');
-    await expect(page.locator('.nexus-bay__canvas')).toHaveCount(0);
+    await expect(page.locator('.meridian-schematic--lit')).toHaveCount(0);
   });
 });
 
@@ -468,10 +512,10 @@ test.describe('the bay baselines', () => {
             reducedMotion: 'reduce',
           });
           await openBay(page);
-          // The lit scene is part of the baseline where the viewport has one.
+          // The lit scene is part of every baseline.
           await expect(page.locator('[data-light]')).toHaveAttribute(
             'data-light',
-            size.width >= 640 ? 'on' : 'off',
+            'on',
             { timeout: 30_000 },
           );
           await act(page);

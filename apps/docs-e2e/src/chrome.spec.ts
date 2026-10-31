@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { fillSearch } from './support/fill-search';
+import { fillSearch } from './support/fill-search.js';
 
 /**
  * The docs chrome of site UX spec 13: the navbar, the sidebar, the page's
@@ -125,7 +125,7 @@ test('search opens its results on a plate with a band placard per page', async (
   page,
 }) => {
   await page.goto('/next/');
-    await fillSearch(page, 'identity');
+  await fillSearch(page, 'identity');
   const panel = page.locator('.nexus-search__panel').first();
   await expect(panel.getByRole('option').first()).toBeVisible({
     timeout: 15_000,
@@ -135,7 +135,7 @@ test('search opens its results on a plate with a band placard per page', async (
 
 test('search puts a code page first for its code', async ({ page }) => {
   await page.goto('/next/');
-    await fillSearch(page, 'NEXUS_AMBIGUOUS_PROVIDER');
+  await fillSearch(page, 'NEXUS_AMBIGUOUS_PROVIDER');
   const first = page.getByRole('option').first();
   await expect(first).toBeVisible({ timeout: 15_000 });
   await expect(first).toHaveAttribute(

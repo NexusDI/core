@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { fillSearch } from './support/fill-search';
+import { fillSearch } from './support/fill-search.js';
 
 /**
  * Nextra's search imports `addBasePath('/_pagefind/pagefind.js')` and navigates

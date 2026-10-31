@@ -1,3 +1,5 @@
+import type { NearMiss } from '@nexusdi/core';
+
 /**
  * What the run chunk hands the controller: what core returned, typed. The run
  * chunk reads each error through the classes that core exports, with
@@ -45,9 +47,6 @@ export type DescribedError =
     })
   | (Described & { readonly kind: 'other' });
 
-/** The errors the ship draws. `other` is every error the bay does not know. */
-export type ErrorKind = DescribedError['kind'];
-
 export interface CheckResult {
   readonly ok: boolean;
   readonly error: DescribedError | null;
@@ -65,14 +64,6 @@ export interface LaunchOutcome {
   } | null;
   /** Milliseconds `Nexus.create` took, from the `run` event core emitted. */
   readonly startupMs: number | null;
-}
-
-/** The fields the ship reads off a missing-provider entry. */
-export interface MissingFields {
-  readonly token: string;
-  readonly requester: string | null;
-  readonly module: string;
-  readonly nearMisses: readonly NearMissRecord[];
 }
 
 /** The entries of a check error, or the error itself when it is not a blueprint. */
