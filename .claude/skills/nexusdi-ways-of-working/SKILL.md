@@ -27,8 +27,11 @@ description: How work runs in the NexusDI repo. Covers who decides what, subagen
 
 Tokens go to features. These rules keep process from eating the budget.
 
-- No agent watches CI. A driver stops once its PR is reviewed and pushed, and
-  hands back the PR number. The main session lands it with
+- No agent watches CI. A driver stops once its PR is reviewed and pushed. It
+  arms auto-merge with `gh pr merge <n> --rebase --auto` on a PR into a release
+  or maintenance branch, never on one into `main`, and hands back the PR
+  number. Auto-merge merges once the rulesets pass, but it neither reruns a
+  flake nor rebases a PR that fell behind. For those, the main session runs
   `node tools/pr-land.mjs <n>` as a background shell job. The script waits for
   the required checks, reruns a failed run once, rebases a PR that fell behind,
   and rebase-merges. It refuses a PR against `main`. Exit 1 means the script
