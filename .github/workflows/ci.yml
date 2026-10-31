@@ -364,6 +364,43 @@ jobs:
           DEPLOY_MODE=final SITE_DIR=site-final node apps/docs/tools/deploy/assemble.mjs
           node apps/docs/tools/deploy/check-artifact.mjs site-final final
 
+  # The docs site's end-to-end suite, in the three engines, against the built
+  # /next/ site. It runs in the Playwright image at the version the lockfile
+  # installs, which carries the browsers and their system libraries, and
+  # which is where the bay's screenshot baselines are drawn
+  # (apps/docs-e2e/playwright.baselines.config.ts). Another platform renders
+  # the text and the software GL differently, so the baselines skip there.
+  # `docs-e2e-job.test.ts` holds the image tag to the lockfile.
+  #
+  # The e2e target builds the site first, so the job is the longest of the
+  # docs jobs. The rulesets do not require it.
+  docs-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+    env:
+      NX_NO_CLOUD: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # The checkout belongs to the runner's user, and git inside the
+      # container refuses a repository it does not own.
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npx nx e2e @nexusdi/docs-e2e
+
   # Builds the packed @nexusdi/core with tsc 6, TypeScript 7, esbuild, SWC,
   # Babel, Vite (with and without the Babel plugin), Bun, Deno and Node's
   # type stripping, runs each build, and holds its output to one golden
