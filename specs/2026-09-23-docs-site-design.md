@@ -703,6 +703,8 @@ into `release/0.4`) adds both; phase 1 builds from them once the owner merges it
 
 ### 5.1 Shared rules
 
+The `/next/` front page carries the release notice's facts in the hero's version line (site UX spec 4.2).
+
 Frontmatter carries `title`, `kind`, `description` (one sentence, used for search results
 and the `<meta>` description) and, on a teaching page, `requires`: the slugs of the one or
 two pages immediately before it in `_meta.ts`, rendered as the prerequisites box above the

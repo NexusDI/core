@@ -124,3 +124,37 @@ export function releaseNotice(
 
   return 'This page documents `@nexusdi/core`, which has no release yet.';
 }
+
+/** The second micro line of the front page's install line (site UX spec 4.2). */
+export interface HeroReleaseLine {
+  text: string;
+  /** Whether the line ends with a link to the release candidate page. */
+  candidate: boolean;
+}
+
+/**
+ * What the `/next/` front page says of the current release in place of the
+ * notice above its H1 (tech lead TL29). It carries the facts of
+ * `releaseNotice`, and is null wherever that is null, and where it names no
+ * current release.
+ */
+export function heroReleaseLine(
+  state: ReleaseState,
+  channel: Channel,
+): HeroReleaseLine | null {
+  if (releaseNotice(state, channel) === null) return null;
+
+  const { stable } = state;
+  if (stable === null) return null;
+
+  if (inCandidacy(state)) {
+    return {
+      text: `${stable} is the current release. Its docs are at nexus.js.org.`,
+      candidate: true,
+    };
+  }
+  return {
+    text: `These docs run ahead of ${stable}, the current release. Its docs are at nexus.js.org.`,
+    candidate: false,
+  };
+}

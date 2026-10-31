@@ -35,3 +35,19 @@ test('the page does not scroll sideways at 320 px', async ({ page }) => {
   });
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test('the /next/ front page puts the release notice in the hero, and a guide keeps it', async ({
+  page,
+}) => {
+  await page.goto('/next/');
+  await expect(page.locator('.nexus-release')).toHaveCount(0);
+  const line = page.locator('.nexus-install__release');
+  await expect(line).toContainText(/\d+\.\d+\.\d+/);
+  await expect(line).toContainText('current release');
+  await expect(
+    line.getByRole('link', { name: 'Try the release candidate.' }),
+  ).toHaveAttribute('href', '/next/release-candidate/');
+
+  await page.goto('/next/tokens/');
+  await expect(page.locator('.nexus-release')).toHaveCount(1);
+});

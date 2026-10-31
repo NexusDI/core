@@ -131,7 +131,7 @@ describe('the registration of the frame on the art', () => {
         Math.abs((data[at + 2] ?? 0) - 19);
       return d < 12;
     };
-    // The hull is there two rows above the keel and the ground two rows below.
+    // The hull is there three rows above the keel and the ground four rows below.
     expect(ground(v - 3)).toBe(false);
     expect(ground(v + 4)).toBe(true);
   });
@@ -171,7 +171,7 @@ describe('the painted pipes (tech lead TL14)', () => {
     expect(found).toBeGreaterThan(10_000);
   }, 60_000);
 
-  // The test reads the bake and not the encoded files: a lossy codec moves
+  // The test reads the bake. A lossy codec moves
   // the ground colour (saturation 0.48) across 0.5. The pipe mask is 9 pixels
   // wide and the painted pipes are a little wider, so a few edge pixels keep
   // their hue, and the test allows 0.1% of the band. The bake left 14 of
