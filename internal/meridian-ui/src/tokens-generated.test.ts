@@ -23,28 +23,46 @@ describe('renderTokensCss', () => {
   it('binds the dark roles on html.dark and the light roles on the root', () => {
     expect(css).toContain(':root,\nhtml {');
     expect(css).toContain('html.dark {');
-    expect(css).toMatch(/html\.dark \{[^}]*--meridian-text: #e8edff;/);
-    expect(css).toMatch(/:root,\nhtml \{[^}]*--meridian-text: #0b1030;/);
+    expect(css).toMatch(/html\.dark \{[^}]*--meridian-text: #e8ecf0;/);
+    expect(css).toMatch(/:root,\nhtml \{[^}]*--meridian-text: #11161c;/);
+    expect(css).toMatch(/html\.dark \{[^}]*--meridian-bulkhead: #14191f;/);
+    expect(css).toMatch(/:root,\nhtml \{[^}]*--meridian-bulkhead: #eceef1;/);
   });
 
-  it('writes the surfaces with their opacity', () => {
+  it('binds the screen roles once, for both themes', () => {
+    expect(css).toMatch(/:root \{[^}]*--meridian-screen: #0b1015;/);
+    expect(css).toMatch(/:root \{[^}]*--meridian-screen-text: #e8ecf0;/);
+    expect(css).toMatch(/:root \{[^}]*--meridian-space: #070b12;/);
     expect(css).toMatch(
-      /html\.dark \{[^}]*--meridian-hull: rgb\(11 16 48 \/ 0\.86\);/,
+      /:root \{[^}]*--meridian-holo-backing: rgb\(14 42 51 \/ 0\.94\);/,
+    );
+  });
+
+  it('writes the plate elevation per theme', () => {
+    expect(css).toMatch(
+      /html\.dark \{[^}]*--meridian-elevation-plate: 0 8px 20px -12px rgb\(0 0 0 \/ 0\.6\);/,
     );
     expect(css).toMatch(
-      /:root,\nhtml \{[^}]*--meridian-hull: rgb\(255 255 255 \/ 0\.92\);/,
+      /:root,\nhtml \{[^}]*--meridian-elevation-plate: 0 8px 20px -12px rgb\(0 0 0 \/ 0\.18\);/,
     );
+  });
+
+  it('carries the condensed family, the placard and readout tokens and four motion tiers', () => {
+    expect(css).toContain('--meridian-font-condensed:');
+    expect(css).toContain('--meridian-text-placard: 0.875rem;');
+    expect(css).toContain('--meridian-text-readout: 1.563rem;');
+    expect(css).toContain('--meridian-motion-sequence-step: 120ms;');
+    expect(css).toContain('--meridian-motion-ambient-max: 240s;');
+    expect(css).not.toContain('--meridian-tracking-micro');
+  });
+
+  it('removes the superseded roles', () => {
+    expect(css).not.toMatch(/signal|status-pass|status-fail|nebula|hull/);
   });
 
   it('sets every duration to 0ms under reduced motion', () => {
     expect(css).toMatch(
-      /@media \(prefers-reduced-motion: reduce\) \{\s*:root \{[^}]*--meridian-motion-interaction: 0ms;[^}]*--meridian-motion-console: 0ms;/,
-    );
-  });
-
-  it('binds --meridian-kind per export-kind class', () => {
-    expect(css).toContain(
-      '.meridian-kind-type-alias {\n  --meridian-kind: var(--meridian-kind-type-alias);\n}',
+      /@media \(prefers-reduced-motion: reduce\) \{\s*:root \{[^}]*--meridian-motion-interaction: 0ms;[^}]*--meridian-motion-console: 0ms;[^}]*--meridian-motion-sequence-step: 0ms;/,
     );
   });
 

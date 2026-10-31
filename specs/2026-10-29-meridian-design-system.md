@@ -750,6 +750,20 @@ screens.
   today (lamp housings carry the flag on their light in `lights`), so the geometry gains `emissive` and `states` on each fixture (8.5), and its test
   checks the map files' ids.
 
+Amendments made while implementing the tokens and chrome components (tech lead TL1 splits
+delivery step 1 into this PR and the docs chrome PR):
+
+- The plate's wrapper shadow is `filter: drop-shadow(0 6px 6px)`, since `drop-shadow()` takes
+  no spread; `box-shadow` with the 6.3 values serves unclipped surfaces (dialogs, menus, the
+  console frame, the article).
+- A screen scope (`.meridian-terminal`, `.meridian-holo`, `.meridian-screen`) rebinds the
+  roles to their dark values, so a status or a button inside a screen reads the same in the
+  light theme.
+- The generated stylesheet no longer binds `--meridian-kind`. The `meridian-kind-<kind>`
+  class stays on a reference entry for the API filter and carries no style.
+- The docs budget check holds the guide page's raw ceiling at 984 kB (from 981 kB) for the
+  five new component classes.
+
 ## 13. Risks
 
 - Amber means both an action and a warning. A reader could take a link for a warning. The

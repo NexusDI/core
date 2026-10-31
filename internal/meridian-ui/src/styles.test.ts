@@ -11,17 +11,33 @@ describe('src/styles.css', () => {
     );
   });
 
-  it('gives a chip its kind hue from its own kind class and from an ancestor', () => {
-    // The reference loader puts the chip inside the entry's kind wrapper, and
-    // the API filter puts the kind class on the toggle chip itself.
-    const rule = /([^{}]+)\{[^}]*color: var\(--meridian-kind\)/.exec(source);
-    const selectors = (rule?.[1] ?? '').split(',').map((each) => each.trim());
-    expect(selectors).toEqual(
-      expect.arrayContaining([
-        "[class*='meridian-kind-'] .meridian-chip",
-        ".meridian-chip[class*='meridian-kind-']",
-      ]),
-    );
+  it('gives a chip no hue: a neutral colour on a seam border', () => {
+    const rule = /\.meridian-chip \{([^}]*)\}/.exec(source);
+    expect(rule?.[1]).toContain('color: var(--meridian-text-secondary)');
+    expect(rule?.[1]).toContain('border: 1px solid var(--meridian-seam)');
+    expect(source).not.toContain('--meridian-kind');
+  });
+
+  it('sets no uppercase and no tracking on a label', () => {
+    expect(source).not.toContain('text-transform: uppercase');
+    expect(source).not.toContain('--meridian-tracking-micro');
+  });
+
+  it('draws no CRT effect and no glass', () => {
+    const body = source.replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(body).not.toMatch(/backdrop-filter|text-shadow|scanline|vignette/);
+  });
+
+  it('defines the classes of the five new components', () => {
+    for (const name of [
+      'meridian-terminal',
+      'meridian-button',
+      'meridian-status',
+      'meridian-alert',
+      'meridian-holo',
+    ]) {
+      expect(source).toContain(`.${name}`);
+    }
   });
 
   it('carries no literal colour and reads only --meridian- properties', () => {

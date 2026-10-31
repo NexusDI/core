@@ -1,0 +1,76 @@
+import type { ReactNode } from 'react';
+
+import { ConsoleFrame } from './console-frame.js';
+import { Status, type StatusState } from './status.js';
+
+export interface TerminalLine {
+  /** The tick or time, in the gutter. */
+  tick: string;
+  /** The module or system that wrote the line. */
+  source: string;
+  message: ReactNode;
+  /** The status word, right-aligned; the `states` table maps it. */
+  status?: string;
+  /** A refused command prints its message and then a `Fix:` line. */
+  fix?: ReactNode;
+}
+
+export interface TerminalProps {
+  title: string;
+  lines: readonly TerminalLine[];
+  /** The app's table from each status word to a state. */
+  states: Readonly<Record<string, StatusState>>;
+  /** Header content at the end of the band, such as an online status. */
+  actions?: ReactNode;
+  /** The prompt line under the log. */
+  prompt?: ReactNode;
+}
+
+/**
+ * A screen for logs, console output and command answers (design system spec
+ * section 7.2). It composes `ConsoleFrame` and adds the line columns and the
+ * prompt. The body is a log region; the stylesheet keeps the view at the end
+ * until the reader scrolls up. No CRT effect.
+ */
+export function Terminal({
+  title,
+  lines,
+  states,
+  actions,
+  prompt,
+}: TerminalProps) {
+  return (
+    <ConsoleFrame title={title} actions={actions} className="meridian-terminal">
+      <div
+        className="meridian-terminal__log"
+        role="log"
+        aria-label={title}
+        tabIndex={0}
+      >
+        {lines.map((line, at) => (
+          <div className="meridian-terminal__line" key={at}>
+            <span className="meridian-terminal__tick">{line.tick}</span>
+            <span className="meridian-terminal__source">{line.source}</span>
+            <span className="meridian-terminal__message">
+              {line.message}
+              {line.fix ? (
+                <span className="meridian-terminal__fix">Fix: {line.fix}</span>
+              ) : null}
+            </span>
+            <span className="meridian-terminal__status">
+              {line.status ? (
+                <Status word={line.status} states={states} />
+              ) : null}
+            </span>
+          </div>
+        ))}
+        <div className="meridian-terminal__end" aria-hidden="true" />
+      </div>
+      {prompt ? (
+        <div className="meridian-terminal__prompt">
+          <span aria-hidden="true">&gt;</span> {prompt}
+        </div>
+      ) : null}
+    </ConsoleFrame>
+  );
+}

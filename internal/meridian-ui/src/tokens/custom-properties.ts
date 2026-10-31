@@ -1,8 +1,13 @@
 import { channels } from './contrast.js';
-import { colour, surface } from './colour.js';
-import { elevation, focus, measure, radius, space } from './geometry.js';
-import { exportKinds, kindRole } from './kind.js';
-import { lifetimeRole } from './lifetime.js';
+import { colour, HOLO_ALPHA, screen } from './colour.js';
+import {
+  chamfer,
+  elevation,
+  focus,
+  measure,
+  radius,
+  space,
+} from './geometry.js';
 import { motion } from './motion.js';
 import { family, tracking, type } from './type.js';
 
@@ -18,20 +23,8 @@ function kebab(name: string): string {
     .toLowerCase();
 }
 
-/**
- * The two ground roles (`space0`, `space2`) render as `--meridian-ground-0`
- * and `--meridian-ground-2`. The spacing scale holds `--meridian-space-1`
- * through `--meridian-space-8`. The generic `kebab(role)` mapping would render
- * `space2` as `--meridian-space-2` as well, and both declarations target
- * `:root`, so one would silently override the other.
- */
-const GROUND_PROPERTY: Partial<Record<string, string>> = {
-  space0: '--meridian-ground-0',
-  space2: '--meridian-ground-2',
-};
-
 function customProperty(role: string): string {
-  return GROUND_PROPERTY[role] ?? `--meridian-${kebab(role)}`;
+  return `--meridian-${kebab(role)}`;
 }
 
 function rgba(hex: string, alpha: number): string {
@@ -52,12 +45,17 @@ function theme(name: 'dark' | 'light'): Declaration[] {
     ...Object.entries(colour[name]).map(
       ([role, hex]) => [customProperty(role), hex] as const,
     ),
-    ['--meridian-hull', rgba(surface[name].hull.hex, surface[name].hull.alpha)],
-    [
-      '--meridian-hull-raised',
-      rgba(surface[name].hullRaised.hex, surface[name].hullRaised.alpha),
-    ],
     ['--meridian-focus', focus[name]],
+    ['--meridian-elevation-highlight', elevation[name].highlight],
+    ['--meridian-elevation-plate', elevation[name].plate],
+    ['--meridian-elevation-raised', elevation[name].raised],
+    ['--meridian-elevation-drop', elevation[name].drop],
+    // The primary button's boundary: none in dark, the action hue in light,
+    // where the fill alone measures 2.17:1 on the plate (spec 7.4).
+    [
+      '--meridian-button-primary-border',
+      name === 'dark' ? 'transparent' : 'var(--meridian-action)',
+    ],
   ];
 }
 
@@ -68,8 +66,13 @@ const shared: Declaration[] = [
   ...Object.entries(colour.light).map(
     ([role, hex]) => [`--meridian-palette-light-${kebab(role)}`, hex] as const,
   ),
+  ...Object.entries(screen).map(
+    ([role, hex]) => [customProperty(role), hex] as const,
+  ),
+  ['--meridian-holo-backing', rgba(screen.holo, HOLO_ALPHA)],
   ['--meridian-font-display', family.display],
   ['--meridian-font-body', family.body],
+  ['--meridian-font-condensed', family.condensed],
   ['--meridian-font-mono', family.mono],
   ...Object.entries(type).flatMap(
     ([step, value]) =>
@@ -79,7 +82,6 @@ const shared: Declaration[] = [
       ] as const,
   ),
   ['--meridian-tracking-display', tracking.display],
-  ['--meridian-tracking-micro', tracking.micro],
   ...Object.entries(space).map(
     ([step, value]) => [`--meridian-space-${step}`, value] as const,
   ),
@@ -87,25 +89,14 @@ const shared: Declaration[] = [
   ...Object.entries(radius).map(
     ([role, value]) => [`--meridian-radius-${role}`, value] as const,
   ),
-  ['--meridian-elevation-glass', elevation.glass],
-  ['--meridian-elevation-raised', elevation.raised],
+  ['--meridian-chamfer', chamfer],
   ['--meridian-motion-interaction', motion.interaction],
   ['--meridian-motion-console', motion.console],
   ['--meridian-motion-curve', motion.curve],
-  ...Object.entries(lifetimeRole).map(
-    ([lifetime, role]) =>
-      [
-        `--meridian-lifetime-${lifetime}`,
-        `var(${customProperty(role)})`,
-      ] as const,
-  ),
-  ...exportKinds.map(
-    (kind) =>
-      [
-        `--meridian-kind-${kind}`,
-        `var(${customProperty(kindRole[kind])})`,
-      ] as const,
-  ),
+  ['--meridian-motion-sequence-step', motion.sequence.step],
+  ['--meridian-motion-sequence-max', motion.sequence.max],
+  ['--meridian-motion-ambient-min', motion.ambient.min],
+  ['--meridian-motion-ambient-max', motion.ambient.max],
 ];
 
 /** Every custom property, in declaration order, for tests and tooling. */
@@ -127,14 +118,11 @@ export function renderTokensCss(): string {
       '  :root {',
       '    --meridian-motion-interaction: 0ms;',
       '    --meridian-motion-console: 0ms;',
+      '    --meridian-motion-sequence-step: 0ms;',
+      '    --meridian-motion-sequence-max: 0ms;',
       '  }',
       '}',
     ].join('\n'),
-    ...exportKinds.map((kind) =>
-      block(`.meridian-kind-${kind}`, [
-        ['--meridian-kind', `var(--meridian-kind-${kind})`],
-      ]),
-    ),
   ];
 
   return `${parts.join('\n\n')}\n`;

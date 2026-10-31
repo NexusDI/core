@@ -8,10 +8,9 @@ export interface ChipProps {
 }
 
 /**
- * A small label in the mono micro face. It names a fact in words, so its
- * colour is never the only channel that carries the fact. Inside an element
- * with a `meridian-kind-<kind>` class, or carrying one itself, it takes that
- * kind's hue.
+ * A small neutral label in the condensed micro face. It names a fact in words
+ * (an export kind, for one) in `text-secondary` on a `seam` border, so no hue
+ * carries the fact.
  */
 export function Chip({ children, className }: ChipProps) {
   return <span className={cx('meridian-chip', className)}>{children}</span>;
