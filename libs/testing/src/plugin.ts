@@ -4,6 +4,7 @@ import {
   MultiToken,
   NEXUS_PLUGIN_API,
   type BlueprintView,
+  type AnyToken,
   type CompileContext,
   type ModuleDefinition,
   type NexusPlugin,
@@ -78,9 +79,6 @@ interface Matches {
   /** Canonical token → the overrides with its key, from the first compile.provider call. */
   overrides: Map<AnyToken, Override> | undefined;
 }
-
-/** A token a compile hook may key, as CompileContext.canonical takes it. */
-type AnyToken = Parameters<CompileContext['canonical']>[0];
 
 interface Override {
   /** Every override token with this key, in override order. */
