@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/vitest",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "types": [
+      "vitest/globals",
+      "vitest/importMeta",
+      "vite/client",
+      "node",
+      "vitest"
+    ],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "ignoreDeprecations": "6.0",
+    "rootDir": "."
+  },
+  // The sources compile here, as in meridian-ui, so a test checks against the
+  // real types and no other target has to emit declarations first.
+  "include": ["src/**/*.ts", "vite.config.ts", "src/**/*.d.ts"]
+}
