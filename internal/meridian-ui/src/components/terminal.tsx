@@ -29,8 +29,8 @@ export interface TerminalProps {
 /**
  * A screen for logs, console output and command answers (design system spec
  * section 7.2). It composes `ConsoleFrame` and adds the line columns and the
- * prompt. The body is a log region; the stylesheet keeps the view at the end
- * until the reader scrolls up. No CRT effect.
+ * prompt. The body is a log region; the stylesheet opens it at the end and
+ * keeps it there until the reader scrolls up. No CRT effect.
  */
 export function Terminal({
   title,
@@ -47,24 +47,27 @@ export function Terminal({
         aria-label={title}
         tabIndex={0}
       >
-        {lines.map((line, at) => (
-          <div className="meridian-terminal__line" key={at}>
-            <span className="meridian-terminal__tick">{line.tick}</span>
-            <span className="meridian-terminal__source">{line.source}</span>
-            <span className="meridian-terminal__message">
-              {line.message}
-              {line.fix ? (
-                <span className="meridian-terminal__fix">Fix: {line.fix}</span>
-              ) : null}
-            </span>
-            <span className="meridian-terminal__status">
-              {line.status ? (
-                <Status word={line.status} states={states} />
-              ) : null}
-            </span>
-          </div>
-        ))}
-        <div className="meridian-terminal__end" aria-hidden="true" />
+        <div className="meridian-terminal__lines">
+          {lines.map((line, at) => (
+            <div className="meridian-terminal__line" key={at}>
+              <span className="meridian-terminal__tick">{line.tick}</span>
+              <span className="meridian-terminal__source">{line.source}</span>
+              <span className="meridian-terminal__message">
+                {line.message}
+                {line.fix ? (
+                  <span className="meridian-terminal__fix">
+                    Fix: {line.fix}
+                  </span>
+                ) : null}
+              </span>
+              <span className="meridian-terminal__status">
+                {line.status ? (
+                  <Status word={line.status} states={states} />
+                ) : null}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
       {prompt ? (
         <div className="meridian-terminal__prompt">

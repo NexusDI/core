@@ -172,43 +172,46 @@
           tabindex="0"
           aria-label="telemetry"
         >
-          <div class="meridian-terminal__line">
-            <span class="meridian-terminal__tick">t 0042</span>
-            <span class="meridian-terminal__source">helm</span>
-            <span class="meridian-terminal__message"
-              >course plotted to Kepler-442b</span
-            >
-            <span class="meridian-terminal__status"
-              ><span class="meridian-status meridian-status--nominal"
-                ><span class="meridian-status__word">ok</span></span
-              ></span
-            >
+          <div class="meridian-terminal__lines">
+            <div class="meridian-terminal__line">
+              <span class="meridian-terminal__tick">t 0042</span>
+              <span class="meridian-terminal__source">helm</span>
+              <span class="meridian-terminal__message"
+                >course plotted to Kepler-442b</span
+              >
+              <span class="meridian-terminal__status"
+                ><span class="meridian-status meridian-status--nominal"
+                  ><span class="meridian-status__word">ok</span></span
+                ></span
+              >
+            </div>
+            <div class="meridian-terminal__line">
+              <span class="meridian-terminal__tick">t 0043</span>
+              <span class="meridian-terminal__source">power</span>
+              <span class="meridian-terminal__message"
+                >shields shed, 0.0 MW</span
+              >
+              <span class="meridian-terminal__status"
+                ><span class="meridian-status meridian-status--warning"
+                  ><span class="meridian-status__word">shed</span></span
+                ></span
+              >
+            </div>
+            <div class="meridian-terminal__line">
+              <span class="meridian-terminal__tick">t 0044</span>
+              <span class="meridian-terminal__source">safety</span>
+              <span class="meridian-terminal__message"
+                >HYPOXIA in airlock<span class="meridian-terminal__fix"
+                  >Fix: seal the hatch</span
+                ></span
+              >
+              <span class="meridian-terminal__status"
+                ><span class="meridian-status meridian-status--alarm"
+                  ><span class="meridian-status__word">alarm</span></span
+                ></span
+              >
+            </div>
           </div>
-          <div class="meridian-terminal__line">
-            <span class="meridian-terminal__tick">t 0043</span>
-            <span class="meridian-terminal__source">power</span>
-            <span class="meridian-terminal__message">shields shed, 0.0 MW</span>
-            <span class="meridian-terminal__status"
-              ><span class="meridian-status meridian-status--warning"
-                ><span class="meridian-status__word">shed</span></span
-              ></span
-            >
-          </div>
-          <div class="meridian-terminal__line">
-            <span class="meridian-terminal__tick">t 0044</span>
-            <span class="meridian-terminal__source">safety</span>
-            <span class="meridian-terminal__message"
-              >HYPOXIA in airlock<span class="meridian-terminal__fix"
-                >Fix: seal the hatch</span
-              ></span
-            >
-            <span class="meridian-terminal__status"
-              ><span class="meridian-status meridian-status--alarm"
-                ><span class="meridian-status__word">alarm</span></span
-              ></span
-            >
-          </div>
-          <div class="meridian-terminal__end" aria-hidden="true"></div>
         </div>
         <div class="meridian-terminal__prompt">&gt; plot course</div>
       </div>
@@ -274,10 +277,13 @@
     <div
       class="meridian-alert meridian-alert--dialog"
       role="alertdialog"
-      aria-label="Command refused"
+      aria-labelledby="refused-title"
+      aria-describedby="refused-message"
     >
-      <p class="meridian-alert__title">Command refused</p>
-      <div class="meridian-alert__message">The drive is not charged.</div>
+      <p class="meridian-alert__title" id="refused-title">Command refused</p>
+      <div class="meridian-alert__message" id="refused-message">
+        The drive is not charged.
+      </div>
       <p class="meridian-alert__fix">Fix: charge the reactor first.</p>
       <div class="meridian-alert__actions">
         <button type="button" class="meridian-button meridian-button--primary">

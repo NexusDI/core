@@ -207,8 +207,10 @@
 /*
  * The terminal (spec 7.2): the screen face, a gutter, a source column, the
  * message and a status column. No scanlines, curvature, vignette, flicker or
- * glow. The end marker is the scroll anchor: browsers keep an anchor node in
- * view as lines append, until the reader scrolls up.
+ * glow. The log is a column-reverse flex container around one wrapper that
+ * keeps the lines in DOM order: a reversed scroll container opens at its end
+ * and stays at the end as lines append, until the reader scrolls up, in every
+ * engine and with no state.
  */
 .meridian-terminal {
   background: var(--meridian-screen);
@@ -229,20 +231,15 @@
 
 .meridian-terminal__log {
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   max-block-size: 24rem;
   overflow-y: auto;
   padding: var(--meridian-space-3) var(--meridian-space-4);
 }
 
-.meridian-terminal__log > * {
-  overflow-anchor: none;
-}
-
-.meridian-terminal__end {
-  overflow-anchor: auto;
-  block-size: 1px;
+.meridian-terminal__lines {
   flex: none;
+  margin-block-end: auto;
 }
 
 .meridian-terminal__line {
@@ -262,6 +259,11 @@
 
 .meridian-terminal__message {
   overflow-wrap: anywhere;
+}
+
+/* Values inside a message take the data colour (spec 7.2). */
+.meridian-terminal__message :where(data, var, .meridian-terminal__value) {
+  color: var(--meridian-data);
 }
 
 .meridian-terminal__fix {
@@ -345,6 +347,13 @@
   block-size: 0;
   border-width: 1px 0 0;
   background: none;
+}
+
+/* The focus ring of the controls this sheet draws (the action amber). */
+.meridian-button:focus-visible,
+.meridian-terminal__log:focus-visible {
+  outline: 2px solid var(--meridian-focus);
+  outline-offset: 2px;
 }
 
 /* Buttons (spec 7.4). Never chamfered: a button takes focus. */
@@ -511,6 +520,8 @@
 }
 
 .meridian-alert--alarm {
+  /* Only the ::after pulse draws the border, so the 1 Hz fade shows. */
+  border-color: transparent;
   background: var(--meridian-alarm-fill);
   color: var(--meridian-on-alarm);
 }
@@ -687,5 +698,12 @@
   .meridian-console,
   .meridian-alert--dialog {
     box-shadow: none;
+  }
+
+  /* The fills and gradients that tell the lifetimes apart are dropped in
+     forced colors, so the shapes draw in a system colour instead. */
+  .meridian-marker--lifetime {
+    forced-color-adjust: none;
+    color: CanvasText;
   }
 }
