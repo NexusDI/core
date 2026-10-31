@@ -11,6 +11,30 @@ export type FixtureState = RoomState | 'offline';
 /** A door is `open`, or `closed` and drawn with hazard bands in an alarm outline. */
 export type DoorState = 'open' | 'closed';
 
+/** One source of the painted base: an image type and its width-descriptor `srcSet`. */
+export interface SchematicBaseSource {
+  readonly type: 'image/avif' | 'image/webp';
+  readonly srcSet: string;
+}
+
+/**
+ * The painted base of a schematic (site UX spec 9). The package renders a
+ * `<picture>` under the markup, the style block and the overlay, in one box,
+ * and keeps no image of its own: the app passes the sources, so the docs app's
+ * static imports keep their hashes and base path.
+ */
+export interface SchematicBase {
+  /** The fallback `src`, in the type every browser takes. */
+  readonly src: string;
+  /** The image's width and height, so the box holds its place. */
+  readonly width: number;
+  readonly height: number;
+  /** AVIF and WebP sources, best first. */
+  readonly sources?: readonly SchematicBaseSource[];
+  readonly sizes?: string;
+  readonly loading?: 'lazy' | 'eager';
+}
+
 interface SchematicBaseProps {
   /**
    * The cutaway's SVG markup, from `tools/meridian-ship/ship_svg.py
@@ -33,6 +57,13 @@ interface SchematicBaseProps {
    * The overlay's `viewBox`. It defaults to the markup's own.
    */
   viewBox?: string;
+  /**
+   * A painted image under the cutaway. The markup then draws as a state layer
+   * over it: the hull is hidden, and a room, fixture or open door with no
+   * state is transparent. The image is decorative (`alt=""`): the overlay and
+   * the app's lists carry the names.
+   */
+  base?: SchematicBase;
   /**
    * Names this ship in the generated selectors, so that two schematics on a
    * page keep their states apart. Defaults to `ship`.
@@ -91,6 +122,7 @@ export function Schematic({
   children,
   viewBox,
   label,
+  base,
   scope = 'ship',
   className,
 }: SchematicProps) {
@@ -100,10 +132,34 @@ export function Schematic({
   const box = viewBox ?? viewBoxOf(markup);
   return (
     <div
-      className={cx('meridian-schematic', className)}
+      className={cx(
+        'meridian-schematic',
+        base && 'meridian-schematic--painted',
+        className,
+      )}
       data-schematic={scope}
       onClick={onClick}
     >
+      {base ? (
+        <picture className="meridian-schematic__base">
+          {base.sources?.map((source) => (
+            <source
+              key={source.type}
+              type={source.type}
+              srcSet={source.srcSet}
+              sizes={base.sizes}
+            />
+          ))}
+          <img
+            src={base.src}
+            width={base.width}
+            height={base.height}
+            alt=""
+            loading={base.loading ?? 'lazy'}
+            decoding="async"
+          />
+        </picture>
+      ) : null}
       <div
         className="meridian-schematic__art"
         aria-hidden="true"
@@ -196,19 +252,25 @@ export function cssEscape(value: string): string {
  * The declarations of each state. They name custom properties and keyframes
  * that `styles.css` defines, so the generated text never holds a colour.
  */
+/**
+ * A dashed outline. The vector cutaway draws it in metres, and a painted one
+ * in screen pixels with `vector-effect: non-scaling-stroke`, so the stylesheet
+ * sets the three custom properties and these are the vector values.
+ */
+function outline(width: string, dash: string): string {
+  return `stroke-width:var(--meridian-sv-outline-width,${width});stroke-dasharray:var(--meridian-sv-outline-dash,${dash});vector-effect:var(--meridian-sv-outline-effect,none)`;
+}
+
 const ROOM_DECLARATIONS: Readonly<Record<RoomState, string>> = {
   powered: 'fill:var(--meridian-sv-room-powered)',
-  unpowered: 'fill:var(--meridian-sv-room)',
-  alarm:
-    'fill:var(--meridian-sv-room-alarm);stroke:var(--meridian-alarm);stroke-width:0.1;stroke-dasharray:0.4 0.2;animation:meridian-sv-alarm 1s ease-in-out infinite',
+  unpowered: 'fill:var(--meridian-sv-room-unpowered)',
+  alarm: `fill:var(--meridian-sv-room-alarm);stroke:var(--meridian-alarm);${outline('0.1', '0.4 0.2')};animation:meridian-sv-alarm 1s ease-in-out infinite`,
 };
 const FIXTURE_DECLARATIONS: Readonly<Record<FixtureState, string>> = {
   powered: 'fill:var(--meridian-sv-fixture-powered)',
   unpowered: 'fill:var(--meridian-sv-fixture)',
-  alarm:
-    'fill:var(--meridian-alarm);stroke:var(--meridian-text);stroke-width:0.12;stroke-dasharray:0.3 0.15;animation:meridian-sv-alarm-fixture 1s ease-in-out infinite',
-  offline:
-    'fill:var(--meridian-sv-fixture);opacity:0.35;stroke:var(--meridian-text-secondary);stroke-width:0.1;stroke-dasharray:0.3 0.2',
+  alarm: `fill:var(--meridian-alarm);stroke:var(--meridian-text);${outline('0.12', '0.3 0.15')};animation:meridian-sv-alarm-fixture 1s ease-in-out infinite`,
+  offline: `fill:var(--meridian-sv-fixture-offline);opacity:var(--meridian-sv-offline-opacity);stroke:var(--meridian-text-secondary);${outline('0.1', '0.3 0.2')}`,
 };
 const doorDeclarations = (
   hazard: string,

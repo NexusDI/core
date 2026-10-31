@@ -58,6 +58,7 @@ describe('@nexusdi/meridian-ui under react-server', () => {
           transitionName: 'crop',
           children: Schematic({
             markup: '<svg viewBox="0 0 10 10"></svg>',
+            base: { src: '/a.webp', width: 20, height: 10 },
             rooms: { bridge: 'alarm' },
             label: 'Hotspots',
             children: React.createElement('circle'),
@@ -87,7 +88,8 @@ describe('@nexusdi/meridian-ui under react-server', () => {
     );
     expect(classes).toContain('meridian-holo');
     expect(classes).toContain('meridian-hull-crop');
-    expect(classes).toContain('meridian-schematic');
+    expect(classes).toContain('meridian-schematic meridian-schematic--painted');
+    expect(classes).toContain('meridian-schematic__base');
     expect(classes).toContain('meridian-schematic__overlay');
     const elements = flatten(tree);
     const style = elements.find((element) => element.type === 'style');
@@ -95,6 +97,13 @@ describe('@nexusdi/meridian-ui under react-server', () => {
       (style?.props['dangerouslySetInnerHTML'] as { __html: string }).__html,
     ).toContain('[data-room="bridge"]');
     expect(elements.some((element) => element.type === 'circle')).toBe(true);
+    const base = elements.find((element) => element.type === 'img');
+    expect(base?.props).toMatchObject({
+      src: '/a.webp',
+      width: 20,
+      height: 10,
+      alt: '',
+    });
     expect(classes).toContain('meridian-switch');
     expect(classes).toContain('meridian-steps');
   });
