@@ -261,6 +261,14 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
   color: var(--meridian-text-secondary);
 }
 
+.nexus-bay__ship {
+  margin-block-start: var(--meridian-space-5);
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-plate);
+  background: var(--meridian-screen);
+  overflow-x: auto;
+}
+
 .nexus-bay__terminal {
   margin-block-start: var(--meridian-space-5);
 }
@@ -362,10 +370,46 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
 
 /* Ship systems (4.8) */
 .nexus-systems {
+  margin-block-start: var(--meridian-space-6);
+}
+
+.nexus-systems__hull {
+  position: relative;
+  background: var(--meridian-screen);
+  border: 1px solid var(--meridian-seam);
+  border-block-end: 0;
+  border-radius: var(--meridian-radius-plate) var(--meridian-radius-plate) 0 0;
+}
+
+.nexus-systems__hull img {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+}
+
+.nexus-systems__leaders {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.nexus-systems__leader {
+  fill: none;
+  stroke: var(--meridian-palette-dark-text-secondary);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.nexus-systems__dot {
+  fill: var(--meridian-palette-dark-text);
+}
+
+.nexus-systems__list {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: var(--meridian-space-3);
-  margin: var(--meridian-space-6) 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -381,8 +425,6 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
   display: flex;
   flex: 1;
   flex-direction: column;
-  padding: var(--meridian-space-3) var(--meridian-space-3)
-    var(--meridian-space-4);
   background: var(--meridian-plate);
   border: 1px solid var(--meridian-seam);
   border-radius: var(--meridian-radius-plate);
@@ -397,8 +439,23 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
   outline-offset: 0;
 }
 
+.nexus-systems__crop {
+  background: var(--meridian-screen);
+  border-block-end: 1px solid var(--meridian-seam);
+}
+
+.nexus-systems__crop .meridian-schematic {
+  display: block;
+}
+
+.nexus-systems__where,
+.nexus-systems__name,
+.nexus-systems__line {
+  padding-inline: var(--meridian-space-3);
+}
+
 .nexus-systems__where {
-  margin-block-end: var(--meridian-space-1);
+  margin-block: var(--meridian-space-3) var(--meridian-space-1);
   font-family: var(--meridian-font-condensed);
   font-size: var(--meridian-text-micro);
   color: var(--meridian-text-tertiary);
@@ -412,7 +469,7 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
 }
 
 .nexus-systems__line {
-  margin-block-start: var(--meridian-space-1);
+  margin-block: var(--meridian-space-1) var(--meridian-space-4);
   font-size: var(--meridian-text-small);
   line-height: var(--meridian-leading-small);
   color: var(--meridian-text-secondary);
@@ -437,6 +494,15 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
 .nexus-systems__item:hover > .nexus-systems__placard,
 .nexus-systems__item:focus-within > .nexus-systems__placard {
   display: block;
+}
+
+.nexus-front__band a.nexus-systems__link:not(.meridian-button) {
+  color: var(--meridian-text);
+  text-decoration: none;
+}
+
+.nexus-front__band .nexus-systems__item {
+  margin-block-start: 0;
 }
 
 /* Proof (4.9) */
@@ -564,14 +630,14 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
   list-style: decimal;
 }
 
-.nexus-front__band ul:not(.nexus-packages):not(.nexus-systems) {
+.nexus-front__band ul:not(.nexus-packages):not(.nexus-systems__list) {
   margin: var(--meridian-space-4) 0 0;
   padding-inline-start: var(--meridian-space-5);
   list-style: disc;
 }
 
 .nexus-front__band
-  :is(ol, ul:not(.nexus-packages):not(.nexus-systems))
+  :is(ol, ul:not(.nexus-packages):not(.nexus-systems__list))
   > li
   + li {
   margin-block-start: var(--meridian-space-2);
@@ -581,15 +647,6 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
   padding: var(--meridian-space-2) var(--meridian-space-4);
   border-inline-start: 2px solid var(--meridian-edge);
   color: var(--meridian-text-secondary);
-}
-
-.nexus-front__band a.nexus-systems__link:not(.meridian-button) {
-  color: var(--meridian-text);
-  text-decoration: none;
-}
-
-.nexus-front__band .nexus-systems__item {
-  margin-block-start: 0;
 }
 
 /* Install (4.10) */
@@ -717,8 +774,32 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
     padding-block: var(--meridian-space-7);
   }
 
-  .nexus-systems {
+  .nexus-systems__hull {
+    display: none;
+  }
+
+  .nexus-systems__list {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .nexus-systems__link {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    grid-template-rows: repeat(3, auto) 1fr;
+    column-gap: var(--meridian-space-3);
+  }
+
+  .nexus-systems__crop {
+    grid-row: 1 / -1;
+    align-self: start;
+    border-inline-end: 1px solid var(--meridian-seam);
+    border-block-end: 1px solid var(--meridian-seam);
+  }
+
+  .nexus-systems__where,
+  .nexus-systems__name,
+  .nexus-systems__line {
+    padding-inline: 0 var(--meridian-space-3);
   }
 
   .nexus-systems__placard {
@@ -745,8 +826,12 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
 }
 
 @media (min-width: 640px) and (max-width: 1023px) {
-  .nexus-systems {
+  .nexus-systems__list {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .nexus-systems__leaders {
+    display: none;
   }
 
   .nexus-hero__art {

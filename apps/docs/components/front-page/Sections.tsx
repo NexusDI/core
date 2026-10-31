@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Terminal, type TerminalLine } from '@nexusdi/meridian-ui';
 
 import './front-page.css';
+import Cutaway from './Cutaway';
 import seed from './fixtures/seed.json';
 
 /** A section on the bulkhead. It follows the reader's theme (site UX spec 4.1). */
@@ -86,9 +87,9 @@ function checkLines(): TerminalLine[] {
  * The pre-flight bay (site UX spec 4.3), as a reader without JavaScript sees
  * it: the heading and lead from the page, and the seed's terminal with
  * `pre-flight ok` and exit 0, which `scene-fixtures.mjs` writes by running
- * `Nexus.check` on the seed. The bay's controller replaces the body in a later
- * change, and the cutaway of the lit ship arrives with the ship art (owner
- * ruling OR4). The screen stays dark in both themes (design system V1).
+ * `Nexus.check` on the seed, under the painted cutaway with the seed lit. The
+ * bay's controller adds the hotspots and the drills in a later change. The
+ * screen stays dark in both themes (design system V1).
  */
 export function Preflight({ children }: { children: ReactNode }) {
   return (
@@ -99,6 +100,9 @@ export function Preflight({ children }: { children: ReactNode }) {
     >
       <div className="nexus-bay__inner">
         <div className="nexus-bay__head">{children}</div>
+        <div className="nexus-bay__ship">
+          <Cutaway sizes="(min-width: 1440px) 1344px, calc(100vw - 2rem)" />
+        </div>
         <div className="nexus-bay__terminal">
           <Terminal title="preflight.ts" lines={checkLines()} states={STATES} />
         </div>
