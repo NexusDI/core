@@ -486,6 +486,14 @@ function check(ok: boolean, what: string): void {
   check(ship.get(COURSE) === 'course to Vega', 'a factory from a provider literal');
   const scopes = nodeScopes();
   await using shuttle = await ship.createScope({ request: { mission: 'survey-7' } });
+  // An application that extends NexusRequest with a required field makes {} no longer fit.
+  type RequestRequired = {} extends NexusRequest ? false : true;
+  const requestRequired: RequestRequired = true;
+  check(requestRequired, 'an augmented NexusRequest field is required');
+  const withoutMission = () =>
+    // @ts-expect-error mission is required
+    ship.createScope({ request: {} });
+  check(typeof withoutMission === 'function', 'createScope takes the merged request type');
   const mission = await scopes.run(shuttle, async () => scopes.current()?.get(MISSION));
   check(mission === 'survey-7', 'a scoped provider through @nexusdi/node');
   const handlerDeps = { computer: ShipComputer, mission: MISSION, checks: all(DIAGNOSTICS) } as const satisfies DepsMap;
@@ -1224,11 +1232,36 @@ export default defineModule({
   console.log(
     `  ✓ every optional package peers on @nexusdi/core ${coreVersion} exactly`,
   );
-  if (packedManifest('@nexusdi/core').exports?.['./testing'] !== undefined)
+  // Core publishes these subpaths and no other, so a
+  // deep import of a file under dist or src cannot resolve.
+  const coreKeys = Object.keys(packedManifest('@nexusdi/core').exports ?? {});
+  const pinnedKeys = ['./package.json', '.', './text'];
+  if (JSON.stringify(coreKeys) !== JSON.stringify(pinnedKeys))
     throw new Error(
-      '@nexusdi/core publishes ./testing; the testing container is @nexusdi/testing',
+      `@nexusdi/core exports [${coreKeys.join(', ')}]; it must export exactly [${pinnedKeys.join(', ')}]`,
     );
-  console.log('  ✓ @nexusdi/core publishes no ./testing entry');
+  console.log('  ✓ @nexusdi/core exports ., ./text and ./package.json only');
+  let deepCode = 'resolved';
+  try {
+    run(
+      'node',
+      [
+        '--input-type=module',
+        '-e',
+        "import('@nexusdi/core/dist/index.js').then(() => process.exit(0), (error) => { console.error(error.code); process.exit(1); })",
+      ],
+      dir,
+    );
+  } catch (error) {
+    deepCode = String(error.stderr).trim().split('\n').pop();
+  }
+  if (deepCode !== 'ERR_PACKAGE_PATH_NOT_EXPORTED')
+    throw new Error(
+      `a deep import of @nexusdi/core/dist/index.js must fail with ERR_PACKAGE_PATH_NOT_EXPORTED; it gave ${deepCode}`,
+    );
+  console.log(
+    '  ✓ a deep import of @nexusdi/core/dist/index.js fails to resolve',
+  );
 
   // The repo's manifests list @nexusdi/source first in every entry; the
   // published ones do not list it at all.
