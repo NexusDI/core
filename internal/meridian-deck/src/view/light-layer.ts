@@ -50,8 +50,8 @@ interface LitRoom {
   readonly id: string;
   readonly ambient: Sprite;
   readonly lights: readonly LitLight[];
-  /** The alarm light, in two sprites since one cannot pass its own full alpha. */
-  readonly alarm: readonly [Sprite, Sprite];
+  /** The alarm light, which pulses in the light texture. */
+  readonly alarm: Sprite;
   /** The alarm's glow in the housing pass, which adds red over the base. */
   readonly alarmGlow: Sprite;
   /** The room's clipped housing pass: the lamp mask and the housings that follow a fixture. */
@@ -203,8 +203,8 @@ export class LightLayer implements IDeckLayer {
         sprite.position.set(area.x + area.width / 2, area.y + area.height / 2);
         return sprite;
       };
-      const alarm: [Sprite, Sprite] = [alarmSprite(), alarmSprite()];
-      node.addChild(...alarm);
+      const alarm = alarmSprite();
+      node.addChild(alarm);
       lightRoot.addChild(node);
 
       // The same light again in the additive pass, so the red shows over the base itself.
@@ -313,11 +313,8 @@ export class LightLayer implements IDeckLayer {
       const levels = model.room(room.id, now);
       if (levels === undefined) continue;
       room.ambient.tint = grey(levels.ambient);
-      const peak = levels.alarm * ALARM_PEAK;
-      room.alarm[0].alpha = Math.min(1, peak);
-      room.alarm[0].visible = peak > VISIBLE;
-      room.alarm[1].alpha = Math.max(0, peak - 1);
-      room.alarm[1].visible = peak - 1 > VISIBLE;
+      room.alarm.alpha = levels.alarm * ALARM_PEAK;
+      room.alarm.visible = room.alarm.alpha > VISIBLE;
       room.alarmGlow.alpha = levels.alarm * ALARM_GLOW;
       room.alarmGlow.visible = room.alarmGlow.alpha > VISIBLE;
       room.lamps.alpha = levels.lamp;

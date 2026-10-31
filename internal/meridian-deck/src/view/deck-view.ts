@@ -23,7 +23,9 @@ export class DeckViewController implements IDeckView, Disposable {
 
   private readonly listeners = new Set<(status: DeckViewStatus) => void>();
   private abort: AbortController | undefined;
+  private readonly frameListeners = new Set<() => void>();
   private unlisten: (() => void) | undefined;
+  private stopFrames: (() => void) | undefined;
 
   constructor(
     private readonly host: IPixiHost,
@@ -37,6 +39,10 @@ export class DeckViewController implements IDeckView, Disposable {
     this.abort = abort;
     const { signal } = abort;
     const { scene } = this.options;
+    // Registered before the mount, so the listeners hear the first frame.
+    this.stopFrames = this.compositor.onFrame(() => {
+      for (const listener of [...this.frameListeners]) listener();
+    });
     try {
       // The host keeps the renderer of a canvas, so a second attach on it
       // (the retry of TL25) starts from a live context.
@@ -59,11 +65,16 @@ export class DeckViewController implements IDeckView, Disposable {
     this.abort = undefined;
     this.unlisten?.();
     this.unlisten = undefined;
+    this.stopFrames?.();
+    this.stopFrames = undefined;
     this.compositor.unmount();
   }
 
   onFrame(listener: () => void): () => void {
-    return this.compositor.onFrame(listener);
+    this.frameListeners.add(listener);
+    return () => {
+      this.frameListeners.delete(listener);
+    };
   }
 
   onStatus(listener: (status: DeckViewStatus) => void): () => void {
@@ -77,6 +88,7 @@ export class DeckViewController implements IDeckView, Disposable {
   [Symbol.dispose](): void {
     this.detach();
     this.listeners.clear();
+    this.frameListeners.clear();
   }
 
   /** Pixi restores its own context. The view reports both turns and redraws on the way back. */

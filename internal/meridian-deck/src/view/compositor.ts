@@ -27,7 +27,7 @@ export class LayerCompositor implements IDeckCompositor {
     scene: DeckScene,
     signal: AbortSignal,
   ): Promise<void> {
-    this.unmount();
+    this.teardown();
     this.renderer = renderer;
     const stage = new Container();
     this.stage = stage;
@@ -67,7 +67,13 @@ export class LayerCompositor implements IDeckCompositor {
     };
   }
 
+  /** Frees the layers and the stage, and forgets the frame listeners: a view that attaches again registers its own. */
   unmount(): void {
+    this.teardown();
+    this.frames.clear();
+  }
+
+  private teardown(): void {
     for (const layer of this.mounted.reverse()) layer.unmount();
     this.mounted = [];
     this.stage?.destroy({ children: true });
