@@ -350,6 +350,7 @@
     "@fontsource-variable/space-grotesk",
     "@fontsource/ibm-plex-mono",
     "@fontsource/ibm-plex-sans",
+    "@fontsource/ibm-plex-sans-condensed",
     // examples/meridian lists every package its example blocks import. The
     // blocks live in .md files under src/, which fallow does not read, so
     // these report as unused there.
