@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { Terminal, type TerminalLine } from '@nexusdi/meridian-ui';
 
-import Cutaway from './Cutaway';
-import seed from './fixtures/seed.json';
+import BayLoader from './bay/BayLoader';
+import { BayView } from './bay/BayView';
+import { shipView } from './bay/ship-view';
+import { seedInitial } from './bay/seed-bay';
+import { SEED_STATE } from './bay/state';
+import { schematicMarkup } from './seed-ship';
 
 /** A section on the bulkhead. It follows the reader's theme (site UX spec 4.1). */
 export function Band({
@@ -59,30 +62,24 @@ export function GetStarted() {
   );
 }
 
-const STATES = { ok: 'nominal', pass: 'nominal' } as const;
-
-/** The seed's check as a terminal reads it: the fixture's own text, line by line. */
-function checkLines(): TerminalLine[] {
-  const text = seed.terminal.check.split('\n');
-  const sources = ['shell', 'node', 'shell'];
-  const statuses = [undefined, undefined, 'ok'];
-  return text.map((message, at) => ({
-    tick: String(at + 1).padStart(4, '0'),
-    source: sources[at] ?? 'shell',
-    message,
-    status: statuses[at],
-  }));
-}
-
 /**
- * The pre-flight bay (site UX spec 4.3), as a reader without JavaScript sees
- * it: the heading and lead from the page, and the seed's terminal with
- * `pre-flight ok` and exit 0, which `scene-fixtures.mjs` writes by running
- * `Nexus.check` on the seed, under the unlit cutaway with the seed lit. The
- * bay's controller adds the hotspots and the drills in a later change. The
+ * The pre-flight bay (site UX spec 4.3) as a reader without JavaScript sees
+ * it: the heading and lead from the page, and under them the bay's static
+ * render, which holds the seed lit from the fixture's trace, `pre-flight ok`
+ * and no control. `BayLoader` swaps in the controller on the same layout. The
  * screen stays dark in both themes (design system V1).
  */
 export function Preflight({ children }: { children: ReactNode }) {
+  const initial = seedInitial();
+  const view = shipView({
+    state: SEED_STATE,
+    power: initial.power,
+    check: { ok: true, error: null },
+    startupError: null,
+    lookupError: null,
+    online: [],
+    linked: null,
+  });
   return (
     <section
       className="meridian-screen nexus-front__screen nexus-bay"
@@ -91,12 +88,39 @@ export function Preflight({ children }: { children: ReactNode }) {
     >
       <div className="nexus-bay__inner">
         <div className="nexus-bay__head">{children}</div>
-        <div className="nexus-bay__ship">
-          <Cutaway sizes="(min-width: 1440px) 1344px, calc(100vw - 2rem)" />
-        </div>
-        <div className="nexus-bay__terminal">
-          <Terminal title="preflight.ts" lines={checkLines()} states={STATES} />
-        </div>
+        <BayLoader initial={initial}>
+          <BayView
+            markup={schematicMarkup()}
+            layout="both"
+            view={view}
+            state={SEED_STATE}
+            section="tactical"
+            log={initial.log.map((line, at) => ({ ...line, tick: at + 1 }))}
+            tab="run"
+            source=""
+            status="nominal"
+            exit={0}
+            errorsOn
+            launchLabel="Launch"
+            locked={null}
+            launching={false}
+            checkWord="Check passed"
+            caption={null}
+            levels={initial.levels}
+            currentLevel={undefined}
+            hint={null}
+            hover={null}
+            outline={null}
+            graph={null}
+            showGraph={false}
+            acknowledged={false}
+            announce=""
+            errorPages={initial.errorPages}
+            width={{ wide: 1344, phone: 358 }}
+            coarse={false}
+            actions={null}
+          />
+        </BayLoader>
       </div>
     </section>
   );

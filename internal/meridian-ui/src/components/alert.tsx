@@ -10,6 +10,10 @@ export interface AlertBannerProps {
   code: string;
   /** What the code is about, such as `airlock`. */
   subject: string;
+  /** A sentence under the code line that says what happened. */
+  message?: ReactNode;
+  /** The code's page. With it the code renders as a link. */
+  codeHref?: string;
   /** The "Acknowledge" button. */
   acknowledge?: ReactNode;
 }
@@ -85,7 +89,14 @@ export function Alert(props: AlertProps) {
     );
   }
 
-  const { kind = 'alarm', code, subject, acknowledge } = props;
+  const {
+    kind = 'alarm',
+    code,
+    subject,
+    message,
+    codeHref,
+    acknowledge,
+  } = props;
   const alarm = kind === 'alarm';
 
   return (
@@ -97,8 +108,17 @@ export function Alert(props: AlertProps) {
     >
       <Glyph name={alarm ? 'filled-diamond' : 'triangle'} />
       <p className="meridian-alert__text">
-        <span className="meridian-alert__code">{code}</span> in{' '}
-        <span className="meridian-alert__subject">{subject}</span>
+        {codeHref ? (
+          <a className="meridian-alert__code" href={codeHref}>
+            {code}
+          </a>
+        ) : (
+          <span className="meridian-alert__code">{code}</span>
+        )}{' '}
+        in <span className="meridian-alert__subject">{subject}</span>
+        {message ? (
+          <span className="meridian-alert__line">{message}</span>
+        ) : null}
       </p>
       {acknowledge ? (
         <div className="meridian-alert__actions">{acknowledge}</div>

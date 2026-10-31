@@ -22,6 +22,13 @@ export interface TerminalProps {
   states: Readonly<Record<string, StatusState>>;
   /** Header content at the end of the band, such as an online status. */
   actions?: ReactNode;
+  /** The tab strip after the title, such as a Run and a Source tab. */
+  tabs?: ReactNode;
+  /**
+   * Replaces the log with other content, such as a tab's source listing. The
+   * header and the prompt stay.
+   */
+  body?: ReactNode;
   /** The prompt line under the log. */
   prompt?: ReactNode;
 }
@@ -37,38 +44,56 @@ export function Terminal({
   lines,
   states,
   actions,
+  tabs,
+  body,
   prompt,
 }: TerminalProps) {
   return (
-    <ConsoleFrame title={title} actions={actions} className="meridian-terminal">
-      <div
-        className="meridian-terminal__log"
-        role="log"
-        aria-label={title}
-        tabIndex={0}
-      >
-        <div className="meridian-terminal__lines">
-          {lines.map((line, at) => (
-            <div className="meridian-terminal__line" key={at}>
-              <span className="meridian-terminal__tick">{line.tick}</span>
-              <span className="meridian-terminal__source">{line.source}</span>
-              <span className="meridian-terminal__message">
-                {line.message}
-                {line.fix ? (
-                  <span className="meridian-terminal__fix">
-                    Fix: {line.fix}
-                  </span>
-                ) : null}
-              </span>
-              <span className="meridian-terminal__status">
-                {line.status ? (
-                  <Status word={line.status} states={states} />
-                ) : null}
-              </span>
-            </div>
-          ))}
+    <ConsoleFrame
+      title={title}
+      tabs={tabs}
+      actions={actions}
+      className="meridian-terminal"
+    >
+      {body ? (
+        <div
+          className="meridian-terminal__body"
+          role="region"
+          aria-label={`${title} content`}
+          tabIndex={0}
+        >
+          {body}
         </div>
-      </div>
+      ) : (
+        <div
+          className="meridian-terminal__log"
+          role="log"
+          aria-label={title}
+          tabIndex={0}
+        >
+          <div className="meridian-terminal__lines">
+            {lines.map((line, at) => (
+              <div className="meridian-terminal__line" key={at}>
+                <span className="meridian-terminal__tick">{line.tick}</span>
+                <span className="meridian-terminal__source">{line.source}</span>
+                <span className="meridian-terminal__message">
+                  {line.message}
+                  {line.fix ? (
+                    <span className="meridian-terminal__fix">
+                      Fix: {line.fix}
+                    </span>
+                  ) : null}
+                </span>
+                <span className="meridian-terminal__status">
+                  {line.status ? (
+                    <Status word={line.status} states={states} />
+                  ) : null}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {prompt ? (
         <div className="meridian-terminal__prompt">
           <span aria-hidden="true">&gt;</span> {prompt}

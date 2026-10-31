@@ -200,10 +200,22 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
   max-inline-size: none;
 }
 
-/* The pre-flight bay (4.3) */
+/*
+ * The pre-flight bay (4.3, owner rulings OR1 to OR3). One screen: a one-line
+ * heading, the ship's frame (alert band, toolbar, legend, stage), and under it
+ * the terminal with Launch and Reset beside the "On the ship" panel. At
+ * 1440 by 900 the whole loop fits one viewport.
+ */
 .nexus-bay {
-  padding-block: var(--meridian-space-6) var(--meridian-space-7);
+  padding-block: var(--meridian-space-4) var(--meridian-space-5);
   scroll-margin-block-start: var(--meridian-space-8);
+}
+
+.nexus-bay__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--meridian-space-1) var(--meridian-space-5);
 }
 
 .nexus-bay__head h2 {
@@ -218,21 +230,800 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
 }
 
 .nexus-bay__head p {
-  max-inline-size: 64ch;
-  margin: var(--meridian-space-2) 0 0;
+  max-inline-size: none;
+  margin: 0;
   color: var(--meridian-text-secondary);
 }
 
-.nexus-bay__ship {
-  margin-block-start: var(--meridian-space-5);
+.nexus-bay__frame {
+  position: relative;
+  margin-block-start: var(--meridian-space-3);
   border: 1px solid var(--meridian-seam);
   border-radius: var(--meridian-radius-plate);
   background: var(--meridian-screen);
-  overflow-x: auto;
 }
 
-.nexus-bay__terminal {
-  margin-block-start: var(--meridian-space-5);
+.nexus-bay__alert {
+  position: sticky;
+  inset-block-start: var(--nextra-navbar-height, 4rem);
+  z-index: 6;
+}
+
+.nexus-bay__alert .meridian-alert--banner {
+  border-radius: var(--meridian-radius-plate) var(--meridian-radius-plate) 0 0;
+  padding-block: var(--meridian-space-3);
+}
+
+.nexus-bay__alert .meridian-alert__line {
+  margin-block-start: 2px;
+  font-family: var(--meridian-font-body);
+}
+
+.nexus-bay__alert .meridian-alert__actions .meridian-button--secondary {
+  background: transparent;
+  border-color: var(--meridian-on-alarm);
+  color: var(--meridian-on-alarm);
+}
+
+.nexus-bay__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--meridian-space-2) var(--meridian-space-4);
+  padding: var(--meridian-space-2) var(--meridian-space-4);
+  border-block-end: 1px solid var(--meridian-seam);
+}
+
+.nexus-bay__toolbar-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--meridian-space-1) var(--meridian-space-4);
+  margin: 0;
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  color: var(--meridian-text);
+}
+
+.nexus-bay__toolbar-hint {
+  font-family: var(--meridian-font-body);
+  font-size: var(--meridian-text-small);
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-bay__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--meridian-space-1) var(--meridian-space-5);
+  padding: var(--meridian-space-2) var(--meridian-space-4);
+  border-block-end: 1px solid var(--meridian-seam);
+  background: var(--meridian-plate);
+  font-size: var(--meridian-text-small);
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-bay__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--meridian-space-2);
+}
+
+.nexus-bay__legend-item b {
+  font-family: var(--meridian-font-condensed);
+  font-weight: 500;
+  color: var(--meridian-text);
+}
+
+.nexus-bay__legend-note {
+  margin-inline-start: auto;
+  font-size: var(--meridian-text-micro);
+  color: var(--meridian-text-tertiary);
+}
+
+/* The four glyphs of the legend and the "On the ship" panel. */
+.nexus-bay__glyph {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  inline-size: 1.5rem;
+  block-size: 1rem;
+}
+
+.nexus-bay__glyph::before,
+.nexus-bay__glyph::after {
+  content: '';
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.nexus-bay__glyph--section::before {
+  inset: 2px 0;
+  border: 1px solid var(--meridian-text-secondary);
+}
+
+.nexus-bay__glyph--system::before {
+  inset-block: 2px;
+  inset-inline: 0.25rem;
+  border: 1px solid var(--meridian-text-secondary);
+}
+
+.nexus-bay__glyph--system::after {
+  inset-block: 5px;
+  inset-inline: 0.5rem;
+  background: var(--meridian-nominal);
+}
+
+.nexus-bay__glyph--conduit::before {
+  inset-block: 7px;
+  inset-inline: 0;
+  border-block-start: 1.5px solid var(--meridian-data);
+}
+
+.nexus-bay__glyph--conduit::after {
+  inset-block: 4px;
+  inset-inline: 0.5rem;
+  border: 1.5px solid var(--meridian-data);
+  border-radius: 50%;
+  background: var(--meridian-screen);
+}
+
+.nexus-bay__glyph--hatch::before {
+  inset-block: 5px;
+  inset-inline: 0.25rem;
+  border: 1px solid var(--meridian-text-secondary);
+  background: var(--meridian-text-secondary);
+}
+
+.nexus-bay__glyph--chart-server::before {
+  inset-block: 1px;
+  inset-inline: 0.125rem;
+  border: 1px solid var(--meridian-text-secondary);
+}
+
+.nexus-bay__glyph--chart-server::after {
+  inset-block: 6px 4px;
+  inset-inline: 0.5rem 0.5rem;
+  border-inline: 1.5px solid var(--meridian-text-secondary);
+}
+
+/* The stage */
+.nexus-bay__stage {
+  position: relative;
+}
+
+.nexus-bay__wide {
+  display: block;
+  max-inline-size: 1180px;
+  margin-inline: auto;
+}
+
+.nexus-bay__phone,
+.nexus-bay__tabs {
+  display: none;
+}
+
+.nexus-bay__hull {
+  position: relative;
+}
+
+.nexus-bay__callouts {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.nexus-bay__callout {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, calc(-100% - 18px));
+}
+
+.nexus-bay__callout .meridian-holo {
+  inline-size: max-content;
+  max-inline-size: 15rem;
+  padding: var(--meridian-space-1) var(--meridian-space-2);
+}
+
+.nexus-bay__callout .meridian-holo__title {
+  margin-block-end: var(--meridian-space-1);
+  font-size: var(--meridian-text-small);
+}
+
+.nexus-bay__callout .meridian-holo__readouts {
+  gap: 0;
+}
+
+.nexus-bay__callout .meridian-holo__value {
+  font-size: var(--meridian-text-micro);
+}
+
+.nexus-bay__callout--alarm .meridian-holo__title {
+  color: var(--meridian-alarm);
+}
+
+.nexus-bay__note,
+.nexus-bay__placard {
+  position: absolute;
+  z-index: 4;
+  margin: 0;
+  padding: 2px var(--meridian-space-2);
+  background: var(--meridian-plate-raised);
+  border: 1px solid var(--meridian-edge);
+  font-size: var(--meridian-text-micro);
+  line-height: var(--meridian-leading-micro);
+  color: var(--meridian-text);
+  white-space: nowrap;
+}
+
+.nexus-bay__note {
+  transform: translate(-50%, 16px);
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-bay__placard {
+  display: grid;
+  transform: translate(18px, -50%);
+}
+
+.nexus-bay__placard small {
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-bay__hint {
+  position: absolute;
+  z-index: 4;
+  margin: 0;
+  padding: var(--meridian-space-1) var(--meridian-space-3);
+  background: var(--meridian-plate-raised);
+  border: 1px solid var(--meridian-action);
+  font-size: var(--meridian-text-small);
+  color: var(--meridian-text);
+  white-space: nowrap;
+  transform: translate(calc(-100% - 22px), -50%);
+}
+
+/* The parts the overlay draws */
+.bay-part {
+  outline: none;
+}
+
+.bay-ring {
+  fill: none;
+  stroke: var(--meridian-action);
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+  opacity: 0;
+}
+
+.bay-part:hover .bay-ring,
+.bay-part:focus-visible .bay-ring,
+.bay-part.is-hover .bay-ring,
+.bay-part.is-outlined .bay-ring {
+  opacity: 1;
+}
+
+.bay-part.is-hint .bay-ring {
+  opacity: 1;
+  animation: bay-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes bay-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.bay-plate {
+  fill: var(--meridian-screen);
+  fill-opacity: 0.88;
+  stroke: var(--meridian-edge);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.bay-g {
+  stroke: none;
+}
+
+.bay-g--nominal {
+  fill: var(--meridian-nominal);
+}
+
+.bay-g--active {
+  fill: var(--meridian-data);
+}
+
+.bay-g--alarm {
+  fill: var(--meridian-alarm);
+}
+
+.bay-g--offline,
+.bay-g--standby,
+.bay-g--idle,
+.bay-g--bars,
+.bay-g--alarm-line {
+  fill: none;
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+
+.bay-g--offline {
+  stroke: var(--meridian-text-tertiary);
+}
+
+.bay-g--standby,
+.bay-g--idle,
+.bay-g--bars {
+  stroke: var(--meridian-text-secondary);
+}
+
+.bay-g--alarm-line {
+  stroke: var(--meridian-alarm);
+}
+
+.bay-edge {
+  fill: none;
+  stroke: var(--meridian-data);
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+
+.bay-arrow {
+  fill: none;
+  stroke: var(--meridian-data);
+  stroke-width: 1px;
+}
+
+.bay-part.is-cut .bay-edge--cut {
+  stroke: var(--meridian-text-secondary);
+  stroke-dasharray: 4 3;
+}
+
+.bay-part.is-broken .bay-edge--cut {
+  stroke: var(--meridian-alarm);
+}
+
+.bay-break {
+  fill: var(--meridian-screen);
+  stroke: var(--meridian-text-secondary);
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+}
+
+.bay-part.is-broken .bay-break {
+  stroke: var(--meridian-alarm);
+}
+
+.bay-handle {
+  fill: var(--meridian-screen);
+  stroke: var(--meridian-data);
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+
+.bay-hit {
+  fill: transparent;
+  stroke: none;
+  pointer-events: all;
+}
+
+.bay-hatch {
+  fill: var(--meridian-text-secondary);
+}
+
+.bay-hatch--closed {
+  stroke: var(--meridian-alarm);
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+
+.bay-hatch--alarm {
+  fill: var(--meridian-alarm);
+}
+
+.bay-chart--unreachable,
+.bay-chart--failed {
+  stroke: var(--meridian-alarm);
+}
+
+.bay-socket__box {
+  fill: var(--meridian-screen);
+  stroke: var(--meridian-alarm);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.bay-socket__text {
+  fill: var(--meridian-alarm);
+  font-family: var(--meridian-font-mono);
+  font-size: 0.7px;
+}
+
+/* The graph overlay: DI edges on top, the conduits dimmed to 40% (5.4). */
+.nexus-bay__stage.is-graph .bay-part--conduit {
+  opacity: 0.4;
+}
+
+.bay-di {
+  fill: none;
+  stroke: var(--meridian-data);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.bay-di--dashed {
+  stroke-dasharray: 6 4;
+}
+
+/* The console under the ship */
+.nexus-bay__console {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--meridian-space-4);
+  margin-block-start: var(--meridian-space-3);
+  align-items: start;
+}
+
+.nexus-bay .meridian-terminal__log,
+.nexus-bay .meridian-terminal__body {
+  block-size: 7.25rem;
+}
+
+.nexus-bay__source {
+  margin: 0;
+  font: inherit;
+  white-space: pre-wrap;
+  color: var(--meridian-screen-text);
+}
+
+.nexus-bay__term-tabs {
+  display: flex;
+  gap: var(--meridian-space-1);
+}
+
+.nexus-bay__term-tab,
+.nexus-bay__tab {
+  min-block-size: 1.75rem;
+  padding: 0 var(--meridian-space-3);
+  border: 1px solid transparent;
+  border-radius: var(--meridian-radius-control);
+  background: none;
+  color: var(--meridian-text-secondary);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  cursor: pointer;
+}
+
+.nexus-bay__term-tab[aria-selected='true'],
+.nexus-bay__tab[aria-selected='true'] {
+  border-color: var(--meridian-edge);
+  color: var(--meridian-text);
+}
+
+.nexus-bay__tab-alarm {
+  color: var(--meridian-alarm);
+}
+
+.nexus-bay__term-tab:focus-visible,
+.nexus-bay__tab:focus-visible {
+  outline: 2px solid var(--meridian-focus);
+  outline-offset: 2px;
+}
+
+.nexus-bay__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--meridian-space-2);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-micro);
+}
+
+.nexus-bay__status i,
+.nexus-bay__check i {
+  display: inline-block;
+  inline-size: 0.6rem;
+  block-size: 0.6rem;
+  background: var(--meridian-nominal);
+}
+
+.nexus-bay__status--alarm,
+.nexus-bay__check--alarm {
+  color: var(--meridian-alarm);
+}
+
+.nexus-bay__status--alarm i {
+  background: var(--meridian-alarm);
+  transform: rotate(45deg) scale(0.85);
+}
+
+.nexus-bay__status--nominal,
+.nexus-bay__check--nominal {
+  color: var(--meridian-nominal);
+}
+
+.nexus-bay__status--running i {
+  background: var(--meridian-data);
+  border-radius: 50%;
+}
+
+.nexus-bay__status--running {
+  color: var(--meridian-data);
+}
+
+.nexus-bay__exit {
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-micro);
+  color: var(--meridian-text-tertiary);
+}
+
+.nexus-bay__launch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--meridian-space-3);
+  margin-block-start: var(--meridian-space-3);
+}
+
+.nexus-bay__check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--meridian-space-2);
+  font-size: var(--meridian-text-small);
+}
+
+.nexus-bay__nojs,
+.nexus-bay__caption {
+  margin: var(--meridian-space-3) 0 0;
+  font-size: var(--meridian-text-small);
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-bay__side {
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-plate);
+  background: var(--meridian-plate);
+}
+
+.nexus-bay__side-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--meridian-space-1) var(--meridian-space-3);
+  padding: var(--meridian-space-2) var(--meridian-space-4);
+  border-block-end: 1px solid var(--meridian-seam);
+}
+
+.nexus-bay__side-head h3 {
+  margin: 0;
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 600;
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-bay__side-head span {
+  font-size: var(--meridian-text-micro);
+  color: var(--meridian-text-tertiary);
+}
+
+.nexus-bay__kinds {
+  display: grid;
+  gap: var(--meridian-space-2);
+  margin: 0;
+  padding: var(--meridian-space-3) var(--meridian-space-4);
+  list-style: none;
+  font-size: var(--meridian-text-small);
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-bay__kinds li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--meridian-space-3);
+}
+
+.nexus-bay__kinds b {
+  font-family: var(--meridian-font-condensed);
+  font-weight: 500;
+  color: var(--meridian-text);
+}
+
+.nexus-bay__disclosure {
+  border-block-start: 1px solid var(--meridian-seam);
+  padding: var(--meridian-space-2) var(--meridian-space-4);
+}
+
+.nexus-bay__disclosure > summary {
+  cursor: pointer;
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  color: var(--meridian-text);
+}
+
+.nexus-bay__disclosure > summary small {
+  margin-inline-start: var(--meridian-space-2);
+  font-family: var(--meridian-font-body);
+  font-size: var(--meridian-text-micro);
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-bay__switches {
+  display: grid;
+  gap: var(--meridian-space-2);
+  max-block-size: 14rem;
+  margin: var(--meridian-space-3) 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+@media (width < 1000px) {
+  .nexus-bay__console {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A phone shows one hull section at a time (4.11). */
+@media (width < 640px) {
+  .nexus-bay__head p {
+    display: none;
+  }
+
+  .nexus-bay__legend-note,
+  .nexus-bay__hint {
+    display: none;
+  }
+
+  .nexus-bay__legend {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: space-between;
+  }
+
+  .nexus-bay__legend-item {
+    white-space: nowrap;
+  }
+
+  .nexus-bay__alert .meridian-alert--banner {
+    flex-wrap: wrap;
+  }
+
+  .nexus-bay__alert .meridian-alert__text {
+    flex: 1 1 12rem;
+    min-inline-size: 0;
+  }
+
+  .nexus-bay__alert .meridian-alert__actions {
+    inline-size: 100%;
+    margin-inline-start: 0;
+  }
+
+  .nexus-bay__callout {
+    transform: translate(-50%, calc(-100% - 6px));
+  }
+
+  .nexus-bay__callout .meridian-holo__readouts,
+  .nexus-bay__callout .meridian-holo__leader {
+    display: none;
+  }
+
+  .nexus-bay__callout .meridian-holo__title {
+    margin: 0;
+  }
+
+  .nexus-bay__wide {
+    display: none;
+  }
+
+  /* The alert band first, then the tabs, the hint, the ship, and the legend after it. */
+  .nexus-bay__frame {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .nexus-bay__alert {
+    order: 0;
+  }
+
+  .nexus-bay__tabs {
+    order: 1;
+  }
+
+  .nexus-bay__toolbar {
+    order: 2;
+    flex-direction: column;
+    align-items: flex-start;
+    border-block-end: 0;
+  }
+
+  .nexus-bay__toolbar-title > span:first-child {
+    display: none;
+  }
+
+  .nexus-bay__toolbar-hint {
+    font-size: var(--meridian-text-micro);
+  }
+
+  .nexus-bay__panel {
+    order: 3;
+  }
+
+  .nexus-bay__legend {
+    order: 4;
+    border-block-start: 1px solid var(--meridian-seam);
+    border-block-end: 0;
+  }
+
+  .nexus-bay__phone {
+    display: block;
+    padding-block-end: var(--meridian-space-2);
+  }
+
+  .nexus-bay__tabs {
+    display: flex;
+    gap: var(--meridian-space-2);
+    /* The strip bleeds to the screen edge, and its first tab lines up with the frame. */
+    margin-inline: calc(-1rem - 1px);
+    padding: var(--meridian-space-2) calc(1rem + var(--meridian-space-3));
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-block-end: 1px solid var(--meridian-seam);
+  }
+
+  .nexus-bay__tabs--reserve {
+    min-block-size: 3rem;
+  }
+
+  .nexus-bay__tab {
+    flex: none;
+    min-block-size: 2.75rem;
+  }
+
+  .nexus-bay__runs {
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .nexus-bay__run-cell {
+    display: flex;
+    flex: none;
+  }
+
+  .nexus-bay__break {
+    flex: none;
+    inline-size: 18px;
+  }
+
+  .nexus-bay__break svg {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  .nexus-bay__break path {
+    stroke: var(--meridian-text-tertiary);
+  }
+
+  .nexus-bay__run-names {
+    display: flex;
+    padding-block-start: var(--meridian-space-2);
+    font-family: var(--meridian-font-condensed);
+    font-size: var(--meridian-text-small);
+    color: var(--meridian-text-secondary);
+  }
+
+  .nexus-bay__run-names span {
+    flex: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bay-part.is-hint .bay-ring {
+    animation: none;
+  }
 }
 
 /* Bands on the bulkhead (4.1) */
