@@ -787,6 +787,15 @@ delivery step 1 into this PR and the docs chrome PR):
 - The docs budget check holds the guide page's raw ceiling at 984 kB (from 981 kB) for the
   five new component classes.
 
+Amendments made while building the pre-flight bay (site UX spec section 17, OR1 to OR3):
+
+- `Terminal` takes `tabs`, a tab strip after the title, and `body`, which replaces the log
+  with other content such as a source listing (7.2).
+- `Button` takes `focusable`: a disabled button then keeps its tab stop and carries
+  `aria-disabled` with its reason instead of the `disabled` attribute (7.4).
+- The alarm banner of `Alert` takes `message`, a sentence under the code line, and
+  `codeHref`, which renders the code as a link (7.6).
+
 ## 13. Risks
 
 - Amber means both an action and a warning. A reader could take a link for a warning. The
