@@ -1,6 +1,6 @@
 import { Schematic } from '@nexusdi/meridian-ui';
 
-import { cutawayBase } from './art';
+import { cutawayBase, unlitCutawayBase } from './art';
 import { schematicMarkup, seedStates } from './seed-ship';
 
 /**
@@ -13,16 +13,19 @@ export default function Cutaway({
   sizes,
   scope = 'bay',
   className,
+  unlit = false,
 }: {
   sizes: string;
   scope?: string;
   className?: string;
+  /** The bay's unlit base, which the deck view lights. The strip's crops keep the lit one. */
+  unlit?: boolean;
 }) {
   const { rooms, fixtures, doors } = seedStates();
   return (
     <Schematic
       markup={schematicMarkup()}
-      base={cutawayBase(sizes)}
+      base={unlit ? unlitCutawayBase(sizes) : cutawayBase(sizes)}
       rooms={rooms}
       fixtures={fixtures}
       doors={doors}
