@@ -1,6 +1,7 @@
 export type {
   DeckChange,
   DeckEvent,
+  DeckEventMap,
   DeckImage,
   DeckLegend,
   DeckLight,
