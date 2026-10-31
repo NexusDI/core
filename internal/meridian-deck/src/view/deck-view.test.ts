@@ -48,10 +48,14 @@ function setup(options: { slowStart?: boolean } = {}) {
   return { view, host, compositor, start, finishStart: () => release() };
 }
 
+const frames = vi.fn();
+
 beforeEach(() => {
-  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
-    setTimeout(() => callback(0), 0),
-  );
+  frames.mockClear();
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    frames();
+    return setTimeout(() => callback(0), 0);
+  });
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -64,6 +68,8 @@ describe('DeckViewController', () => {
     await view.attach(canvas);
     expect(compositor.mount).toHaveBeenCalledOnce();
     expect(compositor.render).toHaveBeenCalledOnce();
+    // One frame is not enough: the first runs before the paint, the second after it.
+    expect(frames).toHaveBeenCalledTimes(2);
   });
 
   it('attaches again on the same canvas after a detach, and keeps the renderer', async () => {
