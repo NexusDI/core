@@ -119,6 +119,30 @@ describe('src/styles.css', () => {
     },
   );
 
+  describe('the lit schematic', () => {
+    const lit =
+      /\.meridian-schematic--lit \{([^}]*)\}/.exec(schematic)?.[1] ?? '';
+
+    it('drops the room tints and the offline scrim once the canvas presents', () => {
+      for (const name of [
+        'room-powered',
+        'room-unpowered',
+        'room-alarm',
+        'room-alarm-dim',
+        'fixture-offline',
+      ]) {
+        expect(lit).toContain(`--meridian-sv-${name}: transparent;`);
+      }
+    });
+
+    it('keeps the outlines, the hazard bands and the overlay', () => {
+      expect(lit).not.toContain('outline');
+      expect(lit).not.toContain('stroke');
+      expect(lit).not.toContain('--meridian-sv-door');
+      expect(schematic).not.toMatch(/\.meridian-schematic--lit[^{]*overlay/);
+    });
+  });
+
   describe('the painted schematic', () => {
     const painted =
       /\.meridian-schematic--painted \{([^}]*)\}/.exec(schematic)?.[1] ?? '';
@@ -129,15 +153,19 @@ describe('src/styles.css', () => {
       expect(painted).toContain('--meridian-sv-door: transparent;');
     });
 
-    it('lights a powered room with the lamp at 12%', () => {
+    it('lights a powered room with the lamp at 18% over the unlit base', () => {
       expect(painted).toMatch(
-        /--meridian-sv-room-powered: color-mix\(\s*in srgb,\s*var\(--meridian-lamp\) 12%,\s*transparent\s*\);/,
+        /--meridian-sv-room-powered: color-mix\(\s*in srgb,\s*var\(--meridian-lamp\) 18%,\s*transparent\s*\);/,
       );
     });
 
-    it('dims an unpowered room with a scrim of about 60% screen', () => {
+    it('adds no tint to a fixture in a powered room', () => {
+      expect(painted).toContain('--meridian-sv-fixture-powered: transparent;');
+    });
+
+    it('dims an unpowered room with a scrim of about 40% screen', () => {
       expect(painted).toMatch(
-        /--meridian-sv-room-unpowered: color-mix\(\s*in srgb,\s*var\(--meridian-screen\) 60%,\s*transparent\s*\);/,
+        /--meridian-sv-room-unpowered: color-mix\(\s*in srgb,\s*var\(--meridian-screen\) 40%,\s*transparent\s*\);/,
       );
       expect(schematic).toMatch(
         /--meridian-sv-room-unpowered: var\(--meridian-sv-room\);/,

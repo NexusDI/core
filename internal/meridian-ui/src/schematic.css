@@ -103,9 +103,11 @@
  * A painted schematic (site UX spec 9): the picture sets the size, and the
  * cutaway draws over it as a layer of states. The hull is the picture's, so
  * it hides, and a room, fixture or open door with no state draws nothing.
- * Powered is the lamp at 12%, unpowered a scrim of the screen colour, an alarm
- * a tint with a dashed outline of 2 screen pixels, and an offline fixture a
- * scrim with the same outline. A closed door keeps its hazard bands.
+ * Powered is the lamp at 18% over the unlit base, unpowered a scrim of the
+ * screen colour at 40%, an alarm a tint with a dashed outline of 2 screen
+ * pixels, and an offline fixture a scrim with the same outline. A fixture in
+ * a powered room takes no tint, since the base paints its own housing. A
+ * closed door keeps its hazard bands.
  */
 .meridian-schematic__base {
   display: block;
@@ -123,17 +125,13 @@
   --meridian-sv-door: transparent;
   --meridian-sv-room-powered: color-mix(
     in srgb,
-    var(--meridian-lamp) 12%,
+    var(--meridian-lamp) 18%,
     transparent
   );
-  --meridian-sv-fixture-powered: color-mix(
-    in srgb,
-    var(--meridian-lamp) 12%,
-    transparent
-  );
+  --meridian-sv-fixture-powered: transparent;
   --meridian-sv-room-unpowered: color-mix(
     in srgb,
-    var(--meridian-screen) 60%,
+    var(--meridian-screen) 40%,
     transparent
   );
   --meridian-sv-room-alarm: color-mix(
@@ -160,6 +158,32 @@
 .meridian-schematic--painted .meridian-schematic__art {
   position: absolute;
   inset: 0;
+}
+
+/* The lit canvas of the app sits between the picture and the markup. */
+.meridian-schematic__layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.meridian-schematic__layer > :where(canvas) {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+/*
+ * Once the canvas has presented a frame it carries the room light. The room
+ * tints and the offline scrim drop away; the alarm and offline outlines, the
+ * hazard bands and the overlay stay, since they carry state a second way.
+ */
+.meridian-schematic--lit {
+  --meridian-sv-room-powered: transparent;
+  --meridian-sv-room-unpowered: transparent;
+  --meridian-sv-room-alarm: transparent;
+  --meridian-sv-room-alarm-dim: transparent;
+  --meridian-sv-fixture-offline: transparent;
 }
 
 .meridian-schematic--painted .sv-hull {
