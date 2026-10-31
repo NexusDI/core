@@ -23,6 +23,46 @@ const SCHEMATIC = [
   'meridian-schematic.svg',
 ];
 
+const GEOMETRY = [
+  'examples',
+  'meridian-systems',
+  'deck',
+  'meridian.geometry.json',
+];
+
+interface Box {
+  x: [number, number];
+  z: [number, number];
+}
+
+interface Geometry {
+  compartments: { id: string; fixtures: ({ id: string } & Box)[] }[];
+}
+
+/**
+ * The centre of the fixtures `ids` in the side view, in metres: x along the
+ * hull and z up. The ship systems strip anchors its crops and leader lines
+ * here, so no position is typed by hand.
+ */
+export function fixtureCentre(ids: readonly string[]): [number, number] {
+  const geometry = JSON.parse(
+    readFileSync(join(workspaceRoot(), ...GEOMETRY), 'utf8'),
+  ) as Geometry;
+  const fixtures = geometry.compartments.flatMap((room) => room.fixtures);
+  const boxes = ids.map((id) => {
+    const found = fixtures.find((each) => each.id === id);
+    if (!found) throw new Error(`The geometry has no fixture ${id}.`);
+    return found;
+  });
+  const span = (axis: 'x' | 'z') => [
+    Math.min(...boxes.map((box) => box[axis][0])),
+    Math.max(...boxes.map((box) => box[axis][1])),
+  ];
+  const [x0, x1] = span('x');
+  const [z0, z1] = span('z');
+  return [((x0 ?? 0) + (x1 ?? 0)) / 2, ((z0 ?? 0) + (z1 ?? 0)) / 2];
+}
+
 let markup: string | undefined;
 
 /** The cutaway's SVG markup, read from the committed file. */

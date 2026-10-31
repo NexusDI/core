@@ -1,17 +1,9 @@
-import dynamic from 'next/dynamic';
-
+import CopyIsland from './CopyIsland';
 import {
   inCandidacy,
   readReleaseState,
   type ReleaseState,
 } from '../../app/release-state';
-
-/**
- * The tiny client island that copies the command. `next/dynamic` loads it
- * with `import()`, so the route carries no static reference to it (site UX
- * spec 12.1). It renders on the server as a hidden button.
- */
-const CopyButton = dynamic(() => import('./CopyButton'));
 
 let state: ReleaseState | undefined;
 
@@ -60,7 +52,7 @@ export default function InstallLine() {
           </span>
           {command}
         </code>
-        <CopyButton text={command} />
+        <CopyIsland text={command} />
       </div>
       {version ? (
         <p className="nexus-install__note">
