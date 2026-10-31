@@ -495,13 +495,62 @@ def separate_doors(doors, flip):
     return out
 
 
+# The frame of the painted side views: 80 by 20 metres at 25.6 pixels per metre, which is
+# 2048 by 512 pixels. Metres map to the art by u = (x + 5) * 25.6 and v = (17.5 - z) * 25.6.
+SCHEMATIC_FRAME = (-5, -1.5, 80, 20)
+SCHEMATIC_TOP = 17.5
+
+
+def subtract(piece, hole):
+    """The parts of the rectangle `piece` outside the rectangle `hole`, as rectangles.
+
+    A rectangle is (x0, y0, x1, y1). The parts share no area with `hole` or with each other.
+    """
+    px0, py0, px1, py1 = piece
+    hx0, hy0, hx1, hy1 = hole
+    if min(px1, hx1) - max(px0, hx0) <= 1e-9 or min(py1, hy1) - max(py0, hy0) <= 1e-9:
+        return [piece]
+    parts = []
+    if hy0 > py0:
+        parts.append((px0, py0, px1, hy0))
+    if hy1 < py1:
+        parts.append((px0, hy1, px1, py1))
+    top, bottom = max(py0, hy0), min(py1, hy1)
+    if hx0 > px0:
+        parts.append((px0, top, hx0, bottom))
+    if hx1 < px1:
+        parts.append((hx1, top, px1, bottom))
+    return parts
+
+
+def partition_rooms(rects):
+    """Room rectangles that share no area: the smaller rectangle keeps what it covers.
+
+    `rects` holds (room id, (x0, y0, x1, y1)). Side views project boxes at different depths
+    onto one plane, so the chart room covers part of the habitat and the airlock lies inside
+    it. Rectangles go in order of area, then id, and each loses the area a smaller one holds,
+    so a room can come back as several rectangles that carry its id.
+    """
+    ordered = sorted(
+        rects, key=lambda r: ((r[1][2] - r[1][0]) * (r[1][3] - r[1][1]), r[0], r[1])
+    )
+    claimed = []
+    for room, rect in ordered:
+        pieces = [rect]
+        for _, held in claimed:
+            pieces = [part for piece in pieces for part in subtract(piece, held)]
+        claimed += [(room, piece) for piece in pieces]
+    return sorted(claimed, key=lambda c: (c[1][0], c[1][1], c[0]))
+
+
 def schematic_svg(geometry, hull):
     """The side cutaway for the page: the same shapes as the cutaway, with no paint and no labels.
 
     Every part carries a class and a `data-*` id so that CSS alone sets its look and state.
+    The viewBox is the frame of the painted side views, so a part sits where the art paints it.
     """
     side, _ = part_outlines(geometry, hull)
-    flip = lambda z: 16 - z  # noqa: E731
+    flip = lambda z: SCHEMATIC_TOP - z  # noqa: E731
     body = ['<g class="sv-hulls">']
     body += [
         plain_path(volume_side(v, hull), flip, "sv-hull", f'data-volume="{v["id"]}"')
@@ -511,15 +560,27 @@ def schematic_svg(geometry, hull):
         plain_path(p, flip, "sv-hull", f'data-part="exterior-{i}"') for i, p in enumerate(side)
     ]
     body += ["</g>", '<g class="sv-rooms">']
+    rects = []
     for room in geometry["compartments"]:
         for box in room["boxes"]:
             x0, x1 = box["x"]
             z0, z1 = box["z"]
-            body.append(
-                f'<rect class="sv-room" x="{x0 + 0.05:.2f}" y="{flip(z1) + 0.05:.2f}" '
-                f'width="{x1 - x0 - 0.1:.2f}" height="{z1 - z0 - 0.1:.2f}" '
-                f'data-room="{room["id"]}"/>'
+            rects.append(
+                (
+                    room["id"],
+                    (
+                        round(x0 + 0.05, 2),
+                        round(flip(z1) + 0.05, 2),
+                        round(x1 - 0.05, 2),
+                        round(flip(z0) - 0.05, 2),
+                    ),
+                )
             )
+    for room, (x0, y0, x1, y1) in partition_rooms(rects):
+        body.append(
+            f'<rect class="sv-room" x="{x0:.2f}" y="{y0:.2f}" '
+            f'width="{x1 - x0:.2f}" height="{y1 - y0:.2f}" data-room="{room}"/>'
+        )
     body += ["</g>", '<g class="sv-fixtures">']
     body += [plain_fixture(f, flip) for room in geometry["compartments"] for f in room["fixtures"]]
     body += ["</g>", '<g class="sv-doors">']
@@ -530,7 +591,9 @@ def schematic_svg(geometry, hull):
         )
     body.append("</g>")
     return (
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 76 18">\n'
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="'
+        + " ".join(f"{n:g}" for n in SCHEMATIC_FRAME)
+        + '">\n'
         + "\n".join(body)
         + "\n</svg>\n"
     )
