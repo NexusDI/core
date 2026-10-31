@@ -46,12 +46,19 @@ uniform sampler2D uMask;
 uniform vec4 uBounds;
 uniform vec2 uMaskSize;
 uniform float uIndex;
+uniform float uBoost;
 
 void main(void) {
   vec2 pixel = uBounds.xy + vFramePosition * uBounds.zw;
   float index = texture(uMask, pixel / uMaskSize).r * 255.0;
   float inside = step(abs(index - uIndex), 0.5);
-  finalColor = texture(uTexture, vTextureCoord) * inside;
+  vec4 colour = texture(uTexture, vTextureCoord);
+  // The light accumulates at 1 / uBoost of its strength, so the 8-bit target
+  // has headroom. Scaling back by the largest channel keeps the hue where the
+  // lamp and glow tints overlap, and where one channel would otherwise clip first.
+  vec3 lit = colour.rgb * uBoost;
+  lit /= max(1.0, max(lit.r, max(lit.g, lit.b)));
+  finalColor = vec4(mix(colour.rgb, lit, step(1.5, uBoost)), colour.a) * inside;
 }
 `;
 
@@ -65,6 +72,8 @@ export interface RoomClipOptions {
   readonly height: number;
   /** `add` for a pass that lights what it draws over. */
   readonly blendMode?: 'add' | 'normal';
+  /** The factor the accumulated light scales back by, with the hue kept: 1 leaves the pixels alone. */
+  readonly boost?: number;
 }
 
 /** A filter that clips its container to one room of the room mask. */
@@ -84,6 +93,7 @@ export function createRoomClip(options: RoomClipOptions): Filter {
           type: 'vec2<f32>',
         },
         uIndex: { value: options.index, type: 'f32' },
+        uBoost: { value: options.boost ?? 1, type: 'f32' },
       },
     },
     blendMode: options.blendMode ?? 'normal',

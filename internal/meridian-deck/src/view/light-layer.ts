@@ -18,27 +18,29 @@ import { DECK_OPTIONS, DECK_STATE } from '../state/tokens.js';
 import type { IDeckLayer, LayerContext } from './contracts.js';
 import {
   DEFAULT_RAMP_MS,
+  HEADROOM,
   LAMP_GAIN,
   LightModel,
   hexToInt,
-  kindGain,
   lightLevel,
   radialPixels,
   spriteSize,
   tintOf,
 } from './light-math.js';
-import { loadMask } from './mask-source.js';
+import { loadMask, type LoadedMask } from './mask-source.js';
 import { createRoomClip } from './room-clip.js';
 
 /** The light texture renders at half the frame (map runtime 4.9). */
 const LIGHT_SCALE = 0.5;
 const RADIAL_SIZE = 128;
-/** Below this level a sprite is hidden rather than drawn. */
+/** Below this level the layer hides the sprite. */
 const VISIBLE = 0.002;
 
 interface LitLight {
   readonly light: DeckLight;
   readonly sprite: Sprite;
+  /** The lit housing of a light that names a fixture, which follows that fixture's level. */
+  readonly housing: Sprite | undefined;
 }
 
 interface LitRoom {
@@ -46,11 +48,15 @@ interface LitRoom {
   readonly ambient: Sprite;
   readonly lights: readonly LitLight[];
   readonly alarm: Sprite;
+  /** The room's clipped housing pass: the lamp mask and the housings that follow a fixture. */
   readonly emissive: Container;
+  /** The lamp mask's container inside `emissive`, whose level is the room's lamp level. */
+  readonly lamps: Container;
 }
 
+/** A grey at `level` of the light texture's range, which keeps 1 / HEADROOM of the light. */
 const grey = (level: number): number =>
-  Math.round(Math.min(1, Math.max(0, level)) * 255) * 0x010101;
+  Math.round(Math.min(1, Math.max(0, level / HEADROOM)) * 255) * 0x010101;
 
 /**
  * The light (design system 8.2, architect section 5). It renders a
@@ -71,7 +77,8 @@ export class LightLayer implements IDeckLayer {
   private rooms: LitRoom[] = [];
   private lightRoot: Container | undefined;
   private lightTexture: RenderTexture | undefined;
-  private owned: { destroy(): void }[] = [];
+  private owned: Texture[] = [];
+  private masks: LoadedMask[] = [];
   private stopListening: (() => void) | undefined;
   private frame = 0;
 
@@ -84,11 +91,21 @@ export class LightLayer implements IDeckLayer {
     const { scene, slot } = context;
     const { legend, lights } = scene;
     const { width, height } = legend.size;
-    const [roomMask, emissiveMask] = await Promise.all([
+    const loaded = await Promise.allSettled([
       loadMask(scene.masks.rooms),
       loadMask(scene.masks.emissive),
     ]);
-    this.owned.push(roomMask, emissiveMask);
+    const masks = loaded.flatMap((each) =>
+      each.status === 'fulfilled' ? [each.value] : [],
+    );
+    const failed = loaded.find((each) => each.status === 'rejected');
+    if (failed !== undefined || context.signal.aborted) {
+      for (const mask of masks) mask.dispose();
+      if (failed !== undefined) throw failed.reason;
+      context.signal.throwIfAborted();
+    }
+    const [roomMask, emissiveMask] = masks as [LoadedMask, LoadedMask];
+    this.masks = masks;
 
     const glow = new Texture({
       source: new BufferImageSource({
@@ -113,19 +130,20 @@ export class LightLayer implements IDeckLayer {
         bounds[2] - bounds[0],
         bounds[3] - bounds[1],
       );
-      const clip = (blendMode: 'add' | 'normal') =>
+      const clip = (blendMode: 'add' | 'normal', boost = 1) =>
         createRoomClip({
-          mask: roomMask.source,
+          mask: roomMask.texture.source,
           index,
           bounds,
           width,
           height,
           blendMode,
+          boost,
         });
 
       const node = new Container();
       node.filterArea = area;
-      node.filters = [clip('normal')];
+      node.filters = [clip('normal', HEADROOM)];
       const ambient = new Sprite(Texture.WHITE);
       ambient.position.set(area.x, area.y);
       ambient.width = area.width;
@@ -133,6 +151,16 @@ export class LightLayer implements IDeckLayer {
       node.addChild(ambient);
 
       const lit: LitLight[] = [];
+      const housing = new Container();
+      housing.filterArea = area;
+      housing.filters = [clip('add')];
+      const mask = new Sprite(emissiveMask.texture);
+      mask.width = width;
+      mask.height = height;
+      mask.tint = hexToInt(this.options.palette.glow);
+      const lamps = new Container();
+      lamps.addChild(mask);
+      housing.addChild(lamps);
       for (const light of lights) {
         if (light.room !== id) continue;
         const sprite = new Sprite(glow);
@@ -144,7 +172,18 @@ export class LightLayer implements IDeckLayer {
         sprite.height = size.height;
         sprite.position.set(light.centre[0], light.centre[1]);
         node.addChild(sprite);
-        lit.push({ light, sprite });
+        let box: Sprite | undefined;
+        if (light.fixture !== null) {
+          // A housing that follows a fixture has no place in the lamp mask.
+          const [left, top, right, bottom] = light.box;
+          box = new Sprite(Texture.WHITE);
+          box.position.set(Math.floor(left), Math.floor(top));
+          box.width = Math.max(1, Math.ceil(right) - Math.floor(left));
+          box.height = Math.max(1, Math.ceil(bottom) - Math.floor(top));
+          box.tint = hexToInt(this.options.palette.glow);
+          housing.addChild(box);
+        }
+        lit.push({ light, sprite, housing: box });
       }
 
       const alarm = new Sprite(glow);
@@ -157,17 +196,9 @@ export class LightLayer implements IDeckLayer {
       node.addChild(alarm);
       lightRoot.addChild(node);
 
-      const housing = new Container();
-      housing.filterArea = area;
-      housing.filters = [clip('add')];
-      const mask = new Sprite(emissiveMask);
-      mask.width = width;
-      mask.height = height;
-      mask.tint = hexToInt(this.options.palette.glow);
-      housing.addChild(mask);
       emissive.addChild(housing);
 
-      rooms.push({ id, ambient, lights: lit, alarm, emissive: housing });
+      rooms.push({ id, ambient, lights: lit, alarm, emissive: housing, lamps });
     }
 
     const texture = RenderTexture.create({
@@ -226,8 +257,10 @@ export class LightLayer implements IDeckLayer {
     this.frame = 0;
     this.lightRoot?.destroy({ children: true });
     this.lightTexture?.destroy(true);
-    for (const each of this.owned) each.destroy();
+    for (const each of this.owned) each.destroy(true);
     this.owned = [];
+    for (const mask of this.masks) mask.dispose();
+    this.masks = [];
     this.rooms = [];
     this.lightRoot = undefined;
     this.lightTexture = undefined;
@@ -257,20 +290,27 @@ export class LightLayer implements IDeckLayer {
       const levels = model.room(room.id, now);
       if (levels === undefined) continue;
       room.ambient.tint = grey(levels.ambient);
-      room.alarm.alpha = levels.alarm;
-      room.alarm.visible = levels.alarm > VISIBLE;
-      room.emissive.alpha = levels.lamp;
-      room.emissive.visible = levels.lamp > VISIBLE;
-      for (const { light, sprite } of room.lights) {
+      const alarm = levels.alarm / HEADROOM;
+      room.alarm.alpha = alarm;
+      room.alarm.visible = alarm > VISIBLE;
+      room.lamps.alpha = levels.lamp;
+      room.lamps.visible = levels.lamp > VISIBLE;
+      let housed = room.lamps.visible;
+      for (const { light, sprite, housing } of room.lights) {
         const fixture =
           light.fixture === null
             ? undefined
             : model.fixture(light.fixture, now);
-        const level =
-          lightLevel(light, levels, fixture) * kindGain(light.kind) * LAMP_GAIN;
-        sprite.alpha = level;
-        sprite.visible = level > VISIBLE;
+        const level = lightLevel(light, levels, fixture) * light.gain;
+        sprite.alpha = (level * LAMP_GAIN) / HEADROOM;
+        sprite.visible = sprite.alpha > VISIBLE;
+        if (housing !== undefined) {
+          housing.alpha = level;
+          housing.visible = level > VISIBLE;
+          housed ||= housing.visible;
+        }
       }
+      room.emissive.visible = housed;
     }
   }
 }

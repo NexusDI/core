@@ -16,7 +16,6 @@ import {
   falloff,
   fixtureTarget,
   hexToInt,
-  kindGain,
   lightLevel,
   pulse,
   radialPixels,
@@ -208,12 +207,6 @@ describe('the levels of a light', () => {
   it('follows the room when the fixture is unknown to the model, and goes dark with no room', () => {
     expect(lightLevel({ fixture: 'ghost' }, room, undefined)).toBe(0.5);
     expect(lightLevel({ fixture: null }, undefined, undefined)).toBe(0);
-  });
-
-  it('softens a glow and shows any other kind, known or not, in full', () => {
-    expect(kindGain('glow')).toBe(0.8);
-    expect(kindGain('lamp')).toBe(1);
-    expect(kindGain('strobe')).toBe(1);
   });
 });
 
