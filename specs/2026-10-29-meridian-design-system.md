@@ -479,14 +479,14 @@ at run time, and marketing art, which is painted and lit once.
 
 ### 8.1 Views and their sources
 
-| View      | Where                                                                              | Source                                                                                              | Format                            |
-| --------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------- |
-| hero      | front page top, feature pages, Academy hub, demo splash                            | marketing art: a lit paint-over of the `sv01-hero` three-quarter render of `build_ship.py`          | AVIF and WebP, 1x and 2x          |
-| cutaway   | front-page bay, ship systems strip crops                                           | marketing art: the painted `cutaway-cut-a-s211-h375` pass, orthographic at 25.6 px/m (8.3)          | AVIF and WebP, 1024 to 2048 wide  |
-| side      | ship systems strip backdrop, feature pages                                         | marketing art: the painted `side-ext-d-s211-h25-d-clip` pass, the same camera                       | AVIF and WebP, 1024 to 2048 wide  |
-| schematic | front-page state layer, feature-page crops, feature-page crops, docs concept pages | vector: `ship_svg.py`'s side cutaway, with `data-room`, `data-door`, `data-fixture`                 | inline SVG                        |
-| deck map  | the MeridianOS deck view, Academy missions, front-page scenes after 0.4 (11.2)     | runtime art: the layers of 8.2, placed by `SHIP_GEOMETRY` from `@nexusdi/meridian-systems/geometry` | PixiJS v8 canvas plus a DOM layer |
-| icon      | favicon, navbar mark, Ship-note glyph, Academy badges                              | vector: the top silhouette, hand-snapped to the pixel grid at each size                             | SVG, and PNG for the favicon      |
+| View      | Where                                                                          | Source                                                                                              | Format                            |
+| --------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- | --------------------------------- |
+| hero      | front page top, feature pages, Academy hub, demo splash                        | marketing art: a lit paint-over of the `sv01-hero` three-quarter render of `build_ship.py`          | AVIF and WebP, 1x and 2x          |
+| cutaway   | front-page bay, ship systems strip crops                                       | marketing art: the painted `cutaway-cut-a-s211-h375` pass, orthographic at 25.6 px/m (8.3)          | AVIF and WebP, 1024 to 2048 wide  |
+| side      | ship systems strip backdrop, feature pages                                     | marketing art: the painted `side-ext-d-s211-h25-d-clip` pass, the same camera                       | AVIF and WebP, 1024 to 2048 wide  |
+| schematic | front-page state layer, feature-page crops, docs concept pages                 | vector: `ship_svg.py`'s side cutaway, with `data-room`, `data-door`, `data-fixture`                 | inline SVG                        |
+| deck map  | the MeridianOS deck view, Academy missions, front-page scenes after 0.4 (11.2) | runtime art: the layers of 8.2, placed by `SHIP_GEOMETRY` from `@nexusdi/meridian-systems/geometry` | PixiJS v8 canvas plus a DOM layer |
+| icon      | favicon, navbar mark, Ship-note glyph, Academy badges                          | vector: the top silhouette, hand-snapped to the pixel grid at each size                             | SVG, and PNG for the favicon      |
 
 The lit painted exteriors are marketing art for the front page and the feature pages
 alone. Until the paint-over is done, the hero uses the mesh render as it is. The schematic
@@ -758,8 +758,9 @@ screens.
 - `styles.css` adds `.meridian-terminal`, `.meridian-button`, `.meridian-status`,
   `.meridian-alert` and `.meridian-holo`. The package exports `Terminal`, `Button`,
   `Status`, `Alert` and `HoloLabel` beside today's five components.
-- The package exports `Schematic`, `HullCrop`, `Switch` and `StepList` (7.7), and
-  `styles.css` adds their classes.
+- The package exports `Schematic`, `HullCrop`, `Switch` and `StepList` (7.7). Their
+  classes ship in `schematic.css`, a second stylesheet entry that the page drawing them loads
+  beside `styles.css`, so a guide carries none of them.
 - `apps/docs/app/global.css` drops the gradient on `html`, the glass and the blur, and
   maps the Tailwind gray steps onto the new neutral roles. `meridian-theme.ts` derives the
   Nextra primary from `action`. `layout.tsx` adds the condensed family, and

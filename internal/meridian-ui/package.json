@@ -21,7 +21,8 @@
       "import": "./dist/tokens/index.js",
       "default": "./dist/tokens/index.js"
     },
-    "./styles.css": "./dist/styles.css"
+    "./styles.css": "./dist/styles.css",
+    "./schematic.css": "./dist/schematic.css"
   },
   "files": [
     "dist",
