@@ -3,6 +3,7 @@ import { HullCrop } from '@nexusdi/meridian-ui';
 
 import { FRAME, sideBase } from './art';
 import Cutaway from './Cutaway';
+import { fixtureCentre } from './seed-ship';
 import { features, placardOf, type SeedModule } from './features';
 import modulesJson from './fixtures/modules.json';
 
@@ -49,6 +50,7 @@ function cropOf(
  */
 export default function ShipSystems() {
   const backdrop = sideBase(BACKDROP);
+  const anchors = features.map((feature) => fixtureCentre(feature.fixtures));
   const column = (at: number) => FX + (FW * (at + 0.5)) / features.length;
   return (
     <div className="nexus-systems">
@@ -77,17 +79,18 @@ export default function ShipSystems() {
           preserveAspectRatio="none"
         >
           {features.map((feature, at) => {
-            const v = 17.5 - feature.anchor[1];
+            const [ax, az] = anchors[at] ?? [0, 0];
+            const v = 17.5 - az;
             const bend = 18.3 + at * 0.2;
             return (
               <g key={feature.label}>
                 <path
                   className="nexus-systems__leader"
-                  d={`M${feature.anchor[0]},${v} V${bend} H${column(at)} V${FY + FH}`}
+                  d={`M${ax},${v} V${bend} H${column(at)} V${FY + FH}`}
                 />
                 <circle
                   className="nexus-systems__dot"
-                  cx={feature.anchor[0]}
+                  cx={ax}
                   cy={v}
                   r="0.28"
                 />
@@ -107,7 +110,7 @@ export default function ShipSystems() {
               <HullCrop
                 className="nexus-systems__crop"
                 full={[FX, FY, FW, FH]}
-                crop={cropOf(feature.anchor)}
+                crop={cropOf(anchors[at] ?? [0, 0])}
               >
                 <Cutaway sizes={STAGE} scope={`crop-${at}`} />
               </HullCrop>

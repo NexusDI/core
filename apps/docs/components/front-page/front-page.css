@@ -8,7 +8,7 @@
  * furniture (breadcrumb, copy button, plate) for a page that holds a screen.
  */
 
-/* The article of the front page is the bulkhead, not a plate. */
+/* The article of the front page sits on the bulkhead and draws no plate. */
 article:has(.nexus-front__screen) {
   background: transparent;
   box-shadow: none;
@@ -42,29 +42,6 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
-}
-
-/* The skip link to the bay, beside the one Nextra renders (13.8). */
-.nexus-front__skip:not(:focus) {
-  position: absolute;
-  inline-size: 1px;
-  block-size: 1px;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-}
-
-.nexus-front__skip:focus {
-  position: fixed;
-  inset: var(--meridian-space-3) auto auto var(--meridian-space-3);
-  z-index: 60;
-  padding: var(--meridian-space-2) var(--meridian-space-4);
-  background: var(--meridian-plate-raised);
-  border: 1px solid var(--meridian-edge);
-  border-radius: var(--meridian-radius-control);
-  color: var(--meridian-text);
-  font-weight: 600;
-  box-shadow: var(--meridian-elevation-raised);
 }
 
 /* Screens: dark in both themes, full width past the article's padding. */
@@ -220,7 +197,11 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
   cursor: pointer;
 }
 
-.nexus-install__copy[hidden] {
+.nexus-install__slot {
+  display: flex;
+}
+
+.nexus-install__slot:empty {
   display: none;
 }
 
@@ -523,7 +504,7 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
   gap: var(--meridian-space-2);
   margin: 0;
   font-family: var(--meridian-font-mono);
-  font-size: 2.44rem;
+  font-size: var(--meridian-text-h1);
   font-weight: 500;
   line-height: var(--meridian-leading-readout);
   color: var(--meridian-data);
@@ -638,7 +619,7 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
   margin-block-start: var(--meridian-space-2);
 }
 
-.nexus-front__band h3:last-of-type + p {
+.nexus-front__when-skip {
   padding: var(--meridian-space-2) var(--meridian-space-4);
   border-inline-start: 2px solid var(--meridian-edge);
   color: var(--meridian-text-secondary);
@@ -767,6 +748,18 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
 
   .nexus-front__band {
     padding-block: var(--meridian-space-7);
+  }
+
+  /* The command wraps in the strip, so no scrollbar clips it on a phone. */
+  .nexus-install__strip code {
+    padding-inline: var(--meridian-space-3);
+    font-size: 0.8125rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .nexus-install__copy {
+    padding-inline: var(--meridian-space-3);
   }
 
   .nexus-systems__hull {

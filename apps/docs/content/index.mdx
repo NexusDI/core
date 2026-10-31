@@ -13,7 +13,7 @@ import {
   GetStarted,
   Preflight,
   Program,
-  SkipToBay,
+  WhenToSkip,
 } from '../components/front-page/Sections';
 import {
   DependencyCount,
@@ -27,8 +27,6 @@ import {
 
 <Styles />
 
-<SkipToBay />
-
 <Hero>
 
 # If it type-checks and starts, the wiring is right.
@@ -39,7 +37,7 @@ NexusDI is a dependency injection container for TypeScript. It checks every modu
 
 <Preflight>
 
-## Pre-flight check
+## Pre-flight check [#pre-flight-check]
 
 `Nexus.check` reads the whole module graph and reports every wiring fault before anything is built. The ship below passes.
 
@@ -167,7 +165,11 @@ NexusDI suits an application with enough services that wiring them by hand hides
 
 ### When to skip NexusDI
 
+<WhenToSkip>
+
 A script with a handful of objects needs no container, and a framework with its own container already wires its services.
+
+</WhenToSkip>
 
 </Band>
 

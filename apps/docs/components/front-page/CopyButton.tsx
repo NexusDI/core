@@ -1,21 +1,13 @@
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
-
-const noSubscription = () => () => undefined;
+import { useEffect, useState } from 'react';
 
 /**
- * The copy button of the install line. It renders hidden until it has hydrated,
- * since a copy needs script, and the label says what happened. `InstallLine`
- * loads this file with `import()` on use, so no other page carries it.
+ * The copy button of the install line, which `CopyIsland.tsx` loads with
+ * `import()` after hydration. It renders nothing without a clipboard, and its
+ * label and a status line say what happened.
  */
 export default function CopyButton({ text }: { text: string }) {
-  // False on the server and during hydration, true once the browser has a clipboard.
-  const ready = useSyncExternalStore(
-    noSubscription,
-    () => !!navigator.clipboard,
-    () => false,
-  );
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -24,12 +16,13 @@ export default function CopyButton({ text }: { text: string }) {
     return () => clearTimeout(timer);
   }, [copied]);
 
+  if (!navigator.clipboard) return null;
+
   return (
     <>
       <button
         type="button"
         className="nexus-install__copy"
-        hidden={!ready}
         onClick={() => {
           navigator.clipboard.writeText(text).then(
             () => setCopied(true),
