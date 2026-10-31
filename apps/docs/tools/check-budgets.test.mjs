@@ -27,7 +27,10 @@ import {
   ISLAND_MARK,
   checkBehaviour,
   checkBudgets,
+  checkArt,
   checkFonts,
+  ART_BUDGET,
+  HERO_DIR,
   CONDENSED_FONTS,
   FONT_BUDGET,
   scriptsOf,
@@ -348,5 +351,61 @@ describe('checkFonts', () => {
     const { findings } = checkFonts(out, { sources: paths });
     expect(findings).toHaveLength(2);
     expect(findings[0]).toMatch(/over the 20\.5 kB budget/);
+  });
+});
+
+describe('checkArt', () => {
+  /** An export whose media directory holds copies of the art under hashed names. */
+  function exportWith(files) {
+    const out = mkdtempSync(join(tmpdir(), 'budgets-'));
+    dirs.push(out);
+    const media = join(out, '_next', 'static', 'media');
+    mkdirSync(media, { recursive: true });
+    files.forEach((bytes, at) =>
+      writeFileSync(join(media, `hash${at}.p.bin`), bytes),
+    );
+    return out;
+  }
+
+  /** Two source files of `size` bytes each, on disk, with a ceiling of `limit`. */
+  function sources(size, limit) {
+    const dir = mkdtempSync(join(tmpdir(), 'art-'));
+    dirs.push(dir);
+    const names = ['one.avif', 'two.webp'];
+    for (const name of names) writeFileSync(join(dir, name), randomBytes(size));
+    return { dir, budget: Object.fromEntries(names.map((n) => [n, limit])) };
+  }
+
+  const copiesOf = ({ dir, budget }) =>
+    Object.keys(budget).map((name) => readFileSync(join(dir, name)));
+
+  it('holds the committed art inside its rows', () => {
+    for (const [name, limit] of Object.entries(ART_BUDGET)) {
+      expect(readFileSync(join(HERO_DIR, name)).length).toBeLessThanOrEqual(
+        limit,
+      );
+    }
+  });
+
+  it('passes shipped files inside their rows', () => {
+    const art = sources(1000, 1200);
+    const { findings, rows } = checkArt(exportWith(copiesOf(art)), art);
+    expect(findings).toEqual([]);
+    expect(rows.map((row) => row.bytes)).toEqual([1000, 1000]);
+  });
+
+  it('fails a file the export does not ship', () => {
+    const art = sources(1000, 1200);
+    const out = exportWith(copiesOf(art).slice(0, 1));
+    const { findings } = checkArt(out, art);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatch(/^two\.webp: no identical copy/);
+  });
+
+  it('fails a file over its row', () => {
+    const art = sources(1000, 900);
+    const { findings } = checkArt(exportWith(copiesOf(art)), art);
+    expect(findings).toHaveLength(2);
+    expect(findings[0]).toMatch(/one\.avif: 1\.0 kB, over the 0\.9 kB budget/);
   });
 });

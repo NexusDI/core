@@ -101,6 +101,31 @@ export const CONDENSED_FONTS = [500, 600].map((weight) =>
   ),
 );
 
+/**
+ * The ceilings on the hero art (site UX spec 12.2), in bytes. The files are
+ * already compressed, so the size is the transfer size. `tools/hero-art.mjs`
+ * writes them, and each ceiling sits about 20% over the measured file
+ * (measured 9,090 B and 13,274 B at 768 pixels, 20,971 B and 34,812 B at 1536,
+ * and 9,371 B and 14,668 B for the 720 pixel phone crop, AVIF and WebP).
+ */
+export const ART_BUDGET = {
+  'meridian-hero-768.avif': 11_000,
+  'meridian-hero-768.webp': 16_000,
+  'meridian-hero-1536.avif': 25_500,
+  'meridian-hero-1536.webp': 42_000,
+  'meridian-hero-phone-720.avif': 11_500,
+  'meridian-hero-phone-720.webp': 17_600,
+};
+
+/** Where `tools/hero-art.mjs` writes the art that `ART_BUDGET` holds. */
+export const HERO_DIR = join(
+  import.meta.dirname,
+  '..',
+  'components',
+  'front-page',
+  'hero',
+);
+
 export const ISLAND_MARK = 'nexus-console-island';
 export const BACKGROUND_MARK = 'meridian-background';
 
@@ -368,6 +393,40 @@ export function checkFonts(out, { sources = CONDENSED_FONTS } = {}) {
   return { findings, rows };
 }
 
+/**
+ * Holds each hero art file to its row of `ART_BUDGET`. `next` copies a static
+ * import into `out/_next/static/media` under a hashed name, so the check finds
+ * each source file there by its bytes, as `checkFonts` does. A source with no
+ * identical copy in the export was not shipped.
+ */
+export function checkArt(out, { dir = HERO_DIR, budget = ART_BUDGET } = {}) {
+  const media = join(out, '_next', 'static', 'media');
+  let shipped = [];
+  try {
+    shipped = readdirSync(media);
+  } catch {
+    // No media directory: every source reports as not shipped below.
+  }
+  const copies = shipped.map((name) => readFileSync(join(media, name)));
+
+  const rows = [];
+  const findings = [];
+  for (const [name, limit] of Object.entries(budget)) {
+    const bytes = readFileSync(join(dir, name));
+    const found = copies.find((copy) => copy.equals(bytes));
+    rows.push({ file: name, bytes: bytes.length, shipped: Boolean(found) });
+    if (!found)
+      findings.push(
+        `${name}: no identical copy under ${relative(out, media) || media}. components/front-page/HeroArt.tsx must import it statically.`,
+      );
+    if (bytes.length > limit)
+      findings.push(
+        `${name}: ${kB(bytes.length)}, over the ${kB(limit)} budget. Run tools/hero-art.mjs with a lower quality, or raise ART_BUDGET with the new measurement and the reason.`,
+      );
+  }
+  return { findings, rows };
+}
+
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const out = join(import.meta.dirname, '..', 'out');
   const { findings, rows } = checkBudgets(out, {
@@ -405,6 +464,12 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
       `${row.file}: ${kB(row.bytes)}${row.shipped ? '' : ', not in the export'}`,
     );
   findings.push(...fonts.findings);
+  const art = checkArt(out);
+  for (const row of art.rows)
+    console.log(
+      `${row.file}: ${kB(row.bytes)}${row.shipped ? '' : ', not in the export'}`,
+    );
+  findings.push(...art.findings);
   if (findings.length > 0) {
     console.error(findings.join('\n'));
     process.exit(1);
