@@ -153,8 +153,13 @@ describe('the token fold', () => {
     const spans = tokens(tree);
 
     expect(classesOf(codeOf(tree))).toContain(foreground);
+    // A hover token in the foreground keeps its span and its class.
     expect(
-      spans.filter((span) => classesOf(span).includes(foreground)),
+      spans.filter(
+        (span) =>
+          classesOf(span).includes(foreground) &&
+          span.children.every((child) => child.type === 'text'),
+      ),
     ).toEqual([]);
     expect(
       spans.filter(
@@ -202,14 +207,43 @@ describe('the token fold', () => {
     expect(folded).toEqual(plain);
   });
 
+  it('leaves a fence with a query as Shiki wrote it', async () => {
+    const query = {
+      type: 'query',
+      text: 'const SENSORS: Token<IHullSensors>',
+      start: CODE.indexOf('SENSORS ='),
+      length: 'SENSORS'.length,
+      line: 5,
+      character: CODE.split('\n')[5].indexOf('SENSORS'),
+    };
+    const folded = await highlight(CODE, { nodes: [query] });
+    const plain = await highlight(CODE, { fold: false, nodes: [query] });
+
+    expect(JSON.stringify(plain)).toContain('twoslash-query-persisted');
+    expect(folded).toEqual(plain);
+  });
+
+  it('leaves inline code, which has no meta, as Shiki wrote it', async () => {
+    const inline = (fold) =>
+      codeToHast('const pair = [1, 2];', {
+        lang: 'ts',
+        themes: THEMES,
+        defaultColor: false,
+        meta: { __raw: undefined },
+        transformers: [codeClasses(), ...(fold ? [tokenFold()] : [])],
+      });
+
+    expect(await inline(true)).toEqual(await inline(false));
+  });
+
   it('leaves a fence that highlights lines or characters as Shiki wrote it', async () => {
-    for (const meta of ['{2,4}', '/range/', 'filename="probe.ts" {1}']) {
+    for (const meta of ['{2,4}', '/range/', '{1} twoslash']) {
       expect(highlights(meta)).toBe(true);
       expect(await highlight(CODE, { meta })).toEqual(
         await highlight(CODE, { fold: false, meta }),
       );
     }
-    expect(highlights('filename="probe.ts"')).toBe(false);
+    expect(highlights('')).toBe(false);
     expect(highlights('twoslash')).toBe(false);
   });
 });

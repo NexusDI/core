@@ -1,6 +1,7 @@
 /**
- * The classes every highlighted token in a behaviour case carries in place of
- * an inline `style`, and the stylesheet that defines them.
+ * The classes every highlighted token carries in place of an inline `style`,
+ * in a behaviour case and in a page fence, and the stylesheet that defines
+ * them.
  *
  * Shiki writes both themes' colours into every token as
  * `style="--shiki-light:…;--shiki-dark:…"`. A package's cases carry tens of

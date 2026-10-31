@@ -109,7 +109,7 @@ describe('the popup fold', { timeout: 120_000 }, () => {
   /**
    * `token-fold.mjs` through Nextra's real loader: the foreground's class
    * reaches the `<code>` past rehype-pretty-code and Nextra's own plugins,
-   * and no token carries it.
+   * and no plain token carries it. A hover token keeps its class.
    */
   it("folds a page fence's foreground tokens onto its code, through the real loader", async () => {
     const out = await compile(
@@ -123,8 +123,18 @@ describe('the popup fold', { timeout: 120_000 }, () => {
       ` className="${foreground}"`,
       ` className="${foreground}"`,
     ]);
-    expect(out).not.toContain(`<_components.span className="${foreground}"`);
+    expect(out).not.toContain(`<_components.span className="${foreground}">{"`);
     expect(out).toContain('{" ["}');
+  });
+
+  it('keeps the tokens of inline code, whose class Nextra drops, through the real loader', async () => {
+    const out = await compile('Read `const pair = [1, 2];{:ts}` first.\n');
+    const [code] = out.match(
+      /<_components\.code[^>]*>.*?<\/_components\.code>/s,
+    );
+
+    expect(code).not.toContain(`className="${foreground}"><_components.span`);
+    expect(code).toContain(`<_components.span className="${foreground}">{"`);
   });
 
   it('gives a code block in a popup the lines rehype-pretty-code gives every other block', () => {
