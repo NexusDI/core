@@ -1,5 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { shipSystems } from '../../app/ship-systems';
 import { features, placardOf, type SeedModule } from './features';
@@ -7,6 +7,23 @@ import modules from './fixtures/modules.json';
 import { installOf } from './InstallLine';
 import { DependencyCount, PackageList } from './Proof';
 import ShipSystems from './ShipSystems';
+
+// Vitest gives a static image import as a path and Next as an object with its
+// size, so the tests stand in for the module that reads that object.
+vi.mock('./art', () => {
+  const base = (sizes: string) => ({
+    src: '/art.webp',
+    width: 2048,
+    height: 512,
+    sources: [{ type: 'image/webp', srcSet: '/art.webp 2048w' }],
+    sizes,
+  });
+  return {
+    FRAME: [-5, -1.5, 80, 20],
+    cutawayBase: base,
+    sideBase: base,
+  };
+});
 
 describe('the ship systems strip', () => {
   it('links each feature to the page its ship system names', () => {
@@ -32,6 +49,33 @@ describe('the ship systems strip', () => {
     expect(placardOf(by('HTTP adapters'), seed)).toBe(
       'Meridian exports nothing.',
     );
+  });
+
+  it('crops the painted cutaway under each link, each crop its own scope, with the seed lit', () => {
+    const { container } = render(<ShipSystems />);
+    const crops = container.querySelectorAll('.nexus-systems__crop');
+    expect(crops).toHaveLength(7);
+    const scopes = [...crops].map((crop) =>
+      crop.querySelector('[data-schematic]')?.getAttribute('data-schematic'),
+    );
+    expect(new Set(scopes).size).toBe(7);
+    const styles = container.querySelector('.nexus-systems__crop style');
+    expect(styles?.textContent).toContain('[data-room="bridge"]');
+    expect(
+      container.querySelector('.nexus-systems__crop img')?.getAttribute('alt'),
+    ).toBe('');
+  });
+
+  it('draws a leader from each feature to its crop on the side view', () => {
+    const { container } = render(<ShipSystems />);
+    expect(container.querySelectorAll('.nexus-systems__leader')).toHaveLength(
+      7,
+    );
+    expect(
+      container
+        .querySelector('.nexus-systems__hull')
+        ?.getAttribute('aria-hidden'),
+    ).toBe('true');
   });
 
   it('renders a link and a described placard for every feature', () => {
