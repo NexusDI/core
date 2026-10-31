@@ -52,6 +52,7 @@ const meta: MetaRecord = {
   'error-text': { title: 'Full error text' },
   'build-an-extension-point': { title: 'Build an extension point' },
   'write-a-plugin': { title: 'Write a plugin' },
+  'extension-contract': { title: 'Guarantees for plugin and adapter authors' },
   federation: {
     title: 'How do I share tokens between a shell and its remotes?',
   },

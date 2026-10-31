@@ -1,0 +1,121 @@
+---
+title: Guarantees for Plugin and Adapter Authors
+kind: contract
+description: What a NexusDI plugin or adapter can rely on across 0.x, from the plugin API version and the blueprint view to the request type, disposal and the exports map, and the parts that may still change.
+---
+
+# Guarantees for Plugin and Adapter Authors
+
+Plugins and adapters are built against NexusDI and published on independent schedules. This page lists what a plugin or an adapter can rely on beyond the documented exports on [the API reference](/api/). Code that reaches anything else, such as a file under `dist`, can break in any release.
+
+## Stability Tiers
+
+Each section below names its tier.
+
+- **Stable:** The guarantee holds across the 0.x lifecycle. Core breaks a stable plugin guarantee only by raising `NEXUS_PLUGIN_API`, and only in a minor release. See [Write a plugin](/write-a-plugin/) for the versioning rules. Core breaks a stable adapter guarantee only in a new core minor, never in a patch and never after the first release candidate of a minor. The changelog of that minor names each break. A third-party adapter peers on the core minors it supports, such as `>=0.4.0 <0.5.0`. First-party packages peer on the exact version of core, and the packaging check enforces it.
+- **Evolving:** The guarantee may change in a minor release without raising the API version.
+
+## For plugin authors
+
+Plugins interact with the graph through a `BlueprintView` and register hooks via a `NexusPlugin`. For implementation details, see [Write a plugin](/write-a-plugin/).
+
+### The fields and types of the view
+
+**Stable.** The `BlueprintView` provides the following fields: `phase`, `complete`, `root`, `modules`, `providers`, `edges`, `visible()`, and `canonical()`.
+
+Associated views provide these members:
+
+- `ModuleView`: `id`, `name`, `global`, `imports`, `grants`, `exports`, `definition`, and `replaced`.
+- `ProviderView`: `id`, `token`, `written`, `name`, `module`, `kind`, `lifetime`, `eager`, `implementation`, `rewrittenBy`, `inline`, and `unresolved`.
+- `EdgeView`: `from`, `to`, `kind`, `ordersBuild`, and `written`.
+
+Field names and types remain constant in 0.x. A new field keeps the version. A plugin ignores a field it does not know. `ordersBuild` and `inline` are stable fields whose values follow this core's build order.
+
+A plugin needs no copy of a core type: every type that a plugin hook, a `PluginContext` member or a view names is exported from `@nexusdi/core` or `@nexusdi/core/text`.
+
+### Identity
+
+**Stable**, except for the internal format of identifiers.
+
+Module and provider IDs are strings that are unique within a single container. A module the graph holds keeps its ID across a `load()`. A provider keeps its ID under the rule below. Because the specific format (e.g., `m0`, `p0`) is not part of the contract, plugins must never parse IDs.
+
+A held module is a module that the previous blueprint contains. The entry object is the value in the module's `providers` array, such as the result of one `provide()` call. Two providers have an equal recipe when they name the same token and kind, lifetime, class, factory, alias target and value (compared by reference), and list the same dependencies. A provider in a held module keeps its ID when it is the same entry object, or has the same token and an equal recipe, or is the only provider of its token in that module before and after the load. Other providers get a fresh ID and a new build. A provider that a `compile.module` hook drops at one load and adds back at a later one gets a fresh ID and a new instance. A provider that a `compile.provider` hook removes at one load and restores at a later one keeps its ID and builds a new instance.
+
+IDs introduced during a failed load belong to no graph. Trace events for that run name them only within that specific run; subsequent loads may assign the same ID to different providers. Retries of the same load produce the same IDs.
+
+`ModuleView.definition` is the definition object read during the walk (or the replacement provided by a `compile.module` hook). It is compared by identity. The original definition is held in `ModuleView.replaced`. Plugins should use `view.canonical()` to compare tokens, as described in [Write a plugin](/write-a-plugin/). `context.blueprint()` returns a single frozen object per published blueprint, which remains constant until a `load()` changes the graph. The `construct` hook receives the `ProviderView` objects seen by `compile.check` hooks.
+
+### Order
+
+**Stable for lists; evolving for `edges`.**
+
+- **`modules`**: Lists the root first, followed by imports in depth-first order (based on `imports` order), then plugin-added modules, and finally loaded modules in load order.
+- **`providers`**: Lists records in module order, and within each module in `providers` order. Core's own `REQUEST` record belongs to the root module and comes last in `providers`.
+- **`visible(module, token)`**: Lists `MultiToken` contributions in the order returned by `all()` ([Multi-providers](/multi-providers/)), and the IDs of a plain token in lookup order, which is the module's own provider first, then the exports of its imports.
+
+The order of `edges` is not guaranteed.
+
+### Closed and open sets
+
+**Stable for closed sets.** `phase`, `ProviderView.kind`, `ProviderView.lifetime` and `EdgeView.kind` are closed unions: only core adds a member, and each addition raises `NEXUS_PLUGIN_API`. If an existing kind fits a new dependency modifier, core maps the modifier to that kind to preserve the version (e.g., `lazy(all(T))` appears as one `lazy` edge per contribution with `written` set to `T`).
+
+**Evolving for `ProviderView.unresolved[].kind`.** Minor releases may add members; plugins should handle unknown kinds with a default branch. `NexusErrorByCode` and `TraceEventByType` are similarly open sets. Only core adds members to `ErrorTextKit`, and an added member keeps the plugin API version. See [What the trace events promise](/trace-events/) for event tiers.
+
+### Frozen views
+
+**Stable.** Every view and its associated arrays are frozen. Plugins cannot modify the graph through a view because core never reads a view back. `compile.check` runs even after a failed pass, providing `complete: false` and the partially finished components.
+
+### Published contributions, grants and loads
+
+**Stable.** `ModuleView.exports` holds provider IDs and module IDs. For a `MultiToken` named in `exports`, it lists only the module's own contributions and the records pinned under the module. A private contribution has no reader outside its module. A reader is a provider that collects it with `all()`; `visible()` and `get(token, { module })` do not count as readers. `ModuleView.grants` lists the module IDs that a load grant added, and `imports` lists the module's own imports followed by those grants.
+
+A `compile.provider` pin is treated as a publish. A `load()` fails with [NEXUS_LOAD_CONTRIBUTION](/errors/NEXUS_LOAD_CONTRIBUTION/) if the compile publishes a `MultiToken` record or a pin that was not present in the previous blueprint. A module added through `load()` cannot publish a contribution to a `MultiToken`.
+
+A `compile.module` hook that changes a held module keeps the module's ID. A provider the hook adds builds at the load. A load never rebuilds a provider that kept its ID. When a `compile.module` or `compile.provider` hook changes the recipe of a provider that kept its ID, a built singleton keeps its instance, and scoped and transient providers build from the new recipe from then on. This holds for a provider that is the only one of its token and for a `compile.provider` rewrite. When a `compile.module` hook changes a provider in a way that matches no held provider by the rules above, the provider gets a fresh ID and builds anew.
+
+Issue #277 tracks a check that rejects such a change, including a lone multi contribution.
+
+## For adapter authors
+
+Adapters connect a container to a framework or runtime (e.g., a server request scope or a component tree). See [Scope an HTTP request in Node](/node-request-scopes/) for an example. An adapter reaches core only through the `@nexusdi/core` entry point.
+
+### The request type
+
+**Stable.** `NexusRequest` is an interface extended by applications or adapters using:
+`declare module '@nexusdi/core' { interface NexusRequest { ... } }`.
+
+Core publishes this as an empty interface, meaning `{}` is assignable until a declaration adds required fields. `createScope({ request })` consumes the merged type, and the `REQUEST` token resolves to it. Adapters must handle cases where expected fields are absent.
+
+### Disposal
+
+**Stable.** The root's `[Symbol.asyncDispose]()` awaits all in-flight `load()`, `createScope`, and `extend()` calls. These operations dispose of their built assets and reject with `NEXUS_DISPOSED`. Disposal then closes open scopes (newest first) and root instances (reverse creation order). See [Lifecycle and disposal](/lifecycle/).
+
+Subsequent calls to the disposer return the promise of the first call. Once disposal begins, all public methods throw or reject with `NEXUS_DISPOSED`. This is the only core error code that adapters may compare by equality.
+
+A disposer that throws does not stop the root's disposal. When one disposer throws, the root rejects with that error itself. When several throw, the root rejects with a chain built the way `DisposableStack` builds one, with the `error` and `suppressed` fields. On Node 22 the chain is a class that core throws on its own, named `SuppressedError`, which core does not export, so `instanceof SuppressedError` fails there; read the `name` and the two fields.
+
+### Loads and dependencies
+
+**Stable.**
+
+- `loadOnce(container)`: Returns one function per container. It calls `load` once per module and granted set (ignoring order and duplicate grants) and forgets a load that failed, so the next call tries again.
+- `splitLoadEntry`: Splits a `LoadEntry` with core's own rule.
+- `container.validate(deps, options)`: Validates a deps record or array against the root using `LookupOptions`.
+- `scope.resolve(deps)`: Returns `ResolvedDeps<D>` for the provided record.
+
+### First-party packages as the test
+
+**Stable.** Every first-party package, the adapters `@nexusdi/express`, `@nexusdi/fastify`, `@nexusdi/hono`, `@nexusdi/node`, `@nexusdi/react`, `@nexusdi/react-router` and `@nexusdi/vitest` included, reaches core through `@nexusdi/core`. Only `@nexusdi/errors` also uses `@nexusdi/core/text`. Core names no other package, so a third party can do what they do.
+
+## What the package publishes
+
+**Stable.** `@nexusdi/core` publishes only the following subpaths: `.`, `./text`, and `./package.json`. Imports targeting `dist` or `src` will fail to resolve. Core adds a subpath only in a minor release. All exports are documented in the [API reference](/api/), where `AnyToken` and `Class` are provided for use in contribution points.
+
+## The hooks, the codes and the events
+
+These pages cover the parts of the contract that live outside this page.
+
+- **Hook Order:** See [Register a plugin](/plugins/).
+- **Error Codes:** See [Errors](/errors/).
+- **Trace Events:** See [What the trace events promise](/trace-events/).
+- **Extension Points:** See [Build an extension point](/build-an-extension-point/) for `MultiToken` application logic.
