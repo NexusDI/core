@@ -101,7 +101,7 @@ A route whose section is a module of its own registers `di.load(Navigation)` as 
 
 `load()` shares a module already in the graph only when the section imports that same object, so the charts download once. A `navigation()` built over a second `tactical(...)` call would get a second charts module of its own.
 
-A section that cannot import a host module by name takes load imports as the second argument: `di.load(Navigation, { imports: [Tactical] })`. `Navigation` and each module of its subtree that the graph did not hold then see the exports of `Tactical`, the module object the root imports. [Adding Modules After Startup](/load/#giving-a-loaded-plugin-access-to-host-services) covers the rules of a load import.
+`di.load(Navigation, { imports: [Tactical] })` passes load imports for a section that cannot import a host module by name. `Navigation` and each module of its subtree that the graph did not hold then see the exports of `Tactical`, the module object the root imports. [Adding Modules After Startup](/load/#giving-a-loaded-plugin-access-to-host-services) covers the rules of a load import.
 
 ## Test a Loader with a Scope It Owns
 
