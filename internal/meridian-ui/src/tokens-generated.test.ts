@@ -56,6 +56,13 @@ describe('renderTokensCss', () => {
     expect(css).not.toContain('--meridian-tracking-micro');
   });
 
+  it('gives every family a fallback inside var() for an unset variable', () => {
+    expect(css).toContain("var(--font-display, 'Space Grotesk')");
+    expect(css).toContain("var(--font-body, 'IBM Plex Sans')");
+    expect(css).toContain("var(--font-condensed, 'IBM Plex Sans Condensed')");
+    expect(css).toContain("var(--font-mono, 'IBM Plex Mono')");
+  });
+
   it('removes the superseded roles', () => {
     expect(css).not.toMatch(/signal|status-pass|status-fail|nebula|hull/);
   });
