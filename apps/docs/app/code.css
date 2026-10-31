@@ -1,0 +1,209 @@
+/*
+ * Code (site UX spec 13.3). A fence follows the reader's theme with the GitHub
+ * colours `tools/code-classes.mjs` pins. It sits on `plate` with a `seam`
+ * border. Nextra's copy button stays, as a `quiet` button. Program output is a
+ * terminal, which stays dark in both themes.
+ */
+article .nextra-code:not(code) {
+  position: relative;
+}
+
+article pre {
+  padding-block: var(--meridian-space-4);
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-plate);
+  background: var(--meridian-plate);
+  box-shadow: inset 0 1px 0 var(--meridian-elevation-highlight);
+  --tw-ring-shadow: 0 0 #0000;
+  color: var(--meridian-text);
+  font-family: var(--meridian-font-mono);
+}
+
+article pre code {
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-code);
+  line-height: var(--meridian-leading-code);
+}
+
+/* Inline code sits on the page's plate with a seam, so it reads as a symbol. */
+article :is(p, li, td, th) > code.nextra-code:not([class*='twoslash-']) {
+  padding: 0.05em 0.35em;
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-chip);
+  background: var(--meridian-bulkhead);
+  color: var(--meridian-text);
+}
+
+/*
+ * Nextra's copy and wrap buttons, restyled as `quiet` buttons (design system
+ * 7.4): no face, no border, `action` text. They stay hidden until the fence
+ * has hover or focus, as Nextra draws them, and a focused one shows.
+ */
+article pre > div:first-child {
+  gap: var(--meridian-space-1);
+}
+
+article pre > div:first-child > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 1.75rem;
+  min-block-size: 1.75rem;
+  border: 1px solid transparent;
+  border-radius: var(--meridian-radius-control);
+  background: var(--meridian-plate-raised);
+  color: var(--meridian-action);
+}
+
+article pre > div:first-child > button:hover {
+  border-color: var(--meridian-edge);
+}
+
+@media (pointer: coarse) {
+  article pre > div:first-child > button {
+    min-inline-size: 2.75rem;
+    min-block-size: 2.75rem;
+  }
+
+  article pre > div:first-child {
+    opacity: 1;
+  }
+}
+
+/*
+ * A fence from a region: the file's name in a placard at the head of the
+ * fence, and the copy button at the head's end.
+ */
+.nexus-source {
+  position: relative;
+  margin-block: var(--meridian-space-5);
+}
+
+.nexus-source__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--meridian-space-3);
+  margin: 0;
+  padding: var(--meridian-space-1) var(--meridian-space-4);
+  min-block-size: 2rem;
+  border: 1px solid var(--meridian-seam);
+  border-block-end: 0;
+  border-start-start-radius: var(--meridian-radius-plate);
+  border-start-end-radius: var(--meridian-radius-plate);
+  background: var(--meridian-plate-raised);
+  color: var(--meridian-text-secondary);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  line-height: 1.75rem;
+}
+
+.nexus-source__file {
+  color: var(--meridian-text);
+  font-weight: 600;
+}
+
+.nexus-source__region {
+  color: var(--meridian-text-tertiary);
+  font-weight: 500;
+}
+
+.nexus-source .nextra-code {
+  margin: 0;
+}
+
+.nexus-source pre {
+  margin: 0;
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+
+/* The buttons move into the head band, at its end. */
+.nexus-source pre > div:first-child {
+  inset-block-start: calc(-2rem + 0.125rem);
+  inset-inline-end: var(--meridian-space-2);
+  opacity: 1;
+}
+
+.nexus-source pre {
+  overflow: visible;
+}
+
+.nexus-source pre > code {
+  display: block;
+  overflow-x: auto;
+}
+
+/*
+ * A tagged fence keeps the label Listing.tsx gives it: a placard with the Note
+ * glyph (13.3).
+ */
+.nexus-listing .nexus-listing__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--meridian-space-2);
+  margin: 0;
+  padding: var(--meridian-space-1) var(--meridian-space-3);
+  border: 1px solid var(--meridian-seam);
+  border-block-end: 0;
+  border-start-start-radius: var(--meridian-radius-plate);
+  border-start-end-radius: var(--meridian-radius-plate);
+  background: var(--meridian-plate-raised);
+  color: var(--meridian-text-secondary);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 600;
+}
+
+.nexus-listing .nexus-listing__label svg {
+  flex: none;
+}
+
+.nexus-listing > .nextra-code {
+  margin-block-start: 0;
+}
+
+.nexus-listing > .nextra-code pre,
+.nexus-listing > pre {
+  border-start-start-radius: 0;
+}
+
+/* Program output: a terminal, dark in both themes (design system 7.2). */
+.nexus-output__text {
+  margin: 0;
+  padding: var(--meridian-space-4);
+  overflow-x: auto;
+  background: var(--meridian-screen);
+  color: var(--meridian-screen-text);
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-code);
+  line-height: var(--meridian-leading-code);
+  white-space: pre;
+}
+
+article .nexus-output {
+  margin-block: var(--meridian-space-5);
+}
+
+/* Twoslash type cards sit on the raised plate (13.3). */
+.twoslash-popup-container,
+.nexus-type-card {
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-control);
+  background: var(--meridian-plate-raised);
+  box-shadow: var(--meridian-elevation-raised);
+  color: var(--meridian-text);
+  backdrop-filter: none;
+}
+
+@media (forced-colors: active) {
+  article pre,
+  .nexus-source__head,
+  .nexus-listing__label,
+  .twoslash-popup-container,
+  .nexus-type-card {
+    border: 1px solid CanvasText;
+    box-shadow: none;
+    background: Canvas;
+    color: CanvasText;
+  }
+}

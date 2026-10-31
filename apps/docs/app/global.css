@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 @import '@nexusdi/meridian-ui/styles.css';
+@import './chrome.css';
+@import './code.css';
 
 /*
  * next-themes writes the theme onto <html> as a class. Tailwind's dark:
@@ -83,12 +85,6 @@ html body {
  * plate (design system spec 6.3). The chamfered plate arrives with the chrome
  * restyle.
  */
-.nextra-navbar,
-.nextra-skip-nav,
-.nextra-sidebar,
-.nextra-toc,
-.nextra-footer,
-footer,
 article {
   background-color: var(--meridian-plate);
 }
@@ -136,28 +132,6 @@ summary {
   ::view-transition-new(*) {
     animation: none;
   }
-}
-
-/*
- * The release notice above a page's H1 (ReleaseNotice, spec §5.1): a strip on
- * the plate with a neutral edge and a condensed micro label.
- */
-.nexus-release {
-  margin-block: 0 var(--meridian-space-5);
-  padding: var(--meridian-space-2) var(--meridian-space-4);
-  border-inline-start: 2px solid var(--meridian-edge);
-  border-radius: var(--meridian-radius-chip);
-  background: var(--meridian-plate);
-  color: var(--meridian-text-secondary);
-  font-family: var(--meridian-font-condensed);
-  font-size: var(--meridian-text-micro);
-  line-height: var(--meridian-leading-micro);
-}
-
-.nexus-release a {
-  color: var(--meridian-action);
-  text-decoration: underline;
-  text-underline-offset: 2px;
 }
 
 /* The navbar carries the theme switch on every page, so the sidebar's copy is

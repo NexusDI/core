@@ -26,6 +26,7 @@
   flex: 1 1 12rem;
   min-inline-size: 0;
   padding: var(--meridian-space-2) var(--meridian-space-3);
+  min-block-size: 2rem;
   border: 1px solid var(--meridian-edge);
   border-radius: var(--meridian-radius-control);
   background: var(--meridian-plate);
@@ -33,14 +34,82 @@
   font: inherit;
 }
 
-.nexus-api-filter__kind {
-  cursor: pointer;
-  background: transparent;
+@media (pointer: coarse) {
+  .nexus-api-filter__query {
+    min-block-size: 2.75rem;
+  }
 }
 
-.nexus-api-filter__kind[aria-pressed='false'] {
+/*
+ * A kind toggle is a rocker (design system 7.4): a checkbox with the switch
+ * role, a two-position track and the word "on" or "off" beside it.
+ * TODO(Switch): `Switch` from @nexusdi/meridian-ui replaces this markup and
+ * these rules when the component lands (design system 7.7).
+ */
+.nexus-api-filter__kind {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--meridian-space-2);
+  min-block-size: 1.5rem;
+  padding-inline: var(--meridian-space-2);
+  background: transparent;
+  cursor: pointer;
+}
+
+.nexus-api-filter__switch {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.nexus-api-filter__rocker {
+  position: relative;
+  flex: none;
+  inline-size: 1.75rem;
+  block-size: 1rem;
+  border: 1px solid var(--meridian-edge);
+  border-radius: var(--meridian-radius-control);
+  background: var(--meridian-plate);
+}
+
+.nexus-api-filter__rocker::after {
+  content: '';
+  position: absolute;
+  inset-block: 2px;
+  inset-inline-start: 2px;
+  inline-size: 0.625rem;
+  border-radius: 1px;
+  background: var(--meridian-edge);
+  transition: inset-inline-start var(--meridian-motion-interaction)
+    var(--meridian-motion-curve);
+}
+
+.nexus-api-filter__switch:checked ~ .nexus-api-filter__rocker::after {
+  inset-inline-start: calc(100% - 0.625rem - 2px);
+  background: var(--meridian-text);
+}
+
+.nexus-api-filter__switch:focus-visible ~ .nexus-api-filter__rocker {
+  outline: 2px solid var(--meridian-focus);
+  outline-offset: 2px;
+}
+
+.nexus-api-filter__kind::after {
+  content: 'on';
+  order: 3;
   color: var(--meridian-text-tertiary);
-  border-color: var(--meridian-seam);
+  font-size: var(--meridian-text-micro);
+}
+
+.nexus-api-filter__kind:has(.nexus-api-filter__switch:not(:checked))::after {
+  content: 'off';
+}
+
+.nexus-api-filter__kind:has(.nexus-api-filter__switch:not(:checked)) {
+  color: var(--meridian-text-tertiary);
   border-style: dashed;
 }
 
@@ -48,8 +117,15 @@
  * An off kind is struck through and its border dashed, so its state reads
  * without the hue.
  */
-.nexus-api-filter__kind[aria-pressed='false'] .nexus-api-filter__kind-label {
+.nexus-api-filter__kind:has(.nexus-api-filter__switch:not(:checked))
+  .nexus-api-filter__kind-label {
   text-decoration: line-through;
+}
+
+@media (pointer: coarse) {
+  .nexus-api-filter__kind {
+    min-block-size: 2.75rem;
+  }
 }
 
 .nexus-api-filter__kind-count {

@@ -1,5 +1,6 @@
 import { generateStaticParamsFor, importPage } from 'nextra/pages';
 
+import { bandOf } from '../../bands';
 import ReleaseNotice from '../../../components/ReleaseNotice';
 import { useMDXComponents as getMDXComponents } from '../../../mdx-components';
 import { readBasePath, readChannel } from '../../channel';
@@ -41,7 +42,16 @@ export async function generateMetadata(props: PageProps) {
 
 let state: ReleaseState | undefined;
 
-const Wrapper = getMDXComponents().wrapper;
+const { wrapper: Wrapper, h1: ThemeH1 } = getMDXComponents();
+
+/**
+ * A code page's H1 outranks every other match in the search index, so a search
+ * for `NEXUS_MISSING_PROVIDER` returns its code page first (site UX spec
+ * 13.5).
+ */
+function CodeH1(props: React.ComponentProps<'h1'>) {
+  return <ThemeH1 {...props} data-pagefind-weight="10" />;
+}
 
 export default async function Page(props: PageProps) {
   const params = await props.params;
@@ -52,6 +62,8 @@ export default async function Page(props: PageProps) {
     sourceCode,
   } = await importPage(params.mdxPath);
 
+  const band = bandOf(params.mdxPath?.[0] ?? 'index');
+
   state ??= readReleaseState(process.cwd());
   const notice = releaseNotice(state, readChannel());
 
@@ -60,7 +72,16 @@ export default async function Page(props: PageProps) {
       {notice ? (
         <ReleaseNotice text={notice} candidate={inCandidacy(state)} />
       ) : null}
-      <MDXContent {...props} params={params} />
+      {band ? (
+        <span hidden data-pagefind-filter="band[data-band]" data-band={band} />
+      ) : null}
+      <MDXContent
+        {...props}
+        params={params}
+        {...((metadata as { kind?: string }).kind === 'code'
+          ? { components: { h1: CodeH1 } }
+          : {})}
+      />
     </Wrapper>
   );
 }

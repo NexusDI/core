@@ -28,7 +28,7 @@ for (const theme of ['dark', 'light'] as const) {
 
 for (const theme of ['dark', 'light'] as const) {
   for (const path of PAGES) {
-    test(`every text node on ${path} sits on a surface of at least 0.86 alpha in ${theme} mode`, async ({
+    test(`every text node on ${path} sits on an opaque surface in ${theme} mode`, async ({
       page,
     }) => {
       await page.emulateMedia({ colorScheme: theme });
@@ -66,11 +66,16 @@ for (const theme of ['dark', 'light'] as const) {
           if (element.closest('[aria-hidden="true"], script, style, noscript'))
             continue;
           // A tint (inline code, the active sidebar link) sits on the surface
-          // behind it, so the walk continues past a partial alpha.
+          // behind it, so the walk continues past a partial alpha. The walk
+          // ends at the root, whose flat bulkhead is the last surface.
           let surface: Element | null = element;
           let alpha = 0;
-          while (surface && surface !== document.documentElement) {
-            alpha = alphaOf(getComputedStyle(surface).backgroundColor);
+          while (surface) {
+            const computed = getComputedStyle(surface);
+            alpha =
+              computed.backgroundImage === 'none'
+                ? alphaOf(computed.backgroundColor)
+                : 0;
             if (alpha >= 0.86) break;
             surface = surface.parentElement;
           }
@@ -96,13 +101,16 @@ for (const theme of ['dark', 'light'] as const) {
 }
 
 for (const theme of ['dark', 'light'] as const) {
-  test(`html paints the ground gradient in ${theme} mode`, async ({ page }) => {
+  test(`html paints the flat bulkhead in ${theme} mode`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: theme });
     await page.goto('/next/');
-    const image = await page.evaluate(
-      () => getComputedStyle(document.documentElement).backgroundImage,
-    );
-    expect(image).toContain('linear-gradient');
+    const ground = await page.evaluate(() => {
+      const style = getComputedStyle(document.documentElement);
+      return { image: style.backgroundImage, colour: style.backgroundColor };
+    });
+    // The design system has no gradient: the ground is one opaque colour.
+    expect(ground.image).toBe('none');
+    expect(ground.colour).toMatch(/^rgb\(/);
   });
 }
 

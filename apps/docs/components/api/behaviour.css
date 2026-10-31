@@ -13,10 +13,17 @@
  * with the keyboard has the selection behind them and the source in front.
  */
 .nexus-behaviours__title {
-  font-family: var(--meridian-font-display);
-  font-size: var(--meridian-text-small);
+  flex: none;
+  display: flex;
+  align-items: center;
+  min-block-size: 2rem;
+  margin: 0 0 var(--meridian-space-3);
+  padding: var(--meridian-space-1) var(--meridian-space-3);
+  border-block-end: 1px solid var(--meridian-seam);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 600;
   color: var(--meridian-text);
-  margin: 0;
 }
 
 /*
@@ -33,7 +40,8 @@
   font-size: var(--meridian-text-micro);
   line-height: var(--meridian-leading-body);
   color: var(--meridian-text-secondary);
-  background: var(--meridian-plate-raised);
+  background: var(--meridian-plate);
+  border: 1px solid var(--meridian-seam);
   border-radius: var(--meridian-radius-control);
   padding: var(--meridian-space-3);
   margin: 0;

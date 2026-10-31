@@ -36,7 +36,9 @@
   border: 0;
   background: none;
   color: inherit;
-  font-family: var(--meridian-font-display);
+  font-family: var(--meridian-font-mono);
+  font-size: 0.85em;
+  font-weight: 500;
 }
 
 .nexus-api-entry__signature :where(pre),
@@ -91,4 +93,24 @@
 
 .nexus-api-entry__states--silent {
   border-inline-start-style: dashed;
+}
+
+/*
+ * A lifetime shows as its word and its glyph in the data colour (design
+ * system 4.6); `components/chrome/LifetimeMark.tsx` renders it.
+ */
+.nexus-lifetime {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--meridian-space-2);
+  color: var(--meridian-data);
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-code);
+}
+
+/* The code cells of /api-errors/ are codes: Plex Mono, linking the code page. */
+article table a[href*='/errors/NEXUS_'],
+article table a[href*='/errors/NEXUS_'] code {
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-code);
 }
