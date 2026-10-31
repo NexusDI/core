@@ -4,15 +4,47 @@ kind: overview
 description: NexusDI is a dependency injection container for TypeScript that checks the whole module graph when the container starts.
 ---
 
-# NexusDI
+import Hero from '../components/front-page/Hero';
+import InstallLine from '../components/front-page/InstallLine';
+import ShipSystems from '../components/front-page/ShipSystems';
+import {
+  Band,
+  GetStarted,
+  Preflight,
+  Program,
+  SkipToBay,
+} from '../components/front-page/Sections';
+import {
+  DependencyCount,
+  PackageList,
+  ProbeNote,
+  Readout,
+  Readouts,
+  StartupCell,
+  StartupRow,
+} from '../components/front-page/Proof';
 
-NexusDI is a dependency injection container for TypeScript that checks the whole module graph when the container starts. After startup every `get()` is synchronous, and every wiring mistake has already been reported with its code.
+<SkipToBay />
 
-The eight-provider benchmark app built with NexusDI is <Figure of="size.nexusdi.plain.esbuild.gzip" /> minified and gzipped by esbuild. [NexusDI compared](/comparison/) sets that figure beside the same app built with four other containers.
+<Hero>
 
-## What NexusDI does when the container starts
+# If it type-checks and starts, the wiring is right.
 
-`Nexus.create` compiles every module, provider and dependency before it builds anything, then builds every singleton and awaits every async factory. A missing provider, a dependency cycle, a lifetime mistake or an invalid provider fails `create` in one error that lists every problem it found. When `create` resolves, the container is sealed, and `get()` returns an instance with no `await`. `@nexusdi/core` has no runtime dependencies.
+NexusDI is a dependency injection container for TypeScript. It checks every module, provider and dependency before it builds anything.
+
+</Hero>
+
+<Preflight>
+
+## Pre-flight check
+
+`Nexus.check` reads the whole module graph and reports every wiring fault before anything is built. The ship below passes.
+
+</Preflight>
+
+<Band>
+
+<Program>
 
 This program builds the Starship Meridian: five modules, an option passed through `forRoot()`, an async factory and a transient drone. It runs as written with `npx tsx meridian.ts`.
 
@@ -20,11 +52,105 @@ This program builds the Starship Meridian: five modules, an option passed throug
 
 ```
 
-NexusDI needs no `experimentalDecorators` or `emitDecoratorMetadata` setting. A class lists its dependencies in `static deps`, and TypeScript checks that list against the constructor. Decorators are optional and come from `@nexusdi/decorators`. [NexusDI compared](/comparison/) shows the result under each toolchain the benchmarks run.
+The [Modules](/modules/) page shows what `Nexus.create` reports when a module keeps a token private.
 
-Try it: save the program as `meridian.ts` in the project from [Getting started](/getting-started/) and run it. The terminal prints the plotted course. The [Modules](/modules/) page shows what `Nexus.create` reports when a module keeps a token private.
+</Program>
 
-## When to reach for NexusDI
+</Band>
+
+<Band>
+
+## Type-checks
+
+TypeScript checks each `deps` list against its constructor. You need no compiler flag and no decorator.
+
+```ts twoslash
+// @errors: 2769
+import { Token, defineModule, provide } from '@nexusdi/core';
+
+interface IReactorCore {
+  readonly output: number;
+}
+interface ISubspaceLink {
+  send(message: string): string;
+}
+interface IShipComputer {
+  status(): string;
+}
+
+const REACTOR = new Token<IReactorCore>('ReactorCore');
+const SUBSPACE_LINK = new Token<ISubspaceLink>('SubspaceLink');
+const COMPUTER = new Token<IShipComputer>('ShipComputer');
+// ---cut---
+class QuantumComputer implements IShipComputer {
+  static deps = [SUBSPACE_LINK] as const;
+  constructor(private readonly reactor: IReactorCore) {}
+  status() {
+    return `Reactor output ${this.reactor.output} GW.`;
+  }
+}
+
+export const Engineering = defineModule({
+  name: 'Engineering',
+  providers: [provide(COMPUTER, { useClass: QuantumComputer })],
+  exports: [COMPUTER],
+});
+```
+
+The error comes from the compiler at build time. No TypeScript loads in your browser. [How providers declare their deps](/providers/)
+
+</Band>
+
+<Band wide>
+
+## Ship systems
+
+Each feature lives in one part of the ship. Open a section to see the feature at work.
+
+<ShipSystems />
+
+</Band>
+
+<Band>
+
+## Proof
+
+Each figure comes from the benchmark harness, with the run it came from. The [comparison page](/comparison/) holds the method and every raw result.
+
+<Readouts>
+
+<Readout unit="gzipped, esbuild" href="/comparison/" link="How it is measured">
+  <Figure of="size.nexusdi.plain.esbuild.gzip" />
+</Readout>
+
+<Readout unit="runtime dependencies" href="/comparison/" link="Comparison">
+  <DependencyCount />
+</Readout>
+
+</Readouts>
+
+<StartupRow run="2026-10-25-f824f4a">
+  <StartupCell name="NexusDI">
+    <Figure
+      of="timings.nexusdi.plain.cold-start.median"
+      run="2026-10-25-f824f4a"
+    />
+  </StartupCell>
+  <StartupCell name="InversifyJS">
+    <Figure
+      of="timings.inversify.decorated.cold-start.median"
+      run="2026-10-25-f824f4a"
+    />
+  </StartupCell>
+</StartupRow>
+
+<ProbeTable
+  probes={['missing-provider', 'two-mistakes', 'cycle', 'captive-scoped']}
+/>
+
+<ProbeNote />
+
+### When to reach for NexusDI
 
 NexusDI suits an application with enough services that wiring them by hand hides mistakes until a code path runs. These four cases gain the most:
 
@@ -33,14 +159,25 @@ NexusDI suits an application with enough services that wiring them by hand hides
 3. Resources that must shut down in dependency order, through `await using` and `Symbol.asyncDispose`.
 4. Tests that replace one service and keep the rest of the real graph, through `@nexusdi/testing`.
 
-## When to skip NexusDI
+### When to skip NexusDI
 
-A script with a handful of objects needs no container: a few `new` calls in one file are clearer. A framework with its own container, such as NestJS or Angular, already wires its services, and NexusDI would add a second container beside the first.
+A script with a handful of objects needs no container, and a framework with its own container already wires its services.
 
-## Where to start with NexusDI
+</Band>
 
-- [Getting started](/getting-started/) installs the release candidate and builds a first ship.
+<Band>
+
+## Install
+
+<InstallLine />
+
+<PackageList />
+
+<GetStarted />
+
 - [Tokens and interfaces](/tokens/) opens the Concepts band, which teaches one mechanism per page.
 - [Try the 0.4 release candidate](/release-candidate/) explains the RC and how to report a problem.
 - [Upgrade from 0.3 to 0.4](/upgrade/) maps each 0.3 API to its 0.4 form.
 - [Error codes](/api-errors/) lists every code NexusDI raises, with a page for each.
+
+</Band>

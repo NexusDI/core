@@ -41,6 +41,7 @@
     "components/**/*.tsx",
     "tools/**/*.mjs",
     "generated/*.json",
+    "components/front-page/fixtures/*.json",
     "next-env.d.ts",
     ".next/types/**/*.ts",
     "mdx-components.js",
