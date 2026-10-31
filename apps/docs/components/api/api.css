@@ -27,11 +27,6 @@
   min-inline-size: 0;
   padding: var(--meridian-space-2) var(--meridian-space-3);
   min-block-size: 2rem;
-  border: 1px solid var(--meridian-edge);
-  border-radius: var(--meridian-radius-control);
-  background: var(--meridian-plate);
-  color: var(--meridian-text);
-  font: inherit;
 }
 
 @media (pointer: coarse) {

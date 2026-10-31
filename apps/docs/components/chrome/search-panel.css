@@ -11,10 +11,10 @@
   inline-size: min(36rem, calc(100vw - 2rem));
   max-block-size: min(70vh, 30rem);
   overflow-y: auto;
-  border: 1px solid var(--meridian-seam);
-  border-radius: var(--meridian-radius-plate);
   background: var(--meridian-plate-raised);
   box-shadow: var(--meridian-elevation-raised);
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-plate);
 }
 
 .nexus-search__panel[hidden] {
@@ -80,10 +80,6 @@
   margin: 0;
   padding: var(--meridian-space-2) var(--meridian-space-3)
     var(--meridian-space-1);
-  color: var(--meridian-text-secondary);
-  font-family: var(--meridian-font-condensed);
-  font-size: var(--meridian-text-placard);
-  font-weight: 600;
 }
 
 .nexus-search__group + .nexus-search__group {
@@ -109,15 +105,6 @@
 .nexus-search__hit:hover,
 .nexus-search__hit[data-active] {
   background: var(--meridian-plate);
-}
-
-.nexus-search__hit[data-active]::before {
-  content: '';
-  position: absolute;
-  inset-block: 0.15rem;
-  inset-inline-start: 0;
-  inline-size: 2px;
-  background: var(--meridian-edge);
 }
 
 .nexus-search__title {

@@ -118,7 +118,6 @@ article::before {
 article::after {
   inset: 1px;
   background: var(--meridian-plate);
-  box-shadow: inset 0 1px 0 var(--meridian-elevation-highlight);
   clip-path: polygon(
     calc(var(--meridian-chamfer) - 0.586px) 0,
     100% 0,
@@ -126,6 +125,7 @@ article::after {
     0 100%,
     0 calc(var(--meridian-chamfer) - 0.586px)
   );
+  box-shadow: inset 0 1px 0 var(--meridian-elevation-highlight);
 }
 
 @media (forced-colors: active) {

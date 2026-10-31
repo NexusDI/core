@@ -70,6 +70,16 @@ article pre > div:first-child > button:hover {
   }
 }
 
+/* The tab above a fence: the file-name placard and the tagged-fence label. */
+.nexus-source__head,
+.nexus-listing .nexus-listing__label {
+  border: 1px solid var(--meridian-seam);
+  border-block-end: 0;
+  border-start-start-radius: var(--meridian-radius-plate);
+  border-start-end-radius: var(--meridian-radius-plate);
+  background: var(--meridian-plate-raised);
+}
+
 /*
  * A fence from a region: the file's name in a placard at the head of the
  * fence, and the copy button at the head's end.
@@ -86,14 +96,6 @@ article pre > div:first-child > button:hover {
   margin: 0;
   padding: var(--meridian-space-1) var(--meridian-space-4);
   min-block-size: 2rem;
-  border: 1px solid var(--meridian-seam);
-  border-block-end: 0;
-  border-start-start-radius: var(--meridian-radius-plate);
-  border-start-end-radius: var(--meridian-radius-plate);
-  background: var(--meridian-plate-raised);
-  color: var(--meridian-text-secondary);
-  font-family: var(--meridian-font-condensed);
-  font-size: var(--meridian-text-placard);
   line-height: 1.75rem;
 }
 
@@ -143,15 +145,6 @@ article pre > div:first-child > button:hover {
   gap: var(--meridian-space-2);
   margin: 0;
   padding: var(--meridian-space-1) var(--meridian-space-3);
-  border: 1px solid var(--meridian-seam);
-  border-block-end: 0;
-  border-start-start-radius: var(--meridian-radius-plate);
-  border-start-end-radius: var(--meridian-radius-plate);
-  background: var(--meridian-plate-raised);
-  color: var(--meridian-text-secondary);
-  font-family: var(--meridian-font-condensed);
-  font-size: var(--meridian-text-placard);
-  font-weight: 600;
 }
 
 .nexus-listing .nexus-listing__label svg {
