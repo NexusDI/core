@@ -6,12 +6,13 @@
   },
   "pixelsPerMetre": 25.6,
   "origin": [128, 448],
-  "frame": "-5 -1.5 80 20",
+  "frame": "-5 0 80 20",
   "camera": {
     "projection": "orthographic",
     "u": "(x + 5) * 25.6",
     "v": "(17.5 - z) * 25.6"
   },
   "source": "side-ext-d-s211-h25-d-clip",
+  "bake": "129513952d052e53f8905b434f418aa1c9094a1340059d3cd9e0be767bc79168",
   "geometry": "a8b112887939361d047daf96d08a69e02359bc865fc161b46f5aa601cc58c090"
 }

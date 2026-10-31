@@ -497,7 +497,7 @@ def separate_doors(doors, flip):
 
 # The frame of the painted side views: 80 by 20 metres at 25.6 pixels per metre, which is
 # 2048 by 512 pixels. Metres map to the art by u = (x + 5) * 25.6 and v = (17.5 - z) * 25.6.
-SCHEMATIC_FRAME = (-5, -1.5, 80, 20)
+SCHEMATIC_FRAME = (-5, 0, 80, 20)
 SCHEMATIC_TOP = 17.5
 
 

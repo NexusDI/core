@@ -534,7 +534,7 @@ the light (8.4), so data stays crisp at every zoom.
   origin. The game places an image by its sidecar alone. The paint-over's output aligns
   through the sidecar with no change to any view.
 - Marketing scale: the painted `cutaway` and `side` views use 25.6 pixels per metre on the
-  frame `-5 -1.5 80 20` (2048 by 512, origin at pixel (128, 448)), with `u = (x + 5) * 25.6`
+  frame `-5 0 80 20` (2048 by 512, origin at pixel (128, 448)), with `u = (x + 5) * 25.6`
   and `v = (17.5 - z) * 25.6`. Their sidecars hold a sha256 of the geometry's hull,
   compartments, doors and conduits, and a test fails when it differs (TL18).
 - Props: a prop sprite is a transparent WebP per state, cut to the fixture's footprint

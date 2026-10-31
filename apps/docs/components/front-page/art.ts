@@ -40,9 +40,7 @@ const sideWebp = [side1024Webp, side1536Webp, side2048Webp].map((file) => ({
 }));
 
 /** The frame of both side views in metres: `x y width height`. */
-export const FRAME: readonly [number, number, number, number] = [
-  -5, -1.5, 80, 20,
-];
+export const FRAME: readonly [number, number, number, number] = [-5, 0, 80, 20];
 
 /** The painted cutaway for a `Schematic`, with the `sizes` of where it is shown. */
 export function cutawayBase(sizes: string): SchematicBase {

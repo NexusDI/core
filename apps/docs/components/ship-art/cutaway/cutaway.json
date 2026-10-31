@@ -6,12 +6,13 @@
   },
   "pixelsPerMetre": 25.6,
   "origin": [128, 448],
-  "frame": "-5 -1.5 80 20",
+  "frame": "-5 0 80 20",
   "camera": {
     "projection": "orthographic",
     "u": "(x + 5) * 25.6",
     "v": "(17.5 - z) * 25.6"
   },
   "source": "cutaway-cut-a-s211-h375",
+  "bake": "471b80386ab0fb7bfeecbd2382edcd016c854cac4d2fa7dd3dd61983574162d1",
   "geometry": "a8b112887939361d047daf96d08a69e02359bc865fc161b46f5aa601cc58c090"
 }

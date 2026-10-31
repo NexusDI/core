@@ -3,5 +3,6 @@
   "camera": {
     "projection": "perspective"
   },
-  "source": "hero-ext-d-s211-i20-d-clip"
+  "source": "hero-ext-d-s211-i20-d-clip",
+  "bake": "302600aca9c7446f6f40dfff433d6991eeaa9ae4a4bb295bc9af230e63649e03"
 }
