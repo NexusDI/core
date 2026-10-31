@@ -62,3 +62,6 @@ __screenshots__/
 .vitest
 # nexusdi profile output of bridge-api
 examples/bridge-api/profile.json
+
+# Transient module the meridian scene test writes beside itself.
+.region-*
