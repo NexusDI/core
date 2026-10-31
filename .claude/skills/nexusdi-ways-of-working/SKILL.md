@@ -23,6 +23,33 @@ description: How work runs in the NexusDI repo. Covers who decides what, subagen
   The tech lead's call stands. Record it in the ledger and report it to the
   owner afterwards in one line.
 
+## Spend
+
+Tokens go to features. These rules keep process from eating the budget.
+
+- No agent watches CI. A driver stops once its PR is reviewed and pushed. It
+  arms auto-merge with `gh pr merge <n> --rebase --auto` on a PR into a release
+  or maintenance branch, never on one into `main`, and hands back the PR
+  number. Auto-merge merges once the rulesets pass, but it neither reruns a
+  flake nor rebases a PR that fell behind. For those, the main session runs
+  `node tools/pr-land.mjs <n>` as a background shell job. The script waits for
+  the required checks, reruns a failed run once, rebases a PR that fell behind,
+  and rebase-merges. It refuses a PR against `main`. Exit 1 means the script
+  stopped without merging, and its last line says why. Only then does an agent
+  look at the PR.
+- Implementers run on sonnet. A brief names opus for an implementer only for
+  engine work in `libs/core` that changes resolution, compile or load.
+- Each PR gets one opus final review. The reviewer of the fixes after it runs
+  on sonnet and reads only the fix diff against the findings. A second opus
+  round needs a fix that changed the design, and the ledger says which.
+- A known CI flake has one issue. Nobody investigates it again in a PR; the
+  rerun in `tools/pr-land.mjs` handles it.
+- A core bug found during feature work becomes an issue. It preempts the queued
+  work only when it blocks the current rc, and the main session tells the owner
+  when it does.
+- The main session does not answer an interim "waiting on background work"
+  notice. It reports when a driver hands back or the owner asks.
+
 ## Owner-only
 
 Stop and ask the owner for these, and nothing else:
