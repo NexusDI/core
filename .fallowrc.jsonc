@@ -10,6 +10,8 @@
   // @nexusdi/meridian-ui is consumed by apps/docs through its built dist, and
   // visual-check.html renders every component. An export the docs app does not
   // import yet is still part of the design system.
+  // @nexusdi/meridian-deck is private and the docs app takes it in the bay's
+  // change. Its two entries are the surface that app reads.
   "publicPackages": [
     "@nexusdi/core",
     "@nexusdi/errors",
@@ -27,6 +29,7 @@
     "@nexusdi/react",
     "@nexusdi/vitest",
     "@nexusdi/meridian-ui",
+    "@nexusdi/meridian-deck",
   ],
 
   // Core reads each class's `static deps` when it builds the class, so no

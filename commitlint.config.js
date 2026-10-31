@@ -71,6 +71,7 @@ module.exports = {
         // tools/repo-checks/src/docs-scopes.test.ts holds this list.
         'docs-e2e',
         'meridian-ui',
+        'meridian-deck',
         'meridian',
         'doc-examples',
         // The benchmark projects. Neither is under nx.json's release.projects,

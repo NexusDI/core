@@ -14,6 +14,7 @@ const DOCS_SCOPES = [
   'docs',
   'docs-e2e',
   'meridian-ui',
+  'meridian-deck',
   'meridian',
   'doc-examples',
 ] as const;

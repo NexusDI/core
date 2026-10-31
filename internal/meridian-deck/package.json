@@ -1,0 +1,33 @@
+{
+  "name": "@nexusdi/meridian-deck",
+  "version": "0.0.0",
+  "description": "The Meridian deck runtime: the deck state, and the PixiJS view that lights the unlit cutaway at run time.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@nexusdi/source": "./src/state/index.ts",
+      "types": "./dist/state/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./view": {
+      "@nexusdi/source": "./src/view/index.ts",
+      "types": "./dist/view/index.d.ts",
+      "import": "./dist/view.js",
+      "default": "./dist/view.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.tsbuildinfo"
+  ],
+  "dependencies": {
+    "@nexusdi/core": "*",
+    "pixi.js": "8.22.0"
+  }
+}

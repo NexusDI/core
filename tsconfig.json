@@ -104,6 +104,9 @@
     },
     {
       "path": "./examples/meridian-systems"
+    },
+    {
+      "path": "./internal/meridian-deck"
     }
   ],
   "compilerOptions": {
