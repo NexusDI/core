@@ -830,6 +830,15 @@ TL27):
 - TL30 (replaces TL26): the crops of site UX 4.8 use the unlit cutaway with the seed tints and no Pixi light, and the backdrop stays the lit side exterior. 8.1 has no lit cutaway row.
 - TL27: the work is its own pull request, ahead of the bay's Pixi tasks.
 
+Amendments made while building the pre-flight bay (site UX spec section 17, OR1 to OR3):
+
+- `Terminal` takes `tabs`, a tab strip after the title, and `body`, which replaces the log
+  with other content such as a source listing (7.2).
+- `Button` takes `focusable`: a disabled button then keeps its tab stop and uses
+  `aria-disabled` with its reason, so a screen reader finds it (7.4).
+- The alarm banner of `Alert` takes `message`, a sentence under the code line, and
+  `codeHref`, which renders the code as a link (7.6).
+
 ## 13. Risks
 
 - Amber means both an action and a warning. A reader could take a link for a warning. The
