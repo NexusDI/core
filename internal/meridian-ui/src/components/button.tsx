@@ -11,6 +11,12 @@ interface ButtonBase extends Omit<
   variant?: ButtonVariant;
   /** The 32px height of the deck's dense toolbars. */
   dense?: boolean;
+  /**
+   * A disabled button stays in the tab order and uses `aria-disabled` with its
+   * reason, so a screen reader finds it and reads why. Its click does nothing
+   * while it is disabled.
+   */
+  focusable?: boolean;
   className?: string;
   children?: ReactNode;
 }
@@ -34,6 +40,8 @@ export type ButtonProps = ButtonBase &
 export function Button({
   variant = 'secondary',
   dense = false,
+  focusable = false,
+  onClick,
   className,
   children,
   type = 'button',
@@ -47,7 +55,9 @@ export function Button({
     <button
       {...rest}
       id={id}
-      disabled={disabled}
+      disabled={focusable ? undefined : disabled}
+      aria-disabled={focusable && disabled ? true : undefined}
+      onClick={focusable && disabled ? undefined : onClick}
       type={type}
       {...(why ? { 'aria-describedby': `${id}-reason` } : {})}
       className={cx(
