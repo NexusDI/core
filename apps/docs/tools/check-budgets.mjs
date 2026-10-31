@@ -107,28 +107,56 @@ export const CONDENSED_FONTS = [500, 600].map((weight) =>
 );
 
 /**
- * The ceilings on the hero art (site UX spec 12.2), in bytes. The files are
- * already compressed, so the size is the transfer size. `tools/hero-art.mjs`
- * writes them, and each ceiling sits about 20% over the measured file
- * (measured 9,090 B and 13,274 B at 768 pixels, 20,971 B and 34,812 B at 1536,
- * and 9,371 B and 14,668 B for the 720 pixel phone crop, AVIF and WebP).
+ * The ceilings on the painted ship art (site UX spec 12.2), in bytes, by file
+ * under `components/ship-art/`. The files are already compressed, so the size
+ * is the transfer size. `tools/ship-art.mjs` writes them, and each ceiling
+ * sits at about 1.5 times the measured file. Measured on 2026-10-31, AVIF then
+ * WebP: hero 1024 13,074 and 20,156; hero 1536 20,912 and 34,736; hero phone
+ * crop 9,428 and 14,672; cutaway 1024 9,018 and 9,686, 1536 14,153 and 14,796,
+ * 2048 19,439 and 21,362; side 1024 7,170 and 10,438, 1536 11,472 and 16,786,
+ * 2048 15,860 and 23,668.
  */
 export const ART_BUDGET = {
-  'meridian-hero-768.avif': 11_000,
-  'meridian-hero-768.webp': 16_000,
-  'meridian-hero-1536.avif': 25_500,
-  'meridian-hero-1536.webp': 42_000,
-  'meridian-hero-phone-720.avif': 11_500,
-  'meridian-hero-phone-720.webp': 17_600,
+  'hero/meridian-hero-1024.avif': 19_600,
+  'hero/meridian-hero-1024.webp': 30_200,
+  'hero/meridian-hero-1536.avif': 31_400,
+  'hero/meridian-hero-1536.webp': 52_100,
+  'hero/meridian-hero-phone-720.avif': 14_200,
+  'hero/meridian-hero-phone-720.webp': 22_000,
+  'cutaway/meridian-cutaway-1024.avif': 13_800,
+  'cutaway/meridian-cutaway-1024.webp': 14_200,
+  'cutaway/meridian-cutaway-1536.avif': 21_000,
+  'cutaway/meridian-cutaway-1536.webp': 21_500,
+  'cutaway/meridian-cutaway-2048.avif': 28_500,
+  'cutaway/meridian-cutaway-2048.webp': 29_800,
+  'side/meridian-side-1024.avif': 10_800,
+  'side/meridian-side-1024.webp': 15_700,
+  'side/meridian-side-1536.avif': 17_200,
+  'side/meridian-side-1536.webp': 25_200,
+  'side/meridian-side-2048.avif': 23_800,
+  'side/meridian-side-2048.webp': 35_500,
 };
 
-/** Where `tools/hero-art.mjs` writes the art that `ART_BUDGET` holds. */
-export const HERO_DIR = join(
+/**
+ * What a wide screen at twice the pixel density loads of the art: the hero at
+ * 1536 and the cutaway and the side view at 2048, in AVIF. The sum row holds
+ * the three together (measured 56,211 bytes).
+ */
+export const ART_SUM = {
+  files: [
+    'hero/meridian-hero-1536.avif',
+    'cutaway/meridian-cutaway-2048.avif',
+    'side/meridian-side-2048.avif',
+  ],
+  limit: 90_000,
+};
+
+/** Where `tools/ship-art.mjs` writes the art that `ART_BUDGET` holds. */
+export const ART_DIR = join(
   import.meta.dirname,
   '..',
   'components',
-  'front-page',
-  'hero',
+  'ship-art',
 );
 
 export const ISLAND_MARK = 'nexus-console-island';
@@ -399,12 +427,16 @@ export function checkFonts(out, { sources = CONDENSED_FONTS } = {}) {
 }
 
 /**
- * Holds each hero art file to its row of `ART_BUDGET`. `next` copies a static
- * import into `out/_next/static/media` under a hashed name, so the check finds
- * each source file there by its bytes, as `checkFonts` does. A source with no
- * identical copy in the export was not shipped.
+ * Holds each ship art file to its row of `ART_BUDGET`, and the three files of
+ * `ART_SUM` to their sum. `next` copies a static import into
+ * `out/_next/static/media` under a hashed name, so the check finds each source
+ * file there by its bytes, as `checkFonts` does. A source with no identical
+ * copy in the export was not shipped.
  */
-export function checkArt(out, { dir = HERO_DIR, budget = ART_BUDGET } = {}) {
+export function checkArt(
+  out,
+  { dir = ART_DIR, budget = ART_BUDGET, sum = ART_SUM } = {},
+) {
   const media = join(out, '_next', 'static', 'media');
   let shipped = [];
   try {
@@ -422,13 +454,22 @@ export function checkArt(out, { dir = HERO_DIR, budget = ART_BUDGET } = {}) {
     rows.push({ file: name, bytes: bytes.length, shipped: Boolean(found) });
     if (!found)
       findings.push(
-        `${name}: no identical copy under ${relative(out, media) || media}. components/front-page/HeroArt.tsx must import it statically.`,
+        `${name}: no identical copy under ${relative(out, media) || media}. A component must import it statically.`,
       );
     if (bytes.length > limit)
       findings.push(
-        `${name}: ${kB(bytes.length)}, over the ${kB(limit)} budget. Run tools/hero-art.mjs with a lower quality, or raise ART_BUDGET with the new measurement and the reason.`,
+        `${name}: ${kB(bytes.length)}, over the ${kB(limit)} budget. Run tools/ship-art.mjs with a lower quality, or raise ART_BUDGET with the new measurement and the reason.`,
       );
   }
+  const total = sum.files.reduce(
+    (all, name) => all + readFileSync(join(dir, name)).length,
+    0,
+  );
+  rows.push({ file: 'sum', bytes: total, shipped: true });
+  if (total > sum.limit)
+    findings.push(
+      `The hero, cutaway and side art load ${kB(total)} of AVIF together, over the ${kB(sum.limit)} budget. Lower the quality in tools/ship-art.mjs, or raise ART_SUM with the new measurement and the reason.`,
+    );
   return { findings, rows };
 }
 
