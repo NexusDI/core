@@ -517,6 +517,15 @@ The deck map draws four layers, bottom to top, and bakes no light into any of th
    and the props. The emissive mask adds a fixed glow where a powered screen or lamp sits.
    The deck has no normal maps for now.
 
+The light model starts from these values (OR5 mock): a powered room keeps an ambient of
+0.35 and an unpowered one 0.15; a light sprite shows at 72% and reaches 1.5 times the
+radius of its light in the geometry; an alarmed room drops to the unpowered ambient and
+30% of its lamps, with the alarm sprite on top, so the red does not wash out to white. The
+light texture stays 8-bit, since a float texture is 8-bit under software GL and the pools
+would clip. A housing wider than 5 m (a long strip) glows at 45% in the emissive mask. The
+glow-kind lights stand for the screens: every emissive housing in the geometry is a lamp
+housing, so an unpowered room's lamp housings go dark with their lamps.
+
 The simulation drives the light. A room with power shows its `lamp` pools, a room without
 power goes dark but for its emissive screens, and an alarm adds a pulsing
 `alarm` light in its room (9.2). Lamp light shows whether a room has power, as colour
