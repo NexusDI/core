@@ -59,10 +59,11 @@ describe('written', () => {
   it('holds a token on a provider view and an edge view, and the edge has no token', () => {
     expectTypeOf<ProviderView['written']>().toEqualTypeOf<AnyToken>();
     expectTypeOf<EdgeView['written']>().toEqualTypeOf<AnyToken>();
-    expectTypeOf<ProviderView['unresolved'][number]>().toEqualTypeOf<{
+    // The kind set is open (G7): a minor may add a member, so the pin is one way.
+    expectTypeOf<{
       readonly kind: 'optional';
       readonly written: AnyToken;
-    }>();
+    }>().toExtend<ProviderView['unresolved'][number]>();
     expectTypeOf<
       'token' extends keyof EdgeView ? true : false
     >().toEqualTypeOf<false>();
