@@ -257,7 +257,7 @@ describe('nexus', () => {
       await ship[Symbol.asyncDispose]();
     });
 
-    it("loads a section with a grant once and lets its handler inject a token built from the granted module's export", async () => {
+    it("loads a section with a load import once and lets its handler inject a token built from the imported module's export", async () => {
       const HELM = new Token<string>('Helm');
       const COURSE = new Token<string>('Course');
       const Helm = defineModule({

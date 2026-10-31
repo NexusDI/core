@@ -4,7 +4,7 @@ import {
   ESCAPE_FIXTURE,
   HOSTILE_IDS,
   FIXTURE,
-  GRANTED,
+  LOAD_IMPORTED,
   WITH_INTERNAL,
   WITH_REQUEST,
 } from '../../test-support/graph-fixture.js';
@@ -58,8 +58,8 @@ describe('toDot', () => {
     );
   });
 
-  it('draws a grant as a dashed edge and an import as a solid edge, each once', () => {
-    const out = toDot(GRANTED, { view: 'modules' });
+  it('draws a load import as a dashed edge and an import as a solid edge, each once', () => {
+    const out = toDot(LOAD_IMPORTED, { view: 'modules' });
     expect(out).toContain('  "m2" -> "m1";\n');
     expect(out).toContain('  "m2" -> "m0" [style=dashed];\n');
     expect(out).not.toContain('  "m2" -> "m0";');
@@ -92,7 +92,7 @@ describe('toDot', () => {
           name: 'Empty',
           global: false,
           imports: [],
-          grants: [],
+          loadImports: [],
           exports: [],
         },
       ],

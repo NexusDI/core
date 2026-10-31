@@ -79,7 +79,7 @@ type InjectMiddleware = <
   middleware: HonoMiddleware<D, P, E>,
 ) => MiddlewareHandler<E, P>;
 
-/** The middleware `di.load(module, options?)` returns: it loads the module once, with the grant in `options.imports`, and extends the request's scope before the section's handlers run. */
+/** The middleware `di.load(module, options?)` returns: it loads the module once, with the load imports in `options.imports`, and extends the request's scope before the section's handlers run. */
 export interface SectionMiddleware extends MiddlewareHandler<NexusEnv> {
   /** Like di.inject, validated after the section's first successful load. */
   readonly inject: Inject;
@@ -203,7 +203,7 @@ export function nexus(
       fn: (deps: ResolvedDeps<D>, c: Context<E, P>, next: Next) => R,
       checked: () => Promise<void>,
       section?: ModuleRef,
-      grant?: LoadOptions,
+      loadOptions?: LoadOptions,
     ) =>
     async (c: Context<E, P>, next: Next): Promise<Awaited<R> | Response> => {
       const result = await core.resolve({
@@ -211,7 +211,7 @@ export function nexus(
         deps,
         checked,
         section,
-        options: grant,
+        options: loadOptions,
       });
       if (!('deps' in result)) return stop(result);
       return await fn(result.deps, c, next);

@@ -164,7 +164,7 @@ describe('compile.module', () => {
     expect(ship.get(DIAGNOSTICS)).toEqual(['stub']);
   });
 
-  describe('with a load grant', () => {
+  describe('with a load import', () => {
     const READING = new Token<IReactorCore>('Reading');
     const Stub = defineModule({
       name: 'EngineeringStub',
@@ -184,7 +184,7 @@ describe('compile.module', () => {
     });
     const Root = defineModule({ name: 'Root', imports: [Engineering] });
 
-    it('grants the module a hook replaced when the grant names the original', async () => {
+    it('imports the module a hook replaced when the load import names the original', async () => {
       const ship = await Nexus.create(Root, {
         plugins: [
           {
@@ -199,7 +199,7 @@ describe('compile.module', () => {
       expect(scope.get(READING)).toBeInstanceOf(FakeReactor);
     });
 
-    it('never asks the hook about a granted module the walk already met', async () => {
+    it('never asks the hook about an imported module the walk already met', async () => {
       const asked: string[] = [];
       const ship = await Nexus.create(Root, {
         plugins: [
@@ -222,7 +222,7 @@ describe('compile.module', () => {
       expect(scope.get(READING)).toBeInstanceOf(FakeReactor);
     });
 
-    it('keeps the grant when the hook would build a new module on every call', async () => {
+    it('keeps the load import when the hook would build a new module on every call', async () => {
       const ship = await Nexus.create(Root, {
         plugins: [
           {
@@ -244,7 +244,7 @@ describe('compile.module', () => {
       expect(scope.get(READING)).toBeInstanceOf(FakeReactor);
     });
 
-    it('grants a loaded module that a hook replaced', async () => {
+    it('imports a loaded module that a hook replaced', async () => {
       const LabStub = defineModule({
         name: 'LabStub',
         providers: [

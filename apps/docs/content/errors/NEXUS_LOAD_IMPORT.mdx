@@ -1,0 +1,55 @@
+---
+title: NEXUS_LOAD_IMPORT
+kind: code
+description: ship.load() received a load import it cannot apply.
+package: '@nexusdi/core'
+errorClass: LoadImportError
+---
+
+# NEXUS_LOAD_IMPORT
+
+When you use `ship.load(module, { imports })`, you provide load imports, a list of host modules whose exports the loaded modules can see. `NEXUS_LOAD_IMPORT` means `ship.load()` received a load import it cannot apply because it breaks a rule of the graph. It throws a `LoadImportError`.
+
+If you call `load()` directly, it rejects with this error. If you use `Nexus.check` with the `load` option, this error is reported as part of [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
+
+## Understanding the Reasons
+
+The `reason` field in the error indicates which graph rule the load import broke:
+
+- **`not-in-graph`**: The graph contains no module with the imported module's definition. This often happens when a `forRoot()` call creates a new definition every time it is called, and the load import holds a second `forRoot()` result. The host module imported the first one.
+- **`root`**: The load import names the root module. A loaded module that requires root providers names the host module that holds them.
+- **`already-loaded`**: The loaded module is already in the graph with its load imports fixed, and the call asks for another set of load imports. This also occurs when the loaded module is one the root imports statically and the call imports anything, since the root records no load imports for it.
+
+## Reproducing NEXUS_LOAD_IMPORT
+
+The following example loads `Survey` with a load import of `Comms.forRoot({ frequency: 1701 })`. The host imported a different `forRoot()` result, so the graph does not recognize the imported definition and `load()` rejects with the `not-in-graph` reason.
+
+By default, NexusDI prints a one-line message containing the error code and a link to this page. If you register `errors()` from `@nexusdi/errors` (`npm install @nexusdi/errors@next`), the error includes the full descriptive text and a suggested fix.
+
+```ts file=examples/meridian/src/errors/NEXUS_LOAD_IMPORT.md region=reproduce
+
+```
+
+To test this: save the region as `error.ts` and run `npx tsx error.ts`. You will see that `load()` rejects, but the container continues running. It prints the one-line message, then the full text.
+
+## Fixing the Error
+
+The solution depends on the reason provided in the error:
+
+- **For `not-in-graph`**: Pass the exact object the host imported in `imports`. Store the `forRoot()` result in a constant, import that constant into the host module, and pass that same constant in the `imports` array. Importing `Comms` from a host module first also works.
+- **For `root`**: List the specific host module that provides the required dependencies in `imports`, and ensure that host module exports them.
+- **For `already-loaded`**: Either omit the load imports entirely or repeat the load using the load imports the module already has.
+
+```ts file=examples/meridian/src/errors/NEXUS_LOAD_IMPORT.md region=fix
+
+```
+
+To verify the fix: save the region as `fixed.ts` and run `npx tsx fixed.ts`. It will print `1701`. If you replace `{ imports: [comms] }` with `{ imports: [Comms.forRoot({ frequency: 1701 })] }`, the `ship.load(Survey, ...)` call will reject with a `LoadImportError` for `Survey` again, and nothing after it runs.
+
+## LoadImportError API
+
+The `LoadImportError` class contains the following fields:
+
+- **`module`**: The name of the module passed to `load()`.
+- **`imported`**: The name of the imported module associated with the failure. For `already-loaded`, it is the first requested module the recorded load imports lack, or the first requested module when the request only drops modules from the record.
+- **`reason`**: The failure cause: `'not-in-graph'`, `'root'`, or `'already-loaded'`.

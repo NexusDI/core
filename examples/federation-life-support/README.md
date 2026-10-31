@@ -27,14 +27,14 @@ The station provides a federated module that the shell consumes at runtime.
 
 ## Testing the Station
 
-You can verify the station's logic without a browser by loading the module into a fake shell. This allows you to simulate compartment air readings and track commands sent through a recording link. `STATION_GRANT` grants the fake Tactical, as the shell grants its own.
+You can verify the station's logic without a browser by loading the module into a fake shell. This allows you to simulate compartment air readings and track commands sent through a recording link. `STATION_IMPORTS` imports the fake Tactical, as the shell imports its own.
 
 ```ts @import.meta.vitest
 import { Nexus } from '@nexusdi/core';
 import {
   FakeShell,
   RECORDING_LINK,
-  STATION_GRANT,
+  STATION_IMPORTS,
 } from '@nexusdi/federation-contracts/testing';
 
 import {
@@ -54,7 +54,7 @@ const reading = {
 };
 
 await using ship = await Nexus.create(FakeShell);
-await ship.load(LifeSupportStation, STATION_GRANT);
+await ship.load(LifeSupportStation, STATION_IMPORTS);
 const desk = ship.get(ATMOSPHERE_DESK);
 desk.compartments({ status: 'online', reading })?.[0]?.gauges[1]; // -> ['Pressure', '101.3 kPa']
 await desk.scrubber('bridge', true);

@@ -4,7 +4,7 @@ import type { BlueprintView, ErrorTextKit, NearMiss } from '../index.js';
 import {
   CircularDependencyError,
   CoreNotSharedError,
-  LoadGrantError,
+  LoadImportError,
   MissingProviderError,
   PluginError,
   Token,
@@ -110,20 +110,20 @@ describe('coreText', () => {
     );
   });
 
-  it('words already-loaded so it holds for a module with no recorded grant and for a subset', () => {
-    const text = coreText.NEXUS_LOAD_GRANT(
-      new LoadGrantError({
+  it('words already-loaded so it holds for a module with no recorded load imports and for a subset', () => {
+    const text = coreText.NEXUS_LOAD_IMPORT(
+      new LoadImportError({
         module: 'Science',
-        grant: 'Reactors',
+        imported: 'Reactors',
         reason: 'already-loaded',
       }),
     );
     expect(text.message).toContain(
-      'Science is already in the graph with its grant fixed',
+      'Science is already in the graph with its load imports fixed',
     );
-    expect(text.message).toContain('another set of grants');
+    expect(text.message).toContain('another set of imports');
     expect(text.message).toContain('Reactors');
-    expect(text.message).not.toContain('differs from the grant');
+    expect(text.message).not.toContain('differs from the load imports');
   });
 
   it('leaves the place out of the message when core met the value at none', () => {

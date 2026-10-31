@@ -92,12 +92,12 @@ export interface ModuleNode {
   readonly name: string;
   readonly definition: ModuleDefinition;
   readonly global: boolean;
-  /** The ids of the imported modules, then the ids a load grant added. */
+  /** The ids of the imported modules, then the ids a load import added. */
   readonly imports: readonly string[];
-  /** The ids a load grant added to `imports` beyond the module's own imports, in grant order. */
-  readonly grants: readonly string[];
-  /** The full set the load granted this module, in grant order. The repeat rule of load() reads it; the views do not carry it. */
-  readonly grantSet: readonly string[];
+  /** The ids a load import added to `imports` beyond the module's own imports, in load import order. */
+  readonly loadImports: readonly string[];
+  /** The full set of modules the load imported into this module, in load import order. The repeat rule of load() reads it; the views do not carry it. */
+  readonly loadImportSet: readonly string[];
   readonly providers: readonly string[];
   /** The walked shape of each entry in `providers`, same order, from before the compile.provider hooks. A load matches them to the ids the next walk keeps. */
   readonly shapes: readonly RecordShape[];
@@ -164,7 +164,7 @@ export interface Blueprint {
   readonly nextIds: readonly [number, number];
   /** MultiToken → the one record a compile.provider hook pinned, plus REQUEST. */
   readonly pinned: ReadonlyMap<TokenKey, readonly string[]>;
-  /** Modules load() added as root imports, in load order, each with the grant it was loaded with. */
+  /** Modules load() added as root imports, in load order, each with the load imports it was loaded with. */
   readonly extraImports: readonly LoadEntry[];
   /** module id → token → provider ids that module sees. */
   readonly visibility: ReadonlyMap<

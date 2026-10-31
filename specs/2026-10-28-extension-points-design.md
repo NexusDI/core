@@ -1,4 +1,4 @@
-# Extension points and load grants
+# Extension points and load imports
 
 Status: approved, 2026-10-28. The owner ruled on scope and defaults on 2026-10-28 (section
 11). An opus architect wrote the design, and the tech lead reviewed it twice and ruled
@@ -80,7 +80,7 @@ Four changes, each its own PR:
 | K1  | every multi token collects across the container; `load()` rejects a published contribution | 4       |
 | K3  | `lazy(all(T))` breaks a collector's cycle once for every contributor                       | 5       |
 | K2  | compile rejects a private contribution that nothing can read                               | 6       |
-| K4  | `load(module, { imports })` grants a loaded module the exports of host modules             | 7       |
+| K4  | `load(module, { imports })` gives a loaded module the exports of host modules              | 7       |
 
 The order is K1, K3, K2, with K4 after K1 in parallel and merged last before rc.3. Plain
 tokens keep today's import rule in every change.
@@ -178,7 +178,7 @@ subject to K2.
 
 - `nexus.ts:108` wraps a thrown `LoadError` in `BlueprintError` for `Nexus.check`. One helper,
   `isLoadError(error)`, covers `LoadError`, `LoadContributionError` and K4's
-  `LoadGrantError`, and `Nexus.check` wraps each.
+  `LoadImportError`, and `Nexus.check` wraps each.
 - `errors/is-nexus-error.ts` maps the code to its class, and `NexusErrorCode` (`errors/codes.ts`) derives from that map.
 - `text/core-text.ts` gives the text: "`<module>` publishes a contribution to `<token>`, and
   `load()` cannot add to a multi token: collectors built at startup hold their lists." The
@@ -312,18 +312,18 @@ startup. The fix is one line. No code in `libs/` or `examples/` does this (the K
 both). The multi-providers page's `unexported` region
 (`examples/meridian/src/pages/multi-providers.md`) becomes the error's teaching case.
 
-## 7. K4: the load grant
+## 7. K4: the load import
 
 ### 7.1 Need
 
 A host loads a module that cannot name the host's modules: a federation remote, a plugin
 package that a CLI or a server loads at runtime, an extension in a dashboard. The loaded
 module needs host services. Today the host makes those services global, so every host module
-and every loaded module sees them. A grant names, per load, the host modules a loaded module
-sees. A lazy feature in the host's own codebase needs no grant, since it imports the host
+and every loaded module sees them. A load import names, per load, a host module a loaded module
+sees. A lazy feature in the host's own codebase needs no load import, since it imports the host
 module by name.
 
-A grant is wiring. The docs never present it as isolation or a security boundary: a loaded
+A load import is wiring. The docs never present it as isolation or a security boundary: a loaded
 module runs in the host's process and can reach anything the host's code can.
 
 ### 7.2 API
@@ -337,7 +337,7 @@ interface LoadOptions {
 
 load(module: ModuleRef, options?: LoadOptions): Promise<void>;
 
-/** A module for Nexus.check to load, with its grant. */
+/** A module for Nexus.check to load, with its load imports. */
 type LoadEntry =
   | ModuleRef
   | { readonly module: ModuleRef; readonly imports: readonly ModuleRef[] };
@@ -355,26 +355,26 @@ and react-router, and `lazySection(name, loader, options?)` in `@nexusdi/react`.
 
 ### 7.3 Semantics
 
-- A grant applies to every module the load adds to the graph: the loaded module and each
+- A load import applies to every module the load adds to the graph: the loaded module and each
   module of its subtree that the graph did not hold before. Each such module sees each
-  granted module's exports (following re-exports) as if it imported it. A grant gives none
-  of a granted module's private providers.
-- The blueprint records the grant per module. A later load leaves a recorded grant as it
-  is, and a module the graph already held gets nothing from a later grant.
-- Each granted module must already be in the graph: the previous blueprint holds its
+  imported module's exports (following re-exports) as if it imported it. A load import gives
+  none of an imported module's private providers.
+- The blueprint records the load imports per module. A later load leaves recorded load
+  imports as they are, and a module the graph already held gets nothing from a later load import.
+- Each imported module must already be in the graph: the previous blueprint holds its
   definition (`moduleByDefinition`, or `moduleByReplaced` for a module a `compile.module`
-  hook replaced). A grant adds visibility and never adds a module. A `forRoot` result must
+  hook replaced). A load import adds visibility and never adds a module. A `forRoot` result must
   be the object the host imported, since a fresh `forRoot()` call makes a new definition.
-- A grant of the root module fails with reason `root`. The root's exports are its public
+- A load import of the root module fails with reason `root`. The root's exports are its public
   surface for tests and lookups, and a loaded module that needs root providers names the
   host module that holds them.
-- A grant of a global module is legal and adds nothing.
-- A repeat `load(m, options)` of a module the graph holds does nothing when the granted set
-  equals the recorded one (same definitions, order ignored), and when the call grants
-  nothing. A repeat that grants another set fails with reason `already-loaded`, as does a
-  grant for a module the root imports statically.
-- Module cycles cannot form: each module a grant applies to is new, so no granted module
-  imports it.
+- A load import of a global module is legal and adds nothing.
+- A repeat `load(m, options)` of a module the graph holds does nothing when the imported set
+  equals the recorded one (same definitions, order ignored), and when the call imports
+  nothing. A repeat that imports another set fails with reason `already-loaded`, as does a
+  load import for a module the root imports statically.
+- Module cycles cannot form: each module a load import applies to is new, so no imported
+  module imports it.
 - `NEXUS_LOAD_GLOBAL_MODULE` still rejects a global loaded module, `NEXUS_LOAD_CONTRIBUTION`
   still rejects a published contribution, and K2 applies as usual.
 - A token a loaded module needs and no source exports fails the load with
@@ -382,8 +382,8 @@ and react-router, and `lazySection(name, loader, options?)` in `@nexusdi/react`.
 
 ### 7.4 Errors
 
-`LoadGrantError`, code `NEXUS_LOAD_GRANT`, fields `module` (the loaded module), `grant` (the
-granted module's name) and `reason: 'not-in-graph' | 'root' | 'already-loaded'`. `compile()`
+`LoadImportError`, code `NEXUS_LOAD_IMPORT`, fields `module` (the loaded module), `imported`
+(the imported module's name) and `reason: 'not-in-graph' | 'root' | 'already-loaded'`. `compile()`
 raises it with the other load checks and throws it directly. `Nexus.check` wraps it through
 `isLoadError` (section 4.5). It gets a code entry, an `is-nexus-error` mapping, text with a
 fix per reason in `core-text.ts`, an error page and an error example.
@@ -391,26 +391,26 @@ fix per reason in `core-text.ts`, an error page and an error example.
 ### 7.5 Implementation
 
 - `Blueprint.extraImports` holds `LoadEntry` values. `walk` visits each loaded entry, and for
-  a granted one passes the grant to every node the walk creates under it. `visit(ref,
+  one with load imports passes them to every node the walk creates under it. `visit(ref,
 extra)` already appends `extra` refs to a node's imports, the mechanism the root's extra
-  imports use, and `byDefinition` returns the granted modules' existing ids.
-- `compile()` checks each grant against `previous` next to `checkNewGlobals`.
-- `ModuleNode` gains `grants: readonly string[]`, the module ids a grant added. `ModuleView`
+  imports use, and `byDefinition` returns the imported modules' existing ids.
+- `compile()` checks each load import against `previous` next to `checkNewGlobals`.
+- `ModuleNode` gains `loadImports: readonly string[]`, the module ids a load import added. `ModuleView`
   gains the same field, so `graph()`, `libs/devtools/src/parse-graph.ts` and the graph JSON
   of `@nexusdi/cli` (`libs/cli/test-fixtures/json/graph.json`) carry it, and a renderer can
-  draw a grant apart from an import. The field is additive, so the plugin API version stays.
+  draw a load import apart from an import. The field is additive, so the plugin API version stays.
 - The load-once logic: `loader()` in `libs/{express,fastify,hono,react-router}/src/internal/request-scope.ts`
   (lines 290-309) keys a map on the module alone, in four copies (P4). Core exports one
-  helper, `loadOnce(container)`, from `@nexusdi/core`, keyed on the module and its granted
+  helper, `loadOnce(container)`, from `@nexusdi/core`, keyed on the module and its imported
   set, and the four adapters and `lazySection` use it. Core already decides the repeat rule
   of section 7.3, so the helper only shares the pending promise and forgets a failed load.
 
 ## 8. Extension principle
 
 - P2: `EdgeKind` stays a closed union that only core adds to, and K3 adds no member. The
-  `LoadGrantError` `reason` and the `Dep` union are core's own sets. `DepKind` gains
+  `LoadImportError` `reason` and the `Dep` union are core's own sets. `DepKind` gains
   `lazy-all`, which no other package reads.
-- P3: the view's `grants` field is a versioned contribution point, and additive.
+- P3: the view's `loadImports` field is a versioned contribution point, and additive.
 - P4: K4 replaces the four copies of `loader()` with one core export.
 - Each new error follows the package-owned errors rule: core owns the code and its text.
 
@@ -424,17 +424,17 @@ extra)` already appends `extra` refs to a node's imports, the mechanism the root
   the rule of section 5.2.
 - `lazy.mdx`: a section on collectors, with the all-or-nothing thunk and `NEXUS_DISPOSED`
   from a collector's dispose method.
-- `load.mdx`: "Design Constraints" gains the contribution rule, and a new section "Granting
-  Host Modules to a Loaded Module" explains section 7, with the sentence that a grant is no
+- `load.mdx`: "Design Constraints" gains the contribution rule, and a new section "Importing
+  Host Modules into a Loaded Module" explains section 7, with the sentence that a load import is no
   security boundary.
-- `federation.mdx`: `Tactical` loses `global: true`, and the section loads with the grant.
-  The "delete `global: true`" Try-it becomes "delete the grant".
+- `federation.mdx`: `Tactical` loses `global: true`, and the section loads with the load import.
+  The "delete `global: true`" Try-it becomes "delete the load import".
 - `modules.mdx`: the `{ module }` paragraph and the global section, which points hosts at
-  grants.
+  load imports.
 - The adapter pages (`express.mdx`, `fastify.mdx`, `hono.mdx`, `react-router-ssr.mdx`,
   `react.mdx`) show the option.
 - Four error pages: `NEXUS_LOAD_CONTRIBUTION`, `NEXUS_UNREAD_CONTRIBUTION`,
-  `NEXUS_LOAD_GRANT`, and the `api-errors.mdx` list.
+  `NEXUS_LOAD_IMPORT`, and the `api-errors.mdx` list.
 
 ## 10. Demo refactor amendments
 

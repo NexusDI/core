@@ -11,7 +11,7 @@ const GOOD: NexusGraph = {
       name: 'Meridian',
       global: false,
       imports: [],
-      grants: [],
+      loadImports: [],
       exports: ['p0'],
     },
   ],
@@ -76,8 +76,8 @@ describe('parseGraph', () => {
     expect(parseGraph(JSON.parse(JSON.stringify(GOOD)))).toEqual(GOOD);
   });
 
-  it('keeps the grants of a module', () => {
-    const granted = {
+  it('keeps the load imports of a module', () => {
+    const loadImported = {
       ...GOOD,
       modules: [
         ...GOOD.modules,
@@ -86,21 +86,23 @@ describe('parseGraph', () => {
           name: 'Science',
           global: false,
           imports: ['m0'],
-          grants: ['m0'],
+          loadImports: ['m0'],
           exports: [],
         },
       ],
     };
-    expect(parseGraph(JSON.parse(JSON.stringify(granted)))).toEqual(granted);
+    expect(parseGraph(JSON.parse(JSON.stringify(loadImported)))).toEqual(
+      loadImported,
+    );
   });
 
-  it('reads a module with no grants field, as rc.2 graph files have, as grants: []', () => {
+  it('reads a module with no loadImports field, as rc.2 graph files have, as loadImports: []', () => {
     // JSON.stringify drops an undefined field, as the rc.2 file lacks it.
-    const old = { ...GOOD.modules[0], grants: undefined };
+    const old = { ...GOOD.modules[0], loadImports: undefined };
     const graph = parseGraph(
       JSON.parse(JSON.stringify({ ...GOOD, modules: [old] })),
     );
-    expect(graph.modules[0]?.grants).toEqual([]);
+    expect(graph.modules[0]?.loadImports).toEqual([]);
   });
 
   it('keeps the unresolved deps of a provider', () => {
@@ -199,12 +201,12 @@ describe('parseGraph', () => {
     ],
     [{ ...GOOD, edges: [{ from: 'p0', to: 'request' }] }, 'edges[0].kind'],
     [
-      { ...GOOD, modules: [{ ...GOOD.modules[0], grants: 'm0' }] },
-      'modules[0].grants',
+      { ...GOOD, modules: [{ ...GOOD.modules[0], loadImports: 'm0' }] },
+      'modules[0].loadImports',
     ],
     [
-      { ...GOOD, modules: [{ ...GOOD.modules[0], grants: [1] }] },
-      'modules[0].grants[0]',
+      { ...GOOD, modules: [{ ...GOOD.modules[0], loadImports: [1] }] },
+      'modules[0].loadImports[0]',
     ],
   ])('names the bad path of %j: %s', (value, path) => {
     const error = failureOf(value);
@@ -236,8 +238,8 @@ describe('parseGraph', () => {
       '"m3", which no module has',
     ],
     [
-      { ...GOOD, modules: [{ ...GOOD.modules[0], grants: ['m3'] }] },
-      'modules[0].grants[0]',
+      { ...GOOD, modules: [{ ...GOOD.modules[0], loadImports: ['m3'] }] },
+      'modules[0].loadImports[0]',
       '"m3", which no module has',
     ],
     [

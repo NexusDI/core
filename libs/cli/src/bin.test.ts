@@ -219,7 +219,7 @@ describe('nexusdi graph, JavaScript entries', () => {
     );
   });
 
-  it('draws the grant of a .json graph as a dashed edge', () => {
+  it('draws the load import of a .json graph as a dashed edge', () => {
     const run = runCli(['graph', 'graph.json', '--view', 'modules'], {
       cwd: JSON_DIR,
     });

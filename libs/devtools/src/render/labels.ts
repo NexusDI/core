@@ -42,16 +42,16 @@ export function moduleTitle(module: GraphModule): string {
 
 /**
  * The module edges of the modules view: a solid edge to each import that is
- * not a grant, then a dashed edge to each grant id. Each target appears once.
+ * not a load import, then a dashed edge to each load import id. Each target appears once.
  */
 export function moduleEdges(
   module: GraphModule,
-): { to: string; granted: boolean }[] {
-  const grants = new Set(module.grants);
+): { to: string; loadImport: boolean }[] {
+  const loadImports = new Set(module.loadImports);
   return [
-    ...new Set(module.imports.filter((id) => !grants.has(id))),
-    ...grants,
-  ].map((to) => ({ to, granted: grants.has(to) }));
+    ...new Set(module.imports.filter((id) => !loadImports.has(id))),
+    ...loadImports,
+  ].map((to) => ({ to, loadImport: loadImports.has(to) }));
 }
 
 /**

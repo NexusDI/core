@@ -158,8 +158,8 @@ let reloading = false;
 
 const pageLeaving = () => new Promise<void>(() => undefined);
 
-/** Whether two handles grant the same modules, compared by identity with order and repeats ignored, as loadOnce keys them. */
-function sameGrant(
+/** Whether two handles import the same modules, compared by identity with order and repeats ignored, as loadOnce keys them. */
+function sameLoadImports(
   a: { readonly options?: LoadOptions },
   b: { readonly options?: LoadOptions },
 ): boolean {
@@ -169,9 +169,9 @@ function sameGrant(
 }
 
 /**
- * A second handle for a section name: its module object and grant against
+ * A second handle for a section name: its module object and load imports against
  * the ones `handle` and `origin` loaded (react spec 12.3). The same module
- * object and grant mean only the file holding lazySection changed.
+ * object and load imports mean only the file holding lazySection changed.
  */
 function recheck(
   handle: SectionSlot['handle'],
@@ -187,7 +187,8 @@ function recheck(
     origin.promise
       .then(() => call(section))
       .then((module) => {
-        if (module === origin.module && sameGrant(handle, section)) return;
+        if (module === origin.module && sameLoadImports(handle, section))
+          return;
         if (reloading) return pageLeaving();
         const loaded = moduleDefinitionOf(origin.module)?.name;
         if (!dev || moduleDefinitionOf(module)?.name !== loaded)

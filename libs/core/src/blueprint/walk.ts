@@ -60,8 +60,8 @@ export interface WalkInput {
   readonly root: unknown;
   /**
    * Imports load() added to the root, walked after the root's own. An entry
-   * with a grant gives every module the walk first meets under it the
-   * exports of the granted modules, which an earlier walk of the same graph
+   * with load imports gives every module the walk first meets under it the
+   * exports of the imported modules, which an earlier walk of the same graph
    * already visited.
    */
   readonly extraImports: readonly LoadEntry[];
@@ -108,7 +108,7 @@ export interface WalkResult {
 type NodeDraft = Omit<
   ModuleNode,
   | 'imports'
-  | 'grants'
+  | 'loadImports'
   | 'providers'
   | 'shapes'
   | 'entries'
@@ -116,7 +116,7 @@ type NodeDraft = Omit<
   | 'exportModules'
 > & {
   readonly imports: string[];
-  readonly grants: string[];
+  readonly loadImports: string[];
   readonly providers: string[];
   readonly shapes: RecordShape[];
   readonly entries: unknown[];
@@ -279,10 +279,11 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
     assign();
   };
 
-  // The ids of the granted modules, in grant order, without repeats. A grant
-  // names a module an earlier walk of the graph visited; a ref the walk has
-  // not visited is skipped, since compile() rejects it before the walk.
-  const grantIds = (refs: readonly unknown[]): readonly string[] => {
+  // The ids of the imported modules, in load import order, without repeats.
+  // A load import names a module an earlier walk of the graph visited; a ref
+  // the walk has not visited is skipped, since compile() rejects it before the
+  // walk.
+  const loadImportIds = (refs: readonly unknown[]): readonly string[] => {
     const ids = new Set<string>();
     for (const ref of refs) {
       const found = resolveModuleRef(ref);
@@ -298,9 +299,9 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
     return [...ids];
   };
 
-  // The granted module ids of the entry being walked: each module created
+  // The load import ids of the entry being walked: each module created
   // while it is set records them and imports them.
-  let granted: readonly string[] = [];
+  let loadImported: readonly string[] = [];
 
   const visit = (
     ref: unknown,
@@ -354,8 +355,8 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
       definition,
       global: definition.global,
       imports: [],
-      grants: [],
-      grantSet: granted,
+      loadImports: [],
+      loadImportSet: loadImported,
       providers: [],
       shapes: [],
       entries: [],
@@ -381,15 +382,15 @@ export function walk(input: WalkInput, errors: NexusError[]): WalkResult {
     for (const child of definition.imports) add(visit(child, []));
     for (const entry of extra) {
       const { module, imports } = splitEntry(entry);
-      granted = grantIds(imports);
+      loadImported = loadImportIds(imports);
       add(visit(module, []));
-      granted = [];
+      loadImported = [];
     }
-    // The granted modules were visited before this module, so their ids exist.
-    // `grants` keeps the ones the module did not already import.
-    for (const id of node.grantSet)
+    // The imported modules were visited before this module, so their ids exist.
+    // `loadImports` keeps the ones the module did not already import.
+    for (const id of node.loadImportSet)
       if (!imported.has(id)) {
-        node.grants.push(id);
+        node.loadImports.push(id);
         add(id);
       }
     stack.pop();

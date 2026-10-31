@@ -28,7 +28,7 @@ export { LoadedAfterScopeError } from './loaded-after-scope-error.js';
 export { isLoadError } from './is-load-error.js';
 export { LoadContributionError } from './load-contribution-error.js';
 export { LoadError } from './load-error.js';
-export { LoadGrantError, type LoadGrantReason } from './load-grant-error.js';
+export { LoadImportError, type LoadImportReason } from './load-import-error.js';
 export { MissingDepsError } from './missing-deps-error.js';
 export {
   MissingProviderError,

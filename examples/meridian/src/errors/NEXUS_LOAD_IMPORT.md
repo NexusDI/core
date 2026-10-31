@@ -1,6 +1,6 @@
-# NEXUS_LOAD_GRANT examples
+# NEXUS_LOAD_IMPORT examples
 
-Regions for `apps/docs/content/errors/NEXUS_LOAD_GRANT.mdx`. Every block runs as a test.
+Regions for `apps/docs/content/errors/NEXUS_LOAD_IMPORT.mdx`. Every block runs as a test.
 
 <!-- #region reproduce -->
 
@@ -54,7 +54,7 @@ const Survey = defineModule({
   exports: [SCOUT_PROBE],
 });
 // Each forRoot() call makes a new definition, so the host's copy and the
-// grant's copy are two modules.
+// load import's copy are two modules.
 const Meridian = defineModule({
   name: 'Meridian',
   imports: [Comms.forRoot({ frequency: 1701 })],
@@ -64,14 +64,14 @@ await using ship = await Nexus.create(Meridian);
 const thin = await ship
   .load(Survey, { imports: [Comms.forRoot({ frequency: 1701 })] })
   .catch((error: unknown) => error);
-const line = isNexusError(thin) ? thin.message : null; // -> '[NEXUS_LOAD_GRANT] module=Survey grant=Comms reason=not-in-graph. https://nexus.js.org/errors/NEXUS_LOAD_GRANT'
+const line = isNexusError(thin) ? thin.message : null; // -> '[NEXUS_LOAD_IMPORT] module=Survey imported=Comms reason=not-in-graph. https://nexus.js.org/errors/NEXUS_LOAD_IMPORT'
 console.log(line);
 
 await using fullShip = await Nexus.create(Meridian, { plugins: [errors()] });
 const full = await fullShip
   .load(Survey, { imports: [Comms.forRoot({ frequency: 1701 })] })
   .catch((error: unknown) => error);
-const text = isNexusError(full) ? full.message.split('\n') : null; // -> ['[NEXUS_LOAD_GRANT] Survey is loaded with a grant for Comms, and the graph holds no module with that definition.', '  Fix: grant the object the host imported (a forRoot() call makes a new one), or import Comms from a host module first.']
+const text = isNexusError(full) ? full.message.split('\n') : null; // -> ['[NEXUS_LOAD_IMPORT] Survey is loaded with an import of Comms, and the graph holds no module with that definition.', '  Fix: list the object the host imported in imports (a forRoot() call makes a new one), or import Comms from a host module first.']
 console.log(text);
 ```
 
@@ -121,7 +121,7 @@ const Survey = defineModule({
   providers: [provide(SCOUT_PROBE, { useClass: ScoutProbe })],
   exports: [SCOUT_PROBE],
 });
-// One forRoot() result, imported by the host and granted to the section.
+// One forRoot() result, imported by the host and by the section's load.
 const comms = Comms.forRoot({ frequency: 1701 });
 const Meridian = defineModule({ name: 'Meridian', imports: [comms] });
 

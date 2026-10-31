@@ -138,7 +138,7 @@ describe('SectionBoundary', () => {
     view.unmount();
   });
 
-  it('loads a section with a grant once and renders a component that reads a granted token', async () => {
+  it('loads a section with a load import once and renders a component that reads an imported token', async () => {
     const events: TraceEvent[] = [];
     const Helm = defineModule({
       name: 'Helm',
@@ -182,7 +182,7 @@ describe('SectionBoundary', () => {
     view.unmount();
   });
 
-  it('shares one load between two section names with the same module and grant', async () => {
+  it('shares one load between two section names with the same module and load imports', async () => {
     const Helm = defineModule({
       name: 'Helm',
       providers: [provide(HELM, { useValue: 'helm-1' })],
@@ -202,8 +202,8 @@ describe('SectionBoundary', () => {
       defineModule({ name: 'Root', imports: [Helm] }),
     );
     const load = vi.spyOn(ship, 'load');
-    const grant = { imports: [Helm] };
-    const one = lazySection('chart-one', async () => Chart, grant);
+    const options = { imports: [Helm] };
+    const one = lazySection('chart-one', async () => Chart, options);
     const two = lazySection('chart-two', async () => Chart, {
       imports: [Helm],
     });
@@ -222,7 +222,7 @@ describe('SectionBoundary', () => {
     view.unmount();
   });
 
-  it('retries a failed load of a granted section', async () => {
+  it('retries a failed load of a section with load imports', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const Helm = defineModule({
       name: 'Helm',

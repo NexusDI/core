@@ -66,10 +66,10 @@ the swc decorator settings the factory and a vitest config share.
 `@nexusdi/federation-contracts/testing` exports `FakeTactical`, a module named `Tactical`
 that provides the three contract tokens over doubles: `FixedNavCharts`,
 `RecordingCommandLink` and `FakeStationTelemetry`. `FakeShell` is a root that imports
-`FakeTactical`, and `STATION_GRANT` is the grant the shell gives each station,
+`FakeTactical`, and `STATION_IMPORTS` is the load import the shell gives each station,
 `{ imports: [FakeTactical] }`. A station test builds its container with
 `nexusTest(test, FakeShell)` and loads its station with
-`nexus.load(Station, STATION_GRANT)`, as the shell does. `grantedLoad(Station)` is the
+`nexus.load(Station, STATION_IMPORTS)`, as the shell does. `stationLoad(Station)` is the
 same load as a `Nexus.check` entry. The fixture builds a new container per test, so
 `nexus.get(RECORDING_LINK).sent` starts empty and `nexus.get(FAKE_TELEMETRY).show(state)`
 drives the feed.

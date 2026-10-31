@@ -25,7 +25,7 @@ Plugins interact with the graph through a `BlueprintView` and register hooks via
 
 Associated views provide these members:
 
-- `ModuleView`: `id`, `name`, `global`, `imports`, `grants`, `exports`, `definition`, and `replaced`.
+- `ModuleView`: `id`, `name`, `global`, `imports`, `loadImports`, `exports`, `definition`, and `replaced`.
 - `ProviderView`: `id`, `token`, `written`, `name`, `module`, `kind`, `lifetime`, `eager`, `implementation`, `rewrittenBy`, `inline`, and `unresolved`.
 - `EdgeView`: `from`, `to`, `kind`, `ordersBuild`, and `written`.
 
@@ -65,9 +65,9 @@ The order of `edges` is not guaranteed.
 
 **Stable.** Every view and its associated arrays are frozen. Plugins cannot modify the graph through a view because core never reads a view back. `compile.check` runs even after a failed pass, providing `complete: false` and the partially finished components.
 
-### Published contributions, grants and loads
+### Published contributions, load imports and loads
 
-**Stable.** `ModuleView.exports` holds provider IDs and module IDs. For a `MultiToken` named in `exports`, it lists only the module's own contributions and the records pinned under the module. A private contribution has no reader outside its module. A reader is a provider that collects it with `all()`; `visible()` and `get(token, { module })` do not count as readers. `ModuleView.grants` lists the module IDs that a load grant added, and `imports` lists the module's own imports followed by those grants.
+**Stable.** `ModuleView.exports` holds provider IDs and module IDs. For a `MultiToken` named in `exports`, it lists only the module's own contributions and the records pinned under the module. A private contribution has no reader outside its module. A reader is a provider that collects it with `all()`; `visible()` and `get(token, { module })` do not count as readers. `ModuleView.loadImports` lists the module IDs that a load import added, and `imports` lists the module's own imports followed by those IDs.
 
 A `compile.provider` pin is treated as a publish. A `load()` fails with [NEXUS_LOAD_CONTRIBUTION](/errors/NEXUS_LOAD_CONTRIBUTION/) if the compile publishes a `MultiToken` record or a pin that was not present in the previous blueprint. A module added through `load()` cannot publish a contribution to a `MultiToken`.
 
@@ -98,7 +98,7 @@ A disposer that throws does not stop the root's disposal. When one disposer thro
 
 **Stable.**
 
-- `loadOnce(container)`: Returns one function per container. It calls `load` once per module and granted set (ignoring order and duplicate grants) and forgets a load that failed, so the next call tries again.
+- `loadOnce(container)`: Returns one function per container. It calls `load` once per module and imported set (ignoring order and duplicate load imports) and forgets a load that failed, so the next call tries again.
 - `splitLoadEntry`: Splits a `LoadEntry` with core's own rule.
 - `container.validate(deps, options)`: Validates a deps record or array against the root using `LookupOptions`.
 - `scope.resolve(deps)`: Returns `ResolvedDeps<D>` for the provided record.

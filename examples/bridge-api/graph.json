@@ -19,7 +19,7 @@
         "m17",
         "m18"
       ],
-      "grants": [],
+      "loadImports": [],
       "exports": [
         "m16",
         "m14"
@@ -30,7 +30,7 @@
       "name": "Simulation",
       "global": true,
       "imports": [],
-      "grants": [],
+      "loadImports": [],
       "exports": [
         "p8",
         "p0",
@@ -48,7 +48,7 @@
       "name": "SubspaceLink",
       "global": true,
       "imports": [],
-      "grants": [],
+      "loadImports": [],
       "exports": [
         "p9"
       ]
@@ -68,7 +68,7 @@
         "m11",
         "m12"
       ],
-      "grants": [],
+      "loadImports": [],
       "exports": []
     },
     {
@@ -76,7 +76,7 @@
       "name": "Telemetry",
       "global": false,
       "imports": [],
-      "grants": [],
+      "loadImports": [],
       "exports": [
         "p11"
       ]
@@ -86,7 +86,7 @@
       "name": "Engineering",
       "global": false,
       "imports": [],
-      "grants": [],
+      "loadImports": [],
       "exports": [
         "p12",
         "p14",
@@ -102,7 +102,7 @@
       "name": "LifeSupport",
       "global": false,
       "imports": [],
-      "grants": [],
+      "loadImports": [],
       "exports": [
         "p20",
         "p21",
@@ -120,7 +120,7 @@
       "imports": [
         "m6"
       ],
-      "grants": [],
+      "loadImports": [],
       "exports": [
         "p28",
         "p29",
@@ -138,7 +138,7 @@
       "imports": [
         "m5"
       ],
-      "grants": [],
+      "loadImports": [],
       "exports": [
         "p35",
         "p36",
@@ -152,7 +152,7 @@
       "name": "Tactical",
       "global": false,
       "imports": [],
-      "grants": [],
+      "loadImports": [],
       "exports": [
         "p40"
       ]
@@ -162,7 +162,7 @@
       "name": "Propulsion",
       "global": false,
       "imports": [],
-      "grants": [],
+      "loadImports": [],
       "exports": [
         "p41",
         "p42",
@@ -178,7 +178,7 @@
         "m10",
         "m9"
       ],
-      "grants": [],
+      "loadImports": [],
       "exports": [
         "p45",
         "p46",
@@ -195,7 +195,7 @@
       "imports": [
         "m5"
       ],
-      "grants": [],
+      "loadImports": [],
       "exports": [
         "p51",
         "p52",
@@ -209,7 +209,7 @@
       "name": "MissionScope",
       "global": false,
       "imports": [],
-      "grants": [],
+      "loadImports": [],
       "exports": [
         "p56",
         "p57"
@@ -220,7 +220,7 @@
       "name": "AuditTrail",
       "global": false,
       "imports": [],
-      "grants": [],
+      "loadImports": [],
       "exports": [
         "p58",
         "p59"
@@ -233,7 +233,7 @@
       "imports": [
         "m14"
       ],
-      "grants": [],
+      "loadImports": [],
       "exports": [
         "p60"
       ]
@@ -243,7 +243,7 @@
       "name": "SimDriver",
       "global": false,
       "imports": [],
-      "grants": [],
+      "loadImports": [],
       "exports": [
         "p61"
       ]
@@ -255,7 +255,7 @@
       "imports": [
         "m14"
       ],
-      "grants": [],
+      "loadImports": [],
       "exports": []
     },
     {
@@ -266,7 +266,7 @@
         "m5",
         "m9"
       ],
-      "grants": [],
+      "loadImports": [],
       "exports": [
         "p72"
       ]

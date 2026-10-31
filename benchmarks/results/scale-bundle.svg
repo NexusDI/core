@@ -32,9 +32,9 @@ svg{--bg:#ffffff;--ink:#1a1a19;--muted:#5f5f5b;--grid:#e3e3e0;--c0:#0072B2;--c1:
 <text class="muted" x="64" y="40" text-anchor="end">1,000,000</text>
 <text class="muted" x="328" y="410" text-anchor="middle">providers</text>
 <text class="muted" x="14" y="200" text-anchor="middle" transform="rotate(-90 14 200)">gzip bytes</text>
-<polyline class="line s0" data-series="nexusdi" points="191.29,212.27 294.04,204.22 413.33,174.19 481.25,144.67 532.62,117.22"/>
+<polyline class="line s0" data-series="nexusdi" points="191.29,212.27 294.04,204.23 413.33,174.19 481.25,144.67 532.62,117.22"/>
 <circle class="dot s0" data-series="nexusdi" data-n="50" cx="191.29" cy="212.27" r="4"/>
-<circle class="dot s0" data-series="nexusdi" data-n="200" cx="294.04" cy="204.22" r="4"/>
+<circle class="dot s0" data-series="nexusdi" data-n="200" cx="294.04" cy="204.23" r="4"/>
 <circle class="dot s0" data-series="nexusdi" data-n="1000" cx="413.33" cy="174.19" r="4"/>
 <circle class="dot s0" data-series="nexusdi" data-n="2500" cx="481.25" cy="144.67" r="4"/>
 <circle class="dot s0" data-series="nexusdi" data-n="5000" cx="532.62" cy="117.22" r="4"/>

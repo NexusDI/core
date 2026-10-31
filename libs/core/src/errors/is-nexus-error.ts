@@ -14,7 +14,7 @@ import type { LifetimeError } from './lifetime-error.js';
 import type { LoadContributionError } from './load-contribution-error.js';
 import type { UnreadContributionError } from './unread-contribution-error.js';
 import type { LoadError } from './load-error.js';
-import type { LoadGrantError } from './load-grant-error.js';
+import type { LoadImportError } from './load-import-error.js';
 import type { LoadedAfterScopeError } from './loaded-after-scope-error.js';
 import type { MissingDepsError } from './missing-deps-error.js';
 import type { MissingProviderError } from './missing-provider-error.js';
@@ -46,7 +46,7 @@ export interface NexusErrorByCode {
   NEXUS_MODULE_OPTIONS_MISSING: ModuleOptionsError;
   NEXUS_LOAD_GLOBAL_MODULE: LoadError;
   NEXUS_LOAD_CONTRIBUTION: LoadContributionError;
-  NEXUS_LOAD_GRANT: LoadGrantError;
+  NEXUS_LOAD_IMPORT: LoadImportError;
   NEXUS_UNREAD_CONTRIBUTION: UnreadContributionError;
   NEXUS_INVALID_MODULE_OPTIONS: ModuleOptionsError;
   NEXUS_PROVIDER_FAILED: ProviderError;

@@ -14,7 +14,7 @@ import {
   LifetimeError,
   LoadedAfterScopeError,
   LoadContributionError,
-  LoadGrantError,
+  LoadImportError,
   UnreadContributionError,
   LoadError,
   MissingDepsError,
@@ -241,34 +241,38 @@ export const errorCases: readonly ErrorCase[] = [
     fields: { module: 'Science', token: 'Log' },
   },
   {
-    name: 'LoadGrantError (not in the graph)',
-    error: new LoadGrantError({
+    name: 'LoadImportError (not in the graph)',
+    error: new LoadImportError({
       module: 'Science',
-      grant: 'Reactors',
+      imported: 'Reactors',
       reason: 'not-in-graph',
     }),
-    code: 'NEXUS_LOAD_GRANT',
-    fields: { module: 'Science', grant: 'Reactors', reason: 'not-in-graph' },
+    code: 'NEXUS_LOAD_IMPORT',
+    fields: { module: 'Science', imported: 'Reactors', reason: 'not-in-graph' },
   },
   {
-    name: 'LoadGrantError (root)',
-    error: new LoadGrantError({
+    name: 'LoadImportError (root)',
+    error: new LoadImportError({
       module: 'Science',
-      grant: 'Meridian',
+      imported: 'Meridian',
       reason: 'root',
     }),
-    code: 'NEXUS_LOAD_GRANT',
-    fields: { module: 'Science', grant: 'Meridian', reason: 'root' },
+    code: 'NEXUS_LOAD_IMPORT',
+    fields: { module: 'Science', imported: 'Meridian', reason: 'root' },
   },
   {
-    name: 'LoadGrantError (already loaded)',
-    error: new LoadGrantError({
+    name: 'LoadImportError (already loaded)',
+    error: new LoadImportError({
       module: 'Science',
-      grant: 'Reactors',
+      imported: 'Reactors',
       reason: 'already-loaded',
     }),
-    code: 'NEXUS_LOAD_GRANT',
-    fields: { module: 'Science', grant: 'Reactors', reason: 'already-loaded' },
+    code: 'NEXUS_LOAD_IMPORT',
+    fields: {
+      module: 'Science',
+      imported: 'Reactors',
+      reason: 'already-loaded',
+    },
   },
   {
     name: 'UnreadContributionError',

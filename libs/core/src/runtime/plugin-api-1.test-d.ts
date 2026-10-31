@@ -72,7 +72,7 @@ describe('ModuleView (G4)', () => {
       | 'name'
       | 'global'
       | 'imports'
-      | 'grants'
+      | 'loadImports'
       | 'exports'
       | 'definition'
       | 'replaced'
@@ -81,7 +81,9 @@ describe('ModuleView (G4)', () => {
     expectTypeOf<ModuleView['name']>().toEqualTypeOf<string>();
     expectTypeOf<ModuleView['global']>().toEqualTypeOf<boolean>();
     expectTypeOf<ModuleView['imports']>().toEqualTypeOf<readonly string[]>();
-    expectTypeOf<ModuleView['grants']>().toEqualTypeOf<readonly string[]>();
+    expectTypeOf<ModuleView['loadImports']>().toEqualTypeOf<
+      readonly string[]
+    >();
     expectTypeOf<ModuleView['exports']>().toEqualTypeOf<readonly string[]>();
     expectTypeOf<ModuleView['definition']>().toEqualTypeOf<ModuleDefinition>();
     expectTypeOf<

@@ -36,7 +36,7 @@ describe('loadOnce', () => {
     expect(loadOnce(other)).not.toBe(loadOnce(ship));
   });
 
-  it('keys on the granted set, ignoring order and duplicates', async () => {
+  it('keys on the imported set, ignoring order and duplicates', async () => {
     const ship = await Nexus.create(Meridian);
     const load = vi.spyOn(ship, 'load').mockResolvedValue(undefined);
     const once = loadOnce(ship);
@@ -48,7 +48,7 @@ describe('loadOnce', () => {
     expect(load).toHaveBeenCalledTimes(2);
   });
 
-  it('treats no options and an empty grant as the same key', async () => {
+  it('treats no options and empty imports as the same key', async () => {
     const ship = await Nexus.create(Meridian);
     const load = vi.spyOn(ship, 'load').mockResolvedValue(undefined);
     const once = loadOnce(ship);

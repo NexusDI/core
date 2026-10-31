@@ -42,7 +42,7 @@ export type ExpressHandler<D extends DepsMap> = (
   next: NextFunction,
 ) => unknown;
 
-/** The middleware `di.load(module, options?)` returns: it loads the module once, with the grant in `options.imports`, and extends the request's scope before the section's handlers run. */
+/** The middleware `di.load(module, options?)` returns: it loads the module once, with the load imports in `options.imports`, and extends the request's scope before the section's handlers run. */
 export interface SectionMiddleware extends RequestHandler {
   /** Like di.inject, validated after the section's first successful load. */
   inject<const D extends DepsMap>(
@@ -114,7 +114,7 @@ export function nexus(
       handler: ExpressHandler<D>,
       checked: () => Promise<void>,
       section?: ModuleRef,
-      grant?: LoadOptions,
+      loadOptions?: LoadOptions,
     ): RequestHandler =>
     async (req, res, next) => {
       const result = await core.resolve({
@@ -122,7 +122,7 @@ export function nexus(
         deps,
         checked,
         section,
-        options: grant,
+        options: loadOptions,
       });
       if ('deps' in result)
         await handler(result.deps, req, res, next); // Express 5 forwards a rejection to next(err)

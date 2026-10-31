@@ -8,7 +8,7 @@ export const FIXTURE: NexusGraph = {
       name: 'Meridian',
       global: false,
       imports: ['m1', 'm2'],
-      grants: [],
+      loadImports: [],
       exports: [],
     },
     {
@@ -16,7 +16,7 @@ export const FIXTURE: NexusGraph = {
       name: 'Navigation',
       global: false,
       imports: [],
-      grants: [],
+      loadImports: [],
       exports: ['p2'],
     },
     {
@@ -24,7 +24,7 @@ export const FIXTURE: NexusGraph = {
       name: 'Telemetry',
       global: true,
       imports: [],
-      grants: [],
+      loadImports: [],
       exports: ['p4'],
     },
   ],
@@ -106,17 +106,17 @@ export const FIXTURE: NexusGraph = {
 };
 
 /**
- * A loaded module that imports one module and holds a grant on another. The
- * grant ids also sit in `imports`, as core records them.
+ * A loaded module that imports one module and holds a load import of another.
+ * The load import ids also sit in `imports`, as core records them.
  */
-export const GRANTED: NexusGraph = {
+export const LOAD_IMPORTED: NexusGraph = {
   modules: [
     {
       id: 'm0',
       name: 'Meridian',
       global: false,
       imports: [],
-      grants: [],
+      loadImports: [],
       exports: [],
     },
     {
@@ -124,7 +124,7 @@ export const GRANTED: NexusGraph = {
       name: 'Navigation',
       global: false,
       imports: [],
-      grants: [],
+      loadImports: [],
       exports: [],
     },
     {
@@ -132,7 +132,7 @@ export const GRANTED: NexusGraph = {
       name: 'Science',
       global: false,
       imports: ['m1', 'm0'],
-      grants: ['m0'],
+      loadImports: ['m0'],
       exports: [],
     },
   ],
@@ -149,7 +149,7 @@ export const ESCAPE_FIXTURE: NexusGraph = {
       name: 'Bay "7"',
       global: false,
       imports: [],
-      grants: [],
+      loadImports: [],
       exports: [],
     },
     {
@@ -157,7 +157,7 @@ export const ESCAPE_FIXTURE: NexusGraph = {
       name: '`md`',
       global: false,
       imports: [],
-      grants: [],
+      loadImports: [],
       exports: [],
     },
   ],
@@ -201,7 +201,7 @@ export const WITH_REQUEST: NexusGraph = {
       name: 'Meridian',
       global: false,
       imports: [],
-      grants: [],
+      loadImports: [],
       exports: [],
     },
   ],
@@ -248,7 +248,7 @@ export const WITH_INTERNAL: NexusGraph = {
       name: 'Meridian',
       global: false,
       imports: [],
-      grants: [],
+      loadImports: [],
       exports: [],
     },
   ],
@@ -295,7 +295,7 @@ export const HOSTILE_IDS: NexusGraph = {
       name: 'Meridian',
       global: true,
       imports: ['p0'],
-      grants: [],
+      loadImports: [],
       exports: ['a-->b', 'p0'],
     },
     {
@@ -303,7 +303,7 @@ export const HOSTILE_IDS: NexusGraph = {
       name: 'Navigation',
       global: false,
       imports: [],
-      grants: [],
+      loadImports: [],
       exports: ['x;y'],
     },
   ],

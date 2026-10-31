@@ -147,9 +147,9 @@ describe('the development reload guard', () => {
     await ship[Symbol.asyncDispose]();
   });
 
-  describe('an edit of the grant under one section name', () => {
-    /** A page that loads the section with one grant, then renders a second handle with another. */
-    async function regrant(
+  describe('an edit of the load imports under one section name', () => {
+    /** A page that loads the section with one set of load imports, then renders a second handle with another. */
+    async function reimport(
       second: (host: core.ModuleRef[]) => core.ModuleRef[],
     ) {
       const { defineModule, Nexus, provide, Token } = core;
@@ -186,10 +186,10 @@ describe('the development reload guard', () => {
       return { view, ship };
     }
 
-    it('reloads the page when the second handle grants another set', async () => {
+    it('reloads the page when the second handle imports another set', async () => {
       vi.spyOn(console, 'info').mockImplementation(() => undefined);
       const reload = stubReload();
-      const { view, ship } = await regrant(([helm]) => [
+      const { view, ship } = await reimport(([helm]) => [
         helm as core.ModuleRef,
       ]);
       await vi.waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
@@ -197,9 +197,9 @@ describe('the development reload guard', () => {
       await ship[Symbol.asyncDispose]();
     });
 
-    it('does nothing when the second handle grants the same set in another order', async () => {
+    it('does nothing when the second handle imports the same set in another order', async () => {
       const reload = stubReload();
-      const { view, ship } = await regrant(([helm, dock]) => [
+      const { view, ship } = await reimport(([helm, dock]) => [
         dock as core.ModuleRef,
         helm as core.ModuleRef,
       ]);

@@ -136,7 +136,7 @@ describe('the remotes', () => {
 });
 
 describe('the station sections', () => {
-  it("grant the shell's Tactical to every station they load", () => {
+  it("import the shell's Tactical into every station they load", () => {
     expect([...SECTIONS.keys()]).toEqual(STATIONS.map(({ id }) => id));
     for (const { section } of SECTIONS.values()) {
       expect(section.options?.imports).toEqual([Tactical]);

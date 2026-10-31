@@ -29,13 +29,13 @@ describe('LoadOptions and LoadEntry', () => {
     void bad;
   });
 
-  it('is a module ref or a module with its grant', () => {
+  it('is a module ref or a module with its load imports', () => {
     expectTypeOf<ModuleRef>().toExtend<LoadEntry>();
     expectTypeOf<{
       readonly module: ModuleRef;
       readonly imports: readonly ModuleRef[];
     }>().toExtend<LoadEntry>();
-    // @ts-expect-error the grant list is required in the object form
+    // @ts-expect-error the imports list is required in the object form
     const bad: LoadEntry = { module: Helm };
     void bad;
   });

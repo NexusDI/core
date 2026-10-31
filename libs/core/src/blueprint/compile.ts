@@ -11,7 +11,7 @@ import {
   CircularDependencyError,
   LoadContributionError,
   LoadError,
-  LoadGrantError,
+  LoadImportError,
   type NexusError,
 } from '../errors/index.js';
 import { describeValue, MultiToken } from '../definitions/token.js';
@@ -63,8 +63,9 @@ export interface CompileInput {
    */
   readonly pluginImports?: readonly unknown[];
   /**
-   * Modules load() added as root imports, each with the grant it was loaded
-   * with. With `previous`, the compile checks every grant against it.
+   * Modules load() added as root imports, each with the load imports it was
+   * loaded with. With `previous`, the compile checks every load import
+   * against it.
    */
   readonly extraImports?: readonly LoadEntry[];
   /** Plugin compile hooks. */
@@ -123,17 +124,17 @@ export function heldId(previous: Blueprint, ref: unknown): string | undefined {
 }
 
 /**
- * Whether the grant `refs` names is the set the module `held` of `previous`
- * recorded. An empty request grants nothing, so it matches. A ref the graph
- * lacks never matches. The order of the refs does not matter.
+ * Whether the load imports `refs` names are the set the module `held` of
+ * `previous` recorded. An empty request imports nothing, so it matches. A ref
+ * the graph lacks never matches. The order of the refs does not matter.
  */
-export function sameGrant(
+export function sameLoadImports(
   previous: Blueprint,
   held: string,
   refs: readonly unknown[],
 ): boolean {
   if (refs.length === 0) return true;
-  const recorded = previous.modules.get(held)?.grantSet ?? [];
+  const recorded = previous.modules.get(held)?.loadImportSet ?? [];
   const ids = new Set<string>();
   for (const ref of refs) {
     const id = heldId(previous, ref);
@@ -144,32 +145,37 @@ export function sameGrant(
 }
 
 /**
- * load()'s grant rules, checked against the live blueprint before the walk,
- * so a grant of the root never reaches the walk's stack. Each granted module
- * must be in the graph and must not be the root. A module the graph holds
- * keeps the grant it has: a request for another set is already-loaded. The
- * first entry and grant that break a rule name the error.
+ * load()'s load import rules, checked against the live blueprint before the
+ * walk, so a load import of the root never reaches the walk's stack. Each
+ * imported module must be in the graph and must not be the root. A module the
+ * graph holds keeps the load imports it has: a request for another set is
+ * already-loaded. The first entry and load import that break a rule name the
+ * error.
  */
-function checkGrants(entries: readonly LoadEntry[], previous: Blueprint): void {
+function checkLoadImports(
+  entries: readonly LoadEntry[],
+  previous: Blueprint,
+): void {
   for (const entry of entries) {
     const { module, imports } = splitEntry(entry);
     if (imports.length === 0) continue;
     const loaded = resolveModuleRef(module)?.name ?? describeValue(module);
     for (const ref of imports) {
       const id = heldId(previous, ref);
-      const grant = resolveModuleRef(ref)?.name ?? describeValue(ref);
+      const imported = resolveModuleRef(ref)?.name ?? describeValue(ref);
       if (id === undefined)
-        throw new LoadGrantError({
+        throw new LoadImportError({
           module: loaded,
-          grant,
+          imported,
           reason: 'not-in-graph',
         });
       if (id === previous.root)
-        throw new LoadGrantError({ module: loaded, grant, reason: 'root' });
+        throw new LoadImportError({ module: loaded, imported, reason: 'root' });
     }
     const held = heldId(previous, module);
-    if (held === undefined || sameGrant(previous, held, imports)) continue;
-    const recorded = previous.modules.get(held)?.grantSet ?? [];
+    if (held === undefined || sameLoadImports(previous, held, imports))
+      continue;
+    const recorded = previous.modules.get(held)?.loadImportSet ?? [];
     // The error names the first requested module the record lacks. A request
     // that only drops modules from the record has none, so it names the first
     // requested module.
@@ -178,9 +184,9 @@ function checkGrants(entries: readonly LoadEntry[], previous: Blueprint): void {
         const id = heldId(previous, ref);
         return id !== undefined && !recorded.includes(id);
       }) ?? imports[0];
-    throw new LoadGrantError({
+    throw new LoadImportError({
       module: loaded,
-      grant: resolveModuleRef(differing)?.name ?? describeValue(differing),
+      imported: resolveModuleRef(differing)?.name ?? describeValue(differing),
       reason: 'already-loaded',
     });
   }
@@ -282,8 +288,9 @@ export function compile(input: CompileInput): Blueprint {
     keying === undefined ? undefined : reportingCanon(keying, errors);
   const pluginImports = HOOK_SITES ? input.pluginImports : undefined;
   // Like checkNewGlobals, the guard throws alone. It runs ahead of the walk,
-  // so a grant of the root never reaches the walk's stack.
-  if (input.previous !== undefined) checkGrants(extraImports, input.previous);
+  // so a load import of the root never reaches the walk's stack.
+  if (input.previous !== undefined)
+    checkLoadImports(extraImports, input.previous);
   const walked = walk(
     {
       canon,
@@ -292,7 +299,7 @@ export function compile(input: CompileInput): Blueprint {
         pluginImports === undefined || pluginImports.length === 0
           ? extraImports
           : [
-              // A plugin's module is never a grant entry, whatever its shape.
+              // A plugin's module is never a load import entry, whatever its shape.
               ...pluginImports.map((module) => ({
                 module: module as ModuleRef,
                 imports: [],

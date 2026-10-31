@@ -5,14 +5,14 @@ const loaders = new WeakMap<Nexus, Nexus['load']>();
 
 /**
  * Returns the container's load function with one cache: `(module, options?)`
- * calls `container.load` once per module and granted set, and every later
+ * calls `container.load` once per module and imported set, and every later
  * call with the same pair gets the same promise. The set ignores order and
  * duplicates, and compares modules by identity. A load that rejects leaves
  * the cache, so the next call tries again.
  *
  * Two calls with one container return the same function. An adapter calls it
  * on the container it serves, so concurrent requests that enter a section
- * share one load. Core decides what a repeat load with another grant does.
+ * share one load. Core decides what a repeat load with other load imports does.
  */
 export function loadOnce(container: Nexus): Nexus['load'] {
   let load = loaders.get(container);

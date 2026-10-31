@@ -328,7 +328,7 @@ export function once(fn: () => Promise<void>): () => Promise<void> {
   return () => (done ??= fn());
 }
 
-/** A section's load: the module and the modules it is granted, loaded once per container by loadOnce. */
+/** A section's load: the module and the modules it imports, loaded once per container by loadOnce. */
 export type SectionLoad = (
   module: ModuleRef,
   options?: LoadOptions,
@@ -518,8 +518,8 @@ export function adapterCore(
 ) {
   const log = guardLog(options.log ?? defaultLog);
   const container = containerOf(ship);
-  const load: SectionLoad = async (module, grant) =>
-    loadOnce(await container())(module, grant);
+  const load: SectionLoad = async (module, options) =>
+    loadOnce(await container())(module, options);
   return {
     log,
     /** A request's lazy handle, and its dispose step (disposer), logged through `requestLog` when given. */

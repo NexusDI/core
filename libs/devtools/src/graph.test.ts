@@ -116,7 +116,7 @@ describe('graph', () => {
           name: 'Meridian',
           global: false,
           imports: ['m1'],
-          grants: [],
+          loadImports: [],
           exports: [],
         },
         {
@@ -124,7 +124,7 @@ describe('graph', () => {
           name: 'Comms',
           global: false,
           imports: [],
-          grants: [],
+          loadImports: [],
           exports: ['p4'],
         },
       ],
@@ -251,7 +251,7 @@ describe('graph', () => {
     expect(graph(ship).modules.map((m) => m.name)).toEqual(['Root', 'Science']);
   });
 
-  it('lists the ids a load grant gave a module in grants, and in imports', async () => {
+  it('lists the ids a load import gave a module in loadImports, and in imports', async () => {
     const Host = defineModule({
       name: 'Host',
       providers: [ReactorCore],
@@ -266,13 +266,13 @@ describe('graph', () => {
       { imports: [Host] },
     );
     const modules = graph(ship).modules.filter((m) => m.name !== 'Root');
-    expect(modules.map((m) => [m.name, m.imports, m.grants])).toEqual([
+    expect(modules.map((m) => [m.name, m.imports, m.loadImports])).toEqual([
       ['Host', [], []],
       ['Science', ['m1'], ['m1']],
     ]);
   });
 
-  it('keeps a granted module the loaded module already imports in imports, and out of grants', async () => {
+  it('keeps an imported module the loaded module already imports in imports, and out of loadImports', async () => {
     const Host = defineModule({
       name: 'Host',
       providers: [ReactorCore],
@@ -291,7 +291,7 @@ describe('graph', () => {
       { imports: [Host] },
     );
     const modules = graph(ship).modules.filter((m) => m.name !== 'Root');
-    expect(modules.map((m) => [m.name, m.imports, m.grants])).toEqual([
+    expect(modules.map((m) => [m.name, m.imports, m.loadImports])).toEqual([
       ['Host', [], []],
       ['Science', ['m1'], []],
     ]);

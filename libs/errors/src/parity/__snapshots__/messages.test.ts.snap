@@ -114,19 +114,19 @@ exports[`NexusError > keeps the message of LoadError 1`] = `
   Fix: import Telemetry from the root module, or make it non-global."
 `;
 
-exports[`NexusError > keeps the message of LoadGrantError (already loaded) 1`] = `
-"[NEXUS_LOAD_GRANT] Science is already in the graph with its grant fixed, and a grant applies only when a module joins the graph. This load asks for another set of grants, which includes Reactors.
-  Fix: repeat the load with the grant Science has, or leave the grant out."
+exports[`NexusError > keeps the message of LoadImportError (already loaded) 1`] = `
+"[NEXUS_LOAD_IMPORT] Science is already in the graph with its load imports fixed, and load imports apply only when a module joins the graph. This load asks for another set of imports, which includes Reactors.
+  Fix: repeat the load with the imports Science has, or leave imports out."
 `;
 
-exports[`NexusError > keeps the message of LoadGrantError (not in the graph) 1`] = `
-"[NEXUS_LOAD_GRANT] Science is loaded with a grant for Reactors, and the graph holds no module with that definition.
-  Fix: grant the object the host imported (a forRoot() call makes a new one), or import Reactors from a host module first."
+exports[`NexusError > keeps the message of LoadImportError (not in the graph) 1`] = `
+"[NEXUS_LOAD_IMPORT] Science is loaded with an import of Reactors, and the graph holds no module with that definition.
+  Fix: list the object the host imported in imports (a forRoot() call makes a new one), or import Reactors from a host module first."
 `;
 
-exports[`NexusError > keeps the message of LoadGrantError (root) 1`] = `
-"[NEXUS_LOAD_GRANT] Science is loaded with a grant for Meridian, the root module, and a grant never names the root.
-  Fix: grant the host module that provides what Science needs, and export it from there."
+exports[`NexusError > keeps the message of LoadImportError (root) 1`] = `
+"[NEXUS_LOAD_IMPORT] Science is loaded with an import of Meridian, the root module, and a load import never names the root.
+  Fix: list the host module that provides what Science needs in imports, and export it from there."
 `;
 
 exports[`NexusError > keeps the message of LoadedAfterScopeError (deps entry) 1`] = `

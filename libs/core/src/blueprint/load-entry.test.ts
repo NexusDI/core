@@ -7,11 +7,11 @@ const Engineering = defineModule({ name: 'Engineering' });
 const Survey = defineModule({ name: 'Survey' });
 
 describe('splitLoadEntry', () => {
-  it('returns a module ref as the module with no grant', () => {
+  it('returns a module ref as the module with no load imports', () => {
     expect(splitLoadEntry(Survey)).toEqual({ module: Survey, imports: [] });
   });
 
-  it('returns the module and the granted modules of a { module, imports } entry', () => {
+  it('returns the module and the imported modules of a { module, imports } entry', () => {
     const entry = { module: Survey, imports: [Engineering] };
     const { module, imports } = splitLoadEntry(entry);
     expect(module).toBe(Survey);

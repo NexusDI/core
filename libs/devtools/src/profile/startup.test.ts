@@ -48,7 +48,7 @@ describe('profileStartup', () => {
     expect(report.runs[2]?.builds.map((b) => b.token)).toEqual(['Lander']);
   });
 
-  it('loads a LoadEntry with a grant, so the module sees the granted exports', async () => {
+  it('loads a LoadEntry with a load import, so the module sees the imported exports', async () => {
     const HELM = new Token<string>('Helm');
     const COURSE = new Token<string>('Course');
     const Helm = defineModule({
