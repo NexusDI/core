@@ -28,6 +28,37 @@ describe('src/styles.css', () => {
     expect(body).not.toMatch(/backdrop-filter|text-shadow|scanline|vignette/);
   });
 
+  it('lets only the pulsing ::after draw the alarm banner border', () => {
+    expect(source).toMatch(
+      /\.meridian-alert--alarm \{[^}]*border-color: transparent;/,
+    );
+  });
+
+  it('keeps the lifetime shapes in forced colors', () => {
+    expect(source).toMatch(
+      /@media \(forced-colors: active\) \{[\s\S]*\.meridian-marker--lifetime \{[^}]*forced-color-adjust: none;[^}]*color: CanvasText;/,
+    );
+  });
+
+  it('opens the log at its end with a reversed column and no scroll anchor', () => {
+    expect(source).toMatch(
+      /\.meridian-terminal__log \{[^}]*flex-direction: column-reverse;/,
+    );
+    expect(source).not.toContain('overflow-anchor');
+  });
+
+  it('draws the focus ring on the button and the log', () => {
+    expect(source).toMatch(
+      /\.meridian-button:focus-visible,\s*\.meridian-terminal__log:focus-visible \{[^}]*outline: 2px solid var\(--meridian-focus\);/,
+    );
+  });
+
+  it('colours the values inside a terminal message with data', () => {
+    expect(source).toMatch(
+      /\.meridian-terminal__message :where\(data, var, \.meridian-terminal__value\) \{[^}]*color: var\(--meridian-data\);/,
+    );
+  });
+
   it('defines the classes of the five new components', () => {
     for (const name of [
       'meridian-terminal',
