@@ -18,6 +18,8 @@ export const BUDGETS = {
   island: 35_000,
   background: 8_000,
   tool: 200_000,
+  bay: 20_000,
+  runtime: 30_000,
 };
 /**
  * The ceiling on one behaviour sidecar, `out/behaviour/<dir>/<name>.json`,
@@ -163,6 +165,36 @@ export const ART_DIR = join(
 
 export const ISLAND_MARK = 'nexus-console-island';
 export const BACKGROUND_MARK = 'meridian-background';
+/** The front page's bay controller (site UX spec 12.1). */
+export const BAY_MARK = 'nexus-preflight-bay';
+/** The core runtime chunk: core, `errors`, devtools' `trace` and `inspect`, and a scene's seed. */
+export const RUNTIME_MARK = 'nexus-core-runtime';
+
+/**
+ * The markers, in the order `classify` tries them. A chunk carries one marker
+ * at most, and it counts against that marker's row wherever it loads. A chunk
+ * with none is `page` JavaScript.
+ */
+const MARKS = [
+  ['island', ISLAND_MARK],
+  ['background', BACKGROUND_MARK],
+  ['bay', BAY_MARK],
+  ['runtime', RUNTIME_MARK],
+];
+
+/**
+ * What core's one-line messages end with. A chunk that holds it holds core's
+ * code. Turbopack may move core into a chunk of its own when a second chunk
+ * imports it, and that chunk carries no marker. `checkMarkedChunks` counts it
+ * against the runtime row, since only the runtime chunk loads core.
+ */
+export const CORE_SIGNATURE = 'nexus.js.org/errors';
+
+/** The row a chunk's source counts against: its marker's, or `page`. */
+export function classify(source) {
+  for (const [kind, mark] of MARKS) if (source.includes(mark)) return kind;
+  return 'page';
+}
 
 // Next exports its error pages as index.html files that skip the theme chunks,
 // so they would shrink the shared set and charge the theme to every page.
@@ -197,14 +229,7 @@ export function checkBudgets(out, { basePath = '' } = {}) {
       const text = readFileSync(join(out, script));
       sizes.set(script, gzipSync(text).length);
       const source = text.toString('utf8');
-      kinds.set(
-        script,
-        source.includes(ISLAND_MARK)
-          ? 'island'
-          : source.includes(BACKGROUND_MARK)
-            ? 'background'
-            : 'page',
-      );
+      kinds.set(script, classify(source));
     }
     return { size: sizes.get(script), kind: kinds.get(script) };
   };
@@ -229,7 +254,7 @@ export function checkBudgets(out, { basePath = '' } = {}) {
 
   for (const [path, list] of scripts) {
     const tool = TOOL_ROUTES.some((route) => path.startsWith(route));
-    const totals = { page: 0, island: 0, background: 0 };
+    const totals = { page: 0, island: 0, background: 0, bay: 0, runtime: 0 };
     for (const script of list.filter((src) => !shared.has(src))) {
       const { size, kind } = read(script);
       totals[kind] += size;
@@ -255,6 +280,16 @@ export function checkBudgets(out, { basePath = '' } = {}) {
         `${path}: the console island is ${kB(totals.island)} gzipped, over the 35 kB budget. Move work out of the island or load it after Run.`,
       );
     }
+    if (totals.bay > BUDGETS.bay) {
+      findings.push(
+        `${path}: the bay controller is ${kB(totals.bay)} gzipped, over the ${BUDGETS.bay / 1000} kB budget. Move work into the run chunk or load it after the first control.`,
+      );
+    }
+    if (totals.runtime > BUDGETS.runtime) {
+      findings.push(
+        `${path}: the core runtime chunk is ${kB(totals.runtime)} gzipped, over the ${BUDGETS.runtime / 1000} kB budget. Import a narrower entry of core, errors or devtools, or raise BUDGETS.runtime with the new measurement.`,
+      );
+    }
     if (totals.background > BUDGETS.background) {
       findings.push(
         `${path}: the background module is ${kB(totals.background)} gzipped, over the 8 kB budget. Shrink internal/meridian-ui/src/background.`,
@@ -262,6 +297,60 @@ export function checkBudgets(out, { basePath = '' } = {}) {
     }
   }
 
+  return { findings, rows };
+}
+
+/**
+ * Holds the chunks that a page loads with `import()` to their rows. No page's
+ * HTML names them, so `checkBudgets` never sees them: the bay controller and
+ * the run chunk load when the bay nears the viewport. This scans every script
+ * under `_next/static` and sorts each by `classify`. The runtime row also
+ * counts the chunks that hold core and no marker (see `CORE_SIGNATURE`), so a
+ * split of core out of the runtime chunk leaves the row's total unchanged.
+ */
+export function checkMarkedChunks(out) {
+  const root = join(out, '_next', 'static');
+  let files = [];
+  try {
+    files = readdirSync(root, { recursive: true, withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.js'))
+      .map((entry) => join(entry.parentPath, entry.name));
+  } catch {
+    return {
+      findings: [
+        `${relative(out, root)} does not exist. Run the docs build before the budget check.`,
+      ],
+      rows: [],
+    };
+  }
+  const rows = [];
+  const findings = [];
+  const total = { bay: [], runtime: [] };
+  for (const file of files) {
+    const source = readFileSync(file, 'utf8');
+    const kind = classify(source);
+    const holdsCore = kind === 'page' && source.includes(CORE_SIGNATURE);
+    const row = holdsCore ? 'runtime' : kind;
+    if (row !== 'bay' && row !== 'runtime') continue;
+    total[row].push({
+      file: relative(out, file).split(sep).join('/'),
+      gzip: gzipSync(source).length,
+      split: holdsCore,
+    });
+  }
+  for (const row of ['bay', 'runtime']) {
+    const chunks = total[row];
+    const gzip = chunks.reduce((sum, chunk) => sum + chunk.gzip, 0);
+    rows.push({ row, chunks, gzip });
+    if (chunks.length === 0)
+      findings.push(
+        `No chunk under _next/static carries the ${row === 'bay' ? BAY_MARK : RUNTIME_MARK} marker. The bay must load it with import().`,
+      );
+    else if (gzip > BUDGETS[row])
+      findings.push(
+        `The ${row === 'bay' ? 'bay controller' : 'core runtime'} chunks are ${kB(gzip)} gzipped (${chunks.map((chunk) => chunk.file).join(', ')}), over the ${BUDGETS[row] / 1000} kB budget.`,
+      );
+  }
   return { findings, rows };
 }
 
@@ -485,6 +574,12 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
       `${row.path}: ${row.row} ${kB(row.bytes)}, island ${kB(row.island)}, background ${kB(row.background)}`,
     );
   }
+  const marked = checkMarkedChunks(out);
+  for (const row of marked.rows)
+    console.log(
+      `${row.row === 'bay' ? BAY_MARK : RUNTIME_MARK}: ${kB(row.gzip)} gzipped in ${row.chunks.length} chunk${row.chunks.length === 1 ? '' : 's'}, budget ${BUDGETS[row.row] / 1000} kB`,
+    );
+  findings.push(...marked.findings);
   const guide = checkGuideTotal(out, {
     basePath: process.env.DOCS_BASE_PATH ?? '',
   });

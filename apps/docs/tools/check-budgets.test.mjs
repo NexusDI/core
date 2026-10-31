@@ -7,6 +7,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -14,6 +15,11 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   BACKGROUND_MARK,
+  BAY_MARK,
+  CORE_SIGNATURE,
+  RUNTIME_MARK,
+  checkMarkedChunks,
+  classify,
   BEHAVIOUR_BUDGET,
   BUDGETS,
   GUIDE_BUDGET,
@@ -163,6 +169,8 @@ describe('checkBudgets', () => {
       island: 35_000,
       background: 8_000,
       tool: 200_000,
+      bay: 20_000,
+      runtime: 30_000,
     });
   });
 });
@@ -431,4 +439,96 @@ describe('checkArt', () => {
     expect(findings).toHaveLength(1);
     expect(findings[0]).toMatch(/load 2\.0 kB of AVIF together/);
   });
+});
+
+describe('classify', () => {
+  it('sorts a chunk by the marker it carries', () => {
+    expect(classify(`x="${ISLAND_MARK}"`)).toBe('island');
+    expect(classify(`x="${BACKGROUND_MARK}"`)).toBe('background');
+    expect(classify(`x="${BAY_MARK}"`)).toBe('bay');
+    expect(classify(`x="${RUNTIME_MARK}"`)).toBe('runtime');
+    expect(classify('const nothing = 1')).toBe('page');
+  });
+});
+
+describe('checkMarkedChunks', () => {
+  function lazySite(chunks) {
+    const out = mkdtempSync(join(tmpdir(), 'budgets-lazy-'));
+    dirs.push(out);
+    mkdirSync(join(out, '_next', 'static', 'chunks'), { recursive: true });
+    for (const [name, text] of Object.entries(chunks))
+      writeFileSync(join(out, '_next', 'static', 'chunks', name), text);
+    return out;
+  }
+
+  it('measures the bay and the runtime chunks, which no page names', () => {
+    const out = lazySite({
+      'bay.js': `const m="${BAY_MARK}";${noise(10_000)}`,
+      'runtime.js': `const m="${RUNTIME_MARK}";${noise(20_000)}`,
+      'other.js': noise(50_000),
+    });
+    const { findings, rows } = checkMarkedChunks(out);
+    expect(findings).toEqual([]);
+    expect(rows.map((row) => row.row)).toEqual(['bay', 'runtime']);
+    expect(rows[0].gzip).toBeGreaterThan(9_000);
+    expect(rows[1].gzip).toBeGreaterThan(19_000);
+  });
+
+  it('fails a bay chunk over 20 kB and a runtime chunk over 30 kB', () => {
+    const out = lazySite({
+      'bay.js': `const m="${BAY_MARK}";${noise(21_000)}`,
+      'runtime.js': `const m="${RUNTIME_MARK}";${noise(31_000)}`,
+    });
+    const { findings } = checkMarkedChunks(out);
+    expect(findings).toHaveLength(2);
+    expect(findings[0]).toContain('bay controller');
+    expect(findings[1]).toContain('core runtime');
+  });
+
+  it('counts a chunk that holds core and no marker against the runtime row', () => {
+    const out = lazySite({
+      'bay.js': `const m="${BAY_MARK}";${noise(1_000)}`,
+      'runtime.js': `const m="${RUNTIME_MARK}";${noise(16_000)}`,
+      'core.js': `const d="https://${CORE_SIGNATURE}";${noise(16_000)}`,
+    });
+    const { findings, rows } = checkMarkedChunks(out);
+    expect(rows[1].chunks.map((chunk) => chunk.split).sort()).toEqual([
+      false,
+      true,
+    ]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toContain('core runtime');
+  });
+
+  it('names a marker that no chunk carries', () => {
+    const out = lazySite({ 'other.js': noise(1_000) });
+    const { findings } = checkMarkedChunks(out);
+    expect(findings).toHaveLength(2);
+    expect(findings[0]).toContain(BAY_MARK);
+  });
+
+  it('keeps a chunk with two kinds of code off the content row', () => {
+    const out = lazySite({ 'bay.js': `const m="${BAY_MARK}";${noise(1_000)}` });
+    expect(checkMarkedChunks(out).rows[0].chunks).toHaveLength(1);
+  });
+});
+
+describe('the bay and runtime rows', () => {
+  it('states the rows of site UX spec 12.1 in bytes', () => {
+    expect(BUDGETS.bay).toBe(20_000);
+    expect(BUDGETS.runtime).toBe(30_000);
+  });
+});
+
+describe('checkMarkedChunks on a built export', () => {
+  const built = join(import.meta.dirname, '..', 'out');
+
+  it.skipIf(!existsSync(join(built, '_next', 'static')))(
+    'finds the bay controller and the run chunk of the docs build inside their rows',
+    () => {
+      const { findings, rows } = checkMarkedChunks(built);
+      expect(findings).toEqual([]);
+      expect(rows.every((row) => row.chunks.length >= 1)).toBe(true);
+    },
+  );
 });
