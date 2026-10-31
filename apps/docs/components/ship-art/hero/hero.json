@@ -1,0 +1,7 @@
+{
+  "view": "hero",
+  "camera": {
+    "projection": "perspective"
+  },
+  "source": "hero-ext-d-s211-i20-d-clip"
+}

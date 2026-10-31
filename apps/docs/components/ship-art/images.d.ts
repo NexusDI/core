@@ -3,11 +3,11 @@
  * `next/image-types/global`, which declares `*.avif` and `*.webp` only where
  * `next-env.d.ts` exists, so the typecheck needs no generated file.
  */
-declare module '*/hero/*.avif' {
+declare module '*/ship-art/*/*.avif' {
   const image: { src: string; width: number; height: number };
   export default image;
 }
-declare module '*/hero/*.webp' {
+declare module '*/ship-art/*/*.webp' {
   const image: { src: string; width: number; height: number };
   export default image;
 }

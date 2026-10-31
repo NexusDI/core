@@ -30,7 +30,8 @@ import {
   checkArt,
   checkFonts,
   ART_BUDGET,
-  HERO_DIR,
+  ART_DIR,
+  ART_SUM,
   CONDENSED_FONTS,
   FONT_BUDGET,
   scriptsOf,
@@ -373,7 +374,11 @@ describe('checkArt', () => {
     dirs.push(dir);
     const names = ['one.avif', 'two.webp'];
     for (const name of names) writeFileSync(join(dir, name), randomBytes(size));
-    return { dir, budget: Object.fromEntries(names.map((n) => [n, limit])) };
+    return {
+      dir,
+      budget: Object.fromEntries(names.map((n) => [n, limit])),
+      sum: { files: names, limit: limit * 3 },
+    };
   }
 
   const copiesOf = ({ dir, budget }) =>
@@ -381,17 +386,25 @@ describe('checkArt', () => {
 
   it('holds the committed art inside its rows', () => {
     for (const [name, limit] of Object.entries(ART_BUDGET)) {
-      expect(readFileSync(join(HERO_DIR, name)).length).toBeLessThanOrEqual(
+      expect(readFileSync(join(ART_DIR, name)).length).toBeLessThanOrEqual(
         limit,
       );
     }
+  });
+
+  it('holds the three wide AVIF files inside their sum row', () => {
+    const total = ART_SUM.files.reduce(
+      (all, name) => all + readFileSync(join(ART_DIR, name)).length,
+      0,
+    );
+    expect(total).toBeLessThanOrEqual(ART_SUM.limit);
   });
 
   it('passes shipped files inside their rows', () => {
     const art = sources(1000, 1200);
     const { findings, rows } = checkArt(exportWith(copiesOf(art)), art);
     expect(findings).toEqual([]);
-    expect(rows.map((row) => row.bytes)).toEqual([1000, 1000]);
+    expect(rows.map((row) => row.bytes)).toEqual([1000, 1000, 2000]);
   });
 
   it('fails a file the export does not ship', () => {
@@ -407,5 +420,15 @@ describe('checkArt', () => {
     const { findings } = checkArt(exportWith(copiesOf(art)), art);
     expect(findings).toHaveLength(2);
     expect(findings[0]).toMatch(/one\.avif: 1\.0 kB, over the 0\.9 kB budget/);
+  });
+
+  it('fails three files over their sum', () => {
+    const art = sources(1000, 1200);
+    const { findings } = checkArt(exportWith(copiesOf(art)), {
+      ...art,
+      sum: { files: Object.keys(art.budget), limit: 1500 },
+    });
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatch(/load 2\.0 kB of AVIF together/);
   });
 });
