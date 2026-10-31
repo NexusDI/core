@@ -658,7 +658,7 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
 .bay-socket__text {
   fill: var(--meridian-alarm);
   font-family: var(--meridian-font-mono);
-  font-size: 0.7px;
+  font-size: 0.58px;
 }
 
 /* The graph overlay: DI edges on top, the conduits dimmed to 40% (5.4). */
@@ -895,11 +895,17 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
 
   .nexus-bay__legend {
     display: grid;
-    grid-template-columns: auto auto;
-    justify-content: space-between;
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    gap: var(--meridian-space-1) var(--meridian-space-3);
+    font-size: var(--meridian-text-micro);
   }
 
   .nexus-bay__legend-item {
+    min-inline-size: 0;
+  }
+
+  .nexus-bay__toolbar .meridian-switch {
+    flex: none;
     white-space: nowrap;
   }
 
@@ -1000,14 +1006,14 @@ article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
     align-items: flex-start;
   }
 
-  .nexus-bay__run-cell {
-    display: flex;
-    flex: none;
+  .nexus-bay__runs {
+    inline-size: 100%;
   }
 
   .nexus-bay__break {
     flex: none;
     inline-size: 18px;
+    align-self: stretch;
   }
 
   .nexus-bay__break svg {

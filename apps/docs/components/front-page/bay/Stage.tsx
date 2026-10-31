@@ -1,9 +1,10 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { Fragment, type CSSProperties, type ReactNode } from 'react';
 import { HoloLabel, HullCrop, Schematic } from '@nexusdi/meridian-ui';
 import type { NexusGraph } from '@nexusdi/devtools';
 
 import {
   CROPS,
+  BREAK_PX,
   FRAME,
   HIT_PX,
   PARTS_IN_HULL_ORDER,
@@ -190,6 +191,11 @@ export function Stage(props: StageProps) {
   const phone = layout === 'phone' || layout === 'both';
   const crop = CROPS[section];
   const ppmPhone = runScale(section, props.width.phone);
+  // Each run takes its share of the width that the break marks leave, so the
+  // server's markup fits any phone and the controller measures nothing for it.
+  const total = crop.runs.reduce((sum, [from, to]) => sum + to - from, 0);
+  const share = (metres: number) =>
+    `calc((100% - ${BREAK_PX * (crop.runs.length - 1)}px) * ${metres / total})`;
   const className = `nexus-bay__stage${props.showGraph ? ' is-graph' : ''}`;
   return (
     <div className={className}>
@@ -209,13 +215,11 @@ export function Stage(props: StageProps) {
         <div className="nexus-bay__phone" data-section={section}>
           <div className="nexus-bay__runs">
             {crop.runs.map(([from, to], run) => (
-              <div key={run} className="nexus-bay__run-cell">
-                {run > 0 ? (
-                  <BreakMark height={(crop.y[1] - crop.y[0]) * ppmPhone} />
-                ) : null}
+              <Fragment key={run}>
+                {run > 0 ? <BreakMark /> : null}
                 <div
                   className="nexus-bay__run"
-                  style={{ inlineSize: (to - from) * ppmPhone }}
+                  style={{ inlineSize: share(to - from) }}
                 >
                   <HullCrop
                     full={FRAME}
@@ -231,7 +235,7 @@ export function Stage(props: StageProps) {
                     />
                   </HullCrop>
                 </div>
-              </div>
+              </Fragment>
             ))}
           </div>
           <div className="nexus-bay__run-names">
@@ -239,10 +243,7 @@ export function Stage(props: StageProps) {
               <span
                 key={name}
                 style={{
-                  inlineSize:
-                    ((crop.runs[at]?.[1] ?? 0) - (crop.runs[at]?.[0] ?? 0)) *
-                      ppmPhone +
-                    (at === 0 ? 0 : 18),
+                  inlineSize: `calc(${share((crop.runs[at]?.[1] ?? 0) - (crop.runs[at]?.[0] ?? 0))} + ${at === 0 ? 0 : BREAK_PX}px)`,
                 }}
               >
                 {name} ({SECTION_MODULE[section]})
@@ -263,13 +264,9 @@ const SECTION_MODULE: Readonly<Record<SectionId, string>> = {
   bridgeapi: 'BridgeApi',
 };
 
-function BreakMark({ height }: { height: number }) {
+function BreakMark() {
   return (
-    <div
-      className="nexus-bay__break"
-      style={{ blockSize: height }}
-      aria-hidden="true"
-    >
+    <div className="nexus-bay__break" aria-hidden="true">
       <svg viewBox="0 0 18 100" preserveAspectRatio="none">
         <path
           d="M6 0 L12 12 L6 24 L12 36 L6 48 L12 60 L6 72 L12 84 L6 100"
