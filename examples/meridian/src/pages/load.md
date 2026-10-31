@@ -499,7 +499,7 @@ console.log(wired);
 
 <!-- #endregion load-import-reasons -->
 
-<!-- #region load-grant-subtree -->
+<!-- #region load-import-subtree -->
 
 ```ts @import.meta.vitest
 import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
@@ -563,9 +563,9 @@ const report = ship.get(PLUGIN).run(); // -> 'survey: course to Kepler-442b'
 console.log(report);
 ```
 
-<!-- #endregion load-grant-subtree -->
+<!-- #endregion load-import-subtree -->
 
-<!-- #region load-grant-check -->
+<!-- #region load-import-check -->
 
 ```ts @import.meta.vitest
 import {
@@ -617,31 +617,31 @@ const failures = (run: () => unknown): string[] => {
   } catch (caught) {
     if (!isNexusError(caught, 'NEXUS_BLUEPRINT_INVALID')) throw caught;
     return caught.errors.map((inner) =>
-      isNexusError(inner, 'NEXUS_LOAD_GRANT') ? inner.reason : inner.code,
+      isNexusError(inner, 'NEXUS_LOAD_IMPORT') ? inner.reason : inner.code,
     );
   }
   return [];
 };
 
-// No grant: check throws, and nothing was built.
+// No load import: check throws, and nothing was built.
 const bare = failures(() => Nexus.check(Meridian, { load: [Survey] })); // -> ['NEXUS_MISSING_PROVIDER']
 console.log(bare);
 
-// With the grant, check returns a CheckReport at once.
+// With the load import, check returns a CheckReport at once.
 const report = Nexus.check(Meridian, {
   load: [{ module: Survey, imports: [Tactical] }],
 });
 const unchecked = report.unchecked.length; // -> 0
 console.log(unchecked);
 
-// A grant error comes back inside NEXUS_BLUEPRINT_INVALID too.
+// A load import error comes back inside NEXUS_BLUEPRINT_INVALID too.
 const Fresh = defineModule({ name: 'Fresh' });
-const granted = [{ module: Survey, imports: [Fresh] }];
-const refused = failures(() => Nexus.check(Meridian, { load: granted })); // -> ['not-in-graph']
+const imported = [{ module: Survey, imports: [Fresh] }];
+const refused = failures(() => Nexus.check(Meridian, { load: imported })); // -> ['not-in-graph']
 console.log(refused);
 ```
 
-<!-- #endregion load-grant-check -->
+<!-- #endregion load-import-check -->
 
 <!-- #region lazy-route -->
 
