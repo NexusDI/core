@@ -413,12 +413,13 @@ describe('Schematic', () => {
     expect(art?.querySelector('[data-room="bridge"]')).not.toBeNull();
     const css = container.querySelector('style')?.textContent ?? '';
     expect(css).toContain(
-      '[data-schematic="ship"] [data-room="bridge"]{fill:var(--meridian-sv-room-powered)}',
+      '.meridian-schematic[data-schematic="ship"] [data-room="bridge"]{fill:var(--meridian-sv-room-powered)}',
     );
     expect(css).toContain('[data-room="galley"]');
     expect(css).toContain('animation:meridian-sv-alarm 1s');
     expect(css).toContain('[data-fixture="bridge\\.helm"]');
-    expect(css).toContain('[data-door="a-b"]{fill:var(--meridian-alarm)}');
+    expect(css).toContain('[data-door="a-b"]{fill:url(#sv-hazard);');
+    expect(css).toContain('stroke:var(--meridian-alarm)');
     expect(css).not.toMatch(/#[0-9a-f]{3,8}\b|rgb\(/i);
   });
 
@@ -433,6 +434,14 @@ describe('Schematic', () => {
     expect(css).not.toContain('</style>');
     expect(css).toContain('x\\"\\]\\{\\}\\<\\/style\\>\\<b\\>');
     expect(container.querySelectorAll('style')).toHaveLength(1);
+  });
+
+  it('gives a fixture in alarm a heavy dashed outline', () => {
+    const { container } = render(
+      <Schematic markup={MARKUP} fixtures={{ helm: 'alarm' }} />,
+    );
+    const css = container.querySelector('style')?.textContent ?? '';
+    expect(css).toContain('stroke-width:0.12;stroke-dasharray:0.3 0.15');
   });
 
   it('skips a state it does not know and renders no style for none', () => {
@@ -450,24 +459,23 @@ describe('Schematic', () => {
   it('renders children in an accessible overlay on the markup viewBox', () => {
     render(
       <Schematic markup={MARKUP} label="Ship hotspots">
-        <circle
-          data-hotspot="bridge"
-          role="button"
-          tabIndex={0}
-          aria-label="Bridge"
-        />
+        <a href="#bridge" aria-label="Bridge">
+          <circle data-hotspot="bridge" r="1" />
+        </a>
       </Schematic>,
     );
     const overlay = screen.getByRole('group', { name: 'Ship hotspots' });
     expect(overlay.tagName.toLowerCase()).toBe('svg');
     expect(overlay.getAttribute('viewBox')).toBe('-2 0 76 18');
     expect(overlay.getAttribute('aria-hidden')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Bridge' })).not.toBeNull();
+    expect(screen.getByLabelText('Bridge').getAttribute('href')).toBe(
+      '#bridge',
+    );
   });
 
   it('lets a prop override the overlay viewBox', () => {
     const { container } = render(
-      <Schematic markup={MARKUP} viewBox="0 0 10 10">
+      <Schematic markup={MARKUP} viewBox="0 0 10 10" label="Ship">
         <g />
       </Schematic>,
     );
@@ -528,6 +536,19 @@ describe('HullCrop', () => {
     expect(stage.style.width).toBe('400%');
     expect(stage.style.insetInlineStart).toBe(`${(-2 / 19) * 100}%`);
     expect(stage.style.insetBlockStart).toBe(`${(-4 / 9) * 100}%`);
+  });
+});
+
+describe('HullCrop without a transition name', () => {
+  it('sets no view-transition-name', () => {
+    const { container } = render(
+      <HullCrop full={[0, 0, 10, 10]} crop={[0, 0, 5, 5]} />,
+    );
+    expect(
+      (container.firstElementChild as HTMLElement).style.getPropertyValue(
+        'view-transition-name',
+      ),
+    ).toBe('');
   });
 });
 

@@ -8,10 +8,10 @@ export type RoomState = 'powered' | 'unpowered' | 'alarm';
 /** A fixture shows the room states, and `offline` for a system taken out. */
 export type FixtureState = RoomState | 'offline';
 
-/** A door is `open`, or `closed` and drawn shut in the alarm hue. */
+/** A door is `open`, or `closed` and drawn with hazard bands in an alarm outline. */
 export type DoorState = 'open' | 'closed';
 
-export interface SchematicProps {
+interface SchematicBaseProps {
   /**
    * The cutaway's SVG markup, from `tools/meridian-ship/ship_svg.py
    * --schematic`. Each part carries `data-room`, `data-door` or
@@ -30,16 +30,9 @@ export interface SchematicProps {
    */
   onClick?: (event: MouseEvent<HTMLElement>) => void;
   /**
-   * Parts the app draws over the ship: conduits, system glyphs, hatch markers
-   * and focusable hotspot buttons. They render in an overlay `<svg>` that
-   * shares the cutaway's `viewBox` and stacks over the markup, so they use
-   * the cutaway's metre coordinates. The overlay is accessible.
+   * The overlay's `viewBox`. It defaults to the markup's own.
    */
-  children?: ReactNode;
-  /** The overlay's `viewBox`. It defaults to the markup's own. */
   viewBox?: string;
-  /** The accessible name of the overlay group. */
-  label?: string;
   /**
    * Names this ship in the generated selectors, so that two schematics on a
    * page keep their states apart. Defaults to `ship`.
@@ -47,6 +40,23 @@ export interface SchematicProps {
   scope?: string;
   className?: string;
 }
+
+/**
+ * The overlay slot. The app draws conduits, system glyphs, hatch markers and
+ * hotspots in it. They render in an overlay `<svg>` that shares the cutaway's
+ * `viewBox` and stacks over the markup, so they use the cutaway's metre
+ * coordinates. The overlay is accessible, so `label` names it and is required
+ * with `children`.
+ *
+ * An SVG element takes no key presses of its own. A hotspot must be an SVG
+ * `<a href>`, which takes focus and activates on Enter, or carry its own key
+ * handler for Enter and Space.
+ */
+type SchematicOverlayProps =
+  | { children?: undefined; label?: undefined }
+  | { children: ReactNode; label: string };
+
+export type SchematicProps = SchematicBaseProps & SchematicOverlayProps;
 
 /**
  * The vector cutaway with a state for each room, door and fixture.
@@ -64,7 +74,10 @@ export interface SchematicProps {
  *   1 Hz, steady under reduced motion, with a dashed outline so colour does
  *   not carry the state alone)
  * - fixture: the room states, and `offline` (dimmed with a dashed outline)
- * - door: `open`, and `closed` (drawn shut in `alarm`)
+ * - door: `open`, and `closed` (hazard bands from the markup's `#sv-hazard`
+ *   pattern, with an `alarm` outline)
+ * - fixture `alarm` also takes a heavy dashed outline, so neither state rests
+ *   on colour or on the pulse alone
  *
  * The markup layer is `aria-hidden`. The overlay is not, so the hotspots in it
  * take focus and carry the names a reader needs.
@@ -164,13 +177,13 @@ const FIXTURE_DECLARATIONS: Readonly<Record<FixtureState, string>> = {
   powered: 'fill:var(--meridian-sv-fixture-powered)',
   unpowered: 'fill:var(--meridian-sv-fixture)',
   alarm:
-    'fill:var(--meridian-alarm);animation:meridian-sv-alarm-fixture 1s ease-in-out infinite',
+    'fill:var(--meridian-alarm);stroke:var(--meridian-text);stroke-width:0.12;stroke-dasharray:0.3 0.15;animation:meridian-sv-alarm-fixture 1s ease-in-out infinite',
   offline:
     'fill:var(--meridian-sv-fixture);opacity:0.35;stroke:var(--meridian-text-secondary);stroke-width:0.1;stroke-dasharray:0.3 0.2',
 };
 const DOOR_DECLARATIONS: Readonly<Record<DoorState, string>> = {
   open: 'fill:var(--meridian-sv-door)',
-  closed: 'fill:var(--meridian-alarm)',
+  closed: 'fill:url(#sv-hazard);stroke:var(--meridian-alarm);stroke-width:0.08',
 };
 
 function rule(
@@ -179,7 +192,7 @@ function rule(
   id: string,
   declarations: string,
 ): string {
-  return `[data-schematic="${cssEscape(scope)}"] [${attribute}="${cssEscape(id)}"]{${declarations}}`;
+  return `.meridian-schematic[data-schematic="${cssEscape(scope)}"] [${attribute}="${cssEscape(id)}"]{${declarations}}`;
 }
 
 /** One rule per listed id with a known state, sorted so the output is stable. */
