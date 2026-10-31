@@ -38,7 +38,7 @@ import type { BayLight } from './light';
  * "Running pre-flight" status. The marker below is how `check-budgets.mjs`
  * finds this chunk (12.1).
  */
-export const BAY_MARK = 'nexus-preflight-bay';
+const BAY_MARK = 'nexus-preflight-bay';
 
 /** The program the CI step runs, which the Source tab shows (4.3). */
 const SOURCE = `import { Nexus } from '@nexusdi/core';
