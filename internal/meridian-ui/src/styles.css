@@ -5,57 +5,161 @@
  */
 @import './tokens.generated.css';
 
+/*
+ * A screen stays dark in both themes (design system spec V1). The roles are
+ * rebound to their dark values inside it, so a status, a button or a link in a
+ * terminal reads the same in a light page as in a dark one.
+ */
+.meridian-screen,
+.meridian-terminal,
+.meridian-holo {
+  --meridian-text: var(--meridian-palette-dark-text);
+  --meridian-text-secondary: var(--meridian-palette-dark-text-secondary);
+  --meridian-text-tertiary: var(--meridian-palette-dark-text-tertiary);
+  --meridian-data: var(--meridian-palette-dark-data);
+  --meridian-action: var(--meridian-palette-dark-action);
+  --meridian-alarm: var(--meridian-palette-dark-alarm);
+  --meridian-nominal: var(--meridian-palette-dark-nominal);
+  --meridian-edge: var(--meridian-palette-dark-edge);
+  --meridian-seam: var(--meridian-palette-dark-seam);
+  --meridian-plate: var(--meridian-palette-dark-plate);
+  --meridian-plate-raised: var(--meridian-palette-dark-plate-raised);
+  --meridian-action-fill: var(--meridian-palette-dark-action-fill);
+  --meridian-on-action: var(--meridian-palette-dark-on-action);
+  --meridian-alarm-fill: var(--meridian-palette-dark-alarm-fill);
+  --meridian-on-alarm: var(--meridian-palette-dark-on-alarm);
+  --meridian-focus: var(--meridian-palette-dark-action);
+  --meridian-button-primary-border: transparent;
+}
+
+.meridian-glyph {
+  flex: none;
+  inline-size: 0.625rem;
+  block-size: 0.625rem;
+}
+
+/*
+ * The plate (spec 6.3) is two elements. The outer wrapper carries the shadow
+ * as a filter, which follows the clipped shape. The inner face is clipped by
+ * the chamfer and draws its seam with an inset pseudo-element on the same
+ * path, 1px in. A focusable element never carries the chamfer.
+ */
 .meridian-panel {
-  background: var(--meridian-hull);
-  backdrop-filter: blur(12px);
-  border-radius: var(--meridian-radius-panel);
-  box-shadow: var(--meridian-elevation-glass);
+  --meridian-face: var(--meridian-plate);
+  filter: var(--meridian-elevation-drop);
   color: var(--meridian-text);
-  padding: var(--meridian-space-5);
 }
 
 .meridian-panel--raised {
-  background: var(--meridian-hull-raised);
-  box-shadow: var(--meridian-elevation-raised);
+  --meridian-face: var(--meridian-plate-raised);
 }
 
+.meridian-panel__face {
+  position: relative;
+  isolation: isolate;
+  background: var(--meridian-seam);
+  border-radius: var(--meridian-radius-plate);
+  clip-path: polygon(
+    var(--meridian-chamfer) 0,
+    100% 0,
+    100% 100%,
+    0 100%,
+    0 var(--meridian-chamfer)
+  );
+}
+
+.meridian-panel__face::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  background: var(--meridian-face);
+  box-shadow: inset 0 1px 0 var(--meridian-elevation-highlight);
+  clip-path: polygon(
+    calc(var(--meridian-chamfer) - 0.586px) 0,
+    100% 0,
+    100% 100%,
+    0 100%,
+    0 calc(var(--meridian-chamfer) - 0.586px)
+  );
+}
+
+.meridian-panel__head {
+  display: flex;
+  align-items: center;
+  gap: var(--meridian-space-3);
+  min-block-size: 2rem;
+  padding-inline: var(--meridian-space-4);
+  border-block-end: 1px solid var(--meridian-seam);
+}
+
+.meridian-panel__title {
+  margin: 0;
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 600;
+  line-height: var(--meridian-leading-placard);
+  color: var(--meridian-text-secondary);
+}
+
+.meridian-panel__actions {
+  display: flex;
+  gap: var(--meridian-space-2);
+  margin-inline-start: auto;
+}
+
+.meridian-panel__body {
+  padding: var(--meridian-space-5);
+}
+
+@media (width < 640px) {
+  .meridian-panel__body {
+    padding: var(--meridian-space-4);
+  }
+}
+
+/* Callout kinds (spec 7.3): the edge, the glyph and the label name the kind. */
 .meridian-notice {
   margin-block: var(--meridian-space-5);
   padding: var(--meridian-space-4) var(--meridian-space-5);
-  border-inline-start: 2px solid var(--meridian-control-border);
+  border-inline-start: 2px solid var(--meridian-edge);
   border-radius: var(--meridian-radius-chip);
-  background: var(--meridian-hull-raised);
+  background: var(--meridian-plate-raised);
   color: var(--meridian-text);
   font-size: var(--meridian-text-small);
   line-height: var(--meridian-leading-small);
 }
 
 .meridian-notice__label {
+  display: flex;
+  align-items: center;
+  gap: var(--meridian-space-2);
   margin: 0 0 var(--meridian-space-2);
-  font-family: var(--meridian-font-mono);
-  font-size: var(--meridian-text-micro);
-  letter-spacing: var(--meridian-tracking-micro);
-  text-transform: uppercase;
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 600;
+  line-height: var(--meridian-leading-placard);
   color: var(--meridian-text-secondary);
 }
 
 .meridian-notice--warning {
-  border-inline-start-color: var(--meridian-signal-amber);
+  border-inline-start-color: var(--meridian-action);
+}
+
+.meridian-notice--warning .meridian-notice__label {
+  color: var(--meridian-action);
 }
 
 .meridian-notice--exception {
-  border-inline-start-color: var(--meridian-signal-magenta);
-}
-
-.meridian-notice--ship {
-  border-inline-start-color: var(--meridian-signal-cyan);
+  border-inline-start-color: var(--meridian-text-secondary);
 }
 
 .meridian-console {
   display: grid;
   grid-template-rows: auto 1fr;
-  background: var(--meridian-hull-raised);
-  border-radius: var(--meridian-radius-panel);
+  background: var(--meridian-plate-raised);
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-plate);
   box-shadow: var(--meridian-elevation-raised);
   color: var(--meridian-text);
   overflow: hidden;
@@ -66,16 +170,17 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--meridian-space-3);
-  padding: var(--meridian-space-3) var(--meridian-space-4);
-  border-block-end: 1px solid var(--meridian-rule);
+  min-block-size: 2rem;
+  padding: var(--meridian-space-2) var(--meridian-space-4);
+  border-block-end: 1px solid var(--meridian-seam);
 }
 
 .meridian-console__title {
   margin: 0;
-  font-family: var(--meridian-font-mono);
-  font-size: var(--meridian-text-micro);
-  letter-spacing: var(--meridian-tracking-micro);
-  text-transform: uppercase;
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 600;
+  line-height: var(--meridian-leading-placard);
   color: var(--meridian-text-secondary);
 }
 
@@ -86,6 +191,7 @@
 
 .meridian-console__actions {
   display: flex;
+  align-items: center;
   gap: var(--meridian-space-2);
   margin-inline-start: auto;
 }
@@ -99,26 +205,103 @@
 }
 
 /*
- * A chip takes its kind's hue from an ancestor's `meridian-kind-<kind>` class,
- * such as a reference entry's wrapper, or from its own, such as a kind toggle
- * of the API filter.
+ * The terminal (spec 7.2): the screen face, a gutter, a source column, the
+ * message and a status column. No scanlines, curvature, vignette, flicker or
+ * glow. The end marker is the scroll anchor: browsers keep an anchor node in
+ * view as lines append, until the reader scrolls up.
+ */
+.meridian-terminal {
+  background: var(--meridian-screen);
+  border-color: var(--meridian-seam);
+  color: var(--meridian-screen-text);
+}
+
+.meridian-terminal .meridian-console__head {
+  border-block-end-color: var(--meridian-seam);
+}
+
+.meridian-terminal .meridian-console__body {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-block-size: 0;
+  padding: 0;
+}
+
+.meridian-terminal__log {
+  display: flex;
+  flex-direction: column;
+  max-block-size: 24rem;
+  overflow-y: auto;
+  padding: var(--meridian-space-3) var(--meridian-space-4);
+}
+
+.meridian-terminal__log > * {
+  overflow-anchor: none;
+}
+
+.meridian-terminal__end {
+  overflow-anchor: auto;
+  block-size: 1px;
+  flex: none;
+}
+
+.meridian-terminal__line {
+  display: grid;
+  grid-template-columns: 6ch 11ch minmax(0, 100ch) auto;
+  column-gap: var(--meridian-space-4);
+  align-items: baseline;
+}
+
+.meridian-terminal__tick {
+  color: var(--meridian-text-tertiary);
+}
+
+.meridian-terminal__source {
+  color: var(--meridian-text-secondary);
+}
+
+.meridian-terminal__message {
+  overflow-wrap: anywhere;
+}
+
+.meridian-terminal__fix {
+  display: block;
+  color: var(--meridian-text-secondary);
+}
+
+.meridian-terminal__status {
+  justify-self: end;
+}
+
+.meridian-terminal__prompt {
+  padding: var(--meridian-space-2) var(--meridian-space-4);
+  border-block-start: 1px solid var(--meridian-seam);
+}
+
+@media (width < 640px) {
+  .meridian-terminal__line {
+    grid-template-columns: 6ch minmax(0, 1fr) auto;
+  }
+
+  .meridian-terminal__source {
+    display: none;
+  }
+}
+
+/*
+ * A chip is a neutral label (spec 4.6): an export kind shows as its word in
+ * text-secondary on a seam border, with no hue.
  */
 .meridian-chip {
   display: inline-block;
   padding: 0 var(--meridian-space-2);
-  border: 1px solid var(--meridian-rule);
+  border: 1px solid var(--meridian-seam);
   border-radius: var(--meridian-radius-chip);
   color: var(--meridian-text-secondary);
-  font-family: var(--meridian-font-mono);
+  font-family: var(--meridian-font-condensed);
   font-size: var(--meridian-text-micro);
+  font-weight: 500;
   line-height: var(--meridian-leading-micro);
-  letter-spacing: var(--meridian-tracking-micro);
-}
-
-[class*='meridian-kind-'] .meridian-chip,
-.meridian-chip[class*='meridian-kind-'] {
-  color: var(--meridian-kind);
-  border-color: color-mix(in oklab, var(--meridian-kind) 45%, transparent);
 }
 
 .meridian-marker {
@@ -129,35 +312,380 @@
 .meridian-marker--corner {
   inline-size: var(--meridian-space-3);
   block-size: var(--meridian-space-3);
-  border-block-start: 1px solid var(--meridian-signal-cyan);
-  border-inline-start: 1px solid var(--meridian-signal-cyan);
+  border-block-start: 1px solid var(--meridian-edge);
+  border-inline-start: 1px solid var(--meridian-edge);
 }
 
 .meridian-marker--tick {
   inline-size: var(--meridian-space-5);
   block-size: 1px;
-  background: var(--meridian-rule);
+  background: var(--meridian-seam);
 }
 
+/* The lifetime glyphs (spec 4.6), all in the data colour. */
 .meridian-marker--lifetime {
   inline-size: var(--meridian-space-2);
   block-size: var(--meridian-space-2);
   transform: rotate(45deg);
   border: 1px solid currentColor;
+  color: var(--meridian-data);
 }
 
 .meridian-lifetime-singleton {
-  color: var(--meridian-lifetime-singleton);
+  background: currentColor;
 }
 
 .meridian-lifetime-scoped {
-  color: var(--meridian-lifetime-scoped);
+  background: linear-gradient(to right, currentColor 50%, transparent 50%);
 }
 
-.meridian-lifetime-transient {
-  color: var(--meridian-lifetime-transient);
+.meridian-marker--lifetime.meridian-lifetime-none {
+  transform: none;
+  inline-size: var(--meridian-space-3);
+  block-size: 0;
+  border-width: 1px 0 0;
+  background: none;
 }
 
-.meridian-lifetime-none {
-  color: var(--meridian-lifetime-none);
+/* Buttons (spec 7.4). Never chamfered: a button takes focus. */
+.meridian-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--meridian-space-2);
+  box-sizing: border-box;
+  min-inline-size: 1.5rem;
+  min-block-size: 2.5rem;
+  padding: 0 var(--meridian-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--meridian-radius-control);
+  background: none;
+  font: inherit;
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 600;
+  line-height: var(--meridian-leading-placard);
+  cursor: pointer;
+  transition:
+    color var(--meridian-motion-interaction) var(--meridian-motion-curve),
+    background-color var(--meridian-motion-interaction)
+      var(--meridian-motion-curve);
+}
+
+.meridian-button--dense {
+  min-block-size: 2rem;
+}
+
+@media (pointer: coarse) {
+  .meridian-button {
+    min-block-size: 2.75rem;
+  }
+}
+
+.meridian-button--primary {
+  background: var(--meridian-action-fill);
+  border-color: var(--meridian-button-primary-border);
+  color: var(--meridian-on-action);
+}
+
+.meridian-button--secondary {
+  background: var(--meridian-plate-raised);
+  border-color: var(--meridian-edge);
+  color: var(--meridian-text);
+}
+
+.meridian-button--hazard {
+  overflow: hidden;
+  padding-inline-start: calc(var(--meridian-space-4) + 0.375rem);
+  background: var(--meridian-plate-raised);
+  border-color: var(--meridian-action);
+  color: var(--meridian-action);
+}
+
+.meridian-button--hazard::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 0.375rem;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--meridian-action-fill) 0 3px,
+    var(--meridian-on-action) 3px 6px
+  );
+}
+
+.meridian-button--quiet {
+  color: var(--meridian-action);
+}
+
+.meridian-button:disabled {
+  background: var(--meridian-plate-raised);
+  border-color: var(--meridian-seam);
+  color: var(--meridian-text-tertiary);
+  cursor: not-allowed;
+}
+
+.meridian-button--quiet:disabled {
+  background: none;
+  border-color: transparent;
+}
+
+.meridian-button--hazard:disabled::before {
+  background: var(--meridian-seam);
+}
+
+.meridian-button__group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--meridian-space-3);
+}
+
+.meridian-button__reason {
+  color: var(--meridian-text-secondary);
+  font-size: var(--meridian-text-small);
+}
+
+/* Status (spec 7.5): a glyph, a word and a hue, always all three. */
+.meridian-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--meridian-space-2);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-micro);
+  font-weight: 500;
+  line-height: var(--meridian-leading-micro);
+}
+
+.meridian-status--nominal {
+  color: var(--meridian-nominal);
+}
+
+.meridian-status--active {
+  color: var(--meridian-data);
+}
+
+.meridian-status--standby {
+  color: var(--meridian-text-secondary);
+}
+
+.meridian-status--warning {
+  color: var(--meridian-action);
+}
+
+.meridian-status--alarm {
+  color: var(--meridian-alarm);
+}
+
+.meridian-status--offline {
+  color: var(--meridian-text-tertiary);
+}
+
+/* Alerts (spec 7.6). */
+.meridian-alert--banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--meridian-space-3);
+  padding: var(--meridian-space-2) var(--meridian-space-4);
+  border: 1px solid var(--meridian-alarm);
+  border-radius: var(--meridian-radius-control);
+}
+
+.meridian-alert__text {
+  margin: 0;
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  line-height: var(--meridian-leading-placard);
+}
+
+.meridian-alert__code {
+  font-weight: 600;
+}
+
+.meridian-alert__actions {
+  display: flex;
+  gap: var(--meridian-space-2);
+  margin-inline-start: auto;
+}
+
+.meridian-alert--alarm {
+  background: var(--meridian-alarm-fill);
+  color: var(--meridian-on-alarm);
+}
+
+.meridian-alert--alarm::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--meridian-alarm);
+  border-radius: inherit;
+  pointer-events: none;
+  animation: meridian-alarm-pulse 1s linear infinite;
+}
+
+.meridian-alert--warning {
+  background: var(--meridian-plate-raised);
+  border-color: var(--meridian-action);
+  color: var(--meridian-text);
+}
+
+.meridian-alert--warning .meridian-glyph {
+  color: var(--meridian-action);
+}
+
+@keyframes meridian-alarm-pulse {
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meridian-alert--alarm::after {
+    animation: none;
+  }
+}
+
+.meridian-alert--dialog {
+  display: grid;
+  gap: var(--meridian-space-3);
+  max-inline-size: 28rem;
+  padding: var(--meridian-space-5);
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-plate);
+  background: var(--meridian-plate-raised);
+  box-shadow: var(--meridian-elevation-raised);
+  color: var(--meridian-text);
+}
+
+.meridian-alert__title {
+  margin: 0;
+  font-family: var(--meridian-font-display);
+  font-size: var(--meridian-text-h3);
+  line-height: var(--meridian-leading-h3);
+}
+
+.meridian-alert__message,
+.meridian-alert__fix {
+  margin: 0;
+}
+
+.meridian-alert__fix {
+  color: var(--meridian-text-secondary);
+}
+
+/*
+ * The holographic label (spec 4.4): the holo backing, a 1px data hairline and
+ * a leader line to the part it names. It stays dark in both themes.
+ */
+.meridian-holo {
+  position: relative;
+  display: inline-block;
+  padding: var(--meridian-space-3) var(--meridian-space-4);
+  border: 1px solid var(--meridian-data);
+  background: var(--meridian-holo-backing);
+  color: var(--meridian-text);
+}
+
+.meridian-holo__title {
+  margin: 0 0 var(--meridian-space-2);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 600;
+  line-height: var(--meridian-leading-placard);
+  color: var(--meridian-text-secondary);
+}
+
+.meridian-holo__readouts {
+  display: grid;
+  gap: var(--meridian-space-2);
+  margin: 0;
+}
+
+.meridian-holo__readout {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--meridian-space-4);
+}
+
+.meridian-holo__label {
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-micro);
+  color: var(--meridian-text-secondary);
+}
+
+.meridian-holo__value {
+  margin: 0;
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-code);
+  font-variant-numeric: tabular-nums;
+  color: var(--meridian-data);
+}
+
+.meridian-holo__unit {
+  margin-inline-start: var(--meridian-space-1);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-micro);
+  color: var(--meridian-text-secondary);
+}
+
+.meridian-holo__leader {
+  position: absolute;
+  background: var(--meridian-data);
+}
+
+.meridian-holo--leader-top .meridian-holo__leader,
+.meridian-holo--leader-bottom .meridian-holo__leader {
+  inset-inline-start: var(--meridian-space-5);
+  inline-size: 1px;
+  block-size: var(--meridian-space-5);
+}
+
+.meridian-holo--leader-top .meridian-holo__leader {
+  inset-block-end: 100%;
+}
+
+.meridian-holo--leader-bottom .meridian-holo__leader {
+  inset-block-start: 100%;
+}
+
+.meridian-holo--leader-start .meridian-holo__leader,
+.meridian-holo--leader-end .meridian-holo__leader {
+  inset-block-start: var(--meridian-space-5);
+  block-size: 1px;
+  inline-size: var(--meridian-space-5);
+}
+
+.meridian-holo--leader-start .meridian-holo__leader {
+  inset-inline-end: 100%;
+}
+
+.meridian-holo--leader-end .meridian-holo__leader {
+  inset-inline-start: 100%;
+}
+
+/*
+ * Forced colors (spec 10): plates drop their shadows, the chamfer gives way to
+ * a square corner with a system-colour border, and the glyphs stay.
+ */
+@media (forced-colors: active) {
+  .meridian-panel {
+    filter: none;
+  }
+
+  .meridian-panel__face {
+    clip-path: none;
+    border: 1px solid CanvasText;
+  }
+
+  .meridian-panel__face::before {
+    display: none;
+  }
+
+  .meridian-console,
+  .meridian-alert--dialog {
+    box-shadow: none;
+  }
 }

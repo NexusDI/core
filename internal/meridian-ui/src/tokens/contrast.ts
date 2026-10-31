@@ -46,8 +46,9 @@ export function contrast(a: string, b: string): number {
 
 /**
  * A colour at `alpha` over an opaque background, per channel in sRGB, rounded
- * to the nearest integer. Spec §8.2 measures the dark surface this way: the
- * surface at 86% over white, the brightest pixel the nebula can put behind it.
+ * to the nearest integer. Design system spec 4.4 measures the holo backing
+ * this way: the backing at 94% over white, the brightest pixel the art can put
+ * behind it.
  */
 export function composite(
   foreground: string,

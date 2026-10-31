@@ -1,9 +1,13 @@
 import type { ReactNode } from 'react';
 
+import { cx } from './class-names.js';
+
 export interface ConsoleFrameProps {
   title: string;
   tabs?: ReactNode;
   actions?: ReactNode;
+  /** Extra classes on the frame, such as `meridian-terminal`. */
+  className?: string;
   children?: ReactNode;
 }
 
@@ -15,10 +19,11 @@ export function ConsoleFrame({
   title,
   tabs,
   actions,
+  className,
   children,
 }: ConsoleFrameProps) {
   return (
-    <section className="meridian-console" aria-label={title}>
+    <section className={cx('meridian-console', className)} aria-label={title}>
       <header className="meridian-console__head">
         <p className="meridian-console__title">{title}</p>
         {tabs ? <div className="meridian-console__tabs">{tabs}</div> : null}

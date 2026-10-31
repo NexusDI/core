@@ -1,7 +1,18 @@
 import type { ComponentProps } from 'react';
 import { describe, expectTypeOf, it } from 'vitest';
 
-import type { ConsoleFrame, Marker, Notice } from './index.js';
+import type {
+  Alert,
+  Button,
+  ConsoleFrame,
+  HoloLabel,
+  Marker,
+  Notice,
+  Panel,
+  Status,
+  StatusState,
+  Terminal,
+} from './index.js';
 
 describe('component props', () => {
   it('takes the console title as a formatted string', () => {
@@ -19,6 +30,68 @@ describe('component props', () => {
   it('limits the marker lifetimes to the graph lifetimes', () => {
     expectTypeOf<ComponentProps<typeof Marker>['lifetime']>().toEqualTypeOf<
       'singleton' | 'scoped' | 'transient' | 'none' | undefined
+    >();
+  });
+
+  it('takes a title and actions on a panel', () => {
+    expectTypeOf<ComponentProps<typeof Panel>['title']>().toEqualTypeOf<
+      import('react').ReactNode
+    >();
+    expectTypeOf<ComponentProps<typeof Panel>['actions']>().toEqualTypeOf<
+      import('react').ReactNode
+    >();
+  });
+
+  it('maps a status word to one of six states', () => {
+    expectTypeOf<StatusState>().toEqualTypeOf<
+      'nominal' | 'active' | 'standby' | 'warning' | 'alarm' | 'offline'
+    >();
+    expectTypeOf<ComponentProps<typeof Status>['states']>().toEqualTypeOf<
+      Readonly<Record<string, StatusState>>
+    >();
+  });
+
+  it('limits the button variants to four', () => {
+    expectTypeOf<ComponentProps<typeof Button>['variant']>().toEqualTypeOf<
+      'primary' | 'secondary' | 'hazard' | 'quiet' | undefined
+    >();
+  });
+
+  it('requires an id and a disabled button for a reason', () => {
+    expectTypeOf<{
+      reason: string;
+      id: string;
+      disabled: true;
+    }>().toExtend<ComponentProps<typeof Button>>();
+    expectTypeOf<{ reason: string }>().not.toExtend<
+      ComponentProps<typeof Button>
+    >();
+  });
+
+  it('limits an alert to a banner or a dialog', () => {
+    expectTypeOf<ComponentProps<typeof Alert>['variant']>().toEqualTypeOf<
+      'banner' | 'dialog'
+    >();
+  });
+
+  it('limits a holographic label to four readouts', () => {
+    type Readout = { label: string; value: string };
+    const one: Readout = { label: 'a', value: '1' };
+    expectTypeOf<readonly [Readout, Readout, Readout, Readout]>().toExtend<
+      ComponentProps<typeof HoloLabel>['readouts']
+    >();
+    expectTypeOf<
+      readonly [Readout, Readout, Readout, Readout, Readout]
+    >().not.toExtend<ComponentProps<typeof HoloLabel>['readouts']>();
+    expectTypeOf(one).toExtend<Readout>();
+  });
+
+  it('takes the status table and the lines of a terminal', () => {
+    expectTypeOf<
+      ComponentProps<typeof Terminal>['title']
+    >().toEqualTypeOf<string>();
+    expectTypeOf<ComponentProps<typeof Terminal>['states']>().toEqualTypeOf<
+      Readonly<Record<string, StatusState>>
     >();
   });
 });

@@ -1,4 +1,6 @@
-/** Spacing, radii, measure, elevation and focus from spec §8.4. */
+import { colour } from './colour.js';
+
+/** Spacing, radii, measure, chamfer, elevation and focus from design system spec section 6. */
 export const space = {
   1: '0.25rem',
   2: '0.5rem',
@@ -14,18 +16,42 @@ export const measure = '64ch';
 
 /** A marker is square-cornered, so it never reads as a control. */
 export const radius = {
-  panel: '14px',
-  control: '8px',
-  chip: '4px',
+  plate: '2px',
+  control: '3px',
+  chip: '3px',
   marker: '0',
 } as const;
 
+/** The corner cut across the top-left of a plate, at 45 degrees (section 6.3). */
+export const chamfer = '8px';
+
+/**
+ * The plate's elevation per theme: a 1px inner highlight along the top edge
+ * and a drop shadow of `0 8px 20px -12px` at 60% black in dark mode and 18% in
+ * light mode. `raised` adds a second, tighter shadow for dialogs and menus.
+ * `drop` is the same shadow as a `filter` for the wrapper of a chamfered plate,
+ * where `box-shadow` would be clipped; `filter: drop-shadow()` takes no spread,
+ * so it is a lighter blur at the same offset.
+ */
 export const elevation = {
-  glass:
-    'inset 0 0 0 1px rgb(94 234 255 / 0.12), 0 12px 32px -16px rgb(0 0 0 / 0.8)',
-  raised:
-    'inset 0 0 0 1px rgb(94 234 255 / 0.12), 0 12px 32px -16px rgb(0 0 0 / 0.8), 0 4px 12px -6px rgb(0 0 0 / 0.6)',
+  dark: {
+    highlight: 'rgb(255 255 255 / 0.04)',
+    plate: '0 8px 20px -12px rgb(0 0 0 / 0.6)',
+    raised:
+      '0 8px 20px -12px rgb(0 0 0 / 0.6), 0 2px 6px -2px rgb(0 0 0 / 0.5)',
+    drop: 'drop-shadow(0 6px 6px rgb(0 0 0 / 0.35))',
+  },
+  light: {
+    highlight: 'rgb(255 255 255 / 0.6)',
+    plate: '0 8px 20px -12px rgb(0 0 0 / 0.18)',
+    raised:
+      '0 8px 20px -12px rgb(0 0 0 / 0.18), 0 2px 6px -2px rgb(0 0 0 / 0.14)',
+    drop: 'drop-shadow(0 6px 6px rgb(0 0 0 / 0.1))',
+  },
 } as const;
 
-/** The focus ring colour per theme: 2px wide, 2px offset. */
-export const focus = { dark: '#5eeaff', light: '#006b85' } as const;
+/** The focus ring colour per theme (the `action` amber): 2px wide, 2px offset. */
+export const focus = {
+  dark: colour.dark.action,
+  light: colour.light.action,
+} as const;
