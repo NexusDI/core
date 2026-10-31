@@ -266,8 +266,8 @@ export function PagePopover() {
 
   return (
     <>
-      {/* Portalled to the body: Nextra's article has a backdrop-filter,
-          which would make it the box a fixed card is placed in, and
+      {/* Portalled to the body, so no ancestor with a filter or a
+          transform becomes the box a fixed card is placed in, and
           `place()` measures from the window. */}
       {open &&
         createPortal(

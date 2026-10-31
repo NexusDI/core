@@ -33,7 +33,7 @@
   font-size: var(--meridian-text-micro);
   line-height: var(--meridian-leading-body);
   color: var(--meridian-text-secondary);
-  background: var(--meridian-hull-raised);
+  background: var(--meridian-plate-raised);
   border-radius: var(--meridian-radius-control);
   padding: var(--meridian-space-3);
   margin: 0;
@@ -55,7 +55,7 @@
  * take the theme's flow positioning back off it.
  */
 .nexus-behaviours__body .twoslash-hover:focus-visible {
-  outline: 2px solid var(--meridian-kind);
+  outline: 2px solid var(--meridian-focus);
   outline-offset: 1px;
   border-radius: 2px;
 }
@@ -70,7 +70,7 @@
   margin: 0;
   transform: none;
   visibility: hidden;
-  background: var(--meridian-hull-raised);
+  background: var(--meridian-plate-raised);
   box-shadow: var(--meridian-elevation-raised);
   font-family: var(--meridian-font-mono);
   font-size: var(--meridian-text-micro);

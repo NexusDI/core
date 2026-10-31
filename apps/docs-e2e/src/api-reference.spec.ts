@@ -416,8 +416,8 @@ test('shows a type after a client navigation from a guide to an API page', async
 /**
  * The card's box is inside the window and touches its token's row: just
  * above it or just below. A card placed from a containing block other than
- * the window lands elsewhere, as it did under Nextra's article, whose
- * backdrop-filter makes it the box a fixed descendant is placed in.
+ * the window lands elsewhere, as it did under an ancestor with a filter or a
+ * transform, which becomes the box a fixed descendant is placed in.
  */
 async function expectBeside(page: Page, card: Locator, token: Locator) {
   const viewport = page.viewportSize();

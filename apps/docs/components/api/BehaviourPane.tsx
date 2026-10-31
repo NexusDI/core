@@ -241,9 +241,9 @@ export default function BehaviourPane({
             {/* The type the build read off the compiler, stored once in the
               sidecar and cited here by the number the token carries. Always
               in the document, so the id a token's aria-describedby names
-              exists before the token takes focus. Portalled to the body:
-              Nextra's article has a backdrop-filter, which would make it the
-              box a fixed card is placed in, and `place()` measures from the
+              exists before the token takes focus. Portalled to the body,
+              so no ancestor with a filter or a transform becomes the box a
+              fixed card is placed in, and `place()` measures from the
               window. */}
             {createPortal(
               <div

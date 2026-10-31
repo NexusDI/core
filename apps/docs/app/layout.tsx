@@ -9,7 +9,7 @@ import { readBasePath } from './channel';
 import { meridianBackground, meridianColor } from './meridian-theme';
 
 /**
- * The three families spec §8.3 names, self-hosted. The latin woff2 files come
+ * The four families design system spec section 5.1 names, self-hosted. The latin woff2 files come
  * from pinned @fontsource packages in devDependencies, so the build reads them
  * from `node_modules` and makes no network request. `next/font` copies them
  * into the output and serves them from this site. Each family exposes a custom
@@ -44,6 +44,23 @@ const body = localFont({
   ],
   display: 'swap',
   variable: '--font-body',
+});
+
+const condensed = localFont({
+  src: [
+    {
+      path: '../../../node_modules/@fontsource/ibm-plex-sans-condensed/files/ibm-plex-sans-condensed-latin-500-normal.woff2',
+      weight: '500',
+      style: 'normal',
+    },
+    {
+      path: '../../../node_modules/@fontsource/ibm-plex-sans-condensed/files/ibm-plex-sans-condensed-latin-600-normal.woff2',
+      weight: '600',
+      style: 'normal',
+    },
+  ],
+  display: 'swap',
+  variable: '--font-condensed',
 });
 
 const mono = localFont({
@@ -83,7 +100,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
-      className={`${display.variable} ${body.variable} ${mono.variable}`}
+      className={`${display.variable} ${body.variable} ${condensed.variable} ${mono.variable}`}
       lang="en"
       dir="ltr"
       suppressHydrationWarning

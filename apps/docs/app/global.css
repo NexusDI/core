@@ -11,9 +11,10 @@
  * The Meridian tokens on a Nextra site (spec §8.6). Three surfaces:
  * 1. --nextra-bg and the primary hue arrive through <Head> props from
  *    app/meridian-theme.ts.
- * 2. Tailwind's gray, neutral and slate steps map onto the Meridian palette
+ * 2. Tailwind's gray, neutral and slate steps map onto the neutral roles
  *    below, one lightness ladder for both themes: 50 is the lightest value,
- *    950 the darkest.
+ *    950 the darkest. Nothing maps onto a meaning hue (design system spec
+ *    4.2).
  * 3. Headings take the display family, scoped to the article.
  */
 :root {
@@ -22,57 +23,51 @@
 }
 
 :root {
-  --x-color-gray-50: var(--meridian-palette-light-space-0);
-  --x-color-gray-100: var(--meridian-palette-light-space-2);
-  --x-color-gray-200: var(--meridian-palette-light-rule);
+  --x-color-gray-50: var(--meridian-palette-light-plate);
+  --x-color-gray-100: var(--meridian-palette-light-bulkhead);
+  --x-color-gray-200: var(--meridian-palette-light-seam);
   --x-color-gray-300: var(--meridian-palette-dark-text-secondary);
   --x-color-gray-400: var(--meridian-palette-dark-text-tertiary);
-  --x-color-gray-500: var(--meridian-palette-light-control-border);
+  --x-color-gray-500: var(--meridian-palette-light-edge);
   --x-color-gray-600: var(--meridian-palette-light-text-tertiary);
   --x-color-gray-700: var(--meridian-palette-light-text-secondary);
-  --x-color-gray-800: var(--meridian-palette-dark-rule);
+  --x-color-gray-800: var(--meridian-palette-dark-seam);
   --x-color-gray-900: var(--meridian-palette-light-text);
-  --x-color-gray-950: var(--meridian-palette-dark-space-0);
+  --x-color-gray-950: var(--meridian-palette-dark-bulkhead);
 
-  --x-color-neutral-50: var(--meridian-palette-light-space-0);
-  --x-color-neutral-100: var(--meridian-palette-light-space-2);
-  --x-color-neutral-200: var(--meridian-palette-light-rule);
+  --x-color-neutral-50: var(--meridian-palette-light-plate);
+  --x-color-neutral-100: var(--meridian-palette-light-bulkhead);
+  --x-color-neutral-200: var(--meridian-palette-light-seam);
   --x-color-neutral-300: var(--meridian-palette-dark-text-secondary);
   --x-color-neutral-400: var(--meridian-palette-dark-text-tertiary);
-  --x-color-neutral-500: var(--meridian-palette-light-control-border);
+  --x-color-neutral-500: var(--meridian-palette-light-edge);
   --x-color-neutral-600: var(--meridian-palette-light-text-tertiary);
   --x-color-neutral-700: var(--meridian-palette-light-text-secondary);
-  --x-color-neutral-800: var(--meridian-palette-dark-rule);
+  --x-color-neutral-800: var(--meridian-palette-dark-seam);
   --x-color-neutral-900: var(--meridian-palette-light-text);
-  --x-color-neutral-950: var(--meridian-palette-dark-space-0);
+  --x-color-neutral-950: var(--meridian-palette-dark-bulkhead);
 
-  --x-color-slate-50: var(--meridian-palette-light-space-0);
-  --x-color-slate-100: var(--meridian-palette-light-space-2);
-  --x-color-slate-200: var(--meridian-palette-light-rule);
+  --x-color-slate-50: var(--meridian-palette-light-plate);
+  --x-color-slate-100: var(--meridian-palette-light-bulkhead);
+  --x-color-slate-200: var(--meridian-palette-light-seam);
   --x-color-slate-300: var(--meridian-palette-dark-text-secondary);
   --x-color-slate-400: var(--meridian-palette-dark-text-tertiary);
-  --x-color-slate-500: var(--meridian-palette-light-control-border);
+  --x-color-slate-500: var(--meridian-palette-light-edge);
   --x-color-slate-600: var(--meridian-palette-light-text-tertiary);
   --x-color-slate-700: var(--meridian-palette-light-text-secondary);
-  --x-color-slate-800: var(--meridian-palette-dark-rule);
+  --x-color-slate-800: var(--meridian-palette-dark-seam);
   --x-color-slate-900: var(--meridian-palette-light-text);
-  --x-color-slate-950: var(--meridian-palette-dark-space-0);
+  --x-color-slate-950: var(--meridian-palette-dark-bulkhead);
 }
 
 /*
- * The ground paints on html. body stays transparent in both themes, so the
- * fixed background canvas at z-index -1 shows between html and the surfaces.
- * <Head> inlines `html{background:rgb(var(--nextra-bg))}` after this sheet,
- * so `html:root` raises the specificity to win over it.
- * --meridian-ground-0 and -2 switch with the theme class.
+ * The ground is the flat steel bulkhead on html, in both themes, and body stays
+ * transparent over it. <Head> inlines `html{background:rgb(var(--nextra-bg))}`
+ * after this sheet, so `html:root` raises the specificity to win over it.
+ * --meridian-bulkhead switches with the theme class.
  */
 html:root {
-  background: linear-gradient(
-      180deg,
-      var(--meridian-ground-0),
-      var(--meridian-ground-2)
-    )
-    fixed;
+  background: var(--meridian-bulkhead);
   color: var(--meridian-text);
 }
 
@@ -82,9 +77,9 @@ html body {
 }
 
 /*
- * The reading surfaces. No text renders on the canvas: the chrome and the
- * article each sit on the hull (spec §8.2). surfaces.spec.ts fails on any
- * text node whose nearest painted ancestor is under 0.86 alpha.
+ * The reading surfaces: the chrome and the article each sit on an opaque
+ * plate (design system spec 6.3). The chamfered plate arrives with the chrome
+ * restyle.
  */
 .nextra-navbar,
 .nextra-skip-nav,
@@ -93,13 +88,14 @@ html body {
 .nextra-footer,
 footer,
 article {
-  background-color: var(--meridian-hull);
-  backdrop-filter: blur(12px);
+  background-color: var(--meridian-plate);
 }
 
 article {
-  border-radius: var(--meridian-radius-panel);
-  box-shadow: var(--meridian-elevation-glass);
+  border-radius: var(--meridian-radius-plate);
+  box-shadow:
+    inset 0 1px 0 var(--meridian-elevation-highlight),
+    var(--meridian-elevation-plate);
 }
 
 article :where(h1, h2, h3, h4):not([class*='meridian-']) {
@@ -110,7 +106,7 @@ article h1:not([class*='meridian-']) {
   letter-spacing: var(--meridian-tracking-display);
 }
 
-/* Focus: a 2px ring at 2px offset, cyan in dark mode, its ink in light mode. */
+/* Focus: a 2px ring at 2px offset in the action amber of the theme. */
 :focus-visible {
   outline: 2px solid var(--meridian-focus);
   outline-offset: 2px;
@@ -141,24 +137,23 @@ summary {
 }
 
 /*
- * The release notice above a page's H1 (ReleaseNotice, spec §5.1): a HUD
- * strip on the hull with a cyan edge and a mono micro label.
+ * The release notice above a page's H1 (ReleaseNotice, spec §5.1): a strip on
+ * the plate with a neutral edge and a condensed micro label.
  */
 .nexus-release {
   margin-block: 0 var(--meridian-space-5);
   padding: var(--meridian-space-2) var(--meridian-space-4);
-  border-inline-start: 2px solid var(--meridian-signal-cyan);
+  border-inline-start: 2px solid var(--meridian-edge);
   border-radius: var(--meridian-radius-chip);
-  background: var(--meridian-hull);
+  background: var(--meridian-plate);
   color: var(--meridian-text-secondary);
-  font-family: var(--meridian-font-mono);
+  font-family: var(--meridian-font-condensed);
   font-size: var(--meridian-text-micro);
   line-height: var(--meridian-leading-micro);
-  letter-spacing: var(--meridian-tracking-micro);
 }
 
 .nexus-release a {
-  color: var(--meridian-signal-cyan);
+  color: var(--meridian-action);
   text-decoration: underline;
   text-underline-offset: 2px;
 }

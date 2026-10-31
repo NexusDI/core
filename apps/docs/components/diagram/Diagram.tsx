@@ -89,9 +89,9 @@ export default function Diagram({ chart, caption }: Readonly<DiagramProps>) {
           minBlockSize: 'var(--meridian-space-8)',
           overflowX: 'auto',
           padding: 'var(--meridian-space-4)',
-          background: 'var(--meridian-hull)',
-          border: '1px solid var(--meridian-rule)',
-          borderRadius: 'var(--meridian-radius-panel)',
+          background: 'var(--meridian-plate)',
+          border: '1px solid var(--meridian-seam)',
+          borderRadius: 'var(--meridian-radius-plate)',
         }}
         // Mermaid returns sanitised SVG under securityLevel 'strict'.
         dangerouslySetInnerHTML={svg ? { __html: svg } : undefined}

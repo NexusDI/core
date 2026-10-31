@@ -40,18 +40,18 @@ export function hsl(hex: string): {
   };
 }
 
-const dark = hsl(colour.dark.signalCyan);
-const light = hsl(colour.light.signalCyan);
+const dark = hsl(colour.dark.action);
+const light = hsl(colour.light.action);
 
-/** The primary: signal cyan in dark mode, its ink value in light mode (spec §8.6). */
+/** The primary is `action` amber in both themes (design system spec section 4.2). */
 export const meridianColor = {
   hue: { dark: dark.hue, light: light.hue },
   saturation: { dark: dark.saturation, light: light.saturation },
   lightness: { dark: dark.lightness, light: light.lightness },
 };
 
-/** The page ground. `global.css` paints the gradient on `html` over it. */
+/** The page ground: the flat steel bulkhead. */
 export const meridianBackground = {
-  dark: colour.dark.space0,
-  light: colour.light.space0,
+  dark: colour.dark.bulkhead,
+  light: colour.light.bulkhead,
 };

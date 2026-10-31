@@ -12,10 +12,8 @@
   align-items: center;
   gap: var(--meridian-space-3);
   margin: 0 0 var(--meridian-space-3);
-  font-family: var(--meridian-font-mono);
+  font-family: var(--meridian-font-condensed);
   font-size: var(--meridian-text-micro);
-  letter-spacing: var(--meridian-tracking-micro);
-  text-transform: uppercase;
   color: var(--meridian-text-secondary);
 }
 
@@ -36,16 +34,14 @@
 .nexus-bench__table th,
 .nexus-bench__table td {
   padding: var(--meridian-space-3);
-  border-block-end: 1px solid var(--meridian-rule);
+  border-block-end: 1px solid var(--meridian-seam);
   text-align: start;
   vertical-align: top;
 }
 
 .nexus-bench__table thead th {
-  font-family: var(--meridian-font-mono);
+  font-family: var(--meridian-font-condensed);
   font-size: var(--meridian-text-micro);
-  letter-spacing: var(--meridian-tracking-micro);
-  text-transform: uppercase;
   color: var(--meridian-text-secondary);
 }
 
@@ -63,19 +59,18 @@
 .nexus-bench__noisy {
   margin-inline-start: var(--meridian-space-3);
   font-size: var(--meridian-text-micro);
-  text-transform: uppercase;
-  color: var(--meridian-signal-amber);
+  color: var(--meridian-action);
 }
 
 .nexus-bench__outcome--pass {
-  color: var(--meridian-status-pass);
+  color: var(--meridian-nominal);
 }
 
 .nexus-bench__outcome--compile-error,
 .nexus-bench__outcome--runtime-error,
 .nexus-bench__outcome--wrong-instance,
 .nexus-bench__detected--never {
-  color: var(--meridian-status-fail);
+  color: var(--meridian-alarm);
 }
 
 .nexus-bench__detail {
@@ -83,7 +78,7 @@
 }
 
 .nexus-bench__detail > [tabindex] {
-  border-block-end: 1px dotted var(--meridian-control-border);
+  border-block-end: 1px dotted var(--meridian-edge);
 }
 
 .nexus-bench__detail > [tabindex]:focus-visible {
@@ -99,7 +94,7 @@
   min-inline-size: 16rem;
   padding: var(--meridian-space-3);
   border-radius: var(--meridian-radius-chip);
-  background: var(--meridian-hull-raised);
+  background: var(--meridian-plate-raised);
   box-shadow: var(--meridian-elevation-raised);
   color: var(--meridian-text);
 }
@@ -122,10 +117,8 @@
 }
 
 .nexus-bench__facts dt {
-  font-family: var(--meridian-font-mono);
+  font-family: var(--meridian-font-condensed);
   font-size: var(--meridian-text-micro);
-  letter-spacing: var(--meridian-tracking-micro);
-  text-transform: uppercase;
   color: var(--meridian-text-secondary);
 }
 

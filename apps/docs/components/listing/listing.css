@@ -10,13 +10,11 @@
   display: inline-block;
   margin: 0 0 var(--meridian-space-2);
   padding: var(--meridian-space-1) var(--meridian-space-3);
-  border: 1px solid var(--meridian-rule);
+  border: 1px solid var(--meridian-seam);
   border-radius: var(--meridian-radius-chip);
-  background: var(--meridian-hull);
-  font-family: var(--meridian-font-mono);
+  background: var(--meridian-plate);
+  font-family: var(--meridian-font-condensed);
   font-size: var(--meridian-text-micro);
-  letter-spacing: var(--meridian-tracking-micro);
-  text-transform: uppercase;
   color: var(--meridian-text-secondary);
 }
 

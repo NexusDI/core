@@ -23,20 +23,20 @@
   grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
   height: 26rem;
   margin-block-start: var(--meridian-space-3);
-  border: 1px solid var(--meridian-rule);
-  border-radius: var(--meridian-radius-panel);
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-plate);
   overflow: hidden;
-  background: var(--meridian-hull-raised);
+  background: var(--meridian-plate-raised);
 }
 
 .nexus-behaviours__rail {
   overflow-y: auto;
-  border-inline-end: 1px solid var(--meridian-rule);
+  border-inline-end: 1px solid var(--meridian-seam);
   padding-block: var(--meridian-space-2);
 }
 
 .nexus-behaviours__rail:focus-visible {
-  outline: 2px solid var(--meridian-kind);
+  outline: 2px solid var(--meridian-focus);
   outline-offset: -2px;
 }
 
@@ -54,7 +54,6 @@
   font-family: var(--meridian-font-body);
   font-size: var(--meridian-text-micro);
   font-weight: 600;
-  letter-spacing: var(--meridian-tracking-micro);
   color: var(--meridian-text-tertiary);
   margin: var(--meridian-space-3) 0 var(--meridian-space-1);
   padding-inline: var(--meridian-space-3);
@@ -68,8 +67,9 @@
  * One sentence a test carries.
  *
  * No marker and no status. Every sentence here comes from a suite that passes,
- * so a tick beside one states nothing, and the selected row is marked by the
- * kind's own hue, which is the colour the entry's name already carries.
+ * so a tick beside one states nothing, and the selected row is marked by
+ * `data` cyan, the colour of the selected row of a table (design system
+ * spec 4.2).
  */
 .nexus-behaviours__row {
   font-family: var(--meridian-font-body);
@@ -87,8 +87,8 @@
 
 .nexus-behaviours__row[aria-selected='true'] {
   color: var(--meridian-text);
-  border-inline-start-color: var(--meridian-kind);
-  background: var(--meridian-hull);
+  border-inline-start-color: var(--meridian-data);
+  background: var(--meridian-plate);
 }
 
 .nexus-behaviours__pane {
@@ -121,6 +121,6 @@
 
   .nexus-behaviours__rail {
     border-inline-end: 0;
-    border-block-end: 1px solid var(--meridian-rule);
+    border-block-end: 1px solid var(--meridian-seam);
   }
 }
