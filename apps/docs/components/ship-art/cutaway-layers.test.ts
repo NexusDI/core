@@ -8,6 +8,8 @@ import { describe, expect, it } from 'vitest';
 interface Light {
   ids: string[];
   room: string;
+  home: string;
+  gain: number;
   kind: string;
   colour: string;
   fixture: string | null;
@@ -132,7 +134,50 @@ describe('the cutaway layers (design system 8.2 and 8.3)', () => {
     expect(light.centre[0]).toBeCloseTo((light.box[0] + light.box[2]) / 2, 1);
   });
 
-  it('covers the housing boxes of the emissive lights and nothing else', async () => {
+  it('puts every light centre and 90% of every housing on the index of its own room', async () => {
+    const { data, info } = await grey('meridian-cutaway-rooms.png');
+    for (const light of lights) {
+      const index = legend.rooms[light.room];
+      const [left, top, right, bottom] = light.box;
+      const at = (x: number, y: number) => data[y * info.width + x];
+      expect(
+        at(Math.floor(light.centre[0]), Math.floor(light.centre[1])),
+        `${light.ids.join()} centre`,
+      ).toBe(index);
+      let on = 0;
+      let all = 0;
+      for (
+        let y = Math.floor(top);
+        y < Math.max(Math.ceil(bottom), Math.floor(top) + 1);
+        y += 1
+      ) {
+        for (
+          let x = Math.floor(left);
+          x < Math.max(Math.ceil(right), Math.floor(left) + 1);
+          x += 1
+        ) {
+          all += 1;
+          if (at(x, y) === index) on += 1;
+        }
+      }
+      expect(on / all, `${light.ids.join()} housing`).toBeGreaterThanOrEqual(
+        0.9,
+      );
+    }
+  });
+
+  it('names the room of the geometry as home, and keeps the habitat strip off the chart room', () => {
+    const strip = lights.find((light) =>
+      light.ids.includes('habitat.strip-aft'),
+    );
+    expect(strip?.home).toBe('habitat');
+    expect(strip?.room).toBe('habitat');
+    const lamp = lights.find((light) => light.ids.includes('chart-room.lamp'));
+    expect(lamp?.room).toBe('chart-room');
+    for (const light of lights) expect(light.gain).toBeGreaterThan(0);
+  });
+
+  it('covers the housing boxes of the emissive lights that name no fixture, and nothing else', async () => {
     const { data, info } = await grey('meridian-cutaway-emissive.png');
     expect([info.width, info.height]).toEqual([2048, 512]);
     const inBox = (x: number, y: number, boxes: Light['box'][]) =>
