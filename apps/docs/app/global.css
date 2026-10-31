@@ -12,9 +12,11 @@
  * 1. --nextra-bg and the primary hue arrive through <Head> props from
  *    app/meridian-theme.ts.
  * 2. Tailwind's gray, neutral and slate steps map onto the neutral roles
- *    below, one lightness ladder for both themes: 50 is the lightest value,
- *    950 the darkest. Nothing maps onto a meaning hue (design system spec
- *    4.2).
+ *    below, one lightness ladder for both themes: 50 is the lightest value
+ *    and 950 the dark bulkhead. 900 is the light theme's text ink, which is
+ *    within 3 levels of lightness of the bulkhead (#11161c against #14191f),
+ *    so 900 and 950 are near neighbours. Nothing maps onto a meaning hue
+ *    (design system spec 4.2).
  * 3. Headings take the display family, scoped to the article.
  */
 :root {
