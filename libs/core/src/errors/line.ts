@@ -1,5 +1,6 @@
 import { describeCause, safely } from './describe-thrown.js';
 import type { SchemaIssue } from './module-options-error.js';
+import type { ErrorText } from './error-text.js';
 
 /** The docs page of each code. */
 export const DOCS_URL = 'https://nexus.js.org/errors/';
@@ -108,18 +109,11 @@ export function lineOf(
   return `${head}${docs}${code}${cause}`;
 }
 
-/** The parts of a formatted message, as a formatError hook returns them. */
-interface TextParts {
-  readonly message: string;
-  readonly hints?: readonly string[];
-  readonly fix?: string;
-}
-
 /**
  * The message core writes from a formatter's text: `[CODE] `, the message,
  * each hint on its own line indented by two spaces, then the fix line.
  */
-export function layoutText(code: string, text: TextParts): string {
+export function layoutText(code: string, text: ErrorText): string {
   return [
     `[${code}] ${text.message}`,
     ...(text.hints ?? []).map((hint) => `  ${hint}`),

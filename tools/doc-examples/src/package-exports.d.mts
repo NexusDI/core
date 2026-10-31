@@ -18,6 +18,11 @@ export interface DeclarationFile {
   declaredIn: string | null;
 }
 
+export declare function modulesOf(files: readonly string[]): {
+  checker: ts.TypeChecker;
+  symbols: ts.Symbol[];
+};
+
 export declare function moduleOf(file: string): {
   checker: ts.TypeChecker;
   symbol: ts.Symbol;

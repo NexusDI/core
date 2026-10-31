@@ -23,14 +23,27 @@ const OPTIONS = {
   noEmit: true,
 };
 
+/**
+ * One checker over several modules, and each module's own symbol in the order
+ * of `files`. One program holds them all, so a symbol that two entries export
+ * is the same symbol.
+ */
+export function modulesOf(files) {
+  const program = ts.createProgram([...files], OPTIONS);
+  const checker = program.getTypeChecker();
+  const symbols = files.map((file) => {
+    const source = program.getSourceFile(file);
+    const symbol = source && checker.getSymbolAtLocation(source);
+    if (!symbol) throw new Error(`${file}: TypeScript found no module there.`);
+    return symbol;
+  });
+  return { checker, symbols };
+}
+
 /** The checker over one module, and the module's own symbol. */
 export function moduleOf(file) {
-  const program = ts.createProgram([file], OPTIONS);
-  const checker = program.getTypeChecker();
-  const source = program.getSourceFile(file);
-  const symbol = source && checker.getSymbolAtLocation(source);
-  if (!symbol) throw new Error(`${file}: TypeScript found no module there.`);
-  return { checker, symbol };
+  const { checker, symbols } = modulesOf([file]);
+  return { checker, symbol: symbols[0] };
 }
 
 /** The symbol a re-export stands for, or the symbol itself. */

@@ -56,7 +56,8 @@ export {
 } from './definitions/token.js';
 export type { InjectionToken } from './definitions/token.js';
 export { isForeign } from './definitions/brand.js';
-export type { Ctor, Lifetime } from './definitions/types.js';
+export type { Class, Ctor, Lifetime } from './definitions/types.js';
+export type { AnyToken } from './definitions/guards.js';
 export { all, lazy, optional } from './definitions/modifiers.js';
 export type {
   All,
