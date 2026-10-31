@@ -58,7 +58,7 @@ function bay() {
 }
 
 const part = (id: string) => {
-  const found = document.querySelector(`[data-part="${id}"]`);
+  const found = document.querySelector(`[data-bay-part="${id}"]`);
   if (!found) throw new Error(`no part ${id}`);
   return found;
 };

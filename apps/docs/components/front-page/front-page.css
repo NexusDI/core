@@ -935,8 +935,7 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
 
   .nexus-bay__toolbar {
     order: 2;
-    flex-direction: column;
-    align-items: flex-start;
+    flex-wrap: nowrap;
     border-block-end: 0;
   }
 

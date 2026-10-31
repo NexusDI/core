@@ -448,7 +448,7 @@ export function BayView(props: BayViewProps) {
               </Button>
               {props.locked === null && !props.launching ? (
                 <span
-                  className={`nexus-bay__check nexus-bay__check--${props.status}`}
+                  className={`nexus-bay__check nexus-bay__check--${props.checkWord === 'Check passed' ? 'nominal' : props.status}`}
                 >
                   <i aria-hidden="true" />
                   {props.checkWord}
