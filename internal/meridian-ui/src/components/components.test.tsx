@@ -572,6 +572,42 @@ describe('Schematic with a painted base', () => {
     );
   });
 
+  it('renders a layer between the picture and the markup, hidden from assistive technology', () => {
+    const { container } = render(
+      <Schematic
+        markup={MARKUP}
+        base={BASE}
+        layer={<canvas data-testid="lit" />}
+      />,
+    );
+    const root = container.firstElementChild as HTMLElement;
+    const children = [...root.children].map((each) => each.className);
+    expect(children.slice(0, 3)).toEqual([
+      'meridian-schematic__base',
+      'meridian-schematic__layer',
+      'meridian-schematic__art',
+    ]);
+    const layer = root.querySelector('.meridian-schematic__layer');
+    expect(layer?.getAttribute('aria-hidden')).toBe('true');
+    expect(layer?.querySelector('canvas')).not.toBeNull();
+  });
+
+  it('adds the lit class only with a base and the lit flag', () => {
+    const lit = render(<Schematic markup={MARKUP} base={BASE} lit />);
+    expect(lit.container.firstElementChild?.className).toBe(
+      'meridian-schematic meridian-schematic--painted meridian-schematic--lit',
+    );
+    const unlit = render(<Schematic markup={MARKUP} base={BASE} />);
+    expect(unlit.container.firstElementChild?.className).not.toContain('--lit');
+    const bare = render(<Schematic markup={MARKUP} lit layer={<i />} />);
+    expect(bare.container.firstElementChild?.className).toBe(
+      'meridian-schematic',
+    );
+    expect(
+      bare.container.querySelector('.meridian-schematic__layer'),
+    ).toBeNull();
+  });
+
   it('renders no picture and no painted class without a base', () => {
     const { container } = render(<Schematic markup={MARKUP} />);
     expect(container.querySelector('picture')).toBeNull();
