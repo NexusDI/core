@@ -736,12 +736,15 @@
     var(--meridian-sv-room) 91.6%,
     var(--meridian-alarm)
   );
+  --meridian-sv-room-unpowered: var(--meridian-sv-room);
   --meridian-sv-fixture: var(--meridian-seam);
   --meridian-sv-fixture-powered: color-mix(
     in srgb,
     var(--meridian-seam) 70%,
     var(--meridian-lamp)
   );
+  --meridian-sv-fixture-offline: var(--meridian-sv-fixture);
+  --meridian-sv-offline-opacity: 0.35;
   --meridian-sv-door: var(--meridian-text-secondary);
   position: relative;
   inline-size: 100%;
@@ -777,6 +780,73 @@
 
 .meridian-schematic .sv-door {
   fill: var(--meridian-sv-door);
+}
+
+/*
+ * A painted schematic (site UX spec 9): the picture sets the size, and the
+ * cutaway draws over it as a layer of states. The hull is the picture's, so
+ * it hides, and a room, fixture or open door with no state draws nothing.
+ * Powered is the lamp at 12%, unpowered a scrim of the screen colour, an alarm
+ * a tint with a dashed outline of 2 screen pixels, and an offline fixture a
+ * scrim with the same outline. A closed door keeps its hazard bands.
+ */
+.meridian-schematic__base {
+  display: block;
+}
+
+.meridian-schematic__base img {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+}
+
+.meridian-schematic--painted {
+  --meridian-sv-room: transparent;
+  --meridian-sv-fixture: transparent;
+  --meridian-sv-door: transparent;
+  --meridian-sv-room-powered: color-mix(
+    in srgb,
+    var(--meridian-lamp) 12%,
+    transparent
+  );
+  --meridian-sv-fixture-powered: color-mix(
+    in srgb,
+    var(--meridian-lamp) 12%,
+    transparent
+  );
+  --meridian-sv-room-unpowered: color-mix(
+    in srgb,
+    var(--meridian-screen) 60%,
+    transparent
+  );
+  --meridian-sv-room-alarm: color-mix(
+    in srgb,
+    var(--meridian-alarm) 22%,
+    transparent
+  );
+  --meridian-sv-room-alarm-dim: color-mix(
+    in srgb,
+    var(--meridian-alarm) 8%,
+    transparent
+  );
+  --meridian-sv-fixture-offline: color-mix(
+    in srgb,
+    var(--meridian-screen) 60%,
+    transparent
+  );
+  --meridian-sv-offline-opacity: 1;
+  --meridian-sv-outline-width: 2px;
+  --meridian-sv-outline-dash: 6px 3px;
+  --meridian-sv-outline-effect: non-scaling-stroke;
+}
+
+.meridian-schematic--painted .meridian-schematic__art {
+  position: absolute;
+  inset: 0;
+}
+
+.meridian-schematic--painted .sv-hull {
+  display: none;
 }
 
 /* The closed-door fill (spec 4.5): hazard bands at 45 degrees, from the markup's pattern. */
