@@ -68,7 +68,7 @@ The [Modules](/modules/) page shows what `Nexus.create` reports when a module ke
 TypeScript checks each `deps` list against its constructor. You need no compiler flag and no decorator.
 
 ```ts twoslash
-// @errors: 2769
+// @errors: 2345
 import { Token, defineModule, provide } from '@nexusdi/core';
 
 interface IReactorCore {
@@ -81,12 +81,10 @@ interface IShipComputer {
   status(): string;
 }
 
-const REACTOR = new Token<IReactorCore>('ReactorCore');
 const SUBSPACE_LINK = new Token<ISubspaceLink>('SubspaceLink');
 const COMPUTER = new Token<IShipComputer>('ShipComputer');
 // ---cut---
 class QuantumComputer implements IShipComputer {
-  static deps = [SUBSPACE_LINK] as const;
   constructor(private readonly reactor: IReactorCore) {}
   status() {
     return `Reactor output ${this.reactor.output} GW.`;
@@ -95,7 +93,12 @@ class QuantumComputer implements IShipComputer {
 
 export const Engineering = defineModule({
   name: 'Engineering',
-  providers: [provide(COMPUTER, { useClass: QuantumComputer })],
+  providers: [
+    provide(COMPUTER, {
+      useFactory: (link) => new QuantumComputer(link),
+      deps: [SUBSPACE_LINK],
+    }),
+  ],
   exports: [COMPUTER],
 });
 ```
