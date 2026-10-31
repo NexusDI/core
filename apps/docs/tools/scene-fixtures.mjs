@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { BlueprintError, Nexus, isNexusError } from '@nexusdi/core';
-import { trace } from '@nexusdi/devtools';
+import { inspect, trace } from '@nexusdi/devtools';
 import { errors } from '@nexusdi/errors';
 import {
   DRONE,
@@ -209,6 +209,20 @@ export async function fixtureOf(drill) {
   return fixture;
 }
 
+/**
+ * The modules of the seed ship as `inspect()` reports them: each module's
+ * name and the tokens it exports. The ship systems strip (site-ux 4.8) names
+ * them on its placards.
+ */
+export function modulesOf(state) {
+  const graph = inspect(rootOf(state));
+  const token = (id) => graph.providers.find((each) => each.id === id)?.token;
+  return graph.modules.map((module) => ({
+    name: module.name,
+    exports: module.exports.map(token).filter((each) => each !== undefined),
+  }));
+}
+
 async function main() {
   rmSync(outDir, { recursive: true, force: true });
   mkdirSync(outDir, { recursive: true });
@@ -219,6 +233,10 @@ async function main() {
       `${JSON.stringify(fixture, null, 2)}\n`,
     );
   }
+  writeFileSync(
+    join(outDir, 'modules.json'),
+    `${JSON.stringify(modulesOf(SEED), null, 2)}\n`,
+  );
   console.log(`scene-fixtures: wrote ${DRILLS.length} states to ${outDir}`);
 }
 
