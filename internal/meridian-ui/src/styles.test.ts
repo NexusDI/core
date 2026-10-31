@@ -76,7 +76,10 @@ describe('src/styles.css', () => {
   });
 
   it('keeps the schematic, hull crop, switch and step list out of the global sheet', () => {
-    expect(source).not.toMatch(/\.meridian-(schematic|hull-crop|switch|steps)/);
+    // Only the dark screen scope names the schematic, in one selector.
+    expect(
+      source.match(/\.meridian-(schematic|hull-crop|switch|steps)/g),
+    ).toEqual(['.meridian-schematic']);
     for (const name of ['schematic', 'hull-crop', 'switch', 'steps']) {
       expect(schematic).toContain(`.meridian-${name}`);
     }
@@ -97,8 +100,8 @@ describe('src/styles.css', () => {
   });
 
   it('puts the schematic in the dark screen scope', () => {
-    expect(schematic).toMatch(
-      /\.meridian-schematic \{[^}]*--meridian-text: var\(--meridian-palette-dark-text\)/,
+    expect(source).toMatch(
+      /\.meridian-holo,\s*\.meridian-schematic \{[^}]*--meridian-text: var\(--meridian-palette-dark-text\)/,
     );
   });
 

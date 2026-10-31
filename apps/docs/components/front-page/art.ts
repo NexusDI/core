@@ -24,50 +24,51 @@ import side2048Webp from '../ship-art/side/meridian-side-2048.webp';
 const set = (files: readonly { src: string; width: number }[]): string =>
   files.map((file) => `${file.src} ${file.width}w`).join(', ');
 
-const cutawayAvif = [cutaway1024Avif, cutaway1536Avif, cutaway2048Avif].map(
-  (file, at) => ({ src: file.src, width: [1024, 1536, 2048][at] ?? 0 }),
+const WIDTHS = [1024, 1536, 2048];
+
+/** The two sources of a view: the AVIF files by their widths, and the WebP files by their own. */
+const sourcesOf = (
+  avif: readonly { src: string }[],
+  webp: readonly { src: string; width: number }[],
+): SchematicBase['sources'] => [
+  {
+    type: 'image/avif',
+    srcSet: set(
+      avif.map((file, at) => ({ src: file.src, width: WIDTHS[at] ?? 0 })),
+    ),
+  },
+  { type: 'image/webp', srcSet: set(webp) },
+];
+
+const cutawaySources = sourcesOf(
+  [cutaway1024Avif, cutaway1536Avif, cutaway2048Avif],
+  [cutaway1024Webp, cutaway1536Webp, cutaway2048Webp],
 );
-const cutawayWebp = [cutaway1024Webp, cutaway1536Webp, cutaway2048Webp].map(
-  (file) => ({ src: file.src, width: file.width }),
+const sideSources = sourcesOf(
+  [side1024Avif, side1536Avif, side2048Avif],
+  [side1024Webp, side1536Webp, side2048Webp],
 );
-const sideAvif = [side1024Avif, side1536Avif, side2048Avif].map((file, at) => ({
-  src: file.src,
-  width: [1024, 1536, 2048][at] ?? 0,
-}));
-const sideWebp = [side1024Webp, side1536Webp, side2048Webp].map((file) => ({
-  src: file.src,
-  width: file.width,
-}));
 
 /** The frame of both side views in metres: `x y width height`. */
 export const FRAME: readonly [number, number, number, number] = [-5, 0, 80, 20];
 
+const baseOf = (
+  widest: { src: string; width: number; height: number },
+  sources: SchematicBase['sources'],
+  sizes: string,
+): SchematicBase => ({
+  src: widest.src,
+  width: widest.width,
+  height: widest.height,
+  sources,
+  sizes,
+  loading: 'lazy',
+});
+
 /** The painted cutaway for a `Schematic`, with the `sizes` of where it is shown. */
-export function cutawayBase(sizes: string): SchematicBase {
-  return {
-    src: cutaway2048Webp.src,
-    width: cutaway2048Webp.width,
-    height: cutaway2048Webp.height,
-    sources: [
-      { type: 'image/avif', srcSet: set(cutawayAvif) },
-      { type: 'image/webp', srcSet: set(cutawayWebp) },
-    ],
-    sizes,
-    loading: 'lazy',
-  };
-}
+export const cutawayBase = (sizes: string): SchematicBase =>
+  baseOf(cutaway2048Webp, cutawaySources, sizes);
 
 /** The painted side exterior, the backdrop of the ship systems strip. */
-export function sideBase(sizes: string): SchematicBase {
-  return {
-    src: side2048Webp.src,
-    width: side2048Webp.width,
-    height: side2048Webp.height,
-    sources: [
-      { type: 'image/avif', srcSet: set(sideAvif) },
-      { type: 'image/webp', srcSet: set(sideWebp) },
-    ],
-    sizes,
-    loading: 'lazy',
-  };
-}
+export const sideBase = (sizes: string): SchematicBase =>
+  baseOf(side2048Webp, sideSources, sizes);

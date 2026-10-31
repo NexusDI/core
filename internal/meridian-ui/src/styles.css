@@ -12,7 +12,8 @@
  */
 .meridian-screen,
 .meridian-terminal,
-.meridian-holo {
+.meridian-holo,
+.meridian-schematic {
   --meridian-text: var(--meridian-palette-dark-text);
   --meridian-text-secondary: var(--meridian-palette-dark-text-secondary);
   --meridian-text-tertiary: var(--meridian-palette-dark-text-tertiary);
