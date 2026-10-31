@@ -153,18 +153,16 @@ describe('reading an export off its declarations', () => {
 
   it('declares a private type another declaration file of the package holds', () => {
     const prelude =
-      readReference(
-        workspaceRoot,
-        CORE,
-        'ProviderView',
-      ).signature?.prelude.join('\n') ?? '';
+      readReference(workspaceRoot, CORE, 'CheckedRoot').signature?.prelude.join(
+        '\n',
+      ) ?? '';
 
     expect(
       prelude,
-      '`views.d.ts` imports `AnyToken` from `guards.d.ts`, which the package ' +
-        'never exports, and `AnyToken` names the private `Class`.',
-    ).toMatch(/^type AnyToken = /m);
-    expect(prelude).toMatch(/^type Class<T = unknown> = /m);
+      '`root.d.ts` imports `UntypedLiteral` from `provider-literal.d.ts`, ' +
+        'which the package never exports.',
+    ).toMatch(/^interface UntypedLiteral /m);
+    expect(prelude).toMatch(/^type CheckedEntries</m);
   });
 
   it('prints a renamed export under the name the package publishes', () => {

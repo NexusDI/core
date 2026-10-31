@@ -10,11 +10,9 @@ import type {
   Provider,
   UseClassDeps,
 } from './provide.js';
+import type { AnyToken } from './guards.js';
 import type { InjectionToken, MultiToken, Token } from './token.js';
 import type { Class, Ctor, Lifetime } from './types.js';
-
-/** Any value `token` accepts: a class, a Token or a MultiToken. */
-type AnyToken = Token<unknown> | MultiToken<unknown> | Class;
 
 /** What a provider of the token supplies: a Token's T, a MultiToken's element, a class's instance. */
 type Provided<K> =

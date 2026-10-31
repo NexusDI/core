@@ -1,10 +1,7 @@
 import type { ModuleRef } from '../definitions/define-module.js';
-import type { LoadOptions } from './options.js';
 import type { Nexus } from './nexus.js';
 
-type Load = (module: ModuleRef, options?: LoadOptions) => Promise<void>;
-
-const loaders = new WeakMap<Nexus, Load>();
+const loaders = new WeakMap<Nexus, Nexus['load']>();
 
 /**
  * Returns the container's load function with one cache: `(module, options?)`
@@ -17,7 +14,7 @@ const loaders = new WeakMap<Nexus, Load>();
  * on the container it serves, so concurrent requests that enter a section
  * share one load. Core decides what a repeat load with another grant does.
  */
-export function loadOnce(container: Nexus): Load {
+export function loadOnce(container: Nexus): Nexus['load'] {
   let load = loaders.get(container);
   if (load === undefined) {
     load = create(container);
@@ -26,7 +23,7 @@ export function loadOnce(container: Nexus): Load {
   return load;
 }
 
-function create(container: Nexus): Load {
+function create(container: Nexus): Nexus['load'] {
   const byModule = new Map<ModuleRef, Map<string, Promise<void>>>();
   const ids = new Map<ModuleRef, number>();
   const idOf = (ref: ModuleRef): number => {

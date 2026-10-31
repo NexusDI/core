@@ -2,7 +2,7 @@ import { resolveModuleRef } from './define-module.js';
 import { MultiToken, Token } from './token.js';
 import type { Class } from './types.js';
 
-/** Any value the container accepts as a token. */
+/** Any value the container accepts as a token: an `InjectionToken`, a `MultiToken` or a class. */
 export type AnyToken = Token<unknown> | MultiToken<unknown> | Class;
 
 export function isModuleRef(value: unknown): boolean {
