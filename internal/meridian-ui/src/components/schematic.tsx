@@ -65,6 +65,18 @@ interface SchematicBaseProps {
    */
   base?: SchematicBase;
   /**
+   * A slot between the base picture and the markup, for a lit canvas that the
+   * app draws over the base. It fills the box, takes no pointer events and is
+   * `aria-hidden`. It needs `base`.
+   */
+  layer?: ReactNode;
+  /**
+   * Set once the layer presents its first frame. The lit canvas then carries
+   * the room light, so the painted tints of the rooms drop away. The alarm and
+   * offline outlines, the door hazard and the overlay stay. It needs `base`.
+   */
+  lit?: boolean;
+  /**
    * Names this ship in the generated selectors, so that two schematics on a
    * page keep their states apart. Defaults to `ship`.
    */
@@ -100,8 +112,9 @@ export type SchematicProps = SchematicBaseProps & SchematicOverlayProps;
  *
  * States, from design system spec 8.4:
  *
- * - room: `powered` (a `lamp` tint at 12% over the room fill), `unpowered`
- *   (the plain fill, screens lit), `alarm` (an `alarm` fill at 12% pulsing at
+ * - room: `powered` (a `lamp` tint at 12% over the room fill; 18% over a
+ *   painted base), `unpowered` (the plain fill, screens lit; a scrim of 40%
+ *   over a painted base), `alarm` (an `alarm` fill at 12% pulsing at
  *   1 Hz, steady under reduced motion, with a dashed outline so colour does
  *   not carry the state alone)
  * - fixture: the room states, and `offline` (dimmed with a dashed outline)
@@ -123,6 +136,8 @@ export function Schematic({
   viewBox,
   label,
   base,
+  layer,
+  lit,
   scope = 'ship',
   className,
 }: SchematicProps) {
@@ -135,6 +150,7 @@ export function Schematic({
       className={cx(
         'meridian-schematic',
         base && 'meridian-schematic--painted',
+        base && lit && 'meridian-schematic--lit',
         className,
       )}
       data-schematic={scope}
@@ -159,6 +175,11 @@ export function Schematic({
             decoding="async"
           />
         </picture>
+      ) : null}
+      {base && layer ? (
+        <div className="meridian-schematic__layer" aria-hidden="true">
+          {layer}
+        </div>
       ) : null}
       <div
         className="meridian-schematic__art"
