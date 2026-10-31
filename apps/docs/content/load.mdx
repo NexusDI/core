@@ -34,7 +34,7 @@ Before the call the container does not see `DRONE`. After it, `NAV_CHARTS` has f
 
 ## Validation and Safety
 
-Dynamic loading does not bypass NexusDI's safety guarantees. `load()` runs the same compiler `Nexus.create` runs, against the graph the container already holds. A loaded module sees its own providers, the exports of the modules it imports, the exports of global modules, and the exports of the host modules its load imports name. A provider in the root module is not visible to it unless one of those exports it. If the module depends on a token it cannot see, `load()` rejects with a `NEXUS_BLUEPRINT_INVALID` error. The container stays as it was. See [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
+Dynamic loading does not bypass NexusDI's safety guarantees. `load()` runs the same compiler `Nexus.create` runs, against the graph the container already holds. A loaded module sees its own providers, the exports of the modules it imports, the exports of global modules, and the exports of each host module a [load import](#giving-a-loaded-plugin-access-to-host-services) names. A provider in the root module is not visible to it unless one of those exports it. If the module depends on a token it cannot see, `load()` rejects with a `NEXUS_BLUEPRINT_INVALID` error. The container stays as it was. See [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
 
 This ensures that your application never enters a partially-broken state where some dependencies are missing. Here `ScoutDrone` needs `NAV_CHARTS`, which nothing provides, so the `errors` list holds one `NEXUS_MISSING_PROVIDER`, and `ship.has(DRONE)` is still `false`:
 
@@ -46,7 +46,7 @@ This ensures that your application never enters a partially-broken state where s
 
 ## Loading Once, in Call Order
 
-`load()` does nothing for a module the root already imports, and a second `load()` of the same module does nothing either, as long as the call passes no load imports or the load imports that module already has. Below, three calls load `Survey` and `ScoutDrone` is built once.
+`load()` does nothing for a module the root already imports, and a second `load()` of the same module does nothing either, as long as the call passes no [load imports](#giving-a-loaded-plugin-access-to-host-services) or the load imports that module already has. Below, three calls load `Survey` and `ScoutDrone` is built once.
 
 ```ts file=examples/meridian/src/pages/load.md region=load-twice
 
@@ -84,13 +84,11 @@ A request scope is pinned to the modules that were loaded when it was created, s
 
 The first request into `/navigation/` loads `Navigation`, and `navigation.inject` resolves `NAV_ROUTES` from the request's scope. The adapter creates a request's scope on its first use, so a request that resolves nothing opens none. To try it, change `navigation.inject` to `di.inject` and run the region: the route definition throws `NEXUS_BLUEPRINT_INVALID`. Change it back. [Scoping Hono Requests](/hono/) covers the adapter.
 
-A section that cannot import a host module by name takes [load imports](#giving-a-loaded-plugin-access-to-host-services) as the second argument: `di.load(Navigation, { imports: [Tactical] })`.
-
 ## Giving a Loaded Plugin Access to Host Services
 
-When a host loads code it does not own (such as a runtime plugin package or a federation remote), that code often requires access to host services. For example, a plugin might need the ship's star charts to function. Because the plugin is built apart from the host, it cannot import the host's modules by name. Without a load import, the host has to make the module global, and then every module in the graph sees its exports.
+When a host loads code it does not own (such as a runtime plugin package or a federation remote), that code often requires access to host services. For example, a plugin might need the ship's star charts. Because the plugin is built apart from the host, it cannot import the host's modules by name. Without a load import, the host has to make the host module global, and then every module in the graph sees its exports.
 
-A **load import** names a host module whose exports the modules a load adds can see, as if they imported it. `load(module, { imports })` takes the load imports, and no other module in the graph sees anything new. A lazy feature within the host's own codebase imports host modules by name and needs no load import. A load import is wiring, with no isolation and no security boundary.
+A **load import** names a host module, and the modules a load adds see its exports as if they imported it. `load(module, { imports })` takes the load imports, and no other module in the graph sees anything new. A lazy feature within the host's own codebase imports host modules by name and needs no load import. A load import is wiring, with no isolation and no security boundary.
 
 The following example shows a plugin `Survey` that depends on `NAV_CHARTS`, which is exported by the host module `Tactical`. Because `Survey` cannot import `Tactical` directly, the first load attempt fails with `NEXUS_BLUEPRINT_INVALID`. The second load succeeds because it passes `Tactical` as a load import:
 
@@ -102,7 +100,7 @@ The following example shows a plugin `Survey` that depends on `NAV_CHARTS`, whic
 
 ### A Load Import Reaches the Whole Loaded Subtree
 
-A load import reaches every module the load adds: the loaded module and each module of its import subtree that the graph did not hold. Each of these modules can access the exports (including re-exports) of each module a load import names. A load import only exposes a module's public exports. It gives none of that module's private providers.
+A load import reaches every module the load adds: the loaded module and each module of its import subtree that the graph did not hold. Each of these modules sees the exports (including re-exports) of each module a load import names. They see only those exports. Each of these modules sees none of the named module's private providers.
 
 In the example below, `Survey` imports `Sensors`, and `Sensors` provides the probe that requires `NAV_CHARTS`. The load import on the load of `Survey` also reaches `Sensors`, so `DeepProbe` resolves `NAV_CHARTS`:
 
@@ -112,15 +110,15 @@ In the example below, `Survey` imports `Sensors`, and `Sensors` provides the pro
 
 **Try it:** Save the region as `subtree.ts` and run it. It prints `survey: course to Kepler-442b`. Delete `{ imports: [Tactical] }` and run it again: the load rejects with `NEXUS_BLUEPRINT_INVALID`, because `Sensors` cannot see `NAV_CHARTS`. Put the load import back.
 
-The blueprint records these load imports for every module added during the load. Subsequent loads do not alter existing recorded load imports, and modules already present in the graph do not receive new access from later load imports.
+`load()` records the load imports on each module it adds. Later loads do not alter the recorded load imports, and modules already present in the graph see nothing new from later load imports.
 
 ### What a Load Import Accepts and Refuses
 
-NexusDI validates load imports against the current container graph. `load()` rejects an invalid load import with [NEXUS_LOAD_IMPORT](/errors/NEXUS_LOAD_IMPORT/). The error carries `module`, `imported` and `reason`.
+NexusDI validates load imports against the current container graph. `load()` rejects an invalid load import with [NEXUS_LOAD_IMPORT](/errors/NEXUS_LOAD_IMPORT/) directly, outside `NEXUS_BLUEPRINT_INVALID`. The error carries `reason`, `module` and `imported`. `module` names the module passed to `load()`, and `imported` names the module the reason is about. For `already-loaded`, `imported` is the first requested module the recorded load imports lack, or the first requested module when the request only drops modules from the record.
 
-- **`not-in-graph`**: A load import only adds visibility; it does not load the module itself. Every module a load import names must already exist in the graph. The host passes the object it imported. A fresh `forRoot()` call returns a new definition, so a load import of it fails with this reason.
-- **`root`**: A load import cannot name the root module. If a loaded module needs root providers, the host must export those providers from a different module and pass that module as a load import.
-- **`already-loaded`**: A repeat `load()` of a module already in the graph is ignored if the set of load imports is identical (ignoring order) or empty. If the repeat load attempts to provide a different set of load imports, it fails with this reason. Similarly, loading a module that the root already imports statically fails if the call passes any load import, as the root records no load imports for that module.
+- **`not-in-graph`**: A load import only adds what the loaded modules see; it does not load the module itself. Every module a load import names must already exist in the graph. The host passes the object it imported. A fresh `forRoot()` call returns a new definition, so a load import of it fails with this reason.
+- **`root`**: A load import cannot name the root module. If a loaded module needs root providers, the host must move those providers into a module the root imports, export them there, and pass that module as the load import.
+- **`already-loaded`**: A repeat `load()` of a module already in the graph is ignored if the set of load imports is identical (ignoring order) or empty. If the repeat load attempts to provide a different set of load imports, it fails with this reason. Similarly, a load of a module that the root already imports statically fails if the call passes any load import, as a static import records no load imports for that module.
 
 A load import of a global module is legal but redundant, as every module in the graph already sees the exports of a global module.
 
@@ -136,7 +134,7 @@ The following example demonstrates these constraints: `Fresh` is not yet in the 
 
 To validate loading logic without initializing the container, use `Nexus.check(root, { load })`. This synchronously compiles each entry of the `load` list against the root and the entries before it, and stops at the first compile that fails. An entry takes load imports as `{ module, imports }` in place of the module.
 
-`Nexus.check` returns a `CheckReport` if all compilations pass. The `unchecked` array in the report lists modules whose options can only be validated by `Nexus.create`. If a compilation fails, it throws `NEXUS_BLUEPRINT_INVALID`, and the specific load import error is listed in the `errors` array.
+`Nexus.check` returns a `CheckReport` if all compiles pass. The `unchecked` array in the report lists modules whose options can only be validated by `Nexus.create`. If a compile fails, `Nexus.check` throws `NEXUS_BLUEPRINT_INVALID`, and its `errors` array holds the compile errors, or the one `NEXUS_LOAD_IMPORT` when a load import is refused.
 
 ```ts file=examples/meridian/src/pages/load.md region=load-import-check
 
@@ -152,7 +150,7 @@ These adapters call `loadOnce(container)` from `@nexusdi/core`. `loadOnce` calls
 
 Each module view has a `loadImports` list with the ids that a load import added beyond the module's own imports. You can view these via `graph()`, `inspect()` from `@nexusdi/devtools`, or the `nexusdi graph` CLI tool. `toMermaid()` and `toDot()` draw a load import as a dashed edge and a static import as a solid edge ([Introspection](/introspection/)). `inspect()` also lists in `unchecked` the modules whose options only `Nexus.create` can validate.
 
-Because the loaded module runs in the host's process, it can access anything the host's code can. The load imports determine which module exports the loaded module's providers can name as dependencies.
+Because the loaded module runs in the host's process, it can access anything the host's code can. The load imports decide which exports the providers of the loaded module can name as dependencies.
 
 ## Design Constraints
 
@@ -176,9 +174,9 @@ To maintain the integrity of the graph, NexusDI imposes a few restrictions on dy
 
 ```
 
-**Try it:** Save the region as `contribution.ts` and run it. It prints `NEXUS_LOAD_CONTRIBUTION`, `Survey` and `Systems`, one per line. Delete the `exports: [SYSTEMS],` line and run it again: the load resolves and it prints `undefined` three times.
+**Try it:** Save the region as `contribution.ts` and run it. It prints `NEXUS_LOAD_CONTRIBUTION`, `Survey` and `Systems`, one per line. Delete the `exports: [SYSTEMS],` line and run it again: the load rejects with `NEXUS_BLUEPRINT_INVALID` holding `NEXUS_UNREAD_CONTRIBUTION`, because no provider of `Survey` reads `SYSTEMS`, and it prints `undefined` three times. Put the `exports` line back.
 
-In a test, `createTestingContainer(root).override(token, def, { lazy: true })` and `.overrideModule(module, def, { lazy: true })` let a later `load()` be the first use of the override, so `create()` does not report it unused ([Testing](/testing/)).
+In a test, `createTestingContainer(root).override(token, def, { lazy: true })` and `.overrideModule(module, def, { lazy: true })` from `@nexusdi/testing` let a later `load()` be the first use of the override, so `create()` does not report it unused ([Testing](/testing/)).
 
 ### Adding to a Collector from a Loaded Module
 
@@ -201,6 +199,6 @@ In 0.3, `set()` registered one provider into a mutable container at any time, be
 - Concurrent `load()` calls run one at a time, in call order.
 - `get()` of a token from a module that is not loaded yet throws `NEXUS_MISSING_PROVIDER`.
 - A loaded module cannot publish a contribution to a `MultiToken`. It publishes one when it exports the token or a `compile.provider` hook pins the provider, a pin first made at the load included. `load()` then fails with `NEXUS_LOAD_CONTRIBUTION`. A private contribution that no provider of its module reads fails the load with `NEXUS_UNREAD_CONTRIBUTION`.
-- `load(module, { imports })` gives every module the load adds the exports of host modules already in the graph. A load import gives no private providers, is recorded per module and stays fixed on later loads. It fails with `NEXUS_LOAD_IMPORT` for a module outside the graph (`not-in-graph`), the root (`root`) or another set on a repeat (`already-loaded`).
+- Every module `load(module, { imports })` adds sees the exports of each host module in `imports`, each already in the graph. It sees none of their private providers. A load import is recorded per module and stays fixed on later loads. It fails with `NEXUS_LOAD_IMPORT` for a module outside the graph (`not-in-graph`), the root (`root`) or another set on a repeat (`already-loaded`).
 - `Nexus.check(root, { load: [{ module, imports }] })` checks load imports synchronously and reports their errors inside `NEXUS_BLUEPRINT_INVALID`.
 - A load import is wiring, with no isolation and no security boundary.
