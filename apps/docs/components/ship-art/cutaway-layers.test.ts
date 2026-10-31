@@ -30,7 +30,7 @@ interface Legend {
 }
 
 interface Geometry {
-  compartments: { id: string }[];
+  compartments: { id: string; fixtures: { id: string }[] }[];
   lights: {
     id: string;
     room: string;
@@ -189,7 +189,7 @@ describe('the cutaway layers (design system 8.2 and 8.3)', () => {
           y <= Math.ceil(bottom),
       );
     const boxes = lights
-      .filter((light) => light.emissive)
+      .filter((light) => light.emissive && light.fixture === null)
       .map((light) => light.box);
     let lit = 0;
     for (let y = 0; y < info.height; y += 1) {
@@ -205,6 +205,27 @@ describe('the cutaway layers (design system 8.2 and 8.3)', () => {
       const y = Math.floor((top + bottom) / 2);
       // A long strip glows at 45%, so it does not read as a white bar.
       expect(data[y * info.width + x]).toBe(right - left > 128 ? 115 : 255);
+    }
+  });
+
+  it('leaves the housing of a light that names a fixture out of the mask, since the fixture sets its level', async () => {
+    const { data, info } = await grey('meridian-cutaway-emissive.png');
+    const named = lights.filter((light) => light.fixture !== null);
+    expect(named.length).toBeGreaterThan(0);
+    const fixtureIds = geometry.compartments.flatMap((room) =>
+      room.fixtures.map((fixture) => fixture.id),
+    );
+    const lamps = lights.filter(
+      (light) => light.fixture === null && light.emissive,
+    );
+    const overlaps = (a: Light['box'], b: Light['box']) =>
+      a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+    for (const light of named) {
+      expect(fixtureIds, light.ids.join()).toContain(light.fixture);
+      if (lamps.some((lamp) => overlaps(lamp.box, light.box))) continue;
+      const x = Math.round((light.box[0] + light.box[2]) / 2);
+      const y = Math.floor((light.box[1] + light.box[3]) / 2);
+      expect(data[y * info.width + x], light.ids.join()).toBe(0);
     }
   });
 });
