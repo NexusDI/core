@@ -129,7 +129,7 @@ describe('the committed schematic cutaway', () => {
   });
 
   it('uses the frame of the painted side views as its viewBox', () => {
-    expect(/<svg [^>]*viewBox="([^"]*)"/.exec(svg)?.[1]).toBe('-5 -1.5 80 20');
+    expect(/<svg [^>]*viewBox="([^"]*)"/.exec(svg)?.[1]).toBe('-5 0 80 20');
     for (const view of ['cutaway', 'side']) {
       const sidecar = JSON.parse(
         readFileSync(
@@ -137,7 +137,7 @@ describe('the committed schematic cutaway', () => {
           'utf8',
         ),
       ) as { frame: string };
-      expect(sidecar.frame).toBe('-5 -1.5 80 20');
+      expect(sidecar.frame).toBe('-5 0 80 20');
     }
   });
 
