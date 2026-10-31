@@ -320,7 +320,11 @@
     <h2>Schematic</h2>
     <p>
       The committed cutaway with rooms in each state. Serve the repo root over
-      http so the fetch finds the SVG.
+      http so the fetch finds the SVG. Add ?theme=light to the URL for the light
+      theme: the schematic stays dark, as a screen does. The state strings in
+      the script mirror ROOM_DECLARATIONS, FIXTURE_DECLARATIONS and
+      DOOR_DECLARATIONS in components/schematic.tsx, with the selectors the
+      component generates.
     </p>
     <div class="meridian-schematic" data-schematic="ship" id="schematic">
       <div
@@ -335,17 +339,16 @@
         role="group"
         aria-label="Ship hotspots"
       >
-        <circle
-          cx="12"
-          cy="9"
-          r="0.6"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="0.15"
-          tabindex="0"
-          role="button"
-          aria-label="Bridge system"
-        />
+        <a href="#bridge" aria-label="Bridge system">
+          <circle
+            cx="12"
+            cy="9"
+            r="0.6"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="0.15"
+          />
+        </a>
       </svg>
     </div>
     <h2>Switch</h2>
@@ -470,7 +473,7 @@
           document.getElementById('schematic-art').innerHTML = svg;
         });
       const rule = (attr, id, css) =>
-        `[data-schematic="ship"] [${attr}="${id}"]{${css}}`;
+        `.meridian-schematic[data-schematic="ship"] [${attr}="${id}"]{${css}}`;
       document.getElementById('schematic-style').textContent = [
         ...['bridge', 'chart-room', 'habitat'].map((id) =>
           rule('data-room', id, 'fill:var(--meridian-sv-room-powered)'),
@@ -491,8 +494,23 @@
           'bridge.station-bank',
           'fill:var(--meridian-sv-fixture-powered)',
         ),
-        rule('data-door', 'bridge-habitat', 'fill:var(--meridian-alarm)'),
+        rule(
+          'data-fixture',
+          'bridge.forward-console',
+          'fill:var(--meridian-alarm);stroke:var(--meridian-text);stroke-width:0.12;stroke-dasharray:0.3 0.15;animation:meridian-sv-alarm-fixture 1s ease-in-out infinite',
+        ),
+        ...['bridge-habitat', 'bridge-chart-room', 'habitat-airlock'].map(
+          (id) =>
+            rule(
+              'data-door',
+              id,
+              'fill:url(#sv-hazard);stroke:var(--meridian-alarm);stroke-width:0.08',
+            ),
+        ),
       ].join('\n');
+      if (new URLSearchParams(location.search).get('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
       document.getElementById('theme').addEventListener('click', () => {
         document.documentElement.classList.toggle('dark');
       });

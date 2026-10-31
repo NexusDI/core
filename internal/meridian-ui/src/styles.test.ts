@@ -71,6 +71,23 @@ describe('src/styles.css', () => {
     }
   });
 
+  it('reads the art colours only inside the schematic rules', () => {
+    const body = source.replace(/\/\*[\s\S]*?\*\//g, '');
+    const rules = body.split(/(?<=\})\s*(?=[^{}]+\{)/);
+    const outside = rules.filter(
+      (rule) =>
+        /--meridian-(hull-paint|lamp)\b/.test(rule) &&
+        !/^\s*\.meridian-schematic\b/.test(rule),
+    );
+    expect(outside).toEqual([]);
+  });
+
+  it('puts the schematic in the dark screen scope', () => {
+    expect(source).toMatch(
+      /\.meridian-holo,\s*\.meridian-schematic \{[^}]*--meridian-text: var\(--meridian-palette-dark-text\)/,
+    );
+  });
+
   it('carries no literal colour and reads only --meridian- properties', () => {
     const body = source.replace(/\/\*[\s\S]*?\*\//g, '');
     expect(body.match(/#[0-9a-f]{3,8}\b|rgb\(/gi) ?? []).toEqual([]);
