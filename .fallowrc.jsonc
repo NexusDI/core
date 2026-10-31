@@ -61,6 +61,8 @@
     "tools/release/{plan,sync,reconcile,notes,stage}.mjs",
     // Run by hand from the gemma-docs skill.
     "tools/gemma-refactor.mjs",
+    // The check-schematic target of meridian-ship runs this script by path.
+    "tools/meridian-ship/check-schematic.mjs",
     // The e2e project's webServer command runs serve.mjs by path.
     "apps/docs-e2e/src/support/serve.mjs",
     // The shell's Playwright suites: the e2e target runs

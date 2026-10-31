@@ -63,6 +63,15 @@ export const screen = {
 
 export type ScreenRole = keyof typeof screen;
 
+/**
+ * The art colours the schematic reads (spec 4.5). None carries text and none
+ * appears in the chrome. They do not switch with the theme.
+ */
+export const art = {
+  hullPaint: '#9aa1a8', // the hull's main plates and the schematic outline
+  lamp: '#e8b46a', // the tint of a powered room
+} as const;
+
 /** The opacity of the `holo` backing (spec section 4.4). */
 export const HOLO_ALPHA = 0.94;
 

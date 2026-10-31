@@ -32,3 +32,16 @@ export { Status, STATUS_GLYPHS, STATUS_STATES } from './components/status.js';
 export type { StatusProps, StatusState } from './components/status.js';
 export { Terminal } from './components/terminal.js';
 export type { TerminalLine, TerminalProps } from './components/terminal.js';
+export { HullCrop } from './components/hull-crop.js';
+export type { CropBox, HullCropProps } from './components/hull-crop.js';
+export { Schematic, cssEscape } from './components/schematic.js';
+export type {
+  DoorState,
+  FixtureState,
+  RoomState,
+  SchematicProps,
+} from './components/schematic.js';
+export { StepList } from './components/step-list.js';
+export type { Step, StepListProps } from './components/step-list.js';
+export { Switch } from './components/switch.js';
+export type { SwitchProps } from './components/switch.js';

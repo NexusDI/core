@@ -7,6 +7,13 @@ per deck. `build_ship.py` imports the same hull math to build the mesh, so the
 mesh and the outlines cannot disagree.
 
     python3 tools/meridian-ship/ship_svg.py --out <dir>
+    python3 tools/meridian-ship/ship_svg.py --out <dir> --schematic
+
+`--schematic` writes one file, `meridian-schematic.svg`, for the docs front
+page. It carries no fill, no stroke colour and no text: the parts name
+themselves by class (`sv-hull`, `sv-room`, `sv-fixture`, `sv-door`) and by
+`data-volume`, `data-part`, `data-room`, `data-fixture` and `data-door`, and
+the page's CSS paints them.
 """
 
 import argparse
@@ -409,6 +416,77 @@ def deck_svg(geometry, hull, deck):
     return svg((-2, -10, 76, 20), body + labels, f"SV-01 Meridian, {deck['id']} deck")
 
 
+def plain_path(points, flip, cls, data):
+    d = "M" + " L".join(f"{x:.2f},{flip(y):.2f}" for x, y in points) + " Z"
+    return f'<path class="{cls}" d="{d}" {data}/>'
+
+
+def plain_fixture(f, flip):
+    """A fixture's side outline with a class and its id, and no paint."""
+    x0, x1 = f["x"]
+    z0, z1 = f["z"]
+    return (
+        f'<rect class="sv-fixture" x="{x0:.2f}" y="{flip(z1):.2f}" width="{x1 - x0:.2f}" '
+        f'height="{z1 - z0:.2f}" data-fixture="{f["id"]}"/>'
+    )
+
+
+def schematic_svg(geometry, hull):
+    """The side cutaway for the page: the same shapes as the cutaway, with no paint and no labels.
+
+    Every part carries a class and a `data-*` id so that CSS alone sets its look and state.
+    """
+    side, _ = part_outlines(geometry, hull)
+    flip = lambda z: 16 - z  # noqa: E731
+    body = ['<g class="sv-hulls">']
+    body += [
+        plain_path(volume_side(v, hull), flip, "sv-hull", f'data-volume="{v["id"]}"')
+        for v in hull.volumes
+    ]
+    body += [
+        plain_path(p, flip, "sv-hull", f'data-part="exterior-{i}"') for i, p in enumerate(side)
+    ]
+    body += ["</g>", '<g class="sv-rooms">']
+    for room in geometry["compartments"]:
+        for box in room["boxes"]:
+            x0, x1 = box["x"]
+            z0, z1 = box["z"]
+            body.append(
+                f'<rect class="sv-room" x="{x0 + 0.05:.2f}" y="{flip(z1) + 0.05:.2f}" '
+                f'width="{x1 - x0 - 0.1:.2f}" height="{z1 - z0 - 0.1:.2f}" '
+                f'data-room="{room["id"]}"/>'
+            )
+    body += ["</g>", '<g class="sv-fixtures">']
+    body += [plain_fixture(f, flip) for room in geometry["compartments"] for f in room["fixtures"]]
+    body += ["</g>", '<g class="sv-doors">']
+    for door in geometry["doors"]:
+        flat = [a for a in "xyz" if door[a][0] == door[a][1]][0]
+        x0, x1 = door["x"]
+        z0, z1 = door["z"]
+        if flat == "x":
+            x0, x1 = x0 - 0.15, x1 + 0.15
+        if flat == "z":
+            z0, z1 = z0 - 0.15, z1 + 0.15
+        body.append(
+            f'<rect class="sv-door" x="{x0:.2f}" y="{flip(z1):.2f}" width="{x1 - x0:.2f}" '
+            f'height="{z1 - z0:.2f}" data-door="{door["id"]}"/>'
+        )
+    body.append("</g>")
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 76 18">\n'
+        "<title>SV-01 Meridian, schematic</title>\n" + "\n".join(body) + "\n</svg>\n"
+    )
+
+
+def export_schematic(geometry, out):
+    text = schematic_svg(geometry, Hull(geometry["hull"]))
+    os.makedirs(out, exist_ok=True)
+    target = os.path.join(out, "meridian-schematic.svg")
+    with open(target, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(text)
+    print(f"meridian-ship: wrote {target}")
+
+
 def export_svgs(geometry, out):
     hull = Hull(geometry["hull"])
     files = {
@@ -429,5 +507,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="ship_svg.py")
     parser.add_argument("--geometry", default=DEFAULT_GEOMETRY)
     parser.add_argument("--out", required=True)
+    parser.add_argument(
+        "--schematic",
+        action="store_true",
+        help="write only meridian-schematic.svg, the unpainted cutaway for the docs front page",
+    )
     args = parser.parse_args()
-    export_svgs(load(args.geometry), args.out)
+    if args.schematic:
+        export_schematic(load(args.geometry), args.out)
+    else:
+        export_svgs(load(args.geometry), args.out)

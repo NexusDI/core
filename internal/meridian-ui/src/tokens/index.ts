@@ -3,6 +3,7 @@
  * Nothing in this graph imports React.
  */
 export {
+  art,
   colour,
   CONTRAST_FLOOR,
   HOLO_ALPHA,

@@ -452,6 +452,9 @@ to the package:
   `data-room`, `data-door` or `data-fixture` attribute. It takes one `onClick` prop, which
   the app handles by delegation. The package imports no geometry and no
   `@nexusdi/meridian-systems`.
+  An optional `children` slot renders in an overlay `<svg>` on the cutaway's `viewBox`, so
+  the app can draw conduits, glyphs and focusable hotspots over the ship. The markup layer
+  is `aria-hidden` and the overlay is not.
 - `HullCrop` renders a crop of the cutaway around one hull section and sets its
   `view-transition-name` from a prop. The docs app wraps it in React's `<ViewTransition>`
   (9.3).

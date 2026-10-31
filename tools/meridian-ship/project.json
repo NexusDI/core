@@ -1,0 +1,14 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "meridian-ship",
+  "targets": {
+    "check-schematic": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "command": "node tools/meridian-ship/check-schematic.mjs"
+      }
+    }
+  }
+}
