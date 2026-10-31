@@ -47,7 +47,13 @@ export const BEHAVIOUR_BUDGET = { raw: 1_850_000, gzip: 77_000 };
  * than `GUIDE_SLACK` gzipped bytes under it fails too, so a saving lowers the
  * ceiling in the same pull request.
  *
- * Measured at 1008.1 kB raw and 304.6 kB gzipped. The docs chrome (site spec
+ * Measured at 1019.2 kB raw and 306.9 kB gzipped, so the ceilings sit at 1020 kB and
+ * 307 kB. The painted `Schematic` adds 2.0 kB of rules to the Meridian stylesheet, and
+ * the schematic, hull crop, switch and step list of #299 add the rest of the 11.1 kB.
+ * The front page's own stylesheet is not in the total: `Styles.tsx` writes it into the
+ * front page's HTML, since a stylesheet any page imports reaches every page.
+ *
+ * Measured earlier at 1008.1 kB raw and 304.6 kB gzipped. The docs chrome (site spec
  * section 13) added the chrome, code and search stylesheets and the search
  * component, so the ceilings rose from 984 kB and 299 kB to 1009 kB and 305 kB.
  *
@@ -59,7 +65,7 @@ export const BEHAVIOUR_BUDGET = { raw: 1_850_000, gzip: 77_000 };
  * with a `twoslash` fence.
  */
 export const GUIDE_PAGE = 'scopes/index.html';
-export const GUIDE_BUDGET = { raw: 1_009_000, gzip: 305_000 };
+export const GUIDE_BUDGET = { raw: 1_020_000, gzip: 307_000 };
 export const GUIDE_SLACK = 5_000;
 
 /**

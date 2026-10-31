@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Terminal, type TerminalLine } from '@nexusdi/meridian-ui';
 
-import './front-page.css';
 import Cutaway from './Cutaway';
 import seed from './fixtures/seed.json';
 
