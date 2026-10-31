@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 
-import './front-page.css';
 import HeroArt from './HeroArt';
 import InstallLine from './InstallLine';
 
