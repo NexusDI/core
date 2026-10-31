@@ -174,8 +174,15 @@ ship.get(POWER_ROUTER).divert(); // -> 0.4
 <!-- #region lazy-all -->
 
 ```ts @import.meta.vitest
-import { MultiToken, Nexus, Token, all, defineModule } from '@nexusdi/core';
-import { lazy, provide } from '@nexusdi/core';
+import {
+  MultiToken,
+  Nexus,
+  Token,
+  all,
+  defineModule,
+  lazy,
+  provide,
+} from '@nexusdi/core';
 
 interface IHandler {
   handle(): string;
