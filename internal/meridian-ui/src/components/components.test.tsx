@@ -441,7 +441,9 @@ describe('Schematic', () => {
       <Schematic markup={MARKUP} fixtures={{ helm: 'alarm' }} />,
     );
     const css = container.querySelector('style')?.textContent ?? '';
-    expect(css).toContain('stroke-width:0.12;stroke-dasharray:0.3 0.15');
+    expect(css).toContain(
+      'stroke-width:var(--meridian-sv-outline-width,0.12);stroke-dasharray:var(--meridian-sv-outline-dash,0.3 0.15)',
+    );
   });
 
   it('skips a state it does not know and renders no style for none', () => {
@@ -513,6 +515,84 @@ describe('Schematic', () => {
     expect(container.querySelector('style')?.textContent).toContain(
       '[data-schematic="crop"]',
     );
+  });
+});
+
+const BASE = {
+  src: '/art/cutaway-2048.webp',
+  width: 2048,
+  height: 512,
+  sources: [
+    { type: 'image/avif', srcSet: '/art/cutaway-1024.avif 1024w' },
+    { type: 'image/webp', srcSet: '/art/cutaway-1024.webp 1024w' },
+  ],
+  sizes: '(min-width: 1440px) 1344px, 100vw',
+} as const;
+
+describe('Schematic with a painted base', () => {
+  it('renders a picture with explicit dimensions and no alt text under the markup', () => {
+    const { container } = render(<Schematic markup={MARKUP} base={BASE} />);
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.className).toBe(
+      'meridian-schematic meridian-schematic--painted',
+    );
+    const picture = root.firstElementChild as HTMLElement;
+    expect(picture.tagName.toLowerCase()).toBe('picture');
+    expect(picture.nextElementSibling?.className).toBe(
+      'meridian-schematic__art',
+    );
+    const img = picture.querySelector('img') as HTMLImageElement;
+    expect(img.getAttribute('alt')).toBe('');
+    expect(img.getAttribute('width')).toBe('2048');
+    expect(img.getAttribute('height')).toBe('512');
+    expect(img.getAttribute('src')).toBe('/art/cutaway-2048.webp');
+    expect(img.getAttribute('loading')).toBe('lazy');
+    expect(img.getAttribute('decoding')).toBe('async');
+  });
+
+  it('lists the AVIF source before the WebP one, each with the sizes', () => {
+    const { container } = render(<Schematic markup={MARKUP} base={BASE} />);
+    const sources = [...container.querySelectorAll('source')];
+    expect(sources.map((each) => each.getAttribute('type'))).toEqual([
+      'image/avif',
+      'image/webp',
+    ]);
+    expect(sources[0]?.getAttribute('sizes')).toBe(BASE.sizes);
+    expect(sources[1]?.getAttribute('srcset')).toBe(
+      '/art/cutaway-1024.webp 1024w',
+    );
+  });
+
+  it('lets the caller load the picture eagerly', () => {
+    const { container } = render(
+      <Schematic markup={MARKUP} base={{ ...BASE, loading: 'eager' }} />,
+    );
+    expect(container.querySelector('img')?.getAttribute('loading')).toBe(
+      'eager',
+    );
+  });
+
+  it('renders no picture and no painted class without a base', () => {
+    const { container } = render(<Schematic markup={MARKUP} />);
+    expect(container.querySelector('picture')).toBeNull();
+    expect(container.firstElementChild?.className).toBe('meridian-schematic');
+  });
+
+  it('writes the state rules of a painted cutaway through the same custom properties', () => {
+    const { container } = render(
+      <Schematic
+        markup={MARKUP}
+        base={BASE}
+        rooms={{ bridge: 'unpowered' }}
+        fixtures={{ helm: 'offline' }}
+        doors={{ 'a-b': 'closed' }}
+      />,
+    );
+    const css = container.querySelector('style')?.textContent ?? '';
+    expect(css).toContain('fill:var(--meridian-sv-room-unpowered)');
+    expect(css).toContain('fill:var(--meridian-sv-fixture-offline)');
+    expect(css).toContain('opacity:var(--meridian-sv-offline-opacity)');
+    expect(css).toContain('fill:url(#meridian-hazard-ship)');
   });
 });
 

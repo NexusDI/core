@@ -96,4 +96,49 @@ describe('src/styles.css', () => {
     );
     expect(reads.filter((name) => !name.startsWith('--meridian-'))).toEqual([]);
   });
+
+  describe('the painted schematic', () => {
+    const painted =
+      /\.meridian-schematic--painted \{([^}]*)\}/.exec(source)?.[1] ?? '';
+
+    it('draws nothing for a room, fixture or open door with no state', () => {
+      expect(painted).toContain('--meridian-sv-room: transparent;');
+      expect(painted).toContain('--meridian-sv-fixture: transparent;');
+      expect(painted).toContain('--meridian-sv-door: transparent;');
+    });
+
+    it('lights a powered room with the lamp at 12%', () => {
+      expect(painted).toMatch(
+        /--meridian-sv-room-powered: color-mix\(\s*in srgb,\s*var\(--meridian-lamp\) 12%,\s*transparent\s*\);/,
+      );
+    });
+
+    it('dims an unpowered room with a scrim of about 60% screen', () => {
+      expect(painted).toMatch(
+        /--meridian-sv-room-unpowered: color-mix\(\s*in srgb,\s*var\(--meridian-screen\) 60%,\s*transparent\s*\);/,
+      );
+      expect(source).toMatch(
+        /--meridian-sv-room-unpowered: var\(--meridian-sv-room\);/,
+      );
+    });
+
+    it('tints an alarm and outlines it with a dashed 2px stroke that does not scale', () => {
+      expect(painted).toMatch(
+        /--meridian-sv-room-alarm: color-mix\(\s*in srgb,\s*var\(--meridian-alarm\)/,
+      );
+      expect(painted).toContain('--meridian-sv-outline-width: 2px;');
+      expect(painted).toContain('--meridian-sv-outline-dash: 6px 3px;');
+      expect(painted).toContain(
+        '--meridian-sv-outline-effect: non-scaling-stroke;',
+      );
+    });
+
+    it('gives an offline fixture a scrim at full opacity, and hides the hull', () => {
+      expect(painted).toMatch(/--meridian-sv-fixture-offline: color-mix\(/);
+      expect(painted).toContain('--meridian-sv-offline-opacity: 1;');
+      expect(source).toMatch(
+        /\.meridian-schematic--painted \.sv-hull \{\s*display: none;/,
+      );
+    });
+  });
 });

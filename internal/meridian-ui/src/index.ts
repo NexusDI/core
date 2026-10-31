@@ -37,6 +37,8 @@ export type { CropBox, HullCropProps } from './components/hull-crop.js';
 export { Schematic, cssEscape, hazardId } from './components/schematic.js';
 export type {
   DoorState,
+  SchematicBase,
+  SchematicBaseSource,
   FixtureState,
   RoomState,
   SchematicProps,
