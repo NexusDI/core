@@ -1,0 +1,71 @@
+/*
+ * The docs search (site UX spec 13.5). The results open on the raised plate
+ * under the input. Matched words take weight 600 and an underline, since
+ * design system 4.2 gives each hue a meaning.
+ */
+.nexus-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  color: var(--meridian-text);
+}
+
+.nexus-search__input {
+  inline-size: 100%;
+  min-block-size: 2.25rem;
+  padding: var(--meridian-space-1) var(--meridian-space-3);
+  padding-inline-end: 3.5rem;
+  border: 1px solid var(--meridian-edge);
+  border-radius: var(--meridian-radius-control);
+  background: var(--meridian-plate);
+  color: var(--meridian-text);
+  font: inherit;
+  font-size: var(--meridian-text-small);
+  appearance: none;
+}
+
+@media (width >= 768px) {
+  .nexus-search__input {
+    inline-size: 16rem;
+  }
+}
+
+.nexus-search__input::placeholder {
+  color: var(--meridian-text-tertiary);
+}
+
+.nexus-search__input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+@media (pointer: coarse) {
+  .nexus-search__input {
+    min-block-size: 2.75rem;
+    font-size: 1rem;
+  }
+}
+
+.nexus-search__hint {
+  position: absolute;
+  inset-inline-end: var(--meridian-space-2);
+  padding: 0 var(--meridian-space-2);
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-chip);
+  color: var(--meridian-text-secondary);
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-micro);
+  pointer-events: none;
+}
+
+@media (width < 640px), (pointer: coarse) {
+  .nexus-search__hint {
+    display: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .nexus-search__input {
+    border: 1px solid CanvasText;
+    background: Canvas;
+  }
+}

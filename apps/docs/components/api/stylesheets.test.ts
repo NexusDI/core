@@ -64,7 +64,7 @@ describe('the API entry sheets', () => {
 
   it('marks an off kind toggle without its hue', () => {
     expect(rules('api.css')).toMatch(
-      /\[aria-pressed='false'\][^{]*\{[^}]*(line-through|dashed)/,
+      /:not\(:checked\)[^{]*\{[^}]*(line-through|dashed)/,
     );
   });
 });

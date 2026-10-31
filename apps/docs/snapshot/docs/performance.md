@@ -247,7 +247,7 @@ class PerformanceMonitor {
 
 // Usage
 const userService = PerformanceMonitor.trackResolution(USER_SERVICE, () =>
-  container.get(USER_SERVICE)
+  container.get(USER_SERVICE),
 );
 ```
 
@@ -261,7 +261,7 @@ const userService = PerformanceMonitor.trackResolution(USER_SERVICE, () =>
 class UserService {
   constructor(
     @Inject(DATABASE) private database: IDatabase,
-    @Inject(LOGGER) private logger: ILogger
+    @Inject(LOGGER) private logger: ILogger,
   ) {}
 }
 
@@ -275,7 +275,7 @@ class UserService {
     @Inject(CACHE_SERVICE) private cacheService: ICacheService,
     @Inject(ANALYTICS_SERVICE) private analyticsService: IAnalyticsService,
     @Inject(NOTIFICATION_SERVICE)
-    private notificationService: INotificationService
+    private notificationService: INotificationService,
   ) {}
 }
 ```

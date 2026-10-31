@@ -6,6 +6,10 @@ import BehaviourCatalogue from './components/api/BehaviourCatalogue';
 import './components/api/entry.css';
 import Diagram from './components/diagram/Diagram';
 import Listing from './components/listing/Listing';
+import LifetimeMark from './components/chrome/LifetimeMark';
+import Output from './components/chrome/Output';
+import Prerequisites from './components/chrome/Prerequisites';
+import Source from './components/chrome/Source';
 import TypeCards from './components/twoslash/TypeCards';
 import { PostList } from './components/blog/PostList';
 import {
@@ -35,6 +39,15 @@ export function useMDXComponents(components) {
     // a fence carrying an exemption tag in `<Listing>`.
     Diagram,
     Listing,
+    // `tools/mdx-listing-loader.mjs` wraps a region fence in `<Source>`, and
+    // `tools/mdx-nextra-loader.mjs` writes `<Prerequisites>` above a teaching
+    // page's first H2. `<Output>` is the terminal an author wraps program
+    // output in (site UX spec 13.3).
+    Source,
+    Prerequisites,
+    Output,
+    // A lifetime as its word and glyph in the data colour (design system 4.6).
+    LifetimeMark,
     // The benchmark figures and tables (docs spec section 4.6). Each reads
     // generated/benchmark-data.json; doc-benchmark-figures holds the paths.
     Figure,

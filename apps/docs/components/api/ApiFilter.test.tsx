@@ -41,18 +41,18 @@ describe('ApiFilter', () => {
 
   it('names each kind toggle with the kind and its count, and says whether it is on', async () => {
     page();
-    const toggle = screen.getByRole('button', { name: 'interface 1' });
+    const toggle = screen.getByRole('switch', { name: 'interface 1' });
 
-    expect(screen.getByRole('button', { name: 'function 2' })).toBeTruthy();
-    expect(toggle.getAttribute('type')).toBe('button');
-    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('switch', { name: 'function 2' })).toBeTruthy();
+    expect(toggle.getAttribute('type')).toBe('checkbox');
+    expect((toggle as HTMLInputElement).checked).toBe(true);
     await userEvent.click(toggle);
-    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    expect((toggle as HTMLInputElement).checked).toBe(false);
   });
 
   it('turns a kind off and clears everything with the button', async () => {
     page();
-    await userEvent.click(screen.getByRole('button', { name: 'interface 1' }));
+    await userEvent.click(screen.getByRole('switch', { name: 'interface 1' }));
     expect(entries()[1]?.hidden).toBe(true);
 
     await userEvent.type(screen.getByRole('searchbox'), 'zzz');

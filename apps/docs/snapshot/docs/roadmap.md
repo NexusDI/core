@@ -9,16 +9,16 @@ This is a living document outlining planned and possible features for NexusDI. E
 
 ## Summary Table
 
-| Feature                                     | Market Impact | Performance Impact | Progress | Notes                                                              |
-| ------------------------------------------- | :-----------: | :----------------: | :------: | ------------------------------------------------------------------ |
-| Lifetime Decorators                         |     ★★★★☆     |       ★☆☆☆☆        | Planned  | Ergonomics, parity with top DI libraries                           |
-| Automatic Disposal                          |     ★★★★☆     |       ★☆☆☆☆        | Planned  | Essential for resource management                                  |
-| Circular Dependency Fix                     |     ★★★★☆     |       ★★☆☆☆        | Planned  | Lazy proxies, matches Angular/NestJS/TypeDI                        |
-| Interceptors/Middleware                     |     ★★★★☆     |       ★★☆☆☆        | Planned  | AOP, cross-cutting concerns, enterprise appeal                     |
-| Graph Visualization                         |     ★★★☆☆     |       ☆☆☆☆☆        | Planned  | Dev tool only, great for onboarding/debugging                      |
-| Plugin/Extension System                     |     ★★★★★     |       ☆☆☆☆☆        | Planned  | Ecosystem driver, enables integrations and community growth        |
-| Decorator Metadata (Symbol.metadata)        |     ★★★★☆     |       ★☆☆☆☆        | ✅ Done  | Removed reflect-metadata; requires `experimentalDecorators`        |
-| Benchmarking Suite & Nx Plugin              |     ★★★☆☆     |       ☆☆☆☆☆        | Planned  | Enables transparent, reproducible performance comparisons          |
+| Feature                              | Market Impact | Performance Impact | Progress | Notes                                                       |
+| ------------------------------------ | :-----------: | :----------------: | :------: | ----------------------------------------------------------- |
+| Lifetime Decorators                  |     ★★★★☆     |       ★☆☆☆☆        | Planned  | Ergonomics, parity with top DI libraries                    |
+| Automatic Disposal                   |     ★★★★☆     |       ★☆☆☆☆        | Planned  | Essential for resource management                           |
+| Circular Dependency Fix              |     ★★★★☆     |       ★★☆☆☆        | Planned  | Lazy proxies, matches Angular/NestJS/TypeDI                 |
+| Interceptors/Middleware              |     ★★★★☆     |       ★★☆☆☆        | Planned  | AOP, cross-cutting concerns, enterprise appeal              |
+| Graph Visualization                  |     ★★★☆☆     |       ☆☆☆☆☆        | Planned  | Dev tool only, great for onboarding/debugging               |
+| Plugin/Extension System              |     ★★★★★     |       ☆☆☆☆☆        | Planned  | Ecosystem driver, enables integrations and community growth |
+| Decorator Metadata (Symbol.metadata) |     ★★★★☆     |       ★☆☆☆☆        | ✅ Done  | Removed reflect-metadata; requires `experimentalDecorators` |
+| Benchmarking Suite & Nx Plugin       |     ★★★☆☆     |       ☆☆☆☆☆        | Planned  | Enables transparent, reproducible performance comparisons   |
 
 ---
 
@@ -428,9 +428,7 @@ container.set(TypeOrmModule, {
     TypeOrmService,
     {
       token: TYPEORM_CONFIG,
-      useValue: {
-        /* ... */
-      },
+      useValue: {/* ... */},
     },
   ],
 });

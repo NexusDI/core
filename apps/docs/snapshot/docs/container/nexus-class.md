@@ -161,7 +161,7 @@ container.set(
     host: 'localhost',
     port: 5432,
     database: 'myapp',
-  })
+  }),
 );
 
 // Async config

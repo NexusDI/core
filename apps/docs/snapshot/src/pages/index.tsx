@@ -17,11 +17,7 @@ function HomepageHeader() {
         <div className={styles.heroContent}>
           <div className={styles.heroLeft}>
             <div className={styles.heroLogoContainer}>
-              <img
-                src={logo}
-                alt="NexusDI Logo"
-                className={styles.heroLogo}
-              />
+              <img src={logo} alt="NexusDI Logo" className={styles.heroLogo} />
               <h1 className={clsx('hero__title', styles.heroTitle)}>
                 {siteConfig.title}
               </h1>

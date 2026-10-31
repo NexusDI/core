@@ -36,13 +36,25 @@
   border: 0;
   background: none;
   color: inherit;
-  font-family: var(--meridian-font-display);
+  font-family: var(--meridian-font-mono);
+  font-size: 0.85em;
+  font-weight: 500;
 }
 
 .nexus-api-entry__signature :where(pre),
 .nexus-api-entry__signature :where(pre) :where(code) {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/*
+ * Nextra's `<details>` takes `neutral-900` in the dark theme, which the
+ * Tailwind mapping in `global.css` makes the light text colour. The disclosure
+ * sits on the raised plate instead.
+ */
+.nexus-api-entry__more {
+  border-color: var(--meridian-seam);
+  background: var(--meridian-plate-raised);
 }
 
 .nexus-api-entry__more :where(summary) {
@@ -91,4 +103,24 @@
 
 .nexus-api-entry__states--silent {
   border-inline-start-style: dashed;
+}
+
+/*
+ * A lifetime shows as its word and its glyph in the data colour (design
+ * system 4.6); `components/chrome/LifetimeMark.tsx` renders it.
+ */
+.nexus-lifetime {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--meridian-space-2);
+  color: var(--meridian-data);
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-code);
+}
+
+/* The code cells of /api-errors/ are codes: Plex Mono, linking the code page. */
+article table a[href*='/errors/NEXUS_'],
+article table a[href*='/errors/NEXUS_'] code {
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-code);
 }

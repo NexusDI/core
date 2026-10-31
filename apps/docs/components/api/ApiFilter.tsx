@@ -135,21 +135,35 @@ export default function ApiFilter() {
           }}
         />
         {kinds.map((kind) => (
-          // The kind word and its count are the button's name, so a screen
-          // reader hears "interface 3, pressed". An off kind is struck
-          // through, so its state never rests on colour alone.
-          <button
+          // TODO(Switch): replace this checkbox and the rocker rules in
+          // `api.css` with `Switch` from @nexusdi/meridian-ui when it exists
+          // (design system 7.7). The label is the kind word and its count, so
+          // a screen reader hears "interface 3, on" from the switch role. The
+          // rocker and the word "on" or "off" beside it show the state, so it
+          // never rests on colour; the word is hidden from assistive tech so
+          // the name stays the kind and its count.
+          <label
             key={kind}
-            type="button"
             className={`meridian-chip nexus-api-filter__kind meridian-kind-${kind}`}
-            aria-pressed={!off.has(kind)}
-            onClick={() => toggle(kind)}
           >
-            <span className="nexus-api-filter__kind-label">{LABELS[kind]}</span>{' '}
+            <input
+              type="checkbox"
+              role="switch"
+              className="nexus-api-filter__switch"
+              checked={!off.has(kind)}
+              onChange={() => toggle(kind)}
+            />
+            <span className="nexus-api-filter__rocker" aria-hidden="true" />
+            <span className="nexus-api-filter__kind-label">
+              {LABELS[kind]}
+            </span>{' '}
             <span className="nexus-api-filter__kind-count">
               {entries.filter((entry) => entry.kind === kind).length}
             </span>
-          </button>
+            <span className="nexus-api-filter__state" aria-hidden="true">
+              {off.has(kind) ? 'off' : 'on'}
+            </span>
+          </label>
         ))}
         {/* A live region, so a reader on a screen reader hears the count
             change as they type. */}
