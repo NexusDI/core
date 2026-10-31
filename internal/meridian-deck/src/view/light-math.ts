@@ -13,22 +13,24 @@ import type {
  */
 
 /** The light a room keeps with its lamps off: the unlit base, a little brighter than black. */
-export const AMBIENT_UNPOWERED = 0.2;
+export const AMBIENT_UNPOWERED = 0.15;
 /** The light a powered room keeps between its lamp pools. */
-export const AMBIENT_POWERED = 0.45;
-/** An alarmed room keeps a dark ambient and 15% of its lamps, so the red reads over the lamp light. */
-export const AMBIENT_ALARM = 0.15;
-export const ALARM_LAMP = 0.15;
+export const AMBIENT_POWERED = 0.3;
+/** An alarmed room keeps a dark ambient and 10% of its lamps, so the red reads over the lamp light. */
+export const AMBIENT_ALARM = 0.1;
+export const ALARM_LAMP = 0.1;
 /**
  * A lamp sprite shows at this share of its room's level. The light texture is
  * a modulation: 0.5 leaves the base as it is, and the composite doubles it, so
  * a lamp's tint can warm a room and the alarm's can turn it red.
  */
-export const LAMP_GAIN = 1;
-/** The alarm sprite's peak level, which the light sums over two sprites. */
-export const ALARM_PEAK = 1.5;
+export const LAMP_GAIN = 0.45;
+/** A sprite of a light that names a fixture (a glow) shows at this share of its level. */
+export const GLOW_GAIN = 0.3;
+/** The alarm sprite's peak level. It stays under 1, so the second sprite never shows. */
+export const ALARM_PEAK = 0.85;
 /** The alarm sprite also draws in the emissive pass at this share of its level. */
-export const ALARM_GLOW = 0.3;
+export const ALARM_GLOW = 0.15;
 /** A sprite reaches this many times the radius the lights file lists. */
 export const REACH = 1;
 /** The alarm light pulses at this rate (design system 9.2). */

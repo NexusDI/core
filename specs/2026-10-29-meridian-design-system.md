@@ -521,12 +521,13 @@ the base as it is, and the composite is `base * light * 2`, so a lamp's tint can
 and the alarm's can turn it red where a multiply would only darken. A filter does the
 composite: Pixi runs it as a blend mode that reads the back buffer, so the renderer starts
 with `useBackBuffer`. The light texture stays 8-bit, since a float texture is 8-bit under
-software GL and the pools would clip. A powered room keeps an ambient of 0.45, an unpowered
-one 0.2 and an alarmed one 0.15. A lamp sprite shows at full gain and reaches the radius of
-its light in the geometry, in the sprite's `gain` from the lights file. An alarmed room keeps
-15% of its lamps. Its alarm light peaks at 1.5 (two sprites) and pulses down to 0.6 of that
-at 1 Hz, and the alarm sprite draws again in the additive housing pass at 30% of its level.
-A housing glows at 75% of its level, and a long strip (wider than 5 m) at 45%. The lights
+software GL and the pools would clip. A powered room keeps an ambient of 0.3, an unpowered
+one 0.15 and an alarmed one 0.1. A lamp sprite shows at 0.45 of its room's level and a glow
+sprite (a light that names a fixture) at 0.3 of its fixture's, both reaching the radius of
+the light in the geometry, so the brightest pool of a powered room stays under the clip. An
+alarmed room keeps 10% of its lamps. Its alarm light peaks at 0.85 and pulses down to 0.6 of
+that at 1 Hz, and the alarm sprite draws again in the additive housing pass at 15% of its
+level. A housing glows at 75% of its level, and a long strip (wider than 5 m) at 45%. The lights
 file carries that share as `housing`, and the emissive mask holds it as its grey value. A
 light that names a fixture draws its housing at that fixture's level, and a lamp's housing
 follows its room's lamp level, so an unpowered room goes dark but for the housings of its
