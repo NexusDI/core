@@ -4,6 +4,7 @@ import type { DeckChange } from '../state/contracts.js';
 
 import {
   ALARM_GLOW,
+  GLOW_GAIN,
   ALARM_LAMP,
   ALARM_LOW,
   ALARM_PEAK,
@@ -212,24 +213,30 @@ describe('the levels of a light', () => {
   });
 });
 
-describe('the constants of the 2x modulate (TL32)', () => {
-  it('sets the ambient levels around the neutral 0.5 and the lamp at full gain', () => {
-    expect(AMBIENT_POWERED).toBe(0.45);
-    expect(AMBIENT_UNPOWERED).toBe(0.2);
-    expect(AMBIENT_ALARM).toBe(0.15);
-    expect(ALARM_LAMP).toBe(0.15);
-    expect(LAMP_GAIN).toBe(1);
+describe('the constants of the 2x modulate (TL34)', () => {
+  it('sets the ambient levels below the neutral 0.5', () => {
+    expect(AMBIENT_POWERED).toBe(0.3);
+    expect(AMBIENT_UNPOWERED).toBe(0.15);
+    expect(AMBIENT_ALARM).toBe(0.1);
+    expect(ALARM_LAMP).toBe(0.1);
+  });
+
+  it('gives lamps and glows their own gain, and reaches the radius of the light', () => {
+    expect(LAMP_GAIN).toBe(0.45);
+    expect(GLOW_GAIN).toBe(0.3);
     expect(REACH).toBe(1);
   });
 
-  it('peaks the alarm light at 1.5 over two sprites and adds 30% of it in the housing pass', () => {
-    expect(ALARM_PEAK).toBe(1.5);
-    expect(ALARM_GLOW).toBe(0.3);
+  it('keeps the alarm peak under 1, so one sprite carries it, and a glow of 15% in the housing pass', () => {
+    expect(ALARM_PEAK).toBe(0.85);
+    expect(ALARM_PEAK).toBeLessThan(1);
+    expect(ALARM_GLOW).toBe(0.15);
   });
 
-  it('leaves a powered room darker than neutral so a lamp brightens it', () => {
-    expect(AMBIENT_POWERED).toBeLessThan(0.5);
-    expect(AMBIENT_POWERED + LAMP_GAIN * 0.5).toBeGreaterThan(0.5);
+  it('keeps the brightest pool of a powered room under the clip', () => {
+    // The lamp tint's strongest channel is 0.91 of the light.
+    expect(AMBIENT_POWERED + LAMP_GAIN * 0.91).toBeLessThan(1);
+    expect(AMBIENT_POWERED + LAMP_GAIN * 0.91).toBeGreaterThan(0.5);
   });
 });
 

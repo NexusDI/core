@@ -20,6 +20,7 @@ import {
   ALARM_GLOW,
   ALARM_PEAK,
   DEFAULT_RAMP_MS,
+  GLOW_GAIN,
   LAMP_GAIN,
   LightModel,
   hexToInt,
@@ -328,7 +329,7 @@ export class LightLayer implements IDeckLayer {
             ? undefined
             : model.fixture(light.fixture, now);
         const level = lightLevel(light, levels, fixture) * light.gain;
-        sprite.alpha = level * LAMP_GAIN;
+        sprite.alpha = level * (light.fixture === null ? LAMP_GAIN : GLOW_GAIN);
         sprite.visible = sprite.alpha > VISIBLE;
         if (housing !== undefined) {
           housing.alpha = level * light.housing;
