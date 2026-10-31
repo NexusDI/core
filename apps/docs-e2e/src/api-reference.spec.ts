@@ -126,6 +126,39 @@ for (const [path, library] of [
     });
   }
 
+/**
+ * The github themes' default foreground. `tools/token-fold.mjs` takes a
+ * fence's tokens in it out of their spans and sets it once on the `<code>`.
+ */
+const FOREGROUND = { light: 'rgb(36, 41, 46)', dark: 'rgb(225, 228, 232)' };
+
+for (const theme of ['dark', 'light'] as const) {
+  test(`colours a fence's plain text in the theme's foreground in ${theme} mode`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: theme });
+    await page.goto(PAGE);
+    await expect(page.locator('html')).toHaveClass(
+      theme === 'dark' ? /dark/ : /light/,
+    );
+    const colour = await page
+      .locator('.nexus-api-entry__signature pre code')
+      .first()
+      .evaluate((code) => {
+        const line = [...code.children].find((each) =>
+          [...each.childNodes].some(
+            (node) =>
+              node.nodeType === Node.TEXT_NODE &&
+              (node.textContent ?? '').trim() !== '',
+          ),
+        );
+        return line ? getComputedStyle(line).color : null;
+      });
+
+    expect(colour).toBe(FOREGROUND[theme]);
+  });
+}
+
 /** The first signature token, the one card, and the token's own fence. */
 const signature = (page: Page) => {
   const fence = page.locator('.nexus-api-entry__signature pre').first();

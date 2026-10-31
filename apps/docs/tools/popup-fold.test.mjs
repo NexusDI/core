@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { foreground } from './code-classes.mjs';
 import loader, { tableFor } from './mdx-nextra-loader.mjs';
 import { panelHtml } from './popup-fold.mjs';
 
@@ -103,6 +104,27 @@ describe('the popup fold', { timeout: 120_000 }, () => {
 
     expect(stops[0]).toBe('0');
     expect(stops.slice(1).every((each) => each === '-1')).toBe(true);
+  });
+
+  /**
+   * `token-fold.mjs` through Nextra's real loader: the foreground's class
+   * reaches the `<code>` past rehype-pretty-code and Nextra's own plugins,
+   * and no token carries it.
+   */
+  it("folds a page fence's foreground tokens onto its code, through the real loader", async () => {
+    const out = await compile(
+      `${FENCE}\n\n\`\`\`ts\nconst pair = [1, 2];\n\`\`\`\n`,
+    );
+    const codes = [...out.matchAll(/<_components\.code([^>]*)>/g)].map(
+      ([, attributes]) => attributes,
+    );
+
+    expect(codes).toEqual([
+      ` className="${foreground}"`,
+      ` className="${foreground}"`,
+    ]);
+    expect(out).not.toContain(`<_components.span className="${foreground}"`);
+    expect(out).toContain('{" ["}');
   });
 
   it('gives a code block in a popup the lines rehype-pretty-code gives every other block', () => {

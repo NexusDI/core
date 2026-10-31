@@ -58,14 +58,16 @@ export const GUIDE_SLACK = 5_000;
 
 /**
  * The ceiling on one page's HTML, gzipped, and on the elements it carries,
- * for every exported page. `/api/` is the heaviest, with core's ninety-one
- * entries, measured at 185,619 bytes gzipped and 15,921 elements with
- * `tools/popup-fold.mjs` folding its type panels out. The adapter packages'
- * entries sit on pages of their own, so they add nothing to it.
+ * for every exported page. `/api/` is the heaviest, with core's ninety-six
+ * entries, measured at 199,425 bytes gzipped and 13,604 elements with
+ * `tools/popup-fold.mjs` folding its type panels out and
+ * `tools/token-fold.mjs` folding its fences' token spans. The adapter
+ * packages' entries sit on pages of their own, so they add nothing to it.
  *
- * A page that reaches the ceiling calls for a structural change: fold the
- * example fences' token spans as the type panels were folded, or split
- * `/api/` by area. The ceiling itself stays where it is.
+ * A page that reaches the ceiling calls for a structural change. The
+ * page's Markdown source, which the copy-page button reads, takes about
+ * 40 kB of the gzipped HTML in the RSC payload, and `/api/` can split by
+ * area. The ceiling itself stays where it is.
  */
 export const PAGE_BUDGET = { htmlGzip: 205_000, elements: 19_000 };
 

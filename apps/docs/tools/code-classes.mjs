@@ -11,9 +11,8 @@
  * in place of a style of about forty.
  *
  * Ported from `Evanion/libraries` `apps/docs/tools/code-classes.mjs` at
- * 92320250. The libraries site also runs the transformer over its page
- * fences; here Nextra highlights the page fences, and only
- * `behaviour-data.mjs` reads this module.
+ * 92320250. `behaviour-data.mjs` runs the transformer over the behaviour
+ * cases, and `mdx-nextra-loader.mjs` over the page fences Nextra highlights.
  *
  * The class names are `transformerStyleToClass`'s own: it names a style by a
  * hash of the style string, so the name of a pair depends on the pair alone.
@@ -60,6 +59,22 @@ function foregrounds(theme) {
   ];
 }
 
+/** The style string Shiki writes on a token coloured `light` and `dark`. */
+function pairStyle(light, dark) {
+  return stringifyTokenStyle(
+    flatTokenVariants(
+      {
+        content: '',
+        offset: 0,
+        variants: { [order[0]]: { color: light }, [order[1]]: { color: dark } },
+      },
+      order,
+      PREFIX,
+      false,
+    ).htmlStyle,
+  );
+}
+
 /**
  * Every style string Shiki writes for these themes with `defaultColor: false`:
  * one per pair of foregrounds, built by Shiki's own `flatTokenVariants`, and
@@ -69,22 +84,7 @@ function foregrounds(theme) {
  */
 function styles() {
   const [light, dark] = themes.map(foregrounds);
-  const pairs = light.flatMap((l) =>
-    dark.map((d) =>
-      stringifyTokenStyle(
-        flatTokenVariants(
-          {
-            content: '',
-            offset: 0,
-            variants: { [order[0]]: { color: l }, [order[1]]: { color: d } },
-          },
-          order,
-          PREFIX,
-          false,
-        ).htmlStyle,
-      ),
-    ),
-  );
+  const pairs = light.flatMap((l) => dark.map((d) => pairStyle(l, d)));
   const root = [
     ...order.map((key, at) => `${PREFIX}${key}:${themes[at].fg}`),
     ...order.map((key, at) => `${PREFIX}${key}-bg:${themes[at].bg}`),
@@ -113,6 +113,18 @@ const classes = new Map(
     return [style, element.properties.class];
   }),
 );
+
+/**
+ * The class of a token in each theme's default foreground: plain text,
+ * punctuation and operators. `token-fold.mjs` sets it once on a page fence's
+ * `<code>` and drops it from the tokens.
+ */
+export const foreground = classes.get(
+  pairStyle(...themes.map((theme) => theme.fg.toUpperCase())),
+);
+
+if (!foreground)
+  throw new Error('code-classes holds no class for the default foreground');
 
 /** The rules for every class in `classes`, as one stylesheet. */
 export const stylesheet = `${registry.getCSS()}\n`;
