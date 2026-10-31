@@ -109,6 +109,8 @@ export function contributionTypeViolations(
       violations.push(`${point} is not exported by any entry`);
       continue;
     }
+    // The walk reads the type annotations as written, so every contribution
+    // point must keep its annotations. An inferred return type is not checked.
     const names: ts.Node[] = [];
     for (const declaration of symbol.declarations ?? []) {
       typeNames(declaration, names);
