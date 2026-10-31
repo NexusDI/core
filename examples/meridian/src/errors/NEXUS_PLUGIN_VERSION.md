@@ -36,8 +36,25 @@ console.log(supported);
 
 const full = await startup([errors(), cache]);
 if (!isNexusError(full, 'NEXUS_BLUEPRINT_INVALID')) throw full;
-const text = full.errors[0]?.message.split('\n'); // -> ['[NEXUS_PLUGIN_VERSION] acme:cache was written for plugin API 2; this @nexusdi/core supports 1.', '  Fix: install the plugin version built for this @nexusdi/core.']
+const text = full.errors[0]?.message.split('\n'); // -> ['[NEXUS_PLUGIN_VERSION] acme:cache was written for plugin API 2; this @nexusdi/core supports 1.', '  Fix: install a @nexusdi/core that supports plugin API 2.']
 console.log(text);
+
+// A version below the supported ones, and a value that is not a number.
+const outdated = { name: 'acme:cache', apiVersion: 0 } as NexusPlugin;
+const quoted = {
+  name: 'acme:cache',
+  apiVersion: '1',
+} as unknown as NexusPlugin;
+const lines: string[] = [];
+for (const plugin of [outdated, quoted]) {
+  const failed = await startup([errors(), plugin]);
+  if (!isNexusError(failed, 'NEXUS_BLUEPRINT_INVALID')) throw failed;
+  const entry = failed.errors[0];
+  if (!isNexusError(entry, 'NEXUS_PLUGIN_VERSION')) throw entry;
+  lines.push(`${entry.apiVersion} ${entry.message.split('\n')[1]}`);
+}
+const both = lines; // -> ['0   Fix: install the plugin version built for this @nexusdi/core.', 'the string "1"   Fix: install the plugin version built for this @nexusdi/core.']
+for (const shown of both) console.log(shown);
 ```
 
 <!-- #endregion reproduce -->
