@@ -115,7 +115,8 @@ describe('the registered frame', () => {
 });
 
 describe('the hit areas', () => {
-  const wide = Math.min(1344, 1180) / 80;
+  // The wide stage crops the frame to 72.5 m and fills 1344 px.
+  const wide = 1344 / 72.5;
   it('keeps the 24 px circles apart on a wide screen', () => {
     for (const [i, left] of PARTS_IN_HULL_ORDER.entries())
       for (const right of PARTS_IN_HULL_ORDER.slice(i + 1))

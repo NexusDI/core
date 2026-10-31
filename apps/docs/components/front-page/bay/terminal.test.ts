@@ -31,9 +31,9 @@ describe('the terminal lines', () => {
       text: 'chart server unreachable',
     });
     expect(lines.at(-1)).toMatchObject({ text: 'exit 1', status: 'alarm' });
-    expect(lines.some((line) => line.code === 'NEXUS_PROVIDER_FAILED')).toBe(
-      true,
-    );
+    expect(
+      lines.some((line) => line.codes?.includes('NEXUS_PROVIDER_FAILED')),
+    ).toBe(true);
   });
 
   it('captions only the two outcomes the check cannot foresee', () => {

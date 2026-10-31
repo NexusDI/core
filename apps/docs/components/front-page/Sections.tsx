@@ -95,7 +95,11 @@ export function Preflight({ children }: { children: ReactNode }) {
             view={view}
             state={SEED_STATE}
             section="tactical"
-            log={initial.log.map((line, at) => ({ ...line, tick: at + 1 }))}
+            log={initial.log.map((line, at) => ({
+              ...line,
+              tick: at + 1,
+              block: 0,
+            }))}
             tab="run"
             source=""
             status="nominal"

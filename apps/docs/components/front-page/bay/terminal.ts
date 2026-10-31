@@ -19,8 +19,8 @@ export interface LogLine {
   /** A value printed in the data colour after the text, such as a time. */
   readonly value?: string;
   readonly status?: 'ok' | 'alarm' | 'pass' | 'fail';
-  /** The code page the line links to. */
-  readonly code?: string;
+  /** The code pages the line links to, one link each. */
+  readonly codes?: readonly string[];
   /** A Fix: line core printed on its own. */
   readonly kind?: 'error' | 'plain';
 }
@@ -42,11 +42,7 @@ function codesOf(error: DescribedError): string[] {
 }
 
 function codeLines(error: DescribedError): LogLine[] {
-  return codesOf(error).map((code) => ({
-    source: 'docs',
-    text: '',
-    code,
-  }));
+  return [{ source: 'docs', text: '', codes: codesOf(error) }];
 }
 
 /** What `npm run preflight` prints for a check. */

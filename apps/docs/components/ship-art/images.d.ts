@@ -4,4 +4,15 @@
  * references but which a fresh checkout has not generated. One wildcard is all
  * a module pattern may hold, so the reference is how every art import types.
  */
-/// <reference types="next/image-types/global" />
+declare module '*/ship-art/*/*.avif' {
+  const image: { src: string; width: number; height: number };
+  export default image;
+}
+declare module '*/ship-art/*/*.webp' {
+  const image: { src: string; width: number; height: number };
+  export default image;
+}
+declare module '*/ship-art/*/*.png' {
+  const image: { src: string; width: number; height: number };
+  export default image;
+}
