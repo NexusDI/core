@@ -714,24 +714,73 @@ def rooms_mask(geometry, hull):
     return grid
 
 
+def room_pieces_px(geometry):
+    """The partitioned room rectangles in pixels, as (room id, (left, top, right, bottom))."""
+    return [
+        (
+            room,
+            (
+                (x0 + 5) * PIXELS_PER_METRE,
+                y0 * PIXELS_PER_METRE,
+                (x1 + 5) * PIXELS_PER_METRE,
+                y1 * PIXELS_PER_METRE,
+            ),
+        )
+        for room, (x0, y0, x1, y1) in room_rects(geometry)
+    ]
+
+
+def piece_at(pieces, u, v):
+    """The room rectangle that holds the point, or the nearest one when it lies on a wall."""
+
+    def gap(piece):
+        left, top, right, bottom = piece[1]
+        return math.hypot(max(left - u, 0, u - right), max(top - v, 0, v - bottom))
+
+    return min(pieces, key=gap)
+
+
+def fit_span(low, high, lo, hi):
+    """The span moved inside [lo, hi] when it is no longer than it, clipped to it otherwise."""
+    if high - low <= hi - lo:
+        shift = max(lo - low, 0) - max(high - hi, 0)
+        return low + shift, high + shift
+    return max(low, lo), min(high, hi)
+
+
+# What a light's sprite shows of its level: a glow is softer than a lamp.
+GLOW_GAIN = 0.8
+
+
 def merged_lights(geometry):
     """The lights in pixels. Lights that coincide in the side view merge into one entry.
 
+    The side view collapses depth, so a light of one room can fall on another room's rectangle.
+    Each light belongs to the room rectangle that holds its centre (`room`; `home` is the room
+    the geometry names), and its housing box moves inside that rectangle, or is clipped to it
+    when it is longer than the rectangle, so the deck's room clip never cuts a light away.
     The port and starboard lamps of a room project to one box, so they share an entry that
-    lists every id. The centre is the middle of the housing box, and the radius is the
-    light's reach in pixels.
+    lists every id. The centre is the middle of the housing box, the radius is the light's
+    reach in pixels, and `gain` is the share of its level that its sprite and housing show.
     """
+    pieces = room_pieces_px(geometry)
     groups = {}
     for light in geometry["lights"]:
         u0, v1 = to_px(light["x"][0], light["z"][0])
         u1, v0 = to_px(light["x"][1], light["z"][1])
+        room, (left, top, right, bottom) = piece_at(pieces, (u0 + u1) / 2, (v0 + v1) / 2)
+        u0, u1 = fit_span(u0, u1, left, right)
+        v0, v1 = fit_span(v0, v1, top, bottom)
+        kind = light["kind"]
         entry = {
             "ids": [light["id"]],
-            "room": light["room"],
-            "kind": light["kind"],
+            "room": room,
+            "home": light["room"],
+            "kind": kind,
             "colour": light["colour"],
             "fixture": light.get("fixture"),
             "emissive": light["emissive"],
+            "gain": GLOW_GAIN if kind == "glow" else 1.0,
             "centre": [round((u0 + u1) / 2, 1), round((v0 + v1) / 2, 1)],
             "radius": round(light["radius"] * PIXELS_PER_METRE, 1),
             "box": [round(u0, 1), round(v0, 1), round(u1, 1), round(v1, 1)],
@@ -751,11 +800,15 @@ STRIP_GLOW = 115
 
 
 def emissive_mask(lights):
-    """The housing box of every light marked emissive at 255, a long strip at 115, 0 elsewhere."""
+    """The housing of every emissive light that names no fixture, at 255 (a long strip at 115).
+
+    A light that names a fixture follows that fixture's level and not its room's lamp, so the
+    deck draws its housing as a sprite of its own.
+    """
     width, height = LAYER_SIZE
     grid = [[0] * width for _ in range(height)]
     for light in lights:
-        if light["emissive"]:
+        if light["emissive"] and light["fixture"] is None:
             wide = light["box"][2] - light["box"][0] > STRIP_WIDTH
             fill_rect(grid, *light["box"], STRIP_GLOW if wide else 255, outward=True)
     return grid
