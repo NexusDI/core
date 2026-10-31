@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { art } from './tokens/colour.js';
 import { renderTokensCss } from './tokens/custom-properties.js';
 
 const GENERATED = join(import.meta.dirname, 'tokens.generated.css');
@@ -64,9 +65,17 @@ describe('renderTokensCss', () => {
   });
 
   it('removes the superseded roles', () => {
-    expect(css).not.toMatch(
-      /signal|status-pass|status-fail|nebula|hull(?!-paint)/,
+    // The art colours keep their own names (design system 4.5), so strip
+    // their properties before the check for the old `hull` role.
+    const rest = Object.keys(art).reduce(
+      (text, name) =>
+        text.replaceAll(
+          `--meridian-${name.replace(/([A-Z])/g, '-$1').toLowerCase()}`,
+          '',
+        ),
+      css,
     );
+    expect(rest).not.toMatch(/signal|status-pass|status-fail|nebula|hull/);
   });
 
   it('sets every duration to 0ms under reduced motion', () => {

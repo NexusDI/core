@@ -143,12 +143,30 @@ describe('component props', () => {
       .toExtend<import('react').MouseEvent<HTMLElement>>();
   });
 
-  it('names the crop and the transition on a hull crop', () => {
+  it('takes an optional transition name and a crop on a hull crop', () => {
     expectTypeOf<
       ComponentProps<typeof HullCrop>['transitionName']
-    >().toEqualTypeOf<string>();
+    >().toEqualTypeOf<string | undefined>();
     expectTypeOf<readonly [number, number, number, number]>().toExtend<
       ComponentProps<typeof HullCrop>['crop']
+    >();
+  });
+
+  it('requires a label with the overlay children of a schematic', () => {
+    expectTypeOf<ComponentProps<typeof Schematic>>().toExtend<{
+      markup: string;
+    }>();
+    expectTypeOf<{
+      markup: string;
+      children: import('react').ReactNode;
+      label: string;
+    }>().toExtend<ComponentProps<typeof Schematic>>();
+    expectTypeOf<{
+      markup: string;
+      children: import('react').ReactNode;
+    }>().not.toExtend<ComponentProps<typeof Schematic>>();
+    expectTypeOf<{ markup: string }>().toExtend<
+      ComponentProps<typeof Schematic>
     >();
   });
 

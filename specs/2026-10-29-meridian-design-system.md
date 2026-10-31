@@ -454,7 +454,9 @@ to the package:
   `@nexusdi/meridian-systems`.
   An optional `children` slot renders in an overlay `<svg>` on the cutaway's `viewBox`, so
   the app can draw conduits, glyphs and focusable hotspots over the ship. The markup layer
-  is `aria-hidden` and the overlay is not.
+  is `aria-hidden` and the overlay is not. `Schematic` takes three state tables (`rooms`,
+  `fixtures` and `doors`) and the optional `viewBox`, `label` and `scope` props. `label` is
+  required with `children`.
 - `HullCrop` renders a crop of the cutaway around one hull section and sets its
   `view-transition-name` from a prop. The docs app wraps it in React's `<ViewTransition>`
   (9.3).

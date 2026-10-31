@@ -38,14 +38,45 @@ describe('the committed schematic cutaway', () => {
     expect([...have].filter((id) => !want.includes(id))).toEqual([]);
   });
 
-  it('has a data-door and a data-fixture for every door and fixture', () => {
-    const doors = ids('data-door');
-    const fixtures = ids('data-fixture');
-    expect(geometry.doors.filter((door) => !doors.has(door.id))).toEqual([]);
-    const want = geometry.compartments.flatMap((room) =>
-      room.fixtures.map((fixture) => fixture.id),
+  it('has exactly the doors and fixtures of the geometry', () => {
+    const doors = [...ids('data-door')].sort();
+    expect(doors).toEqual(geometry.doors.map((door) => door.id).sort());
+    const fixtures = [...ids('data-fixture')].sort();
+    expect(fixtures).toEqual(
+      geometry.compartments
+        .flatMap((room) => room.fixtures.map((fixture) => fixture.id))
+        .sort(),
     );
-    expect(want.filter((id) => !fixtures.has(id))).toEqual([]);
+  });
+
+  it('draws no two doors over the same area', () => {
+    const rects = [
+      ...svg.matchAll(
+        /<rect class="sv-door" x="([\d.-]+)" y="([\d.-]+)" width="([\d.-]+)" height="([\d.-]+)" data-door="([^"]+)"/g,
+      ),
+    ].map((match) => ({
+      id: match[5] ?? '',
+      x: Number(match[1]),
+      y: Number(match[2]),
+      w: Number(match[3]),
+      h: Number(match[4]),
+    }));
+    expect(rects).toHaveLength(geometry.doors.length);
+    const clashes: string[] = [];
+    rects.forEach((a, index) => {
+      for (const b of rects.slice(index + 1)) {
+        const overlapX = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+        const overlapY = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+        if (overlapX > 1e-6 && overlapY > 1e-6) {
+          clashes.push(`${a.id} / ${b.id}`);
+        }
+      }
+    });
+    expect(clashes).toEqual([]);
+  });
+
+  it('has no title and no paint, so the page names and styles it', () => {
+    expect(svg).not.toContain('<title');
   });
 
   it('carries no paint and no text, so the page CSS styles it', () => {
