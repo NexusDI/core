@@ -128,6 +128,30 @@ for (const theme of ['dark', 'light'] as const) {
   }
 }
 
+for (const theme of ['dark', 'light'] as const) {
+  // The article's face is drawn on `article::after`, which the walk above
+  // cannot see, so it is read here.
+  test(`the article face is the plate colour in ${theme} mode`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: theme });
+    await page.goto('/next/tokens/');
+    const { face, plate } = await page.evaluate((name) => {
+      const probe = document.createElement('div');
+      probe.style.background = `var(--meridian-palette-${name}-plate)`;
+      document.body.append(probe);
+      const plate = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      const article = document.querySelector('article') as Element;
+      return {
+        face: getComputedStyle(article, '::after').backgroundColor,
+        plate,
+      };
+    }, theme);
+    expect(face).toBe(plate);
+  });
+}
+
 test('the surface check fails on a glass plate and on a gradient', async ({
   page,
 }) => {
