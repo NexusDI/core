@@ -340,7 +340,7 @@ export function Overlay({
       </defs>
       {graph ? <GraphEdges graph={graph} arrow={arrow} /> : null}
       {view.sockets.map((socket) => {
-        const width = socket.token.length * 0.36 + 0.9;
+        const width = socket.token.length * 0.32 + 0.6;
         const x = socket.at[0] - width / 2;
         const y = socket.at[1] + s * 0.95;
         return (
@@ -356,7 +356,7 @@ export function Overlay({
               width={width}
               height={s}
             />
-            <text className="bay-socket__text" x={x + 0.45} y={y + s * 0.68}>
+            <text className="bay-socket__text" x={x + 0.3} y={y + s * 0.68}>
               {socket.token}
             </text>
           </g>

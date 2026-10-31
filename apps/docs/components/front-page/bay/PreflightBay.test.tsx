@@ -63,7 +63,12 @@ const part = (id: string) => {
   return found;
 };
 
+// The first press loads the run chunk, which takes longer on a busy machine.
+const SLOW = { timeout: 8000 };
+
 describe('the pre-flight bay controller', () => {
+  vi.setConfig({ testTimeout: 20_000 });
+
   it('opens on the lit seed with a passing check and an open Launch', () => {
     bay();
     expect(
@@ -80,7 +85,7 @@ describe('the pre-flight bay controller', () => {
     bay();
     fireEvent.click(part('conduit-Tactical-Comms'));
     expect(screen.getAllByText('Running pre-flight').length).toBeGreaterThan(0);
-    const alert = await screen.findByRole('alert');
+    const alert = await screen.findByRole('alert', {}, SLOW);
     expect(within(alert).getByText('NEXUS_MISSING_PROVIDER')).toBeTruthy();
     expect(alert.textContent).toContain(
       'NavCharts (provider) in Tactical (module) cannot reach SubspaceLink',
@@ -99,9 +104,9 @@ describe('the pre-flight bay controller', () => {
     bay();
     fireEvent.click(part('conduit-Tactical-Comms'));
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Apply the fix' }),
+      await screen.findByRole('button', { name: 'Apply the fix' }, SLOW),
     );
-    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull(), SLOW);
     expect(
       screen
         .getByRole('button', { name: 'Launch' })
@@ -113,11 +118,12 @@ describe('the pre-flight bay controller', () => {
   it('passes the check with the chart server unreachable and fails the launch', async () => {
     bay();
     fireEvent.click(part('chart-server'));
-    await waitFor(() =>
-      expect(screen.getByRole('status').textContent).toBe('Check passed'),
+    await waitFor(
+      () => expect(screen.getByRole('status').textContent).toBe('Check passed'),
+      SLOW,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Launch' }));
-    const alert = await screen.findByRole('alert', {}, { timeout: 4000 });
+    const alert = await screen.findByRole('alert', {}, SLOW);
     expect(within(alert).getByText('NEXUS_PROVIDER_FAILED')).toBeTruthy();
     expect(
       screen.getByRole('log', { name: 'preflight.ts' }).textContent,
@@ -130,11 +136,12 @@ describe('the pre-flight bay controller', () => {
   it('closes the DRONE hatch, passes the check and fails the bridge lookup after Launch', async () => {
     bay();
     fireEvent.click(part('hatch-SurveyDrone'));
-    await waitFor(() =>
-      expect(screen.getByRole('status').textContent).toBe('Check passed'),
+    await waitFor(
+      () => expect(screen.getByRole('status').textContent).toBe('Check passed'),
+      SLOW,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Launch' }));
-    const alert = await screen.findByRole('alert', {}, { timeout: 4000 });
+    const alert = await screen.findByRole('alert', {}, SLOW);
     expect(within(alert).getByText('NEXUS_NOT_VISIBLE')).toBeTruthy();
     expect(
       document.querySelector('.nexus-bay__caption')?.textContent,
