@@ -3,11 +3,12 @@
  * from React; `react-imports.test.ts` and `scripts/verify-packaging.mjs` hold
  * the allowlist.
  */
-export { Alert } from './components/alert.js';
+export { Alert, AlertRegion } from './components/alert.js';
 export type {
   AlertBannerProps,
   AlertDialogProps,
   AlertProps,
+  AlertRegionProps,
 } from './components/alert.js';
 export { Button } from './components/button.js';
 export type { ButtonProps, ButtonVariant } from './components/button.js';

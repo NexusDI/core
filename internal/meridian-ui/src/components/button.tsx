@@ -6,7 +6,7 @@ export type ButtonVariant = 'primary' | 'secondary' | 'hazard' | 'quiet';
 
 interface ButtonBase extends Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
-  'className' | 'children'
+  'className' | 'children' | 'disabled' | 'id'
 > {
   variant?: ButtonVariant;
   /** The 32px height of the deck's dense toolbars. */
@@ -17,12 +17,13 @@ interface ButtonBase extends Omit<
 
 export type ButtonProps = ButtonBase &
   (
-    | { reason?: undefined }
+    | { disabled?: false; reason?: never; id?: string }
     /**
-     * Why the button is disabled, printed beside it, such as "Launch is locked
-     * until the check passes". It needs an `id` so the button can point at it.
+     * A disabled button states why, beside it, such as "Launch is locked until
+     * the check passes". The reason prints only while `disabled` is true, and it
+     * needs an `id` so the button can point at it.
      */
-    | { reason: string; id: string; disabled: true }
+    | { disabled: boolean; reason: string; id: string }
   );
 
 /**
@@ -38,14 +39,17 @@ export function Button({
   type = 'button',
   reason,
   id,
+  disabled,
   ...rest
 }: ButtonProps) {
+  const why = disabled ? reason : undefined;
   const button = (
     <button
       {...rest}
       id={id}
+      disabled={disabled}
       type={type}
-      {...(reason ? { 'aria-describedby': `${id}-reason` } : {})}
+      {...(why ? { 'aria-describedby': `${id}-reason` } : {})}
       className={cx(
         'meridian-button',
         `meridian-button--${variant}`,
@@ -57,13 +61,13 @@ export function Button({
     </button>
   );
 
-  if (!reason) return button;
+  if (!why) return button;
 
   return (
     <span className="meridian-button__group">
       {button}
       <span className="meridian-button__reason" id={`${id}-reason`}>
-        {reason}
+        {why}
       </span>
     </span>
   );

@@ -37,7 +37,7 @@ export function Panel({
       <div className="meridian-panel__face">
         {title || actions ? (
           <header className="meridian-panel__head">
-            <p className="meridian-panel__title">{title}</p>
+            {title ? <p className="meridian-panel__title">{title}</p> : null}
             {actions ? (
               <div className="meridian-panel__actions">{actions}</div>
             ) : null}

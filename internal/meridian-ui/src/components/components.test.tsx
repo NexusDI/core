@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   Alert,
+  AlertRegion,
   Button,
   Chip,
   ConsoleFrame,
@@ -29,6 +30,14 @@ describe('Panel', () => {
   it('renders no header band without a title or actions', () => {
     const { container } = render(<Panel>Hull</Panel>);
     expect(container.querySelector('.meridian-panel__head')).toBeNull();
+  });
+
+  it('renders no empty title when only actions are given', () => {
+    const { container } = render(
+      <Panel actions={<button type="button">Scram</button>}>Hull</Panel>,
+    );
+    expect(container.querySelector('.meridian-panel__title')).toBeNull();
+    expect(container.querySelector('.meridian-panel__actions')).not.toBeNull();
   });
 
   it('renders the title as a placard and the actions at the header end', () => {
@@ -196,6 +205,7 @@ describe('Terminal', () => {
     expect(frame.className).toBe('meridian-console meridian-terminal');
     const log = screen.getByRole('log');
     expect(log.querySelectorAll('.meridian-terminal__line')).toHaveLength(2);
+    expect(log.firstElementChild?.className).toBe('meridian-terminal__lines');
     expect(log.textContent).toContain('t 0042helmcourse plottedok');
     expect(log.textContent).toContain('Fix: seal the hatch');
     expect(log.querySelectorAll('.meridian-status--alarm')).toHaveLength(1);
@@ -251,6 +261,19 @@ describe('Button', () => {
   });
 });
 
+describe('Button reason while enabled', () => {
+  it('prints no reason and no description when disabled is false', () => {
+    render(
+      <Button id="launch" disabled={false} reason="Locked">
+        Launch
+      </Button>,
+    );
+    const button = screen.getByRole('button', { name: 'Launch' });
+    expect(button.hasAttribute('aria-describedby')).toBe(false);
+    expect(document.getElementById('launch-reason')).toBeNull();
+  });
+});
+
 describe('Alert', () => {
   it('renders the alarm banner in an assertive live region', () => {
     render(
@@ -269,8 +292,29 @@ describe('Alert', () => {
     expect(banner.textContent).toBe('HYPOXIA in airlockAcknowledge');
   });
 
-  it('renders the warning banner in a polite live region', () => {
-    render(
+  it('renders the warning banner into the polite region the app mounts', () => {
+    const { rerender } = render(<AlertRegion />);
+    const region = screen.getByRole('status');
+    expect(region.getAttribute('aria-live')).toBe('polite');
+    expect(region.childElementCount).toBe(0);
+
+    rerender(
+      <AlertRegion>
+        <Alert
+          variant="banner"
+          kind="warning"
+          code="NO POWER"
+          subject="shields"
+        />
+      </AlertRegion>,
+    );
+    expect(screen.getByRole('status')).toBe(region);
+    expect(region.textContent).toBe('NO POWER in shields');
+    expect(region.querySelector('.meridian-alert--warning')).not.toBeNull();
+  });
+
+  it('gives the warning banner no live role of its own', () => {
+    const { container } = render(
       <Alert
         variant="banner"
         kind="warning"
@@ -278,15 +322,14 @@ describe('Alert', () => {
         subject="shields"
       />,
     );
-    const banner = screen.getByRole('status');
-    expect(banner.getAttribute('aria-live')).toBe('polite');
-    expect(banner.className).toContain('meridian-alert--warning');
+    expect(container.querySelector('[role], [aria-live]')).toBeNull();
   });
 
   it('renders the dialog for a refused command with its Fix line', () => {
     render(
       <Alert
         variant="dialog"
+        id="refused"
         message="The drive is not charged."
         fix="Charge the reactor first."
         action={<button type="button">Understood</button>}
@@ -294,6 +337,12 @@ describe('Alert', () => {
     );
     const dialog = screen.getByRole('alertdialog', { name: 'Command refused' });
     expect(dialog.getAttribute('aria-modal')).toBe('true');
+    expect(dialog.getAttribute('aria-labelledby')).toBe('refused-title');
+    expect(dialog.getAttribute('aria-describedby')).toBe('refused-message');
+    expect(dialog.hasAttribute('aria-label')).toBe(false);
+    expect(document.getElementById('refused-message')?.textContent).toBe(
+      'The drive is not charged.',
+    );
     expect(dialog.textContent).toBe(
       'Command refusedThe drive is not charged.Fix: Charge the reactor first.Understood',
     );
