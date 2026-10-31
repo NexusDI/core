@@ -1,6 +1,12 @@
 // @vitest-environment node
 import { randomBytes } from 'node:crypto';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -21,6 +27,9 @@ import {
   ISLAND_MARK,
   checkBehaviour,
   checkBudgets,
+  checkFonts,
+  CONDENSED_FONTS,
+  FONT_BUDGET,
   scriptsOf,
 } from './check-budgets.mjs';
 
@@ -282,5 +291,62 @@ describe('checkPages', () => {
     expect(
       checkPages(site(1, noise(PAGE_BUDGET.htmlGzip))).findings,
     ).toHaveLength(1);
+  });
+});
+
+describe('checkFonts', () => {
+  /** An export whose media directory holds copies of `files` under hashed names. */
+  function exportWith(files) {
+    const out = mkdtempSync(join(tmpdir(), 'budgets-'));
+    dirs.push(out);
+    const media = join(out, '_next', 'static', 'media');
+    mkdirSync(media, { recursive: true });
+    files.forEach((bytes, at) =>
+      writeFileSync(join(media, `hash${at}.p.woff2`), bytes),
+    );
+    return out;
+  }
+
+  /** Two source files of `size` bytes each, on disk. */
+  function sources(size) {
+    const dir = mkdtempSync(join(tmpdir(), 'fonts-'));
+    dirs.push(dir);
+    return [500, 600].map((weight) => {
+      const path = join(dir, `condensed-${weight}.woff2`);
+      writeFileSync(path, randomBytes(size));
+      return path;
+    });
+  }
+
+  it('measures the real condensed files against the ceiling', () => {
+    for (const path of CONDENSED_FONTS) {
+      expect(readFileSync(path).length).toBeLessThanOrEqual(
+        FONT_BUDGET.perFile,
+      );
+    }
+  });
+
+  it('passes two shipped files inside the ceiling', () => {
+    const paths = sources(1000);
+    const out = exportWith(paths.map((path) => readFileSync(path)));
+    const { findings, rows } = checkFonts(out, { sources: paths });
+    expect(findings).toEqual([]);
+    expect(rows.map((row) => row.bytes)).toEqual([1000, 1000]);
+  });
+
+  it('fails a file the export does not ship', () => {
+    const paths = sources(1000);
+    const out = exportWith([readFileSync(paths[0])]);
+    const { findings } = checkFonts(out, { sources: paths });
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatch(/^condensed-600\.woff2: no identical copy/);
+  });
+
+  it('fails a file over the ceiling', () => {
+    const paths = sources(FONT_BUDGET.perFile + 1);
+    const out = exportWith(paths.map((path) => readFileSync(path)));
+    const { findings } = checkFonts(out, { sources: paths });
+    expect(findings).toHaveLength(2);
+    expect(findings[0]).toMatch(/over the 20\.5 kB budget/);
   });
 });

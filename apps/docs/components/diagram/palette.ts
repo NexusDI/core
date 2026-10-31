@@ -24,12 +24,12 @@ export const sentinel = {
  * property and nothing re-renders.
  */
 export const property: Record<keyof typeof sentinel, string> = {
-  page: 'var(--meridian-ground-0)',
-  surface: 'var(--meridian-hull)',
-  rule: 'var(--meridian-rule)',
+  page: 'var(--meridian-bulkhead)',
+  surface: 'var(--meridian-plate)',
+  rule: 'var(--meridian-seam)',
   text: 'var(--meridian-text)',
   muted: 'var(--meridian-text-secondary)',
-  hue: 'var(--meridian-signal-cyan)',
+  hue: 'var(--meridian-data)',
 };
 
 /** A rem length as the pixel string Mermaid reads, at the 16px root size. */

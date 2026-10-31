@@ -1,6 +1,6 @@
 /*
  * The filter above an API page's entries. Sticky under the navbar, on the
- * raised hull, with the cyan edge the release notice uses, so a reader
+ * raised plate, with the edge the release notice uses, so a reader
  * scrolling a hundred entries keeps the control in reach.
  */
 .nexus-api-filter {
@@ -9,9 +9,9 @@
   z-index: 1;
   margin-block-end: var(--meridian-space-5);
   padding: var(--meridian-space-3) var(--meridian-space-4);
-  border-inline-start: 2px solid var(--meridian-signal-cyan);
+  border-inline-start: 2px solid var(--meridian-edge);
   border-radius: var(--meridian-radius-chip);
-  background: var(--meridian-hull-raised);
+  background: var(--meridian-plate-raised);
   box-shadow: var(--meridian-elevation-raised);
 }
 
@@ -26,9 +26,9 @@
   flex: 1 1 12rem;
   min-inline-size: 0;
   padding: var(--meridian-space-2) var(--meridian-space-3);
-  border: 1px solid var(--meridian-control-border);
+  border: 1px solid var(--meridian-edge);
   border-radius: var(--meridian-radius-control);
-  background: var(--meridian-hull);
+  background: var(--meridian-plate);
   color: var(--meridian-text);
   font: inherit;
 }
@@ -40,7 +40,7 @@
 
 .nexus-api-filter__kind[aria-pressed='false'] {
   color: var(--meridian-text-tertiary);
-  border-color: var(--meridian-rule);
+  border-color: var(--meridian-seam);
   border-style: dashed;
 }
 
@@ -73,7 +73,7 @@
   padding: 0;
   border: 0;
   background: none;
-  color: var(--meridian-signal-cyan);
+  color: var(--meridian-action);
   font: inherit;
   text-decoration: underline;
   text-underline-offset: 2px;

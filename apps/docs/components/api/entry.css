@@ -1,6 +1,6 @@
 /*
  * An API entry: a list item on the article's hull, separated by a hairline.
- * The name takes the kind's hue and the chip beside it says the kind in words.
+ * The chip beside the name says the kind in words.
  */
 /*
  * A reference page holds dozens of entries, `/api/` ninety. An entry off the
@@ -12,7 +12,7 @@
   contain-intrinsic-size: auto 40rem;
   margin-block-start: var(--meridian-space-6);
   padding-block: var(--meridian-space-4) var(--meridian-space-5);
-  border-block-start: 1px solid var(--meridian-rule);
+  border-block-start: 1px solid var(--meridian-seam);
 }
 
 .nexus-api-entry__name {
@@ -26,7 +26,7 @@
   margin: 0;
   padding: 0;
   border: 0;
-  color: var(--meridian-kind);
+  color: var(--meridian-text);
   overflow-wrap: anywhere;
   scroll-margin-top: calc(var(--nextra-navbar-height) + 5rem);
 }
@@ -53,8 +53,7 @@
 .nexus-api-entry__states {
   margin-block-start: var(--meridian-space-4);
   padding-inline-start: var(--meridian-space-4);
-  border-inline-start: 1px solid
-    color-mix(in oklab, var(--meridian-kind) 45%, transparent);
+  border-inline-start: 1px solid var(--meridian-seam);
 }
 
 .nexus-api-entry__states-head {
@@ -62,7 +61,7 @@
   align-items: baseline;
   gap: var(--meridian-space-3);
   padding-block-end: var(--meridian-space-2);
-  border-block-end: 1px solid var(--meridian-rule);
+  border-block-end: 1px solid var(--meridian-seam);
 }
 
 .nexus-api-entry__states-heading {

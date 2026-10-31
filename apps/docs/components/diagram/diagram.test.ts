@@ -117,7 +117,7 @@ describe('diagrams', () => {
       ].join(' '),
     );
     expect(out).toContain(
-      'background-color:color-mix(in srgb, var(--meridian-ground-0) 50%, transparent);',
+      'background-color:color-mix(in srgb, var(--meridian-bulkhead) 50%, transparent);',
     );
     expect(out).toContain('.arrowheadPath{fill:currentColor;}');
     expect(out).toContain('flood-color="currentColor"');
@@ -129,12 +129,12 @@ describe('diagrams', () => {
 
   it('binds the sentinels to the Meridian properties', () => {
     expect(Object.values(property)).toEqual([
-      'var(--meridian-ground-0)',
-      'var(--meridian-hull)',
-      'var(--meridian-rule)',
+      'var(--meridian-bulkhead)',
+      'var(--meridian-plate)',
+      'var(--meridian-seam)',
       'var(--meridian-text)',
       'var(--meridian-text-secondary)',
-      'var(--meridian-signal-cyan)',
+      'var(--meridian-data)',
     ]);
   });
 });

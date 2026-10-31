@@ -47,13 +47,18 @@ export const BEHAVIOUR_BUDGET = { raw: 1_850_000, gzip: 77_000 };
  * than `GUIDE_SLACK` gzipped bytes under it fails too, so a saving lowers the
  * ceiling in the same pull request.
  *
- * Measured at 978,859 bytes raw and 297,242 gzipped. A guide carries
+ * Measured at 982,246 bytes raw and 298,431 gzipped. The Meridian tokens and
+ * chrome components PR (design system spec sections 4 to 7) added the
+ * Terminal, Button, Status, Alert and HoloLabel classes to the stylesheet, so
+ * the raw ceiling rose from 981,000 to 984,000.
+ *
+ * Measured earlier at 978,859 bytes raw and 297,242 gzipped. A guide carries
  * `components/twoslash/TypeCards.tsx`, which every page's component map
  * holds, and not the popover it loads: that comes with `import()` on a page
  * with a `twoslash` fence.
  */
 export const GUIDE_PAGE = 'scopes/index.html';
-export const GUIDE_BUDGET = { raw: 981_000, gzip: 299_000 };
+export const GUIDE_BUDGET = { raw: 984_000, gzip: 299_000 };
 export const GUIDE_SLACK = 5_000;
 
 /**
@@ -70,6 +75,30 @@ export const GUIDE_SLACK = 5_000;
  * area. The ceiling itself stays where it is.
  */
 export const PAGE_BUDGET = { htmlGzip: 205_000, elements: 19_000 };
+
+/**
+ * The ceiling on each of IBM Plex Sans Condensed's two latin woff2 files, in
+ * bytes. The files are already compressed, so the size is the transfer size.
+ * Every page preloads them, since placards sit on every page (site UX spec
+ * 12.2). They measure 19,952 bytes (500) and 19,816 bytes (600) in
+ * `@fontsource/ibm-plex-sans-condensed` 5.3.0, and the ceiling sits just above.
+ */
+export const FONT_BUDGET = { perFile: 20_500 };
+
+/** The two files `app/layout.tsx` loads for the condensed family. */
+export const CONDENSED_FONTS = [500, 600].map((weight) =>
+  join(
+    import.meta.dirname,
+    '..',
+    '..',
+    '..',
+    'node_modules',
+    '@fontsource',
+    'ibm-plex-sans-condensed',
+    'files',
+    `ibm-plex-sans-condensed-latin-${weight}-normal.woff2`,
+  ),
+);
 
 export const ISLAND_MARK = 'nexus-console-island';
 export const BACKGROUND_MARK = 'meridian-background';
@@ -303,6 +332,41 @@ export function checkBehaviour(out) {
   return { findings, rows };
 }
 
+/**
+ * Measures the condensed family's two woff2 files and holds each to
+ * `FONT_BUDGET`. `next/font` copies a font into `out/_next/static/media` under
+ * a hashed name, so the check finds each source file there by its bytes. A
+ * source with no identical copy in the export was not shipped.
+ */
+export function checkFonts(out, { sources = CONDENSED_FONTS } = {}) {
+  const media = join(out, '_next', 'static', 'media');
+  let shipped = [];
+  try {
+    shipped = readdirSync(media).filter((name) => name.endsWith('.woff2'));
+  } catch {
+    // No media directory: every source reports as not shipped below.
+  }
+  const copies = shipped.map((name) => readFileSync(join(media, name)));
+
+  const rows = [];
+  const findings = [];
+  for (const source of sources) {
+    const name = source.split(sep).pop();
+    const bytes = readFileSync(source);
+    const found = copies.find((copy) => copy.equals(bytes));
+    rows.push({ file: name, bytes: bytes.length, shipped: Boolean(found) });
+    if (!found)
+      findings.push(
+        `${name}: no identical copy under ${relative(out, media) || media}. app/layout.tsx must load the condensed family through next/font/local.`,
+      );
+    if (bytes.length > FONT_BUDGET.perFile)
+      findings.push(
+        `${name}: ${kB(bytes.length)}, over the ${FONT_BUDGET.perFile / 1000} kB budget for a condensed woff2 file. Raise FONT_BUDGET with the new measurement and the reason.`,
+      );
+  }
+  return { findings, rows };
+}
+
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const out = join(import.meta.dirname, '..', 'out');
   const { findings, rows } = checkBudgets(out, {
@@ -334,6 +398,12 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
       `${behaviour.rows.length} behaviour sidecars; the largest is ${largest.path} at ${kB(largest.raw)} raw, ${kB(largest.gzip)} gzipped`,
     );
   findings.push(...behaviour.findings);
+  const fonts = checkFonts(out);
+  for (const row of fonts.rows)
+    console.log(
+      `${row.file}: ${kB(row.bytes)}${row.shipped ? '' : ', not in the export'}`,
+    );
+  findings.push(...fonts.findings);
   if (findings.length > 0) {
     console.error(findings.join('\n'));
     process.exit(1);
