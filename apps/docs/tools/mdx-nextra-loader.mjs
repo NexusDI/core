@@ -22,6 +22,7 @@ import { dirname, join, relative, sep } from 'node:path';
 
 import { codeClasses } from './code-classes.mjs';
 import { popupFold, tableOf } from './popup-fold.mjs';
+import { tokenFold } from './token-fold.mjs';
 
 const require = createRequire(import.meta.url);
 
@@ -83,6 +84,7 @@ export default function loader(source) {
   // to a transformer would otherwise leave every page compiled by the old one.
   this.addDependency(join(import.meta.dirname, 'code-classes.mjs'));
   this.addDependency(join(import.meta.dirname, 'popup-fold.mjs'));
+  this.addDependency(join(import.meta.dirname, 'token-fold.mjs'));
   const { nextraLoader, ...options } = this.getOptions();
   const mdxOptions = options.mdxOptions ?? {};
   const prettyCode = mdxOptions.rehypePrettyCodeOptions ?? {};
@@ -111,11 +113,13 @@ export default function loader(source) {
       rehypePrettyCodeOptions: {
         ...prettyCode,
         // In this order: the panels are folded with the token classes
-        // already on their spans.
+        // already on their spans, and the tokens with each hover already a
+        // button.
         transformers: [
           ...(prettyCode.transformers ?? []),
           codeClasses(),
           popupFold(),
+          tokenFold(),
         ],
       },
     },
