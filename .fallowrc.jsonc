@@ -63,6 +63,9 @@
     "tools/gemma-refactor.mjs",
     // Run by the main session to land a reviewed pull request (ways-of-working skill, Spend).
     "tools/pr-land.mjs",
+
+    // The check-schematic target of meridian-ship runs this script by path.
+    "tools/meridian-ship/check-schematic.mjs",
     // The e2e project's webServer command runs serve.mjs by path.
     "apps/docs-e2e/src/support/serve.mjs",
     // The shell's Playwright suites: the e2e target runs

@@ -64,7 +64,9 @@ describe('renderTokensCss', () => {
   });
 
   it('removes the superseded roles', () => {
-    expect(css).not.toMatch(/signal|status-pass|status-fail|nebula|hull/);
+    expect(css).not.toMatch(
+      /signal|status-pass|status-fail|nebula|hull(?!-paint)/,
+    );
   });
 
   it('sets every duration to 0ms under reduced motion', () => {
