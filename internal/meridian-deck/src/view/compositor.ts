@@ -13,6 +13,7 @@ export class LayerCompositor implements IDeckCompositor {
   private renderer: WebGLRenderer | undefined;
   private stage: Container | undefined;
   private mounted: IDeckLayer[] = [];
+  private readonly frames = new Set<() => void>();
 
   constructor(private readonly layers: readonly IDeckLayer[]) {}
 
@@ -56,6 +57,14 @@ export class LayerCompositor implements IDeckCompositor {
     if (this.renderer === undefined || this.stage === undefined) return;
     for (const layer of this.mounted) layer.prepare?.();
     this.renderer.render({ container: this.stage });
+    for (const listener of [...this.frames]) listener();
+  }
+
+  onFrame(listener: () => void): () => void {
+    this.frames.add(listener);
+    return () => {
+      this.frames.delete(listener);
+    };
   }
 
   unmount(): void {

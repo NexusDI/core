@@ -62,6 +62,10 @@ export class DeckViewController implements IDeckView, Disposable {
     this.compositor.unmount();
   }
 
+  onFrame(listener: () => void): () => void {
+    return this.compositor.onFrame(listener);
+  }
+
   onStatus(listener: (status: DeckViewStatus) => void): () => void {
     this.listeners.add(listener);
     return () => {

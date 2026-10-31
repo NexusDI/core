@@ -46,5 +46,7 @@ export interface IDeckCompositor {
     signal: AbortSignal,
   ): Promise<void>;
   render(): void;
+  /** Calls `listener` right after each draw of the stage, in the same task. */
+  onFrame(listener: () => void): () => void;
   unmount(): void;
 }
