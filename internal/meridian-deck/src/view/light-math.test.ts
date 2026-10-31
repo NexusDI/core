@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import type { DeckChange } from '../state/contracts.js';
 
 import {
+  ALARM_GLOW,
   ALARM_LAMP,
   ALARM_LOW,
+  ALARM_PEAK,
   AMBIENT_ALARM,
   AMBIENT_POWERED,
   AMBIENT_UNPOWERED,
@@ -69,10 +71,10 @@ describe('the room and fixture targets', () => {
 });
 
 describe('the alarm pulse', () => {
-  it('peaks at 100% and falls to 70% half a second later', () => {
+  it('peaks at 100% and falls to 60% half a second later', () => {
     expect(pulse(0, false)).toBeCloseTo(1, 10);
     expect(pulse(500, false)).toBeCloseTo(ALARM_LOW, 10);
-    expect(ALARM_LOW).toBe(0.7);
+    expect(ALARM_LOW).toBe(0.6);
   });
 
   it('repeats once a second', () => {
@@ -210,10 +212,24 @@ describe('the levels of a light', () => {
   });
 });
 
-describe('the tuned constants', () => {
-  it('start from the mock: lamps at 72% reaching 1.5 times the radius', () => {
-    expect(LAMP_GAIN).toBe(0.72);
-    expect(REACH).toBe(1.5);
+describe('the constants of the 2x modulate (TL32)', () => {
+  it('sets the ambient levels around the neutral 0.5 and the lamp at full gain', () => {
+    expect(AMBIENT_POWERED).toBe(0.45);
+    expect(AMBIENT_UNPOWERED).toBe(0.2);
+    expect(AMBIENT_ALARM).toBe(0.15);
+    expect(ALARM_LAMP).toBe(0.15);
+    expect(LAMP_GAIN).toBe(1);
+    expect(REACH).toBe(1);
+  });
+
+  it('peaks the alarm light at 1.5 over two sprites and adds 30% of it in the housing pass', () => {
+    expect(ALARM_PEAK).toBe(1.5);
+    expect(ALARM_GLOW).toBe(0.3);
+  });
+
+  it('leaves a powered room darker than neutral so a lamp brightens it', () => {
+    expect(AMBIENT_POWERED).toBeLessThan(0.5);
+    expect(AMBIENT_POWERED + LAMP_GAIN * 0.5).toBeGreaterThan(0.5);
   });
 });
 

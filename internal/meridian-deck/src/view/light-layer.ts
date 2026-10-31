@@ -17,8 +17,9 @@ import { DECK_OPTIONS, DECK_STATE } from '../state/tokens.js';
 
 import type { IDeckLayer, LayerContext } from './contracts.js';
 import {
+  ALARM_GLOW,
+  ALARM_PEAK,
   DEFAULT_RAMP_MS,
-  HEADROOM,
   LAMP_GAIN,
   LightModel,
   hexToInt,
@@ -28,6 +29,7 @@ import {
   tintOf,
 } from './light-math.js';
 import { loadMask, type LoadedMask } from './mask-source.js';
+import { MODULATE_2X } from './modulate-blend.js';
 import { createRoomClip } from './room-clip.js';
 
 /** The light texture renders at half the frame (map runtime 4.9). */
@@ -47,23 +49,28 @@ interface LitRoom {
   readonly id: string;
   readonly ambient: Sprite;
   readonly lights: readonly LitLight[];
-  readonly alarm: Sprite;
+  /** The alarm light, in two sprites since one cannot pass its own full alpha. */
+  readonly alarm: readonly [Sprite, Sprite];
+  /** The alarm's glow in the housing pass, which adds red over the base. */
+  readonly alarmGlow: Sprite;
   /** The room's clipped housing pass: the lamp mask and the housings that follow a fixture. */
   readonly emissive: Container;
   /** The lamp mask's container inside `emissive`, whose level is the room's lamp level. */
   readonly lamps: Container;
 }
 
-/** A grey at `level` of the light texture's range, which keeps 1 / HEADROOM of the light. */
+/** A grey at `level` of the light texture's range, where 0.5 leaves the base as it is. */
 const grey = (level: number): number =>
-  Math.round(Math.min(1, Math.max(0, level / HEADROOM)) * 255) * 0x010101;
+  Math.round(Math.min(1, Math.max(0, level)) * 255) * 0x010101;
 
 /**
  * The light (design system 8.2, architect section 5). It renders a
- * half-resolution light texture that starts white. Each room draws its
+ * half-resolution light texture that starts at 0.5 grey, the level that leaves
+ * the base as it is. Each room draws its
  * ambient fill and its additive light sprites into a container that a
  * `RoomClip` filter cuts to the room's index in the room mask, so no light
- * crosses a wall. The texture multiplies over the base, and the emissive mask
+ * crosses a wall. The texture modulates the base (`base * light * 2`), so a
+ * lamp can warm a room and the alarm can turn it red, and the emissive mask
  * adds the lit housings in the glow colour.
  *
  * The layer has its own frame loop, which runs only while a ramp moves or an
@@ -130,7 +137,7 @@ export class LightLayer implements IDeckLayer {
         bounds[2] - bounds[0],
         bounds[3] - bounds[1],
       );
-      const clip = (blendMode: 'add' | 'normal', boost = 1) =>
+      const clip = (blendMode: 'add' | 'normal') =>
         createRoomClip({
           mask: roomMask.texture.source,
           index,
@@ -138,12 +145,11 @@ export class LightLayer implements IDeckLayer {
           width,
           height,
           blendMode,
-          boost,
         });
 
       const node = new Container();
       node.filterArea = area;
-      node.filters = [clip('normal', HEADROOM)];
+      node.filters = [clip('normal')];
       const ambient = new Sprite(Texture.WHITE);
       ambient.position.set(area.x, area.y);
       ambient.width = area.width;
@@ -186,19 +192,35 @@ export class LightLayer implements IDeckLayer {
         lit.push({ light, sprite, housing: box });
       }
 
-      const alarm = new Sprite(glow);
-      alarm.anchor.set(0.5);
-      alarm.blendMode = 'add';
-      alarm.tint = hexToInt(this.options.palette.alarm);
-      alarm.width = area.width * 1.4;
-      alarm.height = area.height * 1.8;
-      alarm.position.set(area.x + area.width / 2, area.y + area.height / 2);
-      node.addChild(alarm);
+      const alarmSprite = () => {
+        const sprite = new Sprite(glow);
+        sprite.anchor.set(0.5);
+        sprite.blendMode = 'add';
+        sprite.tint = hexToInt(this.options.palette.alarm);
+        sprite.width = area.width * 1.4;
+        sprite.height = area.height * 1.8;
+        sprite.position.set(area.x + area.width / 2, area.y + area.height / 2);
+        return sprite;
+      };
+      const alarm: [Sprite, Sprite] = [alarmSprite(), alarmSprite()];
+      node.addChild(...alarm);
       lightRoot.addChild(node);
+
+      // The same light again in the additive pass, so the red shows over the base itself.
+      const alarmGlow = alarmSprite();
+      housing.addChild(alarmGlow);
 
       emissive.addChild(housing);
 
-      rooms.push({ id, ambient, lights: lit, alarm, emissive: housing, lamps });
+      rooms.push({
+        id,
+        ambient,
+        lights: lit,
+        alarm,
+        alarmGlow,
+        emissive: housing,
+        lamps,
+      });
     }
 
     const texture = RenderTexture.create({
@@ -208,7 +230,7 @@ export class LightLayer implements IDeckLayer {
     });
     const light = new Sprite(texture);
     light.scale.set(1 / LIGHT_SCALE);
-    light.blendMode = 'multiply';
+    light.blendMode = MODULATE_2X;
     slot.addChild(light, emissive);
 
     this.context = context;
@@ -246,7 +268,7 @@ export class LightLayer implements IDeckLayer {
       container: lightRoot,
       target: lightTexture,
       clear: true,
-      clearColor: 0xffffff,
+      clearColor: 0x808080,
     });
   }
 
@@ -290,23 +312,27 @@ export class LightLayer implements IDeckLayer {
       const levels = model.room(room.id, now);
       if (levels === undefined) continue;
       room.ambient.tint = grey(levels.ambient);
-      const alarm = levels.alarm / HEADROOM;
-      room.alarm.alpha = alarm;
-      room.alarm.visible = alarm > VISIBLE;
+      const peak = levels.alarm * ALARM_PEAK;
+      room.alarm[0].alpha = Math.min(1, peak);
+      room.alarm[0].visible = peak > VISIBLE;
+      room.alarm[1].alpha = Math.max(0, peak - 1);
+      room.alarm[1].visible = peak - 1 > VISIBLE;
+      room.alarmGlow.alpha = levels.alarm * ALARM_GLOW;
+      room.alarmGlow.visible = room.alarmGlow.alpha > VISIBLE;
       room.lamps.alpha = levels.lamp;
       room.lamps.visible = levels.lamp > VISIBLE;
-      let housed = room.lamps.visible;
+      let housed = room.lamps.visible || room.alarmGlow.visible;
       for (const { light, sprite, housing } of room.lights) {
         const fixture =
           light.fixture === null
             ? undefined
             : model.fixture(light.fixture, now);
         const level = lightLevel(light, levels, fixture) * light.gain;
-        sprite.alpha = (level * LAMP_GAIN) / HEADROOM;
+        sprite.alpha = level * LAMP_GAIN;
         sprite.visible = sprite.alpha > VISIBLE;
         if (housing !== undefined) {
-          housing.alpha = level;
-          housing.visible = level > VISIBLE;
+          housing.alpha = level * light.housing;
+          housing.visible = housing.alpha > VISIBLE;
           housed ||= housing.visible;
         }
       }

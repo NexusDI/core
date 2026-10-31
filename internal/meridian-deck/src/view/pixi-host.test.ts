@@ -15,6 +15,7 @@ vi.mock('pixi.js', () => ({
   },
 }));
 vi.mock('pixi.js/filters', () => ({}));
+vi.mock('./modulate-blend.js', () => ({ registerModulateBlend: () => {} }));
 
 import { createPixiHost } from './pixi-host.js';
 
@@ -26,6 +27,14 @@ beforeEach(() => {
 });
 
 describe('the Pixi host', () => {
+  it('starts the renderer with the back buffer that the modulate blend reads', async () => {
+    const host = await createPixiHost();
+    await host.start(canvas(), size);
+    expect(made[0]?.init).toHaveBeenCalledWith(
+      expect.objectContaining({ useBackBuffer: true, manageImports: false }),
+    );
+  });
+
   it('returns the renderer it made for a canvas when asked again for that canvas', async () => {
     const host = await createPixiHost();
     const one = canvas();

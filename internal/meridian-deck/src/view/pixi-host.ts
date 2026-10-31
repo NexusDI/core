@@ -2,8 +2,11 @@ import { WebGLRenderer } from 'pixi.js';
 // The filter system and its pipe. `manageImports: false` leaves out the
 // extensions the view does not use, and the room clip is a filter.
 import 'pixi.js/filters';
+import { registerModulateBlend } from './modulate-blend.js';
 
 import type { FrameSize, IPixiHost } from './contracts.js';
+
+registerModulateBlend();
 
 /** Holds the renderer of one canvas between `start()` and `release()`. */
 class PixiHost implements IPixiHost, Disposable {
@@ -30,6 +33,8 @@ class PixiHost implements IPixiHost, Disposable {
         backgroundAlpha: 1,
         background: 0x000000,
         manageImports: false,
+        // The light modulates what the base has drawn, which a blend filter reads from the back buffer.
+        useBackBuffer: true,
       })
       .then(() => renderer);
     this.starting = starting;

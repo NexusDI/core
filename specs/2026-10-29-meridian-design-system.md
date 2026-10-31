@@ -516,19 +516,23 @@ The deck map draws four layers, bottom to top, and bakes no light into any of th
    and the props. The emissive mask adds a fixed glow where a powered screen or lamp sits.
    The deck has no normal maps for now.
 
-The light model starts from these values (OR5 mock): a powered room keeps an ambient of
-0.35 and an unpowered one 0.15; a light sprite shows at 72% and reaches 1.5 times the
-radius of its light in the geometry; an alarmed room drops to the unpowered ambient and
-30% of its lamps, with the alarm sprite on top, so the red does not wash out to white. The
-light texture stays 8-bit, since a float texture is 8-bit under software GL and the pools
-would clip, so the light accumulates at half strength and the room clip scales it back by its
-largest channel, which keeps the hue where the lamp and glow tints overlap. A housing wider
-than 5 m (a long strip) glows at 45% in the emissive mask. A light that names a fixture draws
-its housing at that fixture's level, and a lamp's housing follows its room's lamp level, so
-an unpowered room goes dark but for the housings of its fixtures, the screens (OR5). The
-lights file gives each light its room (the rectangle that holds its centre in the side view),
-its gain and its housing box, so the deck compares no part of the geometry's vocabulary
-(P1).
+The light is a modulation (TL32). The light texture clears to 0.5 grey, a value that leaves
+the base as it is, and the composite is `base * light * 2`, so a lamp's tint can warm a room
+and the alarm's can turn it red where a multiply would only darken. A filter does the
+composite: Pixi runs it as a blend mode that reads the back buffer, so the renderer starts
+with `useBackBuffer`. The light texture stays 8-bit, since a float texture is 8-bit under
+software GL and the pools would clip. A powered room keeps an ambient of 0.45, an unpowered
+one 0.2 and an alarmed one 0.15. A lamp sprite shows at full gain and reaches the radius of
+its light in the geometry, in the sprite's `gain` from the lights file. An alarmed room keeps
+15% of its lamps. Its alarm light peaks at 1.5 (two sprites) and pulses down to 0.6 of that
+at 1 Hz, and the alarm sprite draws again in the additive housing pass at 30% of its level.
+A housing glows at 75% of its level, and a long strip (wider than 5 m) at 45%. The lights
+file carries that share as `housing`, and the emissive mask holds it as its grey value. A
+light that names a fixture draws its housing at that fixture's level, and a lamp's housing
+follows its room's lamp level, so an unpowered room goes dark but for the housings of its
+fixtures, the screens (OR5). The lights file gives each light its room (the rectangle that
+holds its centre in the side view), its gain and its housing box, so the deck compares no
+part of the geometry's vocabulary (P1).
 
 The simulation drives the light. A room with power shows its `lamp` pools, a room without
 power goes dark but for its emissive screens, and an alarm adds a pulsing

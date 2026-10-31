@@ -13,30 +13,28 @@ import type {
  */
 
 /** The light a room keeps with its lamps off: the unlit base, a little brighter than black. */
-export const AMBIENT_UNPOWERED = 0.15;
+export const AMBIENT_UNPOWERED = 0.2;
 /** The light a powered room keeps between its lamp pools. */
-export const AMBIENT_POWERED = 0.35;
-/** An alarmed room keeps the unpowered ambient and 30% of its lamps, so the red reads over the lamp light. */
+export const AMBIENT_POWERED = 0.45;
+/** An alarmed room keeps a dark ambient and 15% of its lamps, so the red reads over the lamp light. */
 export const AMBIENT_ALARM = 0.15;
-export const ALARM_LAMP = 0.3;
+export const ALARM_LAMP = 0.15;
 /**
- * A lamp sprite shows at this share of its room's level. At full strength the
- * pools of a powered room clip to white on the unlit albedo, and the 8-bit
- * light texture has no headroom to hold them.
+ * A lamp sprite shows at this share of its room's level. The light texture is
+ * a modulation: 0.5 leaves the base as it is, and the composite doubles it, so
+ * a lamp's tint can warm a room and the alarm's can turn it red.
  */
-export const LAMP_GAIN = 0.72;
-/**
- * The light accumulates at 1 / HEADROOM of its strength in the 8-bit light
- * texture, and the room clip scales it back, so overlapping tints keep their
- * hue where they would clip a channel at a time.
- */
-export const HEADROOM = 2;
+export const LAMP_GAIN = 1;
+/** The alarm sprite's peak level, which the light sums over two sprites. */
+export const ALARM_PEAK = 1.5;
+/** The alarm sprite also draws in the emissive pass at this share of its level. */
+export const ALARM_GLOW = 0.3;
 /** A sprite reaches this many times the radius the lights file lists. */
-export const REACH = 1.5;
+export const REACH = 1;
 /** The alarm light pulses at this rate (design system 9.2). */
 export const ALARM_HZ = 1;
-/** The pulse falls to this share of its peak. */
-export const ALARM_LOW = 0.7;
+/** The pulse falls to this share of its peak (the level the alarm's peak scales). */
+export const ALARM_LOW = 0.6;
 /** The glow of a fixture that stands by while its section starts. */
 export const STANDBY_GLOW = 0.5;
 /** The ramp of a change whose patch names none, in milliseconds. */
