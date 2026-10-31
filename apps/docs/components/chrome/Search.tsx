@@ -104,10 +104,19 @@ export default function Search({
   }, []);
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Escape') {
-      if (query) setQuery('');
-      else input.current?.blur();
-    } else keysRef.current?.(event);
+    keysRef.current?.(event);
+  };
+
+  // Escape works wherever focus is in the search. In the input it clears the
+  // text and then lets go; on a band button it closes the panel and returns
+  // focus to the input.
+  const onEscape = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Escape') return;
+    if (event.target !== input.current) {
+      setQuery('');
+      input.current?.focus();
+    } else if (query) setQuery('');
+    else input.current?.blur();
   };
 
   const open = focused && query.trim() !== '';
@@ -117,6 +126,7 @@ export default function Search({
     <div
       ref={wrapper}
       className="nextra-search nexus-search"
+      onKeyDown={onEscape}
       onFocus={() => {
         setFocused(true);
         load();
@@ -136,7 +146,7 @@ export default function Search({
         autoComplete="off"
         aria-label="Search the documentation"
         aria-expanded={open}
-        aria-controls={listId}
+        aria-controls={Panel ? listId : undefined}
         aria-autocomplete="list"
         aria-activedescendant={activeId}
         placeholder={`${placeholder}…`}

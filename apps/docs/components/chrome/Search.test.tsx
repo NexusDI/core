@@ -133,4 +133,28 @@ describe('Search', () => {
       (document.querySelector('.nexus-search__panel') as HTMLElement).hidden,
     ).toBe(true);
   });
+
+  it('closes the panel and returns focus to the input on Escape from a band button', async () => {
+    fakePagefind(12);
+    render(<Search />);
+    const input = screen.getByRole('combobox');
+    await userEvent.type(input, 'token');
+    await screen.findByRole('group', { name: 'Filter by band' });
+    await userEvent.tab();
+    expect(document.activeElement?.tagName).toBe('BUTTON');
+
+    await userEvent.keyboard('{Escape}');
+    expect(document.activeElement).toBe(input);
+    expect((input as HTMLInputElement).value).toBe('');
+  });
+
+  it('points aria-controls at the list only once the panel exists', async () => {
+    fakePagefind(2);
+    render(<Search />);
+    const input = screen.getByRole('combobox');
+    expect(input.getAttribute('aria-controls')).toBeNull();
+    await userEvent.type(input, 'token');
+    await screen.findAllByRole('option');
+    expect(input.getAttribute('aria-controls')).toBeTruthy();
+  });
 });

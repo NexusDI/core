@@ -185,12 +185,10 @@ export default function SearchPanel({
     <div
       className="nexus-search__panel"
       hidden={!open}
-      // A pointer in the panel keeps focus where it is, so a click on text
-      // never closes the panel.
-      onMouseDown={(event) => {
-        if (!(event.target as HTMLElement).closest('button'))
-          event.preventDefault();
-      }}
+      // A pointer in the panel keeps focus where it is, buttons included:
+      // Safari gives a button no focus on click, so the input's blur would
+      // close the panel before the click lands.
+      onMouseDown={(event) => event.preventDefault()}
     >
       {row.length > 0 ? (
         <div
