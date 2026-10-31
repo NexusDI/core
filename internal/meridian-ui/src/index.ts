@@ -34,7 +34,7 @@ export { Terminal } from './components/terminal.js';
 export type { TerminalLine, TerminalProps } from './components/terminal.js';
 export { HullCrop } from './components/hull-crop.js';
 export type { CropBox, HullCropProps } from './components/hull-crop.js';
-export { Schematic, cssEscape } from './components/schematic.js';
+export { Schematic, cssEscape, hazardId } from './components/schematic.js';
 export type {
   DoorState,
   FixtureState,

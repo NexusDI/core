@@ -332,6 +332,26 @@
         id="schematic-art"
         aria-hidden="true"
       ></div>
+      <svg
+        class="meridian-schematic__defs"
+        width="0"
+        height="0"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <defs>
+          <pattern
+            id="meridian-hazard-ship"
+            width="0.3"
+            height="0.3"
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(45)"
+          >
+            <rect class="sv-hazard-a" width="0.3" height="0.15" />
+            <rect class="sv-hazard-b" y="0.15" width="0.3" height="0.15" />
+          </pattern>
+        </defs>
+      </svg>
       <style id="schematic-style"></style>
       <svg
         class="meridian-schematic__overlay"
@@ -504,7 +524,7 @@
             rule(
               'data-door',
               id,
-              'fill:url(#sv-hazard);stroke:var(--meridian-alarm);stroke-width:0.08',
+              'fill:url(#meridian-hazard-ship);stroke:var(--meridian-alarm);stroke-width:0.08',
             ),
         ),
       ].join('\n');
