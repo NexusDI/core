@@ -97,7 +97,7 @@ A container that wires the wrong provider or starts slowly leaves a developer as
 
 <!-- reference @nexusdi/devtools#profileStartup example=profile-startup -->
 
-`profileStartup(root, { load: [{ module, imports }] })` loads each entry in order, as `load(module, { imports })` does.
+`profileStartup(root)` takes any root `Nexus.create` takes, so a root object `{ imports: [...] }` profiles the startup of the modules its `imports` lists. `profileStartup(root, { load: [{ module, imports }] })` loads each entry in order, as `load(module, { imports })` does.
 
 ## `profileTable`
 
