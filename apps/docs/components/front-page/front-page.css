@@ -1,0 +1,773 @@
+/*
+ * The front page (site UX spec 4). Every value is a `--meridian-*` property.
+ * The hero and the pre-flight bay are screens and stay dark in both themes
+ * (design system V1): `.nexus-front__screen` re-points the neutral roles at
+ * the dark palette, and the bands under them follow the reader's theme.
+ *
+ * Nextra renders the page inside the docs article, so the rules here undo its
+ * furniture (breadcrumb, copy button, plate) for a page that holds a screen.
+ */
+
+/* The article of the front page is the bulkhead, not a plate. */
+article:has(.nexus-front__screen) {
+  background: transparent;
+  box-shadow: none;
+  padding-block-start: 0;
+}
+
+article:has(.nexus-front__screen) > .nextra-breadcrumb,
+article:has(.nexus-front__screen) > div.x\:float-end {
+  display: none;
+}
+
+/* The last-updated line and the pager belong to docs pages. */
+article:has(.nexus-front__screen) > main ~ div[class][class] {
+  display: none;
+}
+
+article:has(.nexus-front__screen) > main > .nexus-release {
+  padding-block: var(--meridian-space-3) 0;
+}
+
+article:has(.nexus-front__screen) > main > .nexus-release .meridian-notice {
+  max-inline-size: none;
+}
+
+.nexus-visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The skip link to the bay, beside the one Nextra renders (13.8). */
+.nexus-front__skip:not(:focus) {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.nexus-front__skip:focus {
+  position: fixed;
+  inset: var(--meridian-space-3) auto auto var(--meridian-space-3);
+  z-index: 60;
+  padding: var(--meridian-space-2) var(--meridian-space-4);
+  background: var(--meridian-plate-raised);
+  border: 1px solid var(--meridian-edge);
+  border-radius: var(--meridian-radius-control);
+  color: var(--meridian-text);
+  font-weight: 600;
+  box-shadow: var(--meridian-elevation-raised);
+}
+
+/* Screens: dark in both themes, full width past the article's padding. */
+.nexus-front__screen {
+  --meridian-bulkhead: var(--meridian-palette-dark-bulkhead);
+  --meridian-plate: var(--meridian-palette-dark-plate);
+  --meridian-plate-raised: var(--meridian-palette-dark-plate-raised);
+  --meridian-seam: var(--meridian-palette-dark-seam);
+  --meridian-edge: var(--meridian-palette-dark-edge);
+  --meridian-text: var(--meridian-palette-dark-text);
+  --meridian-text-secondary: var(--meridian-palette-dark-text-secondary);
+  --meridian-text-tertiary: var(--meridian-palette-dark-text-tertiary);
+  --meridian-data: var(--meridian-palette-dark-data);
+  --meridian-action: var(--meridian-palette-dark-action);
+  --meridian-action-fill: var(--meridian-palette-dark-action-fill);
+  --meridian-on-action: var(--meridian-palette-dark-on-action);
+  --meridian-alarm: var(--meridian-palette-dark-alarm);
+  --meridian-nominal: var(--meridian-palette-dark-nominal);
+  --meridian-focus: var(--meridian-palette-dark-action);
+  --meridian-button-primary-border: transparent;
+  position: relative;
+  background: var(--meridian-space);
+  color: var(--meridian-text);
+  /* The ground reaches both edges of the window whatever the article's width. */
+  box-shadow: 0 0 0 100vmax var(--meridian-space);
+  clip-path: inset(0 -100vmax);
+}
+
+.nexus-front__screen a:not(.meridian-button) {
+  color: var(--meridian-action);
+}
+
+/* Hero (4.2) */
+.nexus-hero {
+  display: grid;
+  align-items: center;
+  min-block-size: 40rem;
+  margin-block-start: var(--meridian-space-4);
+}
+
+.nexus-hero__art {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: -2.5rem;
+  inline-size: min(65rem, 72%);
+  transform: translateY(-48%);
+  -webkit-mask-image: radial-gradient(
+    ellipse 52% 50% at 56% 52%,
+    #000 66%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    ellipse 52% 50% at 56% 52%,
+    #000 66%,
+    transparent 100%
+  );
+}
+
+.nexus-hero__art img {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+}
+
+.nexus-hero__copy {
+  position: relative;
+  inline-size: min(100%, 31rem);
+  padding-block: var(--meridian-space-8);
+}
+
+.nexus-hero__copy h1 {
+  max-inline-size: 13ch;
+  margin: 0;
+  font-family: var(--meridian-font-display);
+  font-size: var(--meridian-text-display);
+  font-weight: 500;
+  line-height: var(--meridian-leading-display);
+  letter-spacing: var(--meridian-tracking-display);
+  color: var(--meridian-text);
+}
+
+.nexus-hero__copy > p:not(.nexus-hero__actions):not(.nexus-install__note) {
+  max-inline-size: 34ch;
+  margin: var(--meridian-space-5) 0 0;
+  font-size: var(--meridian-text-lead);
+  line-height: var(--meridian-leading-lead);
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--meridian-space-3) var(--meridian-space-5);
+  margin: var(--meridian-space-6) 0 0;
+}
+
+.nexus-quiet {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+.meridian-button {
+  text-decoration: none;
+}
+
+/* The install line (4.2, 4.10) */
+.nexus-install {
+  margin-block-start: var(--meridian-space-5);
+  max-inline-size: 27.5rem;
+}
+
+.nexus-install__strip {
+  display: flex;
+  align-items: stretch;
+  min-block-size: 2.75rem;
+  background: var(--meridian-screen);
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-plate);
+  color: var(--meridian-screen-text);
+}
+
+.nexus-install__strip code {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
+  padding: 0 var(--meridian-space-4);
+  overflow-x: auto;
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-code);
+  white-space: nowrap;
+  background: none;
+  color: inherit;
+}
+
+.nexus-install__prompt {
+  margin-inline-end: var(--meridian-space-2);
+  color: var(--meridian-palette-dark-text-tertiary);
+  user-select: none;
+}
+
+.nexus-install__copy {
+  padding: 0 var(--meridian-space-4);
+  border: 0;
+  border-inline-start: 1px solid var(--meridian-seam);
+  background: var(--meridian-palette-dark-plate-raised);
+  color: var(--meridian-palette-dark-text);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-micro);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nexus-install__copy[hidden] {
+  display: none;
+}
+
+.nexus-install__note {
+  margin: var(--meridian-space-2) 0 0;
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-micro);
+  line-height: var(--meridian-leading-micro);
+  color: var(--meridian-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The install section sits on the bulkhead, so its strip keeps the dark screen face. */
+.nexus-front__band .nexus-install {
+  max-inline-size: none;
+}
+
+/* The pre-flight bay (4.3) */
+.nexus-bay {
+  padding-block: var(--meridian-space-6) var(--meridian-space-7);
+  scroll-margin-block-start: var(--meridian-space-8);
+}
+
+.nexus-bay__head h2 {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-family: var(--meridian-font-display);
+  font-size: var(--meridian-text-h2);
+  font-weight: 500;
+  line-height: var(--meridian-leading-h2);
+  color: var(--meridian-text);
+}
+
+.nexus-bay__head p {
+  max-inline-size: 64ch;
+  margin: var(--meridian-space-2) 0 0;
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-bay__terminal {
+  margin-block-start: var(--meridian-space-5);
+}
+
+/* Bands on the bulkhead (4.1) */
+.nexus-front__band {
+  padding-block: var(--meridian-space-8);
+  border-block-end: 1px solid var(--meridian-seam);
+}
+
+.nexus-front__text {
+  inline-size: min(100%, 56rem);
+  margin-inline: auto;
+}
+
+.nexus-front__band--wide > .nexus-front__text {
+  inline-size: 100%;
+  margin-inline: 0;
+}
+
+.nexus-front__band--wide > .nexus-front__text > :where(h2, p) {
+  max-inline-size: 56rem;
+  margin-inline: auto;
+}
+
+.nexus-front__band h2,
+.nexus-front__band h3 {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-family: var(--meridian-font-display);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--meridian-text);
+}
+
+.nexus-front__band h2 {
+  font-size: var(--meridian-text-h2);
+  line-height: var(--meridian-leading-h2);
+}
+
+.nexus-front__band h3 {
+  margin-block-start: var(--meridian-space-6);
+  font-size: var(--meridian-text-h3);
+  line-height: var(--meridian-leading-h3);
+}
+
+.nexus-front__band p,
+.nexus-front__band li {
+  line-height: var(--meridian-leading-body);
+}
+
+.nexus-front__band h2 + p {
+  max-inline-size: var(--meridian-measure);
+  margin-block: var(--meridian-space-3) 0;
+  color: var(--meridian-text-secondary);
+}
+
+/* The program, collapsed under the bay */
+.nexus-program {
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-plate);
+  background: var(--meridian-plate);
+}
+
+.nexus-program > summary {
+  padding: var(--meridian-space-3) var(--meridian-space-4);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nexus-program[open] > summary {
+  border-block-end: 1px solid var(--meridian-seam);
+}
+
+.nexus-program__body {
+  padding: var(--meridian-space-4);
+}
+
+.nexus-program__body > :first-child {
+  margin-block-start: 0;
+}
+
+.nexus-program__body > :last-child {
+  margin-block-end: 0;
+}
+
+/* Type-checks (4.7). The compiler's overload message is long, so it wraps. */
+.nexus-front__band pre {
+  margin-block: var(--meridian-space-5) var(--meridian-space-3);
+}
+
+.nexus-front__band .twoslash-error-line {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Ship systems (4.8) */
+.nexus-systems {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--meridian-space-3);
+  margin: var(--meridian-space-6) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nexus-systems__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.nexus-systems__link {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: var(--meridian-space-3) var(--meridian-space-3)
+    var(--meridian-space-4);
+  background: var(--meridian-plate);
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-plate);
+  color: var(--meridian-text);
+  text-decoration: none;
+}
+
+.nexus-systems__link:hover,
+.nexus-systems__link:focus-visible {
+  border-color: var(--meridian-action);
+  outline: 2px solid var(--meridian-focus);
+  outline-offset: 0;
+}
+
+.nexus-systems__where {
+  margin-block-end: var(--meridian-space-1);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-micro);
+  color: var(--meridian-text-tertiary);
+}
+
+.nexus-systems__name {
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 600;
+  line-height: var(--meridian-leading-placard);
+}
+
+.nexus-systems__line {
+  margin-block-start: var(--meridian-space-1);
+  font-size: var(--meridian-text-small);
+  line-height: var(--meridian-leading-small);
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-systems__placard {
+  position: absolute;
+  inset: calc(100% + var(--meridian-space-1)) 0 auto 0;
+  z-index: 2;
+  display: none;
+  padding: var(--meridian-space-2) var(--meridian-space-3);
+  background: var(--meridian-plate-raised);
+  border: 1px solid var(--meridian-edge);
+  border-radius: var(--meridian-radius-plate);
+  box-shadow: var(--meridian-elevation-raised);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-micro);
+  line-height: var(--meridian-leading-micro);
+  color: var(--meridian-text);
+}
+
+.nexus-systems__item:hover > .nexus-systems__placard,
+.nexus-systems__item:focus-within > .nexus-systems__placard {
+  display: block;
+}
+
+/* Proof (4.9) */
+.nexus-readouts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--meridian-space-5);
+  margin-block-start: var(--meridian-space-6);
+}
+
+.nexus-readout {
+  padding: var(--meridian-space-5);
+  background: var(--meridian-plate);
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-plate);
+  box-shadow: var(--meridian-elevation-plate);
+}
+
+.nexus-readout__value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--meridian-space-2);
+  margin: 0;
+  font-family: var(--meridian-font-mono);
+  font-size: 2.44rem;
+  font-weight: 500;
+  line-height: var(--meridian-leading-readout);
+  color: var(--meridian-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.nexus-readout__value .nexus-bench__figure {
+  font-family: inherit;
+}
+
+.nexus-readout__unit {
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-micro);
+  font-weight: 500;
+  line-height: var(--meridian-leading-micro);
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-readout__note {
+  margin: var(--meridian-space-2) 0 0;
+  font-size: var(--meridian-text-small);
+}
+
+.nexus-startup {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr);
+  gap: var(--meridian-space-5);
+  align-items: center;
+  margin-block-start: var(--meridian-space-5);
+}
+
+.nexus-startup__cells {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--meridian-space-5);
+}
+
+.nexus-startup__cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--meridian-space-1) var(--meridian-space-3);
+  margin: 0;
+  padding: var(--meridian-space-4) var(--meridian-space-5);
+  background: var(--meridian-plate);
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-plate);
+}
+
+.nexus-startup__name {
+  flex-basis: 100%;
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 500;
+}
+
+.nexus-startup__value {
+  font-family: var(--meridian-font-mono);
+  font-size: var(--meridian-text-readout);
+  line-height: var(--meridian-leading-readout);
+  color: var(--meridian-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.nexus-startup__unit,
+.nexus-startup__meta,
+.nexus-note {
+  font-size: var(--meridian-text-small);
+  line-height: var(--meridian-leading-small);
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-startup__unit {
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-micro);
+}
+
+.nexus-startup__meta {
+  margin: 0;
+}
+
+.nexus-note {
+  margin: var(--meridian-space-3) 0 0;
+  color: var(--meridian-text-tertiary);
+  font-size: var(--meridian-text-micro);
+}
+
+.nexus-front__band .nexus-bench {
+  margin-block: var(--meridian-space-5) 0;
+}
+
+.nexus-front__band h3 + p {
+  margin-block-start: var(--meridian-space-3);
+}
+
+.nexus-front__band ol {
+  margin: var(--meridian-space-3) 0 0;
+  padding-inline-start: var(--meridian-space-5);
+  list-style: decimal;
+}
+
+.nexus-front__band ul:not(.nexus-packages):not(.nexus-systems) {
+  margin: var(--meridian-space-4) 0 0;
+  padding-inline-start: var(--meridian-space-5);
+  list-style: disc;
+}
+
+.nexus-front__band
+  :is(ol, ul:not(.nexus-packages):not(.nexus-systems))
+  > li
+  + li {
+  margin-block-start: var(--meridian-space-2);
+}
+
+.nexus-front__band h3:last-of-type + p {
+  padding: var(--meridian-space-2) var(--meridian-space-4);
+  border-inline-start: 2px solid var(--meridian-edge);
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-front__band a.nexus-systems__link:not(.meridian-button) {
+  color: var(--meridian-text);
+  text-decoration: none;
+}
+
+.nexus-front__band .nexus-systems__item {
+  margin-block-start: 0;
+}
+
+/* Install (4.10) */
+.nexus-packages {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--meridian-space-6);
+  margin: var(--meridian-space-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nexus-packages__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--meridian-space-3);
+  align-items: baseline;
+  margin: 0;
+  padding: var(--meridian-space-3) 0;
+  border-block-end: 1px solid var(--meridian-seam);
+}
+
+.nexus-packages__item + .nexus-packages__item {
+  margin-block-start: 0;
+}
+
+.nexus-packages__item code {
+  font-size: var(--meridian-text-small);
+  color: var(--meridian-text);
+  overflow-wrap: anywhere;
+}
+
+.nexus-packages__item--core {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  margin-block-end: var(--meridian-space-3);
+  padding: var(--meridian-space-4);
+  background: var(--meridian-plate);
+  border: 1px solid var(--meridian-seam);
+}
+
+.nexus-packages__need {
+  padding: var(--meridian-space-1) var(--meridian-space-2);
+  border: 1px solid var(--meridian-edge);
+  border-radius: var(--meridian-radius-chip);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-micro);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.nexus-packages__links {
+  display: flex;
+  gap: var(--meridian-space-3);
+  font-size: var(--meridian-text-micro);
+}
+
+.nexus-packages__line {
+  grid-column: 1 / -1;
+  font-size: var(--meridian-text-small);
+  color: var(--meridian-text-secondary);
+}
+
+.nexus-front__band .meridian-button {
+  margin-block-start: var(--meridian-space-6);
+}
+
+.nexus-front__band .meridian-button + ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--meridian-space-2) var(--meridian-space-5);
+  margin-block-start: var(--meridian-space-5);
+  padding: 0;
+  list-style: none;
+}
+
+.nexus-front__band .meridian-button + ul li {
+  margin: 0;
+}
+
+.nexus-front__band a:not(.meridian-button) {
+  color: var(--meridian-action);
+  text-underline-offset: 3px;
+}
+
+/* The phone (4.11): the hero stacks, the strip becomes a list. */
+@media (max-width: 639px) {
+  .nexus-hero {
+    display: flex;
+    flex-direction: column;
+    min-block-size: 0;
+    margin-block-start: var(--meridian-space-3);
+  }
+
+  .nexus-hero__copy {
+    padding-block: var(--meridian-space-6) var(--meridian-space-4);
+  }
+
+  .nexus-hero__copy h1 {
+    font-size: var(--meridian-text-h1);
+    line-height: var(--meridian-leading-h1);
+  }
+
+  .nexus-hero__copy > p:not(.nexus-hero__actions):not(.nexus-install__note) {
+    font-size: 1.125rem;
+  }
+
+  .nexus-hero__art {
+    position: static;
+    display: block;
+    order: 2;
+    inline-size: calc(100% + 2rem);
+    margin-inline: -1rem;
+    transform: none;
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+
+  .nexus-hero__art img {
+    aspect-ratio: var(--nexus-hero-phone-ratio);
+    object-fit: cover;
+  }
+
+  .nexus-front__band {
+    padding-block: var(--meridian-space-7);
+  }
+
+  .nexus-systems {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .nexus-systems__placard {
+    position: static;
+    display: block;
+    margin-block-start: var(--meridian-space-1);
+    padding: 0 var(--meridian-space-1);
+    background: none;
+    border: 0;
+    box-shadow: none;
+    color: var(--meridian-text-tertiary);
+  }
+
+  .nexus-readouts,
+  .nexus-startup,
+  .nexus-startup__cells,
+  .nexus-packages {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .nexus-packages__item--core {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .nexus-systems {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .nexus-hero__art {
+    inline-size: 80%;
+  }
+}
+
+@media (hover: none) {
+  .nexus-systems__placard {
+    position: static;
+    display: block;
+    padding: 0 var(--meridian-space-1);
+    background: none;
+    border: 0;
+    box-shadow: none;
+    color: var(--meridian-text-tertiary);
+  }
+}
+
+@media (forced-colors: active) {
+  .nexus-systems__link:focus-visible {
+    outline-color: Highlight;
+  }
+}
