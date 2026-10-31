@@ -210,9 +210,8 @@ gives the radiator vanes a faint red-orange glow and paints the hazard parts `#e
 Those are material placeholders. The hull carries no livery accent hue, since a reader would take
 an accent near amber or red for a meaning colour on the deck. The paint-over uses
 `hull-paint` and `hull-shadow` alone, with `hazard` at the hatches and bay doors. The
-`MERIDIAN` and `SV-01` stencils in `hull-shadow` mark the ship. The bake of the painted
-cutaway grades the saturation of the paint inside each room to `roomSaturation`, 0.3 by
-default, so the room hues do not read as meaning colours (TL15). The owner may set it to 1.
+`MERIDIAN` and `SV-01` stencils in `hull-shadow` mark the ship. The unlit cutaway's rooms
+carry neutral swatches, so no room hue reads as a meaning colour.
 
 ### 4.6 Lifetimes, export kinds and syntax
 
@@ -458,7 +457,9 @@ to the package:
   the app can draw conduits, glyphs and focusable hotspots over the ship. The markup layer
   is `aria-hidden` and the overlay is not. `Schematic` takes three state tables (`rooms`,
   `fixtures` and `doors`) and the optional `viewBox`, `label` and `scope` props. `label` is
-  required with `children`. An optional `base` (a `src`, its width and height, AVIF and
+  required with `children`. An optional `layer` slot renders between the base picture and the
+  markup in an `aria-hidden` box that takes no pointer events, for the lit canvas, and the
+  `lit` flag adds a `--lit` class once the canvas presents (TL25). An optional `base` (a `src`, its width and height, AVIF and
   WebP sources, `sizes` and `loading`) makes the package render a `<picture alt="">` with
   explicit dimensions under the markup, the style and the overlay in one box, and add a
   `--painted` class (TL13).
@@ -479,20 +480,22 @@ at run time, and marketing art, which is painted and lit once.
 
 ### 8.1 Views and their sources
 
-| View      | Where                                                                          | Source                                                                                              | Format                            |
-| --------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- | --------------------------------- |
-| hero      | front page top, feature pages, Academy hub, demo splash                        | marketing art: a lit paint-over of the `sv01-hero` three-quarter render of `build_ship.py`          | AVIF and WebP, 1x and 2x          |
-| cutaway   | front-page bay, ship systems strip crops                                       | marketing art: the painted `cutaway-cut-a-s211-h375` pass, orthographic at 25.6 px/m (8.3)          | AVIF and WebP, 1024 to 2048 wide  |
-| side      | ship systems strip backdrop, feature pages                                     | marketing art: the painted `side-ext-d-s211-h25-d-clip` pass, the same camera                       | AVIF and WebP, 1024 to 2048 wide  |
-| schematic | front-page state layer, feature-page crops, docs concept pages                 | vector: `ship_svg.py`'s side cutaway, with `data-room`, `data-door`, `data-fixture`                 | inline SVG                        |
-| deck map  | the MeridianOS deck view, Academy missions, front-page scenes after 0.4 (11.2) | runtime art: the layers of 8.2, placed by `SHIP_GEOMETRY` from `@nexusdi/meridian-systems/geometry` | PixiJS v8 canvas plus a DOM layer |
-| icon      | favicon, navbar mark, Ship-note glyph, Academy badges                          | vector: the top silhouette, hand-snapped to the pixel grid at each size                             | SVG, and PNG for the favicon      |
+| View        | Where                                                                          | Source                                                                                                                                                                                  | Format                            |
+| ----------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| hero        | front page top, feature pages, Academy hub, demo splash                        | marketing art: a lit paint-over of the `sv01-hero` three-quarter render of `build_ship.py`                                                                                              | AVIF and WebP, 1x and 2x          |
+| cutaway     | front-page bay                                                                 | runtime art: the unlit cutaway (`cutaway-unlit-v1`, the `cutaway-cut-a-s211-h375` pass with its light removed), lit at run time by the deck view (8.2), orthographic at 25.6 px/m (8.3) | AVIF and WebP, 1024 to 2048 wide  |
+| cutaway lit | ship systems strip crops                                                       | marketing art: the painted `cutaway-cut-a-s211-h375` pass, lit once                                                                                                                     | AVIF and WebP, 1024 to 2048 wide  |
+| side        | ship systems strip backdrop, feature pages                                     | marketing art: the painted `side-ext-d-s211-h25-d-clip` pass, the same camera                                                                                                           | AVIF and WebP, 1024 to 2048 wide  |
+| schematic   | front-page state layer, feature-page crops, docs concept pages                 | vector: `ship_svg.py`'s side cutaway, with `data-room`, `data-door`, `data-fixture`                                                                                                     | inline SVG                        |
+| deck map    | the MeridianOS deck view, Academy missions, front-page scenes after 0.4 (11.2) | runtime art: the layers of 8.2, placed by `SHIP_GEOMETRY` from `@nexusdi/meridian-systems/geometry`                                                                                     | PixiJS v8 canvas plus a DOM layer |
+| icon        | favicon, navbar mark, Ship-note glyph, Academy badges                          | vector: the top silhouette, hand-snapped to the pixel grid at each size                                                                                                                 | SVG, and PNG for the favicon      |
 
 The lit painted exteriors are marketing art for the front page and the feature pages
 alone. Until the paint-over is done, the hero uses the mesh render as it is. The schematic
 and the icon stay vector, so they theme, scale and print with no raster. The front page
-bay and ship systems strip draw the schematic as the state layer over the painted
-`cutaway` (OR4, TL13), and its hit geometry stays the vector's.
+bay draws the schematic as the state layer over the unlit `cutaway`, and the ship systems
+strip draws it over the lit one (OR4, OR5, TL13). The schematic's hit geometry stays the
+vector's.
 
 ### 8.2 Runtime layers
 
@@ -507,7 +510,8 @@ The deck map draws four layers, bottom to top, and bakes no light into any of th
 3. Masks, generated from the geometry by `tools/meridian-ship`: a room-id mask (each
    compartment in its own index value), an emissive mask (screens, and the lamp housings of the geometry's `lights` list) and an interactive mask (the hit areas of doors and fixtures). The
    masks are data and never draw on screen.
-4. Light, drawn by Pixi at run time: light sprites (soft radial textures tinted `lamp` for room light, `glow` over a screen or core, or
+4. Light, drawn by Pixi at run time (on the front page the canvas sits in the `Schematic`'s
+   `layer` slot, and the painted tints of 8.4 give way to it once it presents): light sprites (soft radial textures tinted `lamp` for room light, `glow` over a screen or core, or
    `alarm` for an alarm) render into a light texture, the room-id mask clips each light to
    its room so no light crosses a wall, and the light texture multiplies over the base
    and the props. The emissive mask adds a fixed glow where a powered screen or lamp sits.
@@ -533,9 +537,11 @@ the light (8.4), so data stays crisp at every zoom.
   names its view (`deck-<id>`, `side`, `top`, `cutaway`), its pixels per metre and the pixel of the
   origin. The game places an image by its sidecar alone. The paint-over's output aligns
   through the sidecar with no change to any view.
-- Marketing scale: the painted `cutaway` and `side` views use 25.6 pixels per metre on the
-  frame `-5 0 80 20` (2048 by 512, origin at pixel (128, 448)), with `u = (x + 5) * 25.6`
-  and `v = (17.5 - z) * 25.6`. Their sidecars hold a sha256 of the geometry's hull,
+- Marketing scale: the painted `cutaway` and `side` views and the unlit cutaway use 25.6
+  pixels per metre on the frame `-5 0 80 20` (2048 by 512, origin at pixel (128, 448)), with
+  `u = (x + 5) * 25.6` and `v = (17.5 - z) * 25.6`. The unlit cutaway's masks use the same
+  scale and frame: the room index mask and the emissive mask are 2048 by 512, 8-bit grey, and
+  the lights are in pixels of that frame (`ship_svg.py --cutaway-layers`). Their sidecars hold a sha256 of the geometry's hull,
   compartments, doors and conduits, and a test fails when it differs (TL18).
 - Props: a prop sprite is a transparent WebP per state, cut to the fixture's footprint
   in the geometry plus a 0.5 m margin for overhang, and anchored at the footprint's
@@ -559,10 +565,13 @@ The schematic, the icon, and the conduits and overlay on the deck map are vector
   12% over its `screen` fill, an unpowered room keeps the plain fill with its emissive
   screens lit, and an alarmed room pulses an `alarm` fill at 12% (9.2). The site UX spec
   section 4.3 sets these fills for the front page.
-- Over the painted cutaway a powered room is `lamp` at 12%, an unpowered room a scrim of
-  `screen` at 60%, an alarm an `alarm` tint with a dashed outline of 2 screen pixels, and an
-  offline fixture the scrim with the same outline; a room with no state draws nothing
-  (TL13, TL16).
+- Over the unlit painted cutaway a powered room is `lamp` at 18%, an unpowered room a scrim
+  of `screen` at 40%, an alarm an `alarm` tint with a dashed outline of 2 screen pixels, and
+  an offline fixture the scrim with the same outline; a fixture in a powered room takes no
+  tint, since the base paints its housing, and a room with no state draws nothing (TL13,
+  TL16, TL25). Once the Pixi canvas presents its first frame, the app sets `lit`, and the
+  room tints and the offline scrim drop away. The alarm and offline outlines, the door
+  hazard and the overlay stay, since they carry state a second way.
 - A conduit's kind shows by its line: power a solid 2px line, coolant a double line,
   atmosphere a line of round dots. Its hue shows its state: `data` flowing, `action` shed
   or throttled, `alarm` broken. Brightness shows the figure: a power conduit's `data`
@@ -708,8 +717,9 @@ The front page opens on the hero: the painted Meridian against space, the headli
 the interactions of concept E: cut a conduit and see the broken link `Nexus.check` names,
 the power-up sequence for async startup, and the three faults (a provider offline, a
 closed hatch, an async provider that fails at startup). Each interaction runs the real
-core and prints its result in a terminal beside the ship. Every 0.4 front-page scene runs
-on the vector cutaway (site UX spec U4 and Q6). After the map runtime of section 8
+core and prints its result in a terminal beside the ship. The pre-flight bay lights its unlit cutaway with the deck view, which loads after the bay is
+visible and idle and leaves the vector cutaway as the fallback (OR5, TL24). The other 0.4
+front-page scenes run on the vector cutaway (site UX spec U4 and Q6). After the map runtime of section 8
 exists, a "Walk this section" control may open one hull section on the deck map, loaded
 only on that click. The vector cutaway is also the view without JavaScript. The power-up is the page's one
 orchestrated motion. On a phone the schematic shows one hull section at a time with a
@@ -787,6 +797,21 @@ delivery step 1 into this PR and the docs chrome PR):
 - The docs budget check holds the guide page's raw ceiling at 984 kB (from 981 kB) for the
   five new component classes.
 
+Amendments made while implementing the lit cutaway (owner ruling OR5; tech lead TL22 to
+TL27):
+
+- TL22: the bay's base is the unlit cutaway. A bake de-lights the owner's `h375` pick
+  against its own mesh render, sets each room to a neutral swatch and neutralises the
+  painted pipes. No new painting. 8.1 and 4.5 follow; `roomSaturation` is gone.
+- TL23: `internal/meridian-deck` has two entries. `.` holds the deck state and no Pixi, and
+  `./view` holds `DeckView`, whose one export is `DECK_VIEW`. 8.2 says where the canvas sits.
+- TL24: Pixi loads after the bay is visible and idle, and nothing loads under `saveData`,
+  `prefers-reduced-data`, without WebGL2 or in forced colours. 11.2 and 13 follow.
+- TL25: the fallback is the unlit base with retuned tints, and the canvas swaps them away
+  when it presents. 7.7 and 8.4 follow.
+- TL26: the strip of site UX 4.8 stays on the lit exterior, so 8.1 keeps a lit cutaway row.
+- TL27: the work is its own pull request, ahead of the bay's Pixi tasks.
+
 ## 13. Risks
 
 - Amber means both an action and a warning. A reader could take a link for a warning. The
@@ -800,8 +825,9 @@ delivery step 1 into this PR and the docs chrome PR):
   in a few 2048 pages per deck, and the painter starts with the props the 0.4 systems
   change.
 - PixiJS v8 adds weight to the demo apps' deck route: a design research build measured
-  about 176 kB gzipped for a minimal import, and the deck view's build records the real
-  figure. The deck view loads it
+  about 176 kB gzipped for a minimal import. The deck view with its base and light layers
+  measures 110 kB gzipped on the `WebGLRenderer` path (OR5 bundle check, esbuild minified),
+  against a 150 kB soft row on the front page. The deck view loads it
   client-only, after the panels render.
 
 ## 14. Out of scope
