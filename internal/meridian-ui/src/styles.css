@@ -748,6 +748,12 @@
   color: var(--meridian-text);
 }
 
+.meridian-schematic__defs {
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+}
+
 .meridian-schematic__art svg {
   display: block;
   inline-size: 100%;

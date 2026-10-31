@@ -431,14 +431,6 @@ def plain_fixture(f, flip):
     )
 
 
-# The closed-door fill: 45 degree bands the page's CSS paints through the two classes.
-HAZARD_DEFS = (
-    '<defs><pattern id="sv-hazard" width="0.3" height="0.3" patternUnits="userSpaceOnUse" '
-    'patternTransform="rotate(45)"><rect class="sv-hazard-a" width="0.3" height="0.15"/>'
-    '<rect class="sv-hazard-b" y="0.15" width="0.3" height="0.15"/></pattern></defs>\n'
-)
-
-
 def door_rect(door, flip):
     """A door's side-view rectangle as (x, y, width, height) in SVG units."""
     flat = [a for a in "xyz" if door[a][0] == door[a][1]][0]
@@ -539,7 +531,6 @@ def schematic_svg(geometry, hull):
     body.append("</g>")
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 76 18">\n'
-        + HAZARD_DEFS
         + "\n".join(body)
         + "\n</svg>\n"
     )

@@ -74,8 +74,8 @@ export type SchematicProps = SchematicBaseProps & SchematicOverlayProps;
  *   1 Hz, steady under reduced motion, with a dashed outline so colour does
  *   not carry the state alone)
  * - fixture: the room states, and `offline` (dimmed with a dashed outline)
- * - door: `open`, and `closed` (hazard bands from the markup's `#sv-hazard`
- *   pattern, with an `alarm` outline)
+ * - door: `open`, and `closed` (hazard bands from a pattern the component
+ *   renders with an id taken from `scope`, and an `alarm` outline)
  * - fixture `alarm` also takes a heavy dashed outline, so neither state rests
  *   on colour or on the pulse alone
  *
@@ -95,6 +95,8 @@ export function Schematic({
   className,
 }: SchematicProps) {
   const css = stateStyles(scope, rooms, fixtures, doors);
+  const hazard = hazardId(scope);
+  const hasClosed = Object.values(doors ?? {}).includes('closed');
   const box = viewBox ?? viewBoxOf(markup);
   return (
     <div
@@ -107,6 +109,33 @@ export function Schematic({
         aria-hidden="true"
         dangerouslySetInnerHTML={{ __html: markup }}
       />
+      {hasClosed ? (
+        <svg
+          className="meridian-schematic__defs"
+          width="0"
+          height="0"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <defs>
+            <pattern
+              id={hazard}
+              width="0.3"
+              height="0.3"
+              patternUnits="userSpaceOnUse"
+              patternTransform="rotate(45)"
+            >
+              <rect className="sv-hazard-a" width="0.3" height="0.15" />
+              <rect
+                className="sv-hazard-b"
+                y="0.15"
+                width="0.3"
+                height="0.15"
+              />
+            </pattern>
+          </defs>
+        </svg>
+      ) : null}
       {css ? <style dangerouslySetInnerHTML={{ __html: css }} /> : null}
       {children ? (
         <svg
@@ -181,10 +210,20 @@ const FIXTURE_DECLARATIONS: Readonly<Record<FixtureState, string>> = {
   offline:
     'fill:var(--meridian-sv-fixture);opacity:0.35;stroke:var(--meridian-text-secondary);stroke-width:0.1;stroke-dasharray:0.3 0.2',
 };
-const DOOR_DECLARATIONS: Readonly<Record<DoorState, string>> = {
+const doorDeclarations = (
+  hazard: string,
+): Readonly<Record<DoorState, string>> => ({
   open: 'fill:var(--meridian-sv-door)',
-  closed: 'fill:url(#sv-hazard);stroke:var(--meridian-alarm);stroke-width:0.08',
-};
+  closed: `fill:url(#${hazard});stroke:var(--meridian-alarm);stroke-width:0.08`,
+});
+
+/**
+ * The id of a schematic's hazard pattern. It carries the scope, so two
+ * schematics on one page never share an id.
+ */
+export function hazardId(scope: string): string {
+  return `meridian-hazard-${scope.replace(/[^A-Za-z0-9_-]/g, '_')}`;
+}
 
 function rule(
   scope: string,
@@ -220,6 +259,6 @@ function stateStyles(
   };
   add(rooms, 'data-room', ROOM_DECLARATIONS);
   add(fixtures, 'data-fixture', FIXTURE_DECLARATIONS);
-  add(doors, 'data-door', DOOR_DECLARATIONS);
+  add(doors, 'data-door', doorDeclarations(hazardId(scope)));
   return rules.join('\n');
 }
