@@ -1,0 +1,97 @@
+import { render, screen, within } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+
+import { shipSystems } from '../../app/ship-systems';
+import { features, placardOf, type SeedModule } from './features';
+import modules from './fixtures/modules.json';
+import { installOf } from './InstallLine';
+import { DependencyCount, PackageList } from './Proof';
+import ShipSystems from './ShipSystems';
+
+describe('the ship systems strip', () => {
+  it('links each feature to the page its ship system names', () => {
+    expect(features).toHaveLength(7);
+    for (const feature of features) {
+      expect(
+        shipSystems.some((system) => system.href === feature.href),
+        feature.label,
+      ).toBe(true);
+    }
+  });
+
+  it('names the module and its exports on the placard, from the seed', () => {
+    const by = (label: string) => {
+      const found = features.find((each) => each.label === label);
+      if (!found) throw new Error(label);
+      return found;
+    };
+    const seed = modules as SeedModule[];
+    expect(placardOf(by('Extension points'), seed)).toBe(
+      'Engineering exports ShipComputer.',
+    );
+    expect(placardOf(by('HTTP adapters'), seed)).toBe(
+      'Meridian exports nothing.',
+    );
+  });
+
+  it('renders a link and a described placard for every feature', () => {
+    render(<ShipSystems />);
+    const links = screen.getAllByRole('link');
+    expect(links).toHaveLength(7);
+    const scopes = screen.getByRole('link', { name: /Scopes/ });
+    const note = document.getElementById(
+      scopes.getAttribute('aria-describedby') ?? '',
+    );
+    expect(note?.textContent).toBe('BridgeApi exports FlightLog.');
+  });
+});
+
+describe('installOf', () => {
+  it('installs the next tag during a release candidate window', () => {
+    expect(installOf({ stable: '0.3.2', rc: '0.4.0-rc.3' })).toEqual({
+      command: 'npm install @nexusdi/core@next',
+      version: '0.4.0-rc.3',
+      tag: 'next',
+    });
+  });
+
+  it('installs the latest tag once the release is newer than any candidate', () => {
+    expect(installOf({ stable: '0.4.0', rc: '0.4.0-rc.3' })).toEqual({
+      command: 'npm install @nexusdi/core',
+      version: '0.4.0',
+      tag: 'latest',
+    });
+  });
+
+  it('names no version when the checkout has no tags', () => {
+    expect(installOf({ stable: null, rc: null })).toEqual({
+      command: 'npm install @nexusdi/core@next',
+      version: null,
+      tag: null,
+    });
+  });
+});
+
+describe('the proof and install facts', () => {
+  it('prints the dependency count of core', () => {
+    const { container } = render(<DependencyCount />);
+    expect(container.textContent).toBe('0');
+  });
+
+  it('lists core first as the one a reader needs, then the others with links', () => {
+    render(<PackageList />);
+    const [first, ...rest] = screen.getAllByRole('listitem');
+    if (!first) throw new Error('no packages listed');
+    expect(within(first).getByText('@nexusdi/core')).toBeTruthy();
+    expect(within(first).getByText('The one you need')).toBeTruthy();
+    const errors = rest.find((each) =>
+      within(each).queryByText('@nexusdi/errors'),
+    );
+    if (!errors) throw new Error('errors package not listed');
+    expect(
+      within(errors)
+        .getAllByRole('link')
+        .map((each) => each.textContent),
+    ).toEqual(['npm page of @nexusdi/errors', 'docs for @nexusdi/errors']);
+  });
+});
