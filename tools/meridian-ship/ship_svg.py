@@ -539,10 +539,23 @@ def partition_rooms(rects):
 
     `rects` holds (room id, (x0, y0, x1, y1)). Side views project boxes at different depths
     onto one plane, so the chart room covers part of the habitat and the airlock lies inside
-    it. Rectangles go in order of area, then id, and each loses the area a smaller one holds,
-    so a room can come back as several rectangles that carry its id.
+    it. Rectangles go in order of area (to 6 places), then the number of rectangles their room
+    has, then id, and each loses the area a smaller one holds, so a room can come back as
+    several rectangles that carry its id. Two rectangles of one area go to the room with the
+    fewer rectangles: the chart room's single box keeps x 10 to 14 from the habitat's.
     """
-    ordered = sorted(rects, key=lambda r: ((r[1][2] - r[1][0]) * (r[1][3] - r[1][1]), r[0], r[1]))
+    count = {}
+    for room, _ in rects:
+        count[room] = count.get(room, 0) + 1
+    ordered = sorted(
+        rects,
+        key=lambda r: (
+            round((r[1][2] - r[1][0]) * (r[1][3] - r[1][1]), 6),
+            count[r[0]],
+            r[0],
+            r[1],
+        ),
+    )
     claimed = []
     for room, rect in ordered:
         pieces = [rect]
@@ -731,13 +744,20 @@ def merged_lights(geometry):
     return list(groups.values())
 
 
+# A housing wider than this (in pixels) is a long strip, which reads as a white bar at full
+# strength, so it glows at 45%.
+STRIP_WIDTH = 128
+STRIP_GLOW = 115
+
+
 def emissive_mask(lights):
-    """255 inside the housing box of every light marked emissive, 0 elsewhere."""
+    """The housing box of every light marked emissive at 255, a long strip at 115, 0 elsewhere."""
     width, height = LAYER_SIZE
     grid = [[0] * width for _ in range(height)]
     for light in lights:
         if light["emissive"]:
-            fill_rect(grid, *light["box"], 255, outward=True)
+            wide = light["box"][2] - light["box"][0] > STRIP_WIDTH
+            fill_rect(grid, *light["box"], STRIP_GLOW if wide else 255, outward=True)
     return grid
 
 
