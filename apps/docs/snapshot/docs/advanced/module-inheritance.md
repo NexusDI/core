@@ -42,7 +42,7 @@ import { getMetadata, METADATA_KEYS } from '@nexusdi/core';
 const parentMeta = getMetadata(LoggingModule, METADATA_KEYS.MODULE_METADATA); // { providers: [LoggerService] }
 const childMeta = getMetadata(
   ExtendedLoggingModule,
-  METADATA_KEYS.MODULE_METADATA
+  METADATA_KEYS.MODULE_METADATA,
 ); // { providers: [LoggerService] } (inherited!)
 ```
 
@@ -85,7 +85,7 @@ describe('Module inheritance', () => {
   it('should not have metadata on subclass if not decorated', () => {
     const metadata = getMetadata(
       ExtendedLoggingModule,
-      METADATA_KEYS.MODULE_METADATA
+      METADATA_KEYS.MODULE_METADATA,
     );
     expect(metadata).toBeUndefined();
   });

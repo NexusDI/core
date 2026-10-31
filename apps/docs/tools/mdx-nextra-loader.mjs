@@ -21,6 +21,7 @@ import { createRequire } from 'node:module';
 import { dirname, join, relative, sep } from 'node:path';
 
 import { codeClasses } from './code-classes.mjs';
+import { mapFences } from './fences.mjs';
 import { popupFold, tableOf } from './popup-fold.mjs';
 import { tokenFold } from './token-fold.mjs';
 
@@ -62,6 +63,42 @@ function withTypeCards(source) {
   return TWOSLASH.test(source)
     ? `${source.trimEnd()}\n\n<TypeCards />\n`
     : source;
+}
+
+/** The `requires: [a, b]` line of a page's frontmatter. */
+const REQUIRES = /^requires:\s*\[([^\]]*)\]\s*$/m;
+
+/**
+ * The page with `<Prerequisites requires={[…]} />` above its first H2, from
+ * the `requires` frontmatter a teaching page carries (site UX spec 13.2). A
+ * page without `requires`, or without an H2, passes through. A `## ` line
+ * inside a fence is no heading, so the scan skips fences.
+ */
+export function withPrerequisites(source) {
+  const front = source.match(/^---\n([\s\S]*?)\n---\n/);
+  const requires = front?.[1]
+    .match(REQUIRES)?.[1]
+    .split(',')
+    .map((slug) => slug.trim().replace(/^['"]|['"]$/g, ''))
+    .filter(Boolean);
+  if (!front || !requires || requires.length === 0) return source;
+
+  const body = source.slice(front[0].length);
+  // Fences become a placeholder line, so only prose lines can match.
+  const lines = mapFences(body, ({ opener, body: inner, closer }) => [
+    ...[opener, ...inner, closer].map(() => '\u0000fence'),
+  ]).split('\n');
+  const at = lines.findIndex((line) => /^## /.test(line));
+  if (at === -1) return source;
+
+  const real = body.split('\n');
+  real.splice(
+    at,
+    0,
+    `<Prerequisites requires={${JSON.stringify(requires)}} />`,
+    '',
+  );
+  return `${front[0]}${real.join('\n')}`;
 }
 
 /** Writes a page's table, or removes a stale one when the page has none. */
@@ -125,5 +162,8 @@ export default function loader(source) {
     },
   });
 
-  return require(nextraLoader).call(this, withTypeCards(source));
+  return require(nextraLoader).call(
+    this,
+    withTypeCards(withPrerequisites(source)),
+  );
 }

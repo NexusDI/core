@@ -1,0 +1,603 @@
+/*
+ * The docs chrome of site UX spec 13: the navbar, the sidebar, the table of
+ * contents, the article's furniture, the footer and the accessibility rules.
+ * Nextra renders the markup with Tailwind utilities in a cascade layer, so the
+ * unlayered rules here win without raising specificity. Every value is a
+ * `--meridian-*` property, so the theme switch recolours with no re-render.
+ *
+ * The code fences are in `code.css`, the search in
+ * `components/chrome/search.css`.
+ */
+
+/* The ground and the surfaces (13.2). The article is the one plate. */
+.nextra-navbar,
+.nextra-sidebar,
+.nextra-toc,
+.nexus-footer {
+  background-color: transparent;
+}
+
+.nextra-navbar {
+  --nextra-navbar-height: 3.5rem;
+}
+
+/*
+ * The navbar sits on the bulkhead with a seam rule under it. Nextra's blur
+ * layer becomes that flat ground.
+ */
+.nextra-navbar .nextra-navbar-blur {
+  background: var(--meridian-bulkhead);
+  backdrop-filter: none;
+  border-block-end: 1px solid var(--meridian-seam);
+}
+
+.nexus-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--meridian-space-2);
+  min-block-size: 2rem;
+  color: var(--meridian-text);
+}
+
+.nexus-logo__name {
+  font-family: var(--meridian-font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: var(--meridian-tracking-display);
+}
+
+/* The logo has no hover fade; it is the home link of a ship. */
+.nextra-navbar nav > a:first-child:hover {
+  opacity: 1;
+}
+
+/*
+ * Navbar entries are controls: `text`, a 2px `edge` rule under the current
+ * one, and the `action` underline links carry on hover. Cyan stays off them
+ * (design system 4.2).
+ */
+.nextra-navbar nav a {
+  color: var(--meridian-text);
+}
+
+.nextra-navbar nav > div > a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 2.25rem;
+  padding-inline: var(--meridian-space-1);
+  border-block-end: 2px solid transparent;
+  font-size: var(--meridian-text-small);
+  text-decoration-color: var(--meridian-action);
+  text-underline-offset: 4px;
+}
+
+.nextra-navbar nav > div > a:hover {
+  color: var(--meridian-text);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+
+.nextra-navbar nav > div > a[aria-current] {
+  border-block-end-color: var(--meridian-edge);
+  font-weight: 600;
+}
+
+.nextra-navbar nav button[title='Change theme'],
+.nextra-navbar nav a[href^='https://github.com'] {
+  color: var(--meridian-text-secondary);
+}
+
+.nextra-navbar nav button[title='Change theme']:hover,
+.nextra-navbar nav a[href^='https://github.com']:hover {
+  color: var(--meridian-text);
+}
+
+/* Targets: 24px at least, 44px on a coarse pointer (design system 10). */
+.nextra-navbar nav :where(a, button),
+.nextra-sidebar :where(a, button),
+.nextra-toc :where(a, button),
+.nexus-footer a,
+.nexus-search__hit {
+  min-block-size: 1.5rem;
+}
+
+.nextra-navbar
+  nav
+  :where(button:not(.nextra-hamburger), a[href^='https://github.com']) {
+  min-inline-size: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nextra-navbar nav .nextra-hamburger {
+  min-inline-size: 1.5rem;
+  min-block-size: 1.5rem;
+}
+
+@media (pointer: coarse) {
+  .nextra-navbar nav :where(a, button),
+  .nextra-sidebar :where(a, button),
+  .nextra-mobile-nav :where(a, button),
+  .nextra-toc :where(a, button),
+  .nexus-footer a,
+  .nexus-search__hit,
+  .nexus-search__bands button,
+  article :where(.nexus-api-filter__kind, .nexus-api-filter__clear) {
+    min-block-size: 2.75rem;
+  }
+
+  .nextra-navbar nav :where(button, a[href^='https://github.com']) {
+    min-inline-size: 2.75rem;
+  }
+
+  .nextra-navbar nav .nextra-hamburger {
+    min-block-size: 2.75rem;
+  }
+}
+
+/*
+ * The theme menu and the mobile drawer sit on the raised plate. The drawer's
+ * list gets room at the top, so the search box and the list's fade do not
+ * cover the first band's placard.
+ */
+.nextra-mobile-nav {
+  background: var(--meridian-plate-raised);
+}
+
+.nextra-mobile-nav > ul {
+  padding-block-start: var(--meridian-space-5);
+}
+
+[role='listbox'][id^='headlessui-listbox-options'] {
+  background: var(--meridian-plate-raised);
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-control);
+  box-shadow: var(--meridian-elevation-raised);
+  backdrop-filter: none;
+}
+
+/* The sidebar (13.1): placards for bands, an `edge` bar for the current page. */
+.nextra-sidebar ul > li:not(:has(> a, > button, > div)),
+.nextra-mobile-nav ul > li:not(:has(> a, > button, > div)) {
+  margin-block-end: var(--meridian-space-1);
+  padding: var(--meridian-space-1) var(--meridian-space-2);
+  color: var(--meridian-text-secondary);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 600;
+  line-height: var(--meridian-leading-placard);
+}
+
+.nextra-sidebar li > :where(a, button),
+.nextra-mobile-nav li > :where(a, button) {
+  position: relative;
+  border-radius: var(--meridian-radius-control);
+  color: var(--meridian-text);
+  font-family: var(--meridian-font-body);
+}
+
+.nextra-sidebar li > :where(a, button):hover,
+.nextra-mobile-nav li > :where(a, button):hover {
+  background: var(--meridian-plate);
+  color: var(--meridian-text);
+}
+
+.nextra-sidebar li.active > a,
+.nextra-mobile-nav li.active > a {
+  background: transparent;
+  color: var(--meridian-text);
+  font-weight: 600;
+}
+
+.nextra-sidebar li.active > a::before,
+.nextra-mobile-nav li.active > a::before {
+  content: '';
+  position: absolute;
+  inset-block: 0.15rem;
+  inset-inline-start: 0;
+  inline-size: 2px;
+  background: var(--meridian-edge);
+}
+
+/* The table of contents, 1280px and up, with the same bar on the current heading. */
+.nextra-toc {
+  font-size: var(--meridian-text-small);
+}
+
+.nextra-toc :where(p) {
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 600;
+  color: var(--meridian-text-secondary);
+}
+
+.nextra-toc a {
+  position: relative;
+  color: var(--meridian-text-secondary);
+  font-weight: 400;
+}
+
+.nextra-toc code.nextra-code:not([class*='twoslash-']) {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--meridian-font-mono);
+  font-size: 0.85em;
+}
+
+.nextra-breadcrumb {
+  color: var(--meridian-text-secondary);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+}
+
+.nextra-breadcrumb :where(span, a) {
+  color: var(--meridian-text-secondary);
+  font-weight: 500;
+}
+
+.nextra-breadcrumb span:last-child {
+  color: var(--meridian-text);
+  font-weight: 600;
+}
+
+.nextra-toc a:hover {
+  color: var(--meridian-text);
+}
+
+.nextra-toc a[class*='text-primary-600'] {
+  color: var(--meridian-text);
+  font-weight: 600;
+}
+
+.nextra-toc a[class*='text-primary-600']::before {
+  content: '';
+  position: absolute;
+  inset-block: 0.1rem;
+  inset-inline-start: -0.5rem;
+  inline-size: 2px;
+  background: var(--meridian-edge);
+}
+
+@media (width < 1280px) {
+  .nextra-toc {
+    display: none;
+  }
+}
+
+/* The article (13.2): a plate on the bulkhead, prose at the measure. */
+article {
+  padding-block-end: var(--meridian-space-6);
+}
+
+article main > :where(p, ul, ol, h1, h2, h3, h4, h5, h6, blockquote, details),
+article main > :where(aside, .nexus-release, .nexus-prereq) {
+  max-inline-size: var(--meridian-measure);
+}
+
+article main > :where(.nexus-listing, .nexus-source, .meridian-console) {
+  max-inline-size: none;
+}
+
+article main {
+  color: var(--meridian-text);
+}
+
+article :where(p, li) {
+  line-height: var(--meridian-leading-body);
+}
+
+/* Headings take the display face; a symbol in one is inline code in Plex Mono. */
+article :where(h1, h2, h3, h4):not([class*='meridian-']) {
+  color: var(--meridian-text);
+  font-family: var(--meridian-font-display);
+  font-weight: 600;
+}
+
+article h2:not([class*='meridian-']) {
+  border-block-end-color: var(--meridian-seam);
+}
+
+/* Nextra's inline-code rule is unlayered at (0,2,2), so these selectors out-rank it. */
+article
+  :is(h1, h2, h3, h4)
+  code.nextra-code.nextra-code:not([class*='twoslash-']) {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--meridian-font-mono);
+  font-size: 0.85em;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+article code:not(pre code) {
+  font-family: var(--meridian-font-mono);
+}
+
+/* Anchors: visible on hover and on focus. */
+article .subheading-anchor {
+  color: var(--meridian-action);
+}
+
+article :where(h2, h3, h4):is(:hover, :focus-within) .subheading-anchor,
+article .subheading-anchor:focus-visible {
+  opacity: 1;
+}
+
+article .subheading-anchor::after {
+  content: '#';
+}
+
+article main a:not([class*='meridian-']):not(.subheading-anchor) {
+  color: var(--meridian-action);
+  text-decoration-line: underline;
+  text-underline-offset: 3px;
+}
+
+/* The release notice above the H1 is a Note callout (design system 7.3). */
+.nexus-release .meridian-notice {
+  margin-block: 0 var(--meridian-space-5);
+}
+
+.nexus-release .meridian-notice__body > p {
+  margin: 0;
+}
+
+.nexus-release a {
+  color: var(--meridian-action);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* The prerequisites plate. */
+.nexus-prereq {
+  margin-block: var(--meridian-space-5);
+  padding: var(--meridian-space-3) var(--meridian-space-5);
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-plate);
+  background: var(--meridian-plate-raised);
+  font-size: var(--meridian-text-small);
+}
+
+.nexus-prereq__placard {
+  margin: 0 0 var(--meridian-space-1);
+  color: var(--meridian-text-secondary);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 600;
+}
+
+.nexus-prereq ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--meridian-space-1) var(--meridian-space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nexus-prereq a {
+  color: var(--meridian-action);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Previous and next: two plates with a placard and the page title. */
+article > div:last-child:has(> a[title]) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--meridian-space-4);
+  margin-block-start: var(--meridian-space-7);
+  padding-block-start: 0;
+  border: 0;
+}
+
+article > div:last-child > a[title] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--meridian-space-1);
+  min-block-size: 4.25rem;
+  margin: 0;
+  padding: var(--meridian-space-3) var(--meridian-space-4);
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-plate);
+  background: var(--meridian-plate-raised);
+  color: var(--meridian-text);
+  font-family: var(--meridian-font-display);
+  font-size: var(--meridian-text-body);
+  font-weight: 600;
+  text-align: start;
+}
+
+article > div:last-child > a[title]:hover {
+  border-color: var(--meridian-edge);
+  color: var(--meridian-text);
+}
+
+article > div:last-child > a[title]:last-child:not(:first-child),
+article > div:last-child > a[title].x\:ms-auto {
+  grid-column: 2;
+  align-items: flex-end;
+  text-align: end;
+}
+
+article > div:last-child > a[title] > svg {
+  display: none;
+}
+
+article > div:last-child > a[title]::before {
+  color: var(--meridian-text-secondary);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 600;
+  content: 'Previous';
+}
+
+article > div:last-child > a[title].x\:ms-auto::before {
+  content: 'Next';
+}
+
+/* Blockquotes and tables sit on the plate with seams. */
+article table {
+  border-collapse: collapse;
+}
+
+article :where(th, td) {
+  border-color: var(--meridian-seam);
+}
+
+article blockquote {
+  border-inline-start-color: var(--meridian-edge);
+  color: var(--meridian-text-secondary);
+}
+
+/* The footer: the ship systems list, the licence line and the links. */
+.nexus-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--meridian-space-6);
+  max-inline-size: var(--nextra-content-width, 90rem);
+  margin-inline: auto;
+  margin-block-start: var(--meridian-space-7);
+  padding: var(--meridian-space-5) max(env(safe-area-inset-right), 1.5rem)
+    calc(var(--meridian-space-6) + env(safe-area-inset-bottom))
+    max(env(safe-area-inset-left), 1.5rem);
+  border-block-start: 1px solid var(--meridian-seam);
+  color: var(--meridian-text-secondary);
+  font-size: var(--meridian-text-small);
+}
+
+.nexus-footer ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--meridian-space-1) var(--meridian-space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nexus-footer a {
+  display: inline-flex;
+  align-items: center;
+  color: var(--meridian-text);
+  text-decoration-color: var(--meridian-action);
+  text-underline-offset: 3px;
+}
+
+.nexus-footer a:hover {
+  text-decoration: underline;
+}
+
+.nexus-footer__placard {
+  margin: 0 0 var(--meridian-space-2);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 600;
+}
+
+.nexus-footer__legal p {
+  margin: 0 0 var(--meridian-space-2);
+}
+
+@media (width < 768px) {
+  .nexus-footer {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--meridian-space-5);
+  }
+
+  article > div:last-child:has(> a[title]) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  article > div:last-child > a[title]:last-child:not(:first-child),
+  article > div:last-child > a[title].x\:ms-auto {
+    grid-column: 1;
+  }
+}
+
+/*
+ * The skip link (13.8). It reaches the article on a docs page. Hidden until
+ * focus, then a raised plate at the top left.
+ */
+.nextra-skip-nav:focus {
+  position: fixed;
+  inset: var(--meridian-space-3) auto auto var(--meridian-space-3);
+  z-index: 60;
+  inline-size: auto;
+  block-size: auto;
+  margin: 0;
+  padding: var(--meridian-space-2) var(--meridian-space-4);
+  clip: auto;
+  overflow: visible;
+  background: var(--meridian-plate-raised);
+  border: 1px solid var(--meridian-edge);
+  border-radius: var(--meridian-radius-control);
+  color: var(--meridian-text);
+  font-weight: 600;
+  box-shadow: var(--meridian-elevation-raised);
+}
+
+/* Reflow: nothing but a screen or a fence pans sideways at 320px (13.8). */
+/* Copy page floats beside the title on a wide page and above it on a phone. */
+@media (width < 768px) {
+  article > div[class*='float-end'] {
+    float: none;
+    display: flex;
+    inline-size: fit-content;
+    margin-block: var(--meridian-space-2);
+  }
+}
+
+@media (width < 480px) {
+  article {
+    padding-inline: var(--meridian-space-4);
+  }
+
+  article main :where(table) {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+html,
+body {
+  overflow-wrap: break-word;
+}
+
+/*
+ * Forced colours (13.8): plates and notices keep their structure through
+ * system-colour borders, and shadows and the chamfer give way.
+ */
+@media (forced-colors: active) {
+  article,
+  .nexus-prereq,
+  .nexus-release .meridian-notice,
+  article > div:last-child > a[title],
+  .nexus-search__panel,
+  .nextra-mobile-nav {
+    border: 1px solid CanvasText;
+    box-shadow: none;
+    background: Canvas;
+  }
+
+  .nextra-sidebar li.active > a::before,
+  .nextra-toc a[class*='text-primary-600']::before {
+    background: Highlight;
+  }
+
+  .nextra-navbar nav > div > a[aria-current] {
+    border-block-end-color: Highlight;
+  }
+
+  .nextra-navbar .nextra-navbar-blur {
+    border-block-end-color: CanvasText;
+  }
+
+  :focus-visible {
+    outline-color: Highlight;
+  }
+}

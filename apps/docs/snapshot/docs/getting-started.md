@@ -45,7 +45,7 @@ With DI, dependencies are injected from the outside:
 class UserService {
   constructor(
     private logger: Logger, // Interface/abstract dependency
-    private database: Database // Interface/abstract dependency
+    private database: Database, // Interface/abstract dependency
   ) {}
 
   getUser(id: string) {
@@ -151,13 +151,13 @@ import type { IUserService, IDataSource, ILogger } from '../interfaces';
 export class UserService implements IUserService {
   constructor(
     @Inject(DATABASE) private database: IDataSource,
-    @Inject(LOGGER) private logger: ILogger
+    @Inject(LOGGER) private logger: ILogger,
   ) {}
 
   async getUser(id: string): Promise<User> {
     this.logger.log(`Fetching user with id: ${id}`);
     const result = await this.database.query(
-      `SELECT * FROM users WHERE id = '${id}'`
+      `SELECT * FROM users WHERE id = '${id}'`,
     );
     return result[0];
   }
@@ -165,7 +165,7 @@ export class UserService implements IUserService {
   async createUser(userData: CreateUserDto): Promise<User> {
     this.logger.log(`Creating new user: ${userData.name}`);
     const result = await this.database.query(
-      `INSERT INTO users (name, email) VALUES ('${userData.name}', '${userData.email}') RETURNING *`
+      `INSERT INTO users (name, email) VALUES ('${userData.name}', '${userData.email}') RETURNING *`,
     );
     return result[0];
   }

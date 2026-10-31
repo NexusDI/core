@@ -26,7 +26,7 @@
   border: 1px solid var(--meridian-seam);
   border-radius: var(--meridian-radius-plate);
   overflow: hidden;
-  background: var(--meridian-plate-raised);
+  background: var(--meridian-bulkhead);
 }
 
 .nexus-behaviours__rail {
@@ -91,12 +91,25 @@
   background: var(--meridian-plate);
 }
 
+/*
+ * The pane is a console frame on the raised plate (site UX spec 13.4): the
+ * case's sentence is the head band, the code sits under it, and the code
+ * follows the theme.
+ */
 .nexus-behaviours__pane {
   overflow: auto;
-  padding: var(--meridian-space-3);
   display: flex;
   flex-direction: column;
-  gap: var(--meridian-space-2);
+  background: var(--meridian-plate-raised);
+  box-shadow: var(--meridian-elevation-raised);
+}
+
+.nexus-behaviours__pane > :not(.nexus-behaviours__title) {
+  margin-inline: var(--meridian-space-3);
+}
+
+.nexus-behaviours__pane > :last-child {
+  margin-block-end: var(--meridian-space-3);
 }
 
 .nexus-behaviours__waiting {

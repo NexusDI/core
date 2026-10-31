@@ -47,15 +47,20 @@ export const BEHAVIOUR_BUDGET = { raw: 1_850_000, gzip: 77_000 };
  * than `GUIDE_SLACK` gzipped bytes under it fails too, so a saving lowers the
  * ceiling in the same pull request.
  *
- * Measured at 982,514 bytes raw and 298,476 gzipped. The Meridian stylesheet
- * carries the Terminal, Button, Status, Alert and HoloLabel classes, so the raw
- * ceiling sits at 984,000. A guide carries
+ * Measured at 1003.1 kB raw and 303.7 kB gzipped. The docs chrome (site spec
+ * section 13) added the chrome and code stylesheets and the search shell, so the
+ * ceilings rose from 984 kB and 299 kB to 1004 kB and 304 kB. The search panel
+ * loads with `import()` on the first focus, so it is not in this total.
+ *
+ * Measured earlier at 982,514 bytes raw and 298,476 gzipped. The Meridian
+ * stylesheet carries the Terminal, Button, Status, Alert and HoloLabel
+ * classes, so the raw ceiling sat at 984,000. A guide carries
  * `components/twoslash/TypeCards.tsx`, which every page's component map
  * holds, and not the popover it loads: that comes with `import()` on a page
  * with a `twoslash` fence.
  */
 export const GUIDE_PAGE = 'scopes/index.html';
-export const GUIDE_BUDGET = { raw: 984_000, gzip: 299_000 };
+export const GUIDE_BUDGET = { raw: 1_004_000, gzip: 304_000 };
 export const GUIDE_SLACK = 5_000;
 
 /**

@@ -2,7 +2,9 @@ import { mapFences } from './fences.mjs';
 
 /**
  * Wraps every code fence that carries an exemption tag in `<Listing>`, so the
- * reader sees that nothing ran it (docs spec section 12.3).
+ * reader sees that nothing ran it (docs spec section 12.3). It also wraps a
+ * `file=… region=…` fence in `<Source>`, which prints the example file's name
+ * in a placard at the head of the fence (site UX spec 13.3).
  *
  *     ```ts no-run
  *     ship.get(NAV_CHARTS);
@@ -36,6 +38,9 @@ const TAGS = [
   'elided',
 ];
 
+/** The `file=… region=…` pair of a region fence, as the region loader reads it. */
+const REFERENCE = /(?:^|\s)file=(\S+)\s+region=([\w-]+)/;
+
 /** The first exemption tag among the words of a fence's info string. */
 function tagOf(info) {
   return info.split(/\s+/).find((word) => TAGS.includes(word));
@@ -46,6 +51,15 @@ export function markListings(source) {
   return mapFences(source, ({ indent, info, opener, body, closer }) => {
     const mark = tagOf(info);
     const fence = [opener, ...body, closer];
+    const reference = info.match(REFERENCE);
+    if (reference && !mark)
+      return [
+        `${indent}<Source file="${reference[1]}" region="${reference[2]}">`,
+        '',
+        ...fence,
+        '',
+        `${indent}</Source>`,
+      ];
     return mark
       ? [
           `${indent}<Listing mark="${mark}">`,

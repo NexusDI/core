@@ -21,10 +21,19 @@ describe('markListings', () => {
     }
   });
 
-  it('leaves region fences, plain fences and shell fences alone', () => {
+  it('wraps a region fence in Source, whatever else its info string carries', () => {
+    const plain = `${fence}ts file=examples/meridian/src/pages/tokens.md region=first-ship\n${fence}\n`;
+    expect(markListings(plain)).toBe(
+      `<Source file="examples/meridian/src/pages/tokens.md" region="first-ship">\n\n${plain}\n</Source>\n`,
+    );
+    const twoslash = `${fence}ts twoslash file=libs/core/docs/providers.md region=providers\n${fence}\n`;
+    expect(markListings(twoslash)).toContain(
+      '<Source file="libs/core/docs/providers.md" region="providers">',
+    );
+  });
+
+  it('leaves plain fences and shell fences alone', () => {
     const source = [
-      `${fence}ts file=examples/meridian/src/pages/tokens.md region=first-ship`,
-      fence,
       `${fence}sh`,
       'npm install @nexusdi/core',
       fence,

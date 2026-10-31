@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const PAGES = [
   '/next/',
@@ -26,9 +26,93 @@ for (const theme of ['dark', 'light'] as const) {
   });
 }
 
+/**
+ * Walks up from every text node to the first opaque surface and reports what
+ * is wrong between them and at the surface itself:
+ *
+ * - an element between the text and the surface that paints a background
+ *   image, or a colour with an alpha under 0.86 that is not a listed tint;
+ * - no opaque surface at all;
+ * - a first opaque surface that is none of the design system's surface
+ *   colours (bulkhead, plate, plate-raised or screen, in either theme).
+ *
+ * `TINTS` lists the elements whose partial-alpha background is meant to sit on
+ * the surface behind them.
+ */
+const TINTS: readonly string[] = [];
+
+async function offenders(page: Page): Promise<string[]> {
+  return page.evaluate((tints) => {
+    const alphaOf = (value: string): number => {
+      if (value === 'transparent') return 0;
+      const slash = /\/\s*([\d.]+)\s*\)$/.exec(value);
+      if (slash) return Number(slash[1]);
+      const comma = /^rgba\(([^)]+)\)$/.exec(value);
+      if (comma) return Number(comma[1]?.split(',')[3] ?? 1);
+      return 1;
+    };
+    /** `rgb()` strings of the surface roles, read through a probe. */
+    const probe = document.createElement('div');
+    document.body.append(probe);
+    const surfaces = new Set<string>();
+    for (const theme of ['dark', 'light'])
+      for (const role of ['bulkhead', 'plate', 'plate-raised']) {
+        probe.style.background = `var(--meridian-palette-${theme}-${role})`;
+        surfaces.add(getComputedStyle(probe).backgroundColor);
+      }
+    probe.style.background = 'var(--meridian-screen)';
+    surfaces.add(getComputedStyle(probe).backgroundColor);
+    probe.remove();
+
+    const found: string[] = [];
+    const walker = document.createTreeWalker(
+      document.body,
+      NodeFilter.SHOW_TEXT,
+    );
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (!node.textContent?.trim()) continue;
+      const element = node.parentElement;
+      if (!element) continue;
+      const box = element.getBoundingClientRect();
+      if (
+        box.width === 0 ||
+        box.height === 0 ||
+        getComputedStyle(element).visibility === 'hidden'
+      )
+        continue;
+      if (element.closest('[aria-hidden="true"], script, style, noscript'))
+        continue;
+
+      const name = `${element.tagName.toLowerCase()}: "${node.textContent.trim().slice(0, 40)}"`;
+      let surface: Element | null = element;
+      let problem = '';
+      let colour = '';
+      while (surface) {
+        const style = getComputedStyle(surface);
+        const alpha = alphaOf(style.backgroundColor);
+        if (style.backgroundImage === 'none' && alpha >= 0.86) {
+          colour = style.backgroundColor;
+          break;
+        }
+        const tint = tints.some((selector) => surface?.matches(selector));
+        if (style.backgroundImage !== 'none' && !tint)
+          problem = `a background image on ${surface.tagName.toLowerCase()}.${String(surface.className).slice(0, 40)}`;
+        else if (alpha > 0 && !tint)
+          problem = `alpha ${alpha} on ${surface.tagName.toLowerCase()}.${String(surface.className).slice(0, 40)}`;
+        surface = surface.parentElement;
+      }
+      if (!colour) problem ||= 'no opaque surface';
+      else if (!surfaces.has(colour) && !problem)
+        problem = `the surface ${colour} is no design system surface`;
+      if (problem) found.push(`${name} (${problem})`);
+    }
+    return found;
+  }, TINTS);
+}
+
 for (const theme of ['dark', 'light'] as const) {
   for (const path of PAGES) {
-    test(`every text node on ${path} sits on a surface of at least 0.86 alpha in ${theme} mode`, async ({
+    test(`every text node on ${path} sits on an opaque surface in ${theme} mode`, async ({
       page,
     }) => {
       await page.emulateMedia({ colorScheme: theme });
@@ -36,73 +120,44 @@ for (const theme of ['dark', 'light'] as const) {
       await expect(page.locator('html')).toHaveClass(
         theme === 'dark' ? /dark/ : /light/,
       );
-
-      const bare = await page.evaluate(() => {
-        const alphaOf = (value: string): number => {
-          if (value === 'transparent') return 0;
-          const slash = /\/\s*([\d.]+)\s*\)$/.exec(value);
-          if (slash) return Number(slash[1]);
-          const comma = /^rgba\(([^)]+)\)$/.exec(value);
-          if (comma) return Number(comma[1]?.split(',')[3] ?? 1);
-          return 1;
-        };
-        const offenders: string[] = [];
-        const walker = document.createTreeWalker(
-          document.body,
-          NodeFilter.SHOW_TEXT,
-        );
-        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-          if (!node.textContent?.trim()) continue;
-          const element = node.parentElement;
-          if (!element) continue;
-          const box = element.getBoundingClientRect();
-          const style = getComputedStyle(element);
-          if (
-            box.width === 0 ||
-            box.height === 0 ||
-            style.visibility === 'hidden'
-          )
-            continue;
-          if (element.closest('[aria-hidden="true"], script, style, noscript'))
-            continue;
-          // A tint (inline code, the active sidebar link) sits on the surface
-          // behind it, so the walk continues past a partial alpha.
-          let surface: Element | null = element;
-          let alpha = 0;
-          while (surface && surface !== document.documentElement) {
-            alpha = alphaOf(getComputedStyle(surface).backgroundColor);
-            if (alpha >= 0.86) break;
-            surface = surface.parentElement;
-          }
-          if (alpha < 0.86) {
-            const name = element.tagName.toLowerCase();
-            const cls =
-              element.className && typeof element.className === 'string'
-                ? `.${element.className.trim().split(/\s+/).join('.')}`
-                : '';
-            offenders.push(
-              `${name}${cls}: "${node.textContent.trim().slice(0, 40)}" (alpha ${alpha})`,
-            );
-          }
-        }
-        return offenders;
-      });
-
-      expect(bare, 'Each of these renders over the background canvas').toEqual(
-        [],
-      );
+      expect(
+        await offenders(page),
+        'Each of these renders over the background canvas',
+      ).toEqual([]);
     });
   }
 }
 
+test('the surface check fails on a glass plate and on a gradient', async ({
+  page,
+}) => {
+  await page.goto('/next/tokens/');
+  await page.addStyleTag({
+    content: 'article { background: rgb(20 20 20 / 0.6); }',
+  });
+  expect((await offenders(page)).some((each) => /alpha 0\.6/.test(each))).toBe(
+    true,
+  );
+  await page.addStyleTag({
+    content:
+      'article { background: linear-gradient(rgb(10 10 10), rgb(40 40 40)); }',
+  });
+  expect(
+    (await offenders(page)).some((each) => /background image/.test(each)),
+  ).toBe(true);
+});
+
 for (const theme of ['dark', 'light'] as const) {
-  test(`html paints the ground gradient in ${theme} mode`, async ({ page }) => {
+  test(`html paints the flat bulkhead in ${theme} mode`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: theme });
     await page.goto('/next/');
-    const image = await page.evaluate(
-      () => getComputedStyle(document.documentElement).backgroundImage,
-    );
-    expect(image).toContain('linear-gradient');
+    const ground = await page.evaluate(() => {
+      const style = getComputedStyle(document.documentElement);
+      return { image: style.backgroundImage, colour: style.backgroundColor };
+    });
+    // The design system has no gradient: the ground is one opaque colour.
+    expect(ground.image).toBe('none');
+    expect(ground.colour).toMatch(/^rgb\(/);
   });
 }
 

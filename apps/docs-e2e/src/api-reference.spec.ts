@@ -94,7 +94,7 @@ test('narrows the entries, says how many match, and keeps every one in the page'
   await page.keyboard.press('Escape');
   await expect(shown).toHaveCount(2);
 
-  await page.getByRole('button', { name: 'interface 1' }).click();
+  await page.getByRole('switch', { name: 'interface 1' }).click();
   await expect(shown).toHaveCount(1);
   await expect(status('1 of 2')).toHaveCount(1);
 });

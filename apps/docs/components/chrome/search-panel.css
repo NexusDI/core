@@ -1,0 +1,179 @@
+/*
+ * The results panel of the docs search (site UX spec 13.5). It loads with
+ * `SearchPanel.tsx` on the first focus or keystroke, so a page that never
+ * searches never fetches these rules.
+ */
+.nexus-search__panel {
+  position: absolute;
+  inset-block-start: calc(100% + var(--meridian-space-2));
+  inset-inline-end: 0;
+  z-index: 50;
+  inline-size: min(36rem, calc(100vw - 2rem));
+  max-block-size: min(70vh, 30rem);
+  overflow-y: auto;
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-plate);
+  background: var(--meridian-plate-raised);
+  box-shadow: var(--meridian-elevation-raised);
+}
+
+.nexus-search__panel[hidden] {
+  display: none;
+}
+
+@media (width < 768px) {
+  .nexus-search__panel {
+    position: static;
+    inline-size: 100%;
+    max-block-size: 60vh;
+    margin-block-start: var(--meridian-space-2);
+  }
+
+  .nexus-search {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.nexus-search__bands {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--meridian-space-1);
+  padding: var(--meridian-space-2) var(--meridian-space-3);
+  border-block-end: 1px solid var(--meridian-seam);
+  background: var(--meridian-plate-raised);
+}
+
+.nexus-search__bands button {
+  min-block-size: 1.5rem;
+  padding: 0 var(--meridian-space-2);
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-chip);
+  background: transparent;
+  color: var(--meridian-text-secondary);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-micro);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.nexus-search__bands button[aria-pressed='true'] {
+  border-color: var(--meridian-edge);
+  color: var(--meridian-text);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--meridian-edge);
+}
+
+.nexus-search__bands button span {
+  color: var(--meridian-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.nexus-search__page {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--meridian-space-3);
+  margin: 0;
+  padding: var(--meridian-space-2) var(--meridian-space-3)
+    var(--meridian-space-1);
+  color: var(--meridian-text-secondary);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 600;
+}
+
+.nexus-search__group + .nexus-search__group {
+  border-block-start: 1px solid var(--meridian-seam);
+}
+
+.nexus-search__band {
+  padding: 0 var(--meridian-space-2);
+  border: 1px solid var(--meridian-seam);
+  border-radius: var(--meridian-radius-chip);
+  font-size: var(--meridian-text-micro);
+  font-weight: 500;
+}
+
+.nexus-search__hit {
+  position: relative;
+  display: block;
+  padding: var(--meridian-space-2) var(--meridian-space-3);
+  color: var(--meridian-text);
+  text-decoration: none;
+}
+
+.nexus-search__hit:hover,
+.nexus-search__hit[data-active] {
+  background: var(--meridian-plate);
+}
+
+.nexus-search__hit[data-active]::before {
+  content: '';
+  position: absolute;
+  inset-block: 0.15rem;
+  inset-inline-start: 0;
+  inline-size: 2px;
+  background: var(--meridian-edge);
+}
+
+.nexus-search__title {
+  display: block;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.nexus-search__excerpt {
+  display: block;
+  margin-block-start: var(--meridian-space-1);
+  color: var(--meridian-text-secondary);
+  font-size: var(--meridian-text-small);
+  line-height: var(--meridian-leading-small);
+}
+
+.nexus-search__excerpt mark {
+  background: transparent;
+  color: var(--meridian-text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.nexus-search__note {
+  margin: 0;
+  padding: var(--meridian-space-4);
+  color: var(--meridian-text-secondary);
+  font-size: var(--meridian-text-small);
+}
+
+.nexus-search__note--error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--meridian-space-2);
+  color: var(--meridian-alarm);
+}
+
+.nexus-search__note--error svg {
+  flex: none;
+  margin-block-start: 0.35em;
+}
+
+@media (forced-colors: active) {
+  .nexus-search__panel,
+  .nexus-search__bands button {
+    border: 1px solid CanvasText;
+    background: Canvas;
+  }
+
+  .nexus-search__hit[data-active] {
+    outline: 2px solid Highlight;
+  }
+
+  .nexus-search__excerpt mark {
+    background: Mark;
+    color: MarkText;
+  }
+}
