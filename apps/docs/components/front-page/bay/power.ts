@@ -31,7 +31,7 @@ export const LIFETIME: Readonly<Record<SystemId, Lifetime>> = {
 };
 
 /** The module of each system: the hull section it lights. */
-export const MODULE_OF: Readonly<Record<SystemId, ModuleName>> = {
+const MODULE_OF: Readonly<Record<SystemId, ModuleName>> = {
   ReactorCore: 'Engineering',
   ShipComputer: 'Engineering',
   SubspaceLink: 'Comms',

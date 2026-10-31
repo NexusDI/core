@@ -174,7 +174,7 @@ function fixesOf(entry: DescribedError): Fix[] {
 }
 
 /** The banner for a failed check: the first entry's code and module, and the count. */
-export function bannerOfCheck(error: DescribedError): Banner {
+function bannerOfCheck(error: DescribedError): Banner {
   const entries = entriesOf(error);
   const first = entries[0] ?? error;
   return {

@@ -10,8 +10,8 @@
   // @nexusdi/meridian-ui is consumed by apps/docs through its built dist, and
   // visual-check.html renders every component. An export the docs app does not
   // import yet is still part of the design system.
-  // @nexusdi/meridian-deck is private and the docs app takes it in the bay's
-  // change. Its two entries are the surface that app reads.
+  // @nexusdi/meridian-deck is private and the docs app reads its two entries in
+  // the bay's light chunk.
   "publicPackages": [
     "@nexusdi/core",
     "@nexusdi/errors",
@@ -69,6 +69,8 @@
 
     // The check-schematic target of meridian-ship runs this script by path.
     "tools/meridian-ship/check-schematic.mjs",
+    // Run by hand in the Playwright container to draw the bay's baselines.
+    "apps/docs-e2e/playwright.baselines.config.ts",
     // The e2e project's webServer command runs serve.mjs by path.
     "apps/docs-e2e/src/support/serve.mjs",
     // The shell's Playwright suites: the e2e target runs

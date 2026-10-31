@@ -25,11 +25,11 @@ import { PreflightDeckSource } from './deck-source';
  * Its marker is the exported constant, so a minifier keeps the string and
  * `check-budgets.mjs` finds the chunk by it (12.1).
  */
-export const BAY_LIGHT_MARK = 'nexus-bay-light';
+const BAY_LIGHT_MARK = 'nexus-bay-light';
 export const bayLightMark = (): string => BAY_LIGHT_MARK;
 
 /** The art colours of the light (design system 4.5 and 8.5). */
-export const PALETTE = {
+const PALETTE = {
   lamp: '#e8b46a',
   glow: '#dfe6ea',
   alarm: '#ff6b5e',

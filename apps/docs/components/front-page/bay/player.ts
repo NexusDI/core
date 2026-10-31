@@ -11,7 +11,7 @@ import type { TraceEvent } from '@nexusdi/core';
  */
 
 export const STEP_MS = 120;
-export const BUDGET_MS = 2400;
+const BUDGET_MS = 2400;
 
 type Sleep = (ms: number) => Promise<void>;
 

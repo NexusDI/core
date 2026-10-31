@@ -44,7 +44,7 @@ const SYSTEM_STATE_WORD: Readonly<Record<SystemStatus, string>> = {
 };
 
 /** The accessible name of a part: the ship word, the code name, the state word and the action. */
-export function labelOf(part: Part, view: ShipView): string {
+function labelOf(part: Part, view: ShipView): string {
   switch (part.kind) {
     case 'conduit': {
       const status = view.conduits[part.key as ConduitId];
