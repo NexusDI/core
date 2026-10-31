@@ -144,7 +144,7 @@ describe('the committed schematic cutaway', () => {
 
   it('uses the frame of the painted side views as its viewBox', () => {
     expect(/<svg [^>]*viewBox="([^"]*)"/.exec(svg)?.[1]).toBe('-5 0 80 20');
-    for (const view of ['cutaway', 'side']) {
+    for (const view of ['cutaway-unlit', 'side']) {
       const sidecar = JSON.parse(
         readFileSync(
           join(import.meta.dirname, '..', 'ship-art', view, `${view}.json`),

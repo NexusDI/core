@@ -20,17 +20,13 @@ import { screen } from '@nexusdi/meridian-ui/tokens';
  * with no seam. Widths are 1024, 1536 and 2048 and never pass the master's
  * width.
  *
- * The cutaway has one more step. The painted pipes (37 of them: power,
- * coolant and atmosphere) never read as the page's dependency conduits, which
- * follow the placement routes (tech lead TL14), so a pipe mask, the geometry's
- * conduit paths projected 9 pixels wide, ANDed with a chroma key, turns each
- * painted pipe to grey at 55% of its luminance.
- *
  * `cutaway-unlit` is the bay's runtime art (design system 8.1, OR5, TL22). Its
  * master comes out of a separate bake that already removed the light, set the
  * rooms to neutral swatches and greyed the pipes, so the row only re-encodes
  * it. The master's ground is not the `screen` colour, so the row keeps the
- * ground swap and none of the other steps.
+ * ground swap and one more step: every pixel farther than `CRAFT_MARGIN`
+ * from the craft (the hull and the rooms of the room mask) becomes the ground,
+ * so a stray mark in space never shows.
  */
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -52,12 +48,12 @@ const ORIGIN = [128, 448];
 /** u = (x + 5) * 25.6 and v = (17.5 - z) * 25.6, in metres. */
 export const project = (x, z) => [(x + 5) * 25.6, (17.5 - z) * 25.6];
 
-/** Pipes keyed by chroma: HSV saturation over this (90 of 255), and grey at this share of luminance. */
+/** Pipes keyed by chroma: HSV saturation over this (90 of 255). The unlit bake greys them, and a test holds the band around the conduits to this key. */
 export const PIPE_KEY = 90 / 255;
-const PIPE_LUMINANCE = 0.55;
-const PIPE_WIDTH = 9;
 
 const REACH = 12;
+/** Pixels around the craft mask that the bake keeps, for the antialiased edge of the paint. */
+const CRAFT_MARGIN = 8;
 const SEED = 0x4d455244;
 const STARS = 170;
 const WIDTHS = [1024, 1536, 2048];
@@ -81,15 +77,9 @@ export const VIEWS = {
       to: 720,
     },
   },
-  cutaway: {
-    ground: [13, 13, 12],
-    pass: 'cutaway-cut-a-s211-h375',
-    avif: 64,
-    pipes: true,
-    camera: true,
-  },
   'cutaway-unlit': {
     ground: [13, 13, 12],
+    craft: true,
     pass: 'cutaway-unlit-v1',
     avif: 64,
     camera: true,
@@ -119,6 +109,8 @@ export function geometryHash(geometry = readGeometry()) {
 }
 
 const viewDir = (view) => join(ART_DIR, view);
+/** The room mask of the cutaway layers: 0 is space, 1 and up the hull and its rooms. */
+const CRAFT_MASK = join(ART_DIR, 'cutaway', 'meridian-cutaway-rooms.png');
 export const masterOf = (view) =>
   join(viewDir(view), `meridian-${view}-master.png`);
 
@@ -164,10 +156,6 @@ async function conduitRaster(geometry, width, height, stroke, threshold) {
   return Uint8Array.from(raster, (value) => (value > threshold ? 1 : 0));
 }
 
-/** The pipe mask: the conduit paths drawn 9 pixels wide. */
-const pipeMask = (geometry, width, height) =>
-  conduitRaster(geometry, width, height, PIPE_WIDTH, 64);
-
 /**
  * A band around each conduit path, `reach` pixels to either side, as one flag
  * per pixel. Where the pipe mask covers the painted pipes, no painted pipe is
@@ -204,6 +192,37 @@ export function isPipeHue(r, g, b) {
 export function saturation(r, g, b) {
   const max = Math.max(r, g, b);
   return max === 0 ? 0 : (max - Math.min(r, g, b)) / max;
+}
+
+/** The pixels within `reach` (a square) of a flagged pixel, as one flag per pixel. */
+function dilate(flags, width, height, reach) {
+  const across = new Uint8Array(width * height);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (!flags[y * width + x]) continue;
+      for (
+        let dx = Math.max(0, x - reach);
+        dx <= Math.min(width - 1, x + reach);
+        dx += 1
+      ) {
+        across[y * width + dx] = 1;
+      }
+    }
+  }
+  const out = new Uint8Array(width * height);
+  for (let x = 0; x < width; x += 1) {
+    for (let y = 0; y < height; y += 1) {
+      if (!across[y * width + x]) continue;
+      for (
+        let dy = Math.max(0, y - reach);
+        dy <= Math.min(height - 1, y + reach);
+        dy += 1
+      ) {
+        out[dy * width + x] = 1;
+      }
+    }
+  }
+  return out;
 }
 
 /** The ground by a flood fill from the border, as one flag per pixel. */
@@ -281,27 +300,6 @@ function addStars(out, ground, width, height) {
   }
 }
 
-/** The luminance of the pixel `at` of raw RGB. */
-const luma = (data, at) =>
-  0.299 * data[at * 3] + 0.587 * data[at * 3 + 1] + 0.114 * data[at * 3 + 2];
-
-/**
- * Moves the pixel `at` by `weight` toward `target(value, luminance)` for each
- * channel, rounded and held to 0 to 255.
- */
-function blendToward(data, at, weight, target) {
-  const luminance = luma(data, at);
-  for (let c = 0; c < 3; c += 1) {
-    const value = data[at * 3 + c];
-    data[at * 3 + c] = Math.round(
-      Math.min(
-        255,
-        Math.max(0, value * (1 - weight) + target(value, luminance) * weight),
-      ),
-    );
-  }
-}
-
 /** The master of `view` after every step of its row, as raw RGB. */
 export async function bake(view, options = {}) {
   const row = { ...VIEWS[view], ...options };
@@ -323,35 +321,25 @@ export async function bake(view, options = {}) {
     }
     if (row.stars) addStars(out, ground, width, height);
   }
-
-  if (row.pipes) {
-    const geometry = readGeometry();
-    const mask = await pipeMask(geometry, width, height);
-    const keyed = new Float32Array(width * height);
-    for (let at = 0; at < mask.length; at += 1) {
-      if (!mask[at]) continue;
-      const [r, g, b] = [out[at * 3], out[at * 3 + 1], out[at * 3 + 2]];
-      if (saturation(r, g, b) > PIPE_KEY) keyed[at] = 1;
-    }
-    // The key keeps its full strength, and the blur only softens the edge outward.
-    const soft = await sharp(Buffer.from(keyed.map((value) => value * 255)), {
-      raw: { width, height, channels: 1 },
-    })
-      .blur(0.8)
+  if (row.craft) {
+    const { data: mask } = await sharp(CRAFT_MASK)
+      .extractChannel(0)
       .raw()
-      .toBuffer();
+      .toBuffer({ resolveWithObject: true });
+    const near = dilate(
+      Uint8Array.from(mask, (value) => (value > 0 ? 1 : 0)),
+      width,
+      height,
+      CRAFT_MARGIN,
+    );
     for (let at = 0; at < width * height; at += 1) {
-      const k = Math.max(soft[at] / 255, keyed[at]);
-      if (k > 0) {
-        blendToward(
-          out,
-          at,
-          k,
-          (_value, luminance) => luminance * PIPE_LUMINANCE,
-        );
-      }
+      if (near[at]) continue;
+      out[at * 3] = SCREEN[0];
+      out[at * 3 + 1] = SCREEN[1];
+      out[at * 3 + 2] = SCREEN[2];
     }
   }
+
   return { data: out, width, height };
 }
 
@@ -370,17 +358,19 @@ export function bakeHash(view) {
         screen: SCREEN,
         steps: {
           REACH,
+          CRAFT_MARGIN,
           SEED,
           STARS,
           WIDTHS,
           PIPE_KEY,
-          PIPE_LUMINANCE,
-          PIPE_WIDTH,
         },
         master: createHash('sha256')
           .update(readFileSync(masterOf(view)))
           .digest('hex'),
-        geometry: row.pipes ? geometryHash() : null,
+        geometry: row.camera ? geometryHash() : null,
+        craft: row.craft
+          ? createHash('sha256').update(readFileSync(CRAFT_MASK)).digest('hex')
+          : null,
       }),
     )
     .digest('hex');

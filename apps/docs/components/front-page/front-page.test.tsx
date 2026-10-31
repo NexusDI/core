@@ -27,7 +27,6 @@ vi.mock('./art', () => {
   });
   return {
     FRAME: [-5, 0, 80, 20],
-    cutawayBase: base,
     unlitCutawayBase: base,
     sideBase: base,
   };
@@ -80,7 +79,7 @@ describe('the ship systems strip', () => {
     );
   });
 
-  it('crops the painted cutaway under each link, each crop its own scope, with the seed lit', () => {
+  it('crops the unlit cutaway under each link, each crop its own scope, with the seed lit', () => {
     const { container } = render(<ShipSystems />);
     const crops = container.querySelectorAll('.nexus-systems__crop');
     expect(crops).toHaveLength(7);
