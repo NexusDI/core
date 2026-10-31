@@ -95,8 +95,10 @@ export interface DeckLight {
   readonly colour: string;
   readonly fixture: string | null;
   readonly emissive: boolean;
-  /** The share of its level that the sprite and the housing of the light show. */
+  /** The share of its level that the light's sprite shows. */
   readonly gain: number;
+  /** The share of its level that the light's housing shows: 0.75, or 0.45 for a long strip. */
+  readonly housing: number;
   readonly centre: readonly [number, number];
   readonly radius: number;
   readonly box: readonly [number, number, number, number];
