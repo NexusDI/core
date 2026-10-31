@@ -42,6 +42,7 @@ function setup(options: { slowStart?: boolean } = {}) {
   const compositor: IDeckCompositor = {
     mount: vi.fn(() => Promise.resolve()),
     render: vi.fn(),
+    onFrame: vi.fn(() => () => {}),
     unmount: vi.fn(),
   };
   const view = new DeckViewController(host, compositor, OPTIONS);
@@ -116,6 +117,15 @@ describe('DeckViewController', () => {
     fire('webglcontextrestored');
     expect(heard).toEqual(['lost', 'restored']);
     expect(compositor.render).toHaveBeenCalledTimes(2);
+  });
+
+  it('hands onFrame to the compositor and returns its way to stop', () => {
+    const { view, compositor } = setup();
+    const stop = vi.fn();
+    vi.mocked(compositor.onFrame).mockReturnValueOnce(stop);
+    const listener = vi.fn();
+    expect(view.onFrame(listener)).toBe(stop);
+    expect(compositor.onFrame).toHaveBeenCalledWith(listener);
   });
 
   it('frees the layers when a mount fails, and rejects with its error', async () => {

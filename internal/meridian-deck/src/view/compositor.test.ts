@@ -57,6 +57,35 @@ describe('LayerCompositor', () => {
     expect(log.slice(-2)).toEqual(['light:unmount', 'base:unmount']);
   });
 
+  it('tells its frame listeners after each draw, only while mounted, and stops on request', async () => {
+    const order: string[] = [];
+    const draw = vi.fn(() => order.push('draw'));
+    const drawing = { render: draw } as unknown as WebGLRenderer;
+    const layer: IDeckLayer = {
+      mount: () => Promise.resolve(),
+      unmount: () => {},
+    };
+    const compositor = new LayerCompositor([layer]);
+    const heard = vi.fn(() => order.push('frame'));
+    const stop = compositor.onFrame(heard);
+    compositor.render();
+    expect(heard).not.toHaveBeenCalled();
+    await compositor.mount(
+      drawing,
+      OPTIONS.scene,
+      new AbortController().signal,
+    );
+    compositor.render();
+    expect(order).toEqual(['draw', 'frame']);
+    stop();
+    compositor.render();
+    expect(heard).toHaveBeenCalledOnce();
+    compositor.unmount();
+    compositor.onFrame(heard);
+    compositor.render();
+    expect(heard).toHaveBeenCalledOnce();
+  });
+
   it('unmounts a layer that finishes after the abort, and mounts no later layer', async () => {
     const log: string[] = [];
     const first = slowLayer('first', log);

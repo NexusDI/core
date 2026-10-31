@@ -19,6 +19,15 @@ export interface IDeckView {
    * when the view's container disposes.
    */
   detach(): void;
+  /**
+   * Calls `listener` after each frame the scene renders, and only while it
+   * renders, so a still scene is silent. The canvas holds that frame inside
+   * the callback: a `drawImage()` of it there copies the lit scene, with no
+   * `preserveDrawingBuffer` on the context (the buffer clears when the browser
+   * presents the frame, after the callback has run). A copy made later in the
+   * task or in another one reads a blank canvas. Returns the way to stop.
+   */
+  onFrame(listener: () => void): () => void;
   /** Calls `listener` when the context is lost and when it comes back. Returns the way to stop. */
   onStatus(listener: (status: DeckViewStatus) => void): () => void;
 }
