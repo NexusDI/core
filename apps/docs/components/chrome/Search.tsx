@@ -157,7 +157,11 @@ export default function Search({
         }}
         onKeyDown={onKeyDown}
       />
-      <kbd className="nexus-search__hint" aria-hidden="true" hidden={focused}>
+      <kbd
+        className="meridian-chip nexus-search__hint"
+        aria-hidden="true"
+        hidden={focused}
+      >
         {mac ? '⌘K' : 'Ctrl K'}
       </kbd>
       {Panel ? (

@@ -190,6 +190,33 @@
   font-weight: 600;
 }
 
+/*
+ * The placard type every plate label shares: Plex Condensed at weight 600 in
+ * `text-secondary` (design system 5.1).
+ */
+.nexus-prereq__placard,
+.nexus-footer__placard,
+.nexus-search__page,
+.nexus-source__head,
+.nexus-listing .nexus-listing__label {
+  color: var(--meridian-text-secondary);
+  font-family: var(--meridian-font-condensed);
+  font-size: var(--meridian-text-placard);
+  font-weight: 600;
+}
+
+/* The control face of the docs search and the API filter inputs (13.4, 13.5). */
+.nexus-search__input,
+.nexus-api-filter__query {
+  border: 1px solid var(--meridian-edge);
+  border-radius: var(--meridian-radius-control);
+  background: var(--meridian-plate);
+  color: var(--meridian-text);
+  font: inherit;
+}
+
+/* The two-pixel `edge` bar that marks the current or active entry. */
+.nexus-search__hit[data-active]::before,
 .nextra-sidebar li.active > a::before,
 .nextra-mobile-nav li.active > a::before {
   content: '';
@@ -216,14 +243,6 @@
   position: relative;
   color: var(--meridian-text-secondary);
   font-weight: 400;
-}
-
-.nextra-toc code.nextra-code:not([class*='twoslash-']) {
-  padding: 0;
-  border: 0;
-  background: none;
-  font-family: var(--meridian-font-mono);
-  font-size: 0.85em;
 }
 
 .nextra-breadcrumb {
@@ -300,6 +319,8 @@ article h2:not([class*='meridian-']) {
 }
 
 /* Nextra's inline-code rule is unlayered at (0,2,2), so these selectors out-rank it. */
+/* The table of contents holds the same code in its links. */
+.nextra-toc code.nextra-code:not([class*='twoslash-']),
 article
   :is(h1, h2, h3, h4)
   code.nextra-code.nextra-code:not([class*='twoslash-']) {
@@ -363,21 +384,9 @@ article main a:not([class*='meridian-']):not(.subheading-anchor) {
 
 .nexus-prereq__placard {
   margin: 0 0 var(--meridian-space-1);
-  color: var(--meridian-text-secondary);
-  font-family: var(--meridian-font-condensed);
-  font-size: var(--meridian-text-placard);
-  font-weight: 600;
 }
 
-.nexus-prereq ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--meridian-space-1) var(--meridian-space-5);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
+.nexus-prereq ul,
 .nexus-prereq a {
   color: var(--meridian-action);
   text-decoration: underline;
@@ -420,9 +429,16 @@ article > div:last-child > a[title]:hover {
 
 article > div:last-child > a[title]:last-child:not(:first-child),
 article > div:last-child > a[title].x\:ms-auto {
-  grid-column: 2;
   align-items: flex-end;
   text-align: end;
+}
+
+/* Side by side on a wide page, stacked on a phone. */
+@media (width >= 768px) {
+  article > div:last-child > a[title]:last-child:not(:first-child),
+  article > div:last-child > a[title].x\:ms-auto {
+    grid-column: 2;
+  }
 }
 
 article > div:last-child > a[title] > svg {
@@ -494,9 +510,6 @@ article blockquote {
 
 .nexus-footer__placard {
   margin: 0 0 var(--meridian-space-2);
-  font-family: var(--meridian-font-condensed);
-  font-size: var(--meridian-text-placard);
-  font-weight: 600;
 }
 
 .nexus-footer__legal p {
@@ -511,11 +524,6 @@ article blockquote {
 
   article > div:last-child:has(> a[title]) {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  article > div:last-child > a[title]:last-child:not(:first-child),
-  article > div:last-child > a[title].x\:ms-auto {
-    grid-column: 1;
   }
 }
 
