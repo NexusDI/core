@@ -19,6 +19,8 @@
     "rootDir": "."
   },
   "include": ["vite.config.ts", "src/**/*.ts", "src/**/*.d.ts"],
+  // The library project owns the scene; the tests reach it through the reference.
+  "exclude": ["src/scenes/front-page.ts"],
   "references": [
     {
       "path": "./tsconfig.lib.json"
