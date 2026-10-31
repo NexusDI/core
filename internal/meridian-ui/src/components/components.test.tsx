@@ -418,7 +418,7 @@ describe('Schematic', () => {
     expect(css).toContain('[data-room="galley"]');
     expect(css).toContain('animation:meridian-sv-alarm 1s');
     expect(css).toContain('[data-fixture="bridge\\.helm"]');
-    expect(css).toContain('[data-door="a-b"]{fill:url(#sv-hazard);');
+    expect(css).toContain('[data-door="a-b"]{fill:url(#meridian-hazard-ship);');
     expect(css).toContain('stroke:var(--meridian-alarm)');
     expect(css).not.toMatch(/#[0-9a-f]{3,8}\b|rgb\(/i);
   });
@@ -513,6 +513,33 @@ describe('Schematic', () => {
     expect(container.querySelector('style')?.textContent).toContain(
       '[data-schematic="crop"]',
     );
+  });
+});
+
+describe('Schematic hazard patterns', () => {
+  it('gives two schematics distinct pattern ids that their rules reference', () => {
+    const { container } = render(
+      <>
+        <Schematic markup={MARKUP} scope="bay" doors={{ 'a-b': 'closed' }} />
+        <Schematic markup={MARKUP} scope="crop" doors={{ 'a-b': 'closed' }} />
+      </>,
+    );
+    const ids = [...container.querySelectorAll('pattern')].map(
+      (pattern) => pattern.id,
+    );
+    expect(ids).toEqual(['meridian-hazard-bay', 'meridian-hazard-crop']);
+    const styles = [...container.querySelectorAll('style')].map(
+      (style) => style.textContent ?? '',
+    );
+    expect(styles[0]).toContain('url(#meridian-hazard-bay)');
+    expect(styles[1]).toContain('url(#meridian-hazard-crop)');
+  });
+
+  it('renders no pattern when no door is closed', () => {
+    const { container } = render(
+      <Schematic markup={MARKUP} doors={{ 'a-b': 'open' }} />,
+    );
+    expect(container.querySelector('pattern')).toBeNull();
   });
 });
 
