@@ -6,11 +6,11 @@
  */
 export const family = {
   display:
-    "var(--font-display), 'Space Grotesk', ui-sans-serif, system-ui, sans-serif",
-  body: "var(--font-body), 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif",
+    "var(--font-display, 'Space Grotesk'), ui-sans-serif, system-ui, sans-serif",
+  body: "var(--font-body, 'IBM Plex Sans'), ui-sans-serif, system-ui, sans-serif",
   condensed:
-    "var(--font-condensed), 'IBM Plex Sans Condensed', 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif",
-  mono: "var(--font-mono), 'IBM Plex Mono', ui-monospace, monospace",
+    "var(--font-condensed, 'IBM Plex Sans Condensed'), 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif",
+  mono: "var(--font-mono, 'IBM Plex Mono'), ui-monospace, monospace",
 } as const;
 
 export const type = {

@@ -38,10 +38,10 @@
   --meridian-screen-text: #e8ecf0;
   --meridian-holo: #0e2a33;
   --meridian-holo-backing: rgb(14 42 51 / 0.94);
-  --meridian-font-display: var(--font-display), 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
-  --meridian-font-body: var(--font-body), 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-  --meridian-font-condensed: var(--font-condensed), 'IBM Plex Sans Condensed', 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-  --meridian-font-mono: var(--font-mono), 'IBM Plex Mono', ui-monospace, monospace;
+  --meridian-font-display: var(--font-display, 'Space Grotesk'), ui-sans-serif, system-ui, sans-serif;
+  --meridian-font-body: var(--font-body, 'IBM Plex Sans'), ui-sans-serif, system-ui, sans-serif;
+  --meridian-font-condensed: var(--font-condensed, 'IBM Plex Sans Condensed'), 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --meridian-font-mono: var(--font-mono, 'IBM Plex Mono'), ui-monospace, monospace;
   --meridian-text-display: 3.052rem;
   --meridian-leading-display: 1.05;
   --meridian-text-h1: 2.441rem;
