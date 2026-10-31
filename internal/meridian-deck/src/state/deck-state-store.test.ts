@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { FakeSource } from '../test-support.js';
 
-import type { DeckChange, DeckEvent, IDeckBinding } from './contracts.js';
+import type { DeckChange, IDeckBinding } from './contracts.js';
 import { DeckStateStore } from './deck-state-store.js';
 
 function build(bindings: IDeckBinding[] = []) {
@@ -10,6 +10,14 @@ function build(bindings: IDeckBinding[] = []) {
   const store = new DeckStateStore(source, bindings);
   store.onInit();
   return { source, store };
+}
+
+// A package that owns an event adds it to the map (P2), and a test adds the two it pushes.
+declare module './contracts.js' {
+  interface DeckEventMap {
+    drill: { readonly room: string };
+    noise: { readonly volume: number };
+  }
 }
 
 describe('DeckStateStore', () => {
@@ -44,22 +52,20 @@ describe('DeckStateStore', () => {
   it('hands an event of an unknown type to the bindings and applies the patch one returns', () => {
     const known: IDeckBinding = {
       patchOf: (event) =>
-        (event as { type: string }).type === 'drill'
-          ? { rooms: { airlock: 'alarm' } }
+        event.type === 'drill'
+          ? { rooms: { [event.room]: 'alarm' } }
           : undefined,
     };
     const silent: IDeckBinding = { patchOf: vi.fn(() => undefined) };
     const { source, store } = build([silent, known]);
-    source.push({ type: 'drill' } as unknown as DeckEvent);
+    source.push({ type: 'drill', room: 'airlock' });
     expect(store.snapshot().rooms).toEqual({ airlock: 'alarm' });
     expect(silent.patchOf).toHaveBeenCalledOnce();
   });
 
   it('ignores an event of an unknown type that no binding reads', () => {
     const { source, store } = build();
-    expect(() =>
-      source.push({ type: 'noise' } as unknown as DeckEvent),
-    ).not.toThrow();
+    expect(() => source.push({ type: 'noise', volume: 11 })).not.toThrow();
     expect(store.snapshot()).toEqual({ rooms: {}, fixtures: {} });
   });
 

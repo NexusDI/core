@@ -24,11 +24,27 @@ export interface DeckPatch {
   readonly ramp?: Ramp;
 }
 
-/** What a source tells the store. The store handles a type it does not know with its default branch. */
-export interface DeckEvent {
-  readonly type: 'state';
-  readonly patch: DeckPatch;
+/**
+ * The events a source can send, by type. A package that owns another event
+ * adds it by augmenting this interface, so the set is open (extension
+ * principle P2):
+ *
+ * ```ts
+ * declare module '@nexusdi/meridian-deck' {
+ *   interface DeckEventMap {
+ *     drill: { readonly room: string };
+ *   }
+ * }
+ * ```
+ */
+export interface DeckEventMap {
+  state: { readonly patch: DeckPatch };
 }
+
+/** What a source tells the store. The store handles a type it does not know with its default branch. */
+export type DeckEvent = {
+  [Type in keyof DeckEventMap]: { readonly type: Type } & DeckEventMap[Type];
+}[keyof DeckEventMap];
 
 /** The state of every room and fixture a source has set. */
 export interface DeckSnapshot {
@@ -72,12 +88,15 @@ export interface DeckPalette {
 /** One light of `meridian-cutaway-lights.json`, in pixels of the cutaway frame. */
 export interface DeckLight {
   readonly ids: readonly string[];
+  /** The room whose rectangle holds the light, and whose index clips it. */
   readonly room: string;
   readonly kind: string;
   /** The art colour's name, a key of the palette. */
   readonly colour: string;
   readonly fixture: string | null;
   readonly emissive: boolean;
+  /** The share of its level that the sprite and the housing of the light show. */
+  readonly gain: number;
   readonly centre: readonly [number, number];
   readonly radius: number;
   readonly box: readonly [number, number, number, number];
