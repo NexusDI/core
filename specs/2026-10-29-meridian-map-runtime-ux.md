@@ -1345,7 +1345,7 @@ Q10. The front page's pre-flight bay is lit by Pixi (OR5, TL22 to TL27).
 
 The owner asked for paint-overs exported without baked lighting, with Pixi adding the light
 so it can follow state. The bay draws the unlit cutaway (a de-lit `cutaway-cut-a-s211-h375`,
-bake `cutaway-unlit-v1`) and `DeckView` lights it. `internal/meridian-deck` lands as step D0,
+bake `cutaway-unlit-v1`) and `DeckView` lights it. `internal/meridian-deck` is step D0,
 with the `.` entry free of Pixi and `./view` holding the renderer, the base and light layers.
 `DECK_SOURCE` is a plain token bound in the app's global module, and `DeckState.forRoot()` is
 declared once (TL23). The view loads after the bay is visible and idle, and not under
