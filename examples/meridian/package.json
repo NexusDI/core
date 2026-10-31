@@ -3,6 +3,14 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./scenes/front-page": {
+      "types": "./src/scenes/front-page.ts",
+      "import": "./src/scenes/front-page.ts",
+      "default": "./src/scenes/front-page.ts"
+    },
+    "./package.json": "./package.json"
+  },
   "dependencies": {
     "@nexusdi/core": "*",
     "@nexusdi/decorators": "*",

@@ -80,6 +80,9 @@
       "path": "../../libs/node"
     },
     {
+      "path": "../../examples/meridian"
+    },
+    {
       "path": "../../libs/interceptors"
     },
     {
