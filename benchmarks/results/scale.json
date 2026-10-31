@@ -1426,40 +1426,40 @@
       "variant": "plain",
       "shape": "mixed",
       "size": 50,
-      "minified": 76220,
-      "gzip": 24413
+      "minified": 76244,
+      "gzip": 24421
     },
     {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
       "size": 200,
-      "minified": 102343,
-      "gzip": 28926
+      "minified": 102367,
+      "gzip": 28935
     },
     {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
       "size": 1000,
-      "minified": 248286,
-      "gzip": 54448
+      "minified": 248310,
+      "gzip": 54456
     },
     {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
       "size": 2500,
-      "minified": 532715,
-      "gzip": 101398
+      "minified": 532739,
+      "gzip": 101406
     },
     {
       "library": "nexusdi",
       "variant": "plain",
       "shape": "mixed",
       "size": 5000,
-      "minified": 1011087,
-      "gzip": 180769
+      "minified": 1011112,
+      "gzip": 180774
     },
     {
       "library": "tsyringe",
