@@ -12,6 +12,10 @@ const baseURL = process.env['BASE_URL'] ?? `http://localhost:${PORT}`;
  */
 export default defineConfig({
   ...nxE2EPreset(import.meta.filename, { testDir: './src' }),
+  // One baseline for every operating system: the bay's screenshots tolerate the
+  // small text differences between them (`maxDiffPixelRatio`).
+  snapshotPathTemplate:
+    '{testDir}/{testFileName}-snapshots/{arg}-{projectName}{ext}',
   use: {
     baseURL,
     trace: 'on-first-retry',

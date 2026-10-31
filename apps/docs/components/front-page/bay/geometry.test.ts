@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import {
   CONDUITS,
   HATCHES,
@@ -10,6 +13,7 @@ import {
   ALL_ROOMS,
   CONDUIT_IDS,
   CROPS,
+  FRAME,
   HATCH_IDS,
   HIT_PX,
   PARTS_IN_HULL_ORDER,
@@ -63,6 +67,49 @@ describe('the ship parts', () => {
       // A section opens on the part's own module, except the meridian
       // section, which holds the bridge's conduits and the diagnostics panel.
       expect(moduleOf.get(part.section), part.id).toBe(part.module);
+    }
+  });
+});
+
+describe('the registered frame', () => {
+  const markup = readFileSync(
+    join(import.meta.dirname, '..', 'meridian-schematic.svg'),
+    'utf8',
+  );
+  const rooms = [
+    ...markup.matchAll(
+      /<rect[^>]*x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)" data-room="([^"]+)"/g,
+    ),
+  ].map(([, x, y, w, h, id]) => ({
+    id: id as string,
+    x: Number(x),
+    y: Number(y),
+    w: Number(w),
+    h: Number(h),
+  }));
+
+  it('opens on the frame of the committed cutaway', () => {
+    expect(FRAME).toEqual([-5, 0, 80, 20]);
+    expect(markup).toContain('viewBox="-5 0 80 20"');
+  });
+
+  it('puts each system, hatch and the chart link inside a room of its hull section', () => {
+    for (const part of PARTS_IN_HULL_ORDER) {
+      if (part.kind === 'conduit') continue;
+      const inside = rooms.filter(
+        (room) =>
+          part.at[0] >= room.x &&
+          part.at[0] <= room.x + room.w &&
+          part.at[1] >= room.y &&
+          part.at[1] <= room.y + room.h,
+      );
+      const sections = Object.entries(PLACEMENT.hullSections)
+        .filter(([name]) => name === part.module)
+        .flatMap(([, ids]) => ids);
+      expect(
+        inside.some((room) => sections.includes(room.id)),
+        `${part.id} sits in ${inside.map((room) => room.id).join(', ')}`,
+      ).toBe(true);
     }
   });
 });
