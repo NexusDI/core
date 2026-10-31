@@ -14,12 +14,23 @@ page. It carries no fill, no stroke colour and no text: the parts name
 themselves by class (`sv-hull`, `sv-room`, `sv-fixture`, `sv-door`) and by
 `data-volume`, `data-part`, `data-room`, `data-fixture` and `data-door`, and
 the page's CSS paints them.
+
+    python3 tools/meridian-ship/ship_svg.py --cutaway-layers <dir>
+
+`--cutaway-layers` writes the data layers of the unlit cutaway that Pixi lights
+at run time, on the frame of the painted side views (2048 by 512 pixels at 25.6
+pixels per metre): `meridian-cutaway-rooms.png` (a room index mask) with its
+`meridian-cutaway-rooms.legend.json`, `meridian-cutaway-emissive.png` and
+`meridian-cutaway-lights.json`.
 """
 
 import argparse
 import json
 import math
 import os
+import re
+import struct
+import zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_GEOMETRY = os.path.join(
@@ -531,9 +542,7 @@ def partition_rooms(rects):
     it. Rectangles go in order of area, then id, and each loses the area a smaller one holds,
     so a room can come back as several rectangles that carry its id.
     """
-    ordered = sorted(
-        rects, key=lambda r: ((r[1][2] - r[1][0]) * (r[1][3] - r[1][1]), r[0], r[1])
-    )
+    ordered = sorted(rects, key=lambda r: ((r[1][2] - r[1][0]) * (r[1][3] - r[1][1]), r[0], r[1]))
     claimed = []
     for room, rect in ordered:
         pieces = [rect]
@@ -560,23 +569,7 @@ def schematic_svg(geometry, hull):
         plain_path(p, flip, "sv-hull", f'data-part="exterior-{i}"') for i, p in enumerate(side)
     ]
     body += ["</g>", '<g class="sv-rooms">']
-    rects = []
-    for room in geometry["compartments"]:
-        for box in room["boxes"]:
-            x0, x1 = box["x"]
-            z0, z1 = box["z"]
-            rects.append(
-                (
-                    room["id"],
-                    (
-                        round(x0 + 0.05, 2),
-                        round(flip(z1) + 0.05, 2),
-                        round(x1 - 0.05, 2),
-                        round(flip(z0) - 0.05, 2),
-                    ),
-                )
-            )
-    for room, (x0, y0, x1, y1) in partition_rooms(rects):
+    for room, (x0, y0, x1, y1) in room_rects(geometry):
         body.append(
             f'<rect class="sv-room" x="{x0:.2f}" y="{y0:.2f}" '
             f'width="{x1 - x0:.2f}" height="{y1 - y0:.2f}" data-room="{room}"/>'
@@ -608,6 +601,215 @@ def export_schematic(geometry, out):
     print(f"meridian-ship: wrote {target}")
 
 
+# --- cutaway layers: the masks and the lights of the unlit cutaway -----------------------------
+
+PIXELS_PER_METRE = 25.6
+LAYER_SIZE = (2048, 512)
+SPACE, STRUCTURE, FIRST_ROOM = 0, 1, 2
+
+
+def to_px(x, z):
+    """Metres to pixels of the painted side views: u = (x + 5) * 25.6, v = (17.5 - z) * 25.6."""
+    return (x + 5) * PIXELS_PER_METRE, (SCHEMATIC_TOP - z) * PIXELS_PER_METRE
+
+
+def png_grey(width, height, rows):
+    """An 8-bit greyscale PNG from `rows`, one bytes object of `width` samples per row."""
+
+    def chunk(kind, data):
+        body = kind + data
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body))
+
+    raw = b"".join(b"\x00" + bytes(row) for row in rows)
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 0, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(raw, 9))
+        + chunk(b"IEND", b"")
+    )
+
+
+def fill_polygon(grid, points, value):
+    """Fills the polygon with `value` where a pixel centre lies inside it (even-odd rule)."""
+    width = len(grid[0])
+    ys = [p[1] for p in points]
+    for row in range(
+        max(0, math.ceil(min(ys) - 0.5)), min(len(grid), math.floor(max(ys) - 0.5) + 1)
+    ):
+        y = row + 0.5
+        crossings = []
+        for (ax, ay), (bx, by) in zip(points, points[1:] + points[:1]):
+            if (ay <= y < by) or (by <= y < ay):
+                crossings.append(ax + (y - ay) / (by - ay) * (bx - ax))
+        crossings.sort()
+        for left, right in zip(crossings[::2], crossings[1::2]):
+            for col in range(
+                max(0, math.ceil(left - 0.5)), min(width, math.floor(right - 0.5) + 1)
+            ):
+                grid[row][col] = value
+
+
+def fill_rect(grid, u0, v0, u1, v1, value, outward=False):
+    """Fills the pixels of the rectangle, rounded to the nearest edge or outward, one at least."""
+    snap_low, snap_high = (math.floor, math.ceil) if outward else (round, round)
+    c0, r0 = snap_low(u0), snap_low(v0)
+    c1, r1 = max(snap_high(u1), c0 + 1), max(snap_high(v1), r0 + 1)
+    for row in range(max(0, r0), min(len(grid), r1)):
+        for col in range(max(0, c0), min(len(grid[0]), c1)):
+            grid[row][col] = value
+
+
+def room_legend(geometry):
+    """Room ids in geometry order, from the first room index up."""
+    return {room["id"]: FIRST_ROOM + n for n, room in enumerate(geometry["compartments"])}
+
+
+def room_rects(geometry):
+    """The partitioned room rectangles of the schematic, as (room id, (x0, y0, x1, y1))."""
+    rects = []
+    for room in geometry["compartments"]:
+        for box in room["boxes"]:
+            x0, x1 = box["x"]
+            z0, z1 = box["z"]
+            rects.append(
+                (
+                    room["id"],
+                    (
+                        round(x0 + 0.05, 2),
+                        round(SCHEMATIC_TOP - z1 + 0.05, 2),
+                        round(x1 - 0.05, 2),
+                        round(SCHEMATIC_TOP - z0 - 0.05, 2),
+                    ),
+                )
+            )
+    return partition_rooms(rects)
+
+
+def rooms_mask(geometry, hull):
+    """The room index mask: 0 space, 1 hull structure, FIRST_ROOM and up the rooms."""
+    width, height = LAYER_SIZE
+    grid = [[SPACE] * width for _ in range(height)]
+    side, _ = part_outlines(geometry, hull)
+    shapes = [volume_side(v, hull) for v in hull.volumes] + side
+    for shape in shapes:
+        fill_polygon(grid, [to_px(x, z) for x, z in shape], STRUCTURE)
+    legend = room_legend(geometry)
+    for room, (x0, y0, x1, y1) in room_rects(geometry):
+        u0, v0 = (x0 + 5) * PIXELS_PER_METRE, y0 * PIXELS_PER_METRE
+        u1, v1 = (x1 + 5) * PIXELS_PER_METRE, y1 * PIXELS_PER_METRE
+        fill_rect(grid, u0, v0, u1, v1, legend[room])
+    return grid
+
+
+def merged_lights(geometry):
+    """The lights in pixels. Lights that coincide in the side view merge into one entry.
+
+    The port and starboard lamps of a room project to one box, so they share an entry that
+    lists every id. The centre is the middle of the housing box, and the radius is the
+    light's reach in pixels.
+    """
+    groups = {}
+    for light in geometry["lights"]:
+        u0, v1 = to_px(light["x"][0], light["z"][0])
+        u1, v0 = to_px(light["x"][1], light["z"][1])
+        entry = {
+            "ids": [light["id"]],
+            "room": light["room"],
+            "kind": light["kind"],
+            "colour": light["colour"],
+            "fixture": light.get("fixture"),
+            "emissive": light["emissive"],
+            "centre": [round((u0 + u1) / 2, 1), round((v0 + v1) / 2, 1)],
+            "radius": round(light["radius"] * PIXELS_PER_METRE, 1),
+            "box": [round(u0, 1), round(v0, 1), round(u1, 1), round(v1, 1)],
+        }
+        key = json.dumps({k: v for k, v in entry.items() if k != "ids"}, sort_keys=True)
+        if key in groups:
+            groups[key]["ids"].append(light["id"])
+        else:
+            groups[key] = entry
+    return list(groups.values())
+
+
+def emissive_mask(lights):
+    """255 inside the housing box of every light marked emissive, 0 elsewhere."""
+    width, height = LAYER_SIZE
+    grid = [[0] * width for _ in range(height)]
+    for light in lights:
+        if light["emissive"]:
+            fill_rect(grid, *light["box"], 255, outward=True)
+    return grid
+
+
+def lights_text(lights):
+    """The lights as JSON, one entry per line."""
+    return (
+        "[\n" + ",\n".join(json.dumps(entry, separators=(",", ":")) for entry in lights) + "\n]\n"
+    )
+
+
+def legend_text(legend):
+    """The legend as JSON in the layout Prettier gives it: each box of numbers on one line."""
+    text = json.dumps(legend, indent=2)
+    text = re.sub(
+        r"\[\s+([\d.\-]+(?:,\s+[\d.\-]+)*)\s+\]",
+        lambda m: "[" + re.sub(r"\s+", " ", m.group(1)) + "]",
+        text,
+    )
+    return text + "\n"
+
+
+def room_bounds(geometry):
+    """Each room's bounding box in whole pixels, as [left, top, right, bottom]."""
+    bounds = {}
+    for room, (x0, y0, x1, y1) in room_rects(geometry):
+        box = [
+            math.floor((x0 + 5) * PIXELS_PER_METRE),
+            math.floor(y0 * PIXELS_PER_METRE),
+            math.ceil((x1 + 5) * PIXELS_PER_METRE),
+            math.ceil(y1 * PIXELS_PER_METRE),
+        ]
+        old = bounds.get(room)
+        bounds[room] = (
+            box
+            if old is None
+            else [
+                min(old[0], box[0]),
+                min(old[1], box[1]),
+                max(old[2], box[2]),
+                max(old[3], box[3]),
+            ]
+        )
+    return {room["id"]: bounds[room["id"]] for room in geometry["compartments"]}
+
+
+def export_cutaway_layers(geometry, out):
+    hull = Hull(geometry["hull"])
+    width, height = LAYER_SIZE
+    lights = merged_lights(geometry)
+    legend = {
+        "size": {"width": width, "height": height},
+        "frame": " ".join(f"{n:g}" for n in SCHEMATIC_FRAME),
+        "pixelsPerMetre": PIXELS_PER_METRE,
+        "space": SPACE,
+        "structure": STRUCTURE,
+        "rooms": room_legend(geometry),
+        "bounds": room_bounds(geometry),
+    }
+    files = {
+        "meridian-cutaway-rooms.png": png_grey(width, height, rooms_mask(geometry, hull)),
+        "meridian-cutaway-rooms.legend.json": legend_text(legend).encode(),
+        "meridian-cutaway-emissive.png": png_grey(width, height, emissive_mask(lights)),
+        "meridian-cutaway-lights.json": lights_text(lights).encode(),
+    }
+    os.makedirs(out, exist_ok=True)
+    for name, data in files.items():
+        target = os.path.join(out, name)
+        with open(target, "wb") as fh:
+            fh.write(data)
+        print(f"meridian-ship: wrote {target}")
+
+
 def export_svgs(geometry, out):
     hull = Hull(geometry["hull"])
     files = {
@@ -627,14 +829,23 @@ def export_svgs(geometry, out):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="ship_svg.py")
     parser.add_argument("--geometry", default=DEFAULT_GEOMETRY)
-    parser.add_argument("--out", required=True)
+    parser.add_argument("--out")
     parser.add_argument(
         "--schematic",
         action="store_true",
         help="write only meridian-schematic.svg, the unpainted cutaway for the docs front page",
     )
+    parser.add_argument(
+        "--cutaway-layers",
+        metavar="DIR",
+        help="write the room index mask, the emissive mask and the lights of the unlit cutaway",
+    )
     args = parser.parse_args()
-    if args.schematic:
+    if args.cutaway_layers:
+        export_cutaway_layers(load(args.geometry), args.cutaway_layers)
+    elif not args.out:
+        parser.error("--out is required")
+    elif args.schematic:
         export_schematic(load(args.geometry), args.out)
     else:
         export_svgs(load(args.geometry), args.out)

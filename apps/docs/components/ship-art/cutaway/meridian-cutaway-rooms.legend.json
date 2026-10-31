@@ -1,0 +1,42 @@
+{
+  "size": {
+    "width": 2048,
+    "height": 512
+  },
+  "frame": "-5 0 80 20",
+  "pixelsPerMetre": 25.6,
+  "space": 0,
+  "structure": 1,
+  "rooms": {
+    "bridge": 2,
+    "habitat": 3,
+    "reactor-bay": 4,
+    "airlock": 5,
+    "chart-room": 6,
+    "computer-core": 7,
+    "quarters": 8,
+    "comms-relay": 9,
+    "shuttle-bay": 10,
+    "drone-bay": 11,
+    "capacitor-room": 12,
+    "engineering": 13,
+    "ftl-core": 14,
+    "main-drive": 15
+  },
+  "bounds": {
+    "bridge": [180, 244, 383, 324],
+    "habitat": [487, 244, 844, 324],
+    "reactor-bay": [1230, 162, 1535, 324],
+    "airlock": [743, 244, 818, 324],
+    "chart-room": [385, 244, 486, 324],
+    "computer-core": [206, 326, 358, 406],
+    "quarters": [564, 162, 818, 242],
+    "comms-relay": [436, 162, 537, 242],
+    "shuttle-bay": [513, 326, 921, 437],
+    "drone-bay": [922, 326, 1100, 437],
+    "capacitor-room": [897, 162, 1100, 242],
+    "engineering": [846, 244, 1228, 324],
+    "ftl-core": [1102, 326, 1305, 406],
+    "main-drive": [1537, 244, 1791, 324]
+  }
+}
