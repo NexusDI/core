@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { fillSearch } from './support/fill-search';
+
 /**
  * Nextra's search imports `addBasePath('/_pagefind/pagefind.js')` and navigates
  * through next/link, which adds the base path once. Pagefind indexes `out/`
@@ -10,10 +12,7 @@ test.describe('search under /next/', () => {
   // first heading, gets the page URL without a hash.
   test('a page result opens the page', async ({ page }) => {
     await page.goto('/next/');
-    await page
-      .locator('input[type="search"]')
-      .first()
-      .fill('has no runtime value of its own');
+    await fillSearch(page, 'has no runtime value of its own');
 
     const result = page
       .getByRole('option')
@@ -28,7 +27,7 @@ test.describe('search under /next/', () => {
     page,
   }) => {
     await page.goto('/next/');
-    await page.locator('input[type="search"]').first().fill('identity');
+    await fillSearch(page, 'identity');
 
     const anchor = page
       .getByRole('option')
