@@ -158,7 +158,8 @@ describe('the cutaway layers (design system 8.2 and 8.3)', () => {
     for (const [left, top, right, bottom] of boxes) {
       const x = Math.round((left + right) / 2);
       const y = Math.floor((top + bottom) / 2);
-      expect(data[y * info.width + x]).toBe(255);
+      // A long strip glows at 45%, so it does not read as a white bar.
+      expect(data[y * info.width + x]).toBe(right - left > 128 ? 115 : 255);
     }
   });
 });
