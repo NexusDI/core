@@ -12,7 +12,8 @@
  */
 .meridian-screen,
 .meridian-terminal,
-.meridian-holo {
+.meridian-holo,
+.meridian-schematic {
   --meridian-text: var(--meridian-palette-dark-text);
   --meridian-text-secondary: var(--meridian-palette-dark-text-secondary);
   --meridian-text-tertiary: var(--meridian-palette-dark-text-tertiary);
@@ -711,8 +712,8 @@
 /*
  * The schematic (spec 8.4). The hull draws in hull-paint at 1.5 px, rooms fill
  * with screen lifted 4% toward hull-paint, fixtures draw as seam blocks. The
- * art colours of spec 4.5 are local to the schematic: none carries text and
- * none appears in the chrome.
+ * --meridian-hull-paint and --meridian-lamp (spec 4.5) are used only by the
+ * schematic rules.
  */
 .meridian-schematic {
   --meridian-sv-room: color-mix(
@@ -744,6 +745,7 @@
   --meridian-sv-door: var(--meridian-text-secondary);
   position: relative;
   inline-size: 100%;
+  color: var(--meridian-text);
 }
 
 .meridian-schematic__art svg {
@@ -769,6 +771,15 @@
 
 .meridian-schematic .sv-door {
   fill: var(--meridian-sv-door);
+}
+
+/* The closed-door fill (spec 4.5): hazard bands at 45 degrees, from the markup's pattern. */
+.meridian-schematic .sv-hazard-a {
+  fill: var(--meridian-action-fill);
+}
+
+.meridian-schematic .sv-hazard-b {
+  fill: var(--meridian-on-action);
 }
 
 .meridian-schematic__overlay {
@@ -826,7 +837,7 @@
 /*
  * The switch (spec 7.4): a two-position rocker with the state word beside it.
  * The input covers the control, so the whole label takes the click and the
- * focus ring lands on the rocker.
+ * focus ring draws on the rocker.
  */
 .meridian-switch {
   position: relative;

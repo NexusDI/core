@@ -431,6 +431,78 @@ def plain_fixture(f, flip):
     )
 
 
+# The closed-door fill: 45 degree bands the page's CSS paints through the two classes.
+HAZARD_DEFS = (
+    '<defs><pattern id="sv-hazard" width="0.3" height="0.3" patternUnits="userSpaceOnUse" '
+    'patternTransform="rotate(45)"><rect class="sv-hazard-a" width="0.3" height="0.15"/>'
+    '<rect class="sv-hazard-b" y="0.15" width="0.3" height="0.15"/></pattern></defs>\n'
+)
+
+
+def door_rect(door, flip):
+    """A door's side-view rectangle as (x, y, width, height) in SVG units."""
+    flat = [a for a in "xyz" if door[a][0] == door[a][1]][0]
+    x0, x1 = door["x"]
+    z0, z1 = door["z"]
+    if flat == "x":
+        x0, x1 = x0 - 0.15, x1 + 0.15
+    if flat == "z":
+        z0, z1 = z0 - 0.15, z1 + 0.15
+    return [x0, flip(z1), x1 - x0, z1 - z0], flat
+
+
+def overlap(a, b):
+    return min(a[0] + a[2], b[0] + b[2]) - max(a[0], b[0]) > 1e-9 and (
+        min(a[1] + a[3], b[1] + b[3]) - max(a[1], b[1]) > 1e-9
+    )
+
+
+def separate_doors(doors, flip):
+    """Side-view door rectangles that share no area.
+
+    Doors on the port and starboard sides, or in line along the hull, project to the same
+    rectangle. Upright doors that overlap split their height into equal bands, in order of
+    their y and then their id. A floor hatch that still overlaps an upright door trims it.
+    """
+    rects = {d["id"]: door_rect(d, flip) for d in doors}
+    upright = [d for d in doors if rects[d["id"]][1] != "z"]
+    parent = {d["id"]: d["id"] for d in upright}
+
+    def find(k):
+        while parent[k] != k:
+            k = parent[k]
+        return k
+
+    for i, a in enumerate(upright):
+        for b in upright[i + 1 :]:
+            if overlap(rects[a["id"]][0], rects[b["id"]][0]):
+                parent[find(a["id"])] = find(b["id"])
+    clusters = {}
+    for d in upright:
+        clusters.setdefault(find(d["id"]), []).append(d)
+    out = {k: v[0] for k, v in rects.items()}
+    for members in clusters.values():
+        members.sort(key=lambda d: (sum(d["y"]) / 2, d["id"]))
+        for n, d in enumerate(members):
+            x, y, w, h = out[d["id"]]
+            band = h / len(members)
+            out[d["id"]] = [x, y + n * band, w, band]
+    for d in doors:
+        if rects[d["id"]][1] != "z":
+            continue
+        hatch = out[d["id"]]
+        for u in upright:
+            x, y, w, h = out[u["id"]]
+            if not overlap(out[u["id"]], hatch):
+                continue
+            if hatch[1] + hatch[3] / 2 > y + h / 2:
+                out[u["id"]] = [x, y, w, hatch[1] - y]
+            else:
+                top = hatch[1] + hatch[3]
+                out[u["id"]] = [x, top, w, y + h - top]
+    return out
+
+
 def schematic_svg(geometry, hull):
     """The side cutaway for the page: the same shapes as the cutaway, with no paint and no labels.
 
@@ -459,22 +531,17 @@ def schematic_svg(geometry, hull):
     body += ["</g>", '<g class="sv-fixtures">']
     body += [plain_fixture(f, flip) for room in geometry["compartments"] for f in room["fixtures"]]
     body += ["</g>", '<g class="sv-doors">']
-    for door in geometry["doors"]:
-        flat = [a for a in "xyz" if door[a][0] == door[a][1]][0]
-        x0, x1 = door["x"]
-        z0, z1 = door["z"]
-        if flat == "x":
-            x0, x1 = x0 - 0.15, x1 + 0.15
-        if flat == "z":
-            z0, z1 = z0 - 0.15, z1 + 0.15
+    for door, (x, y, w, h) in separate_doors(geometry["doors"], flip).items():
         body.append(
-            f'<rect class="sv-door" x="{x0:.2f}" y="{flip(z1):.2f}" width="{x1 - x0:.2f}" '
-            f'height="{z1 - z0:.2f}" data-door="{door["id"]}"/>'
+            f'<rect class="sv-door" x="{x:.2f}" y="{y:.2f}" width="{w:.2f}" '
+            f'height="{h:.2f}" data-door="{door}"/>'
         )
     body.append("</g>")
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 76 18">\n'
-        "<title>SV-01 Meridian, schematic</title>\n" + "\n".join(body) + "\n</svg>\n"
+        + HAZARD_DEFS
+        + "\n".join(body)
+        + "\n</svg>\n"
     )
 
 

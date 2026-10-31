@@ -16,10 +16,10 @@ export interface HullCropProps {
   /** The part of it to show, around one hull section. */
   crop: CropBox;
   /**
-   * The `view-transition-name` of the crop. The docs app wraps the crop in
+   * The `view-transition-name` of the crop. With none, the crop sets none. The docs app wraps the crop in
    * React's `<ViewTransition>`; the package only sets the name.
    */
-  transitionName: string;
+  transitionName?: string;
   /** A `Schematic` sized to the full width of the crop's stage. */
   children?: ReactNode;
   className?: string;
@@ -44,7 +44,7 @@ export function HullCrop({
       className={cx('meridian-hull-crop', className)}
       style={{
         aspectRatio: `${cw} / ${ch}`,
-        viewTransitionName: transitionName,
+        ...(transitionName ? { viewTransitionName: transitionName } : {}),
       }}
     >
       <div
