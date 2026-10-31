@@ -1,13 +1,19 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { shipSystems } from '../../app/ship-systems';
 import { features, placardOf, type SeedModule } from './features';
 import modules from './fixtures/modules.json';
-import { installOf } from './InstallLine';
+import InstallLine, { installOf } from './InstallLine';
 import { fixtureCentre } from './seed-ship';
 import { DependencyCount, PackageList } from './Proof';
 import ShipSystems from './ShipSystems';
+// Vitest empties a stylesheet it imports, so the test reads the file for its text;
+// the import names the file that `Styles.tsx` reads by path.
+import './front-page.css';
 
 // Vitest gives a static image import as a path and Next as an object with its
 // size, so the tests stand in for the module that reads that object.
@@ -159,5 +165,34 @@ describe('the proof and install facts', () => {
         .getAllByRole('link')
         .map((each) => each.textContent),
     ).toEqual(['npm page of @nexusdi/errors', 'docs for @nexusdi/errors']);
+  });
+});
+
+const frontPageCss = readFileSync(
+  join(import.meta.dirname, 'front-page.css'),
+  'utf8',
+);
+
+describe('the front page stylesheet', () => {
+  it('has a rule for every class the server components write', () => {
+    const { container } = render(
+      <>
+        <InstallLine releaseLine />
+        <ShipSystems />
+        <PackageList />
+      </>,
+    );
+    const classes = new Set(
+      [...container.querySelectorAll('[class]')].flatMap((element) =>
+        element.className
+          .toString()
+          .split(' ')
+          .filter((name) => name.startsWith('nexus-')),
+      ),
+    );
+    const missing = [...classes].filter(
+      (name) => !frontPageCss.includes(`.${name}`),
+    );
+    expect(missing).toEqual([]);
   });
 });

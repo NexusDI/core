@@ -85,7 +85,7 @@ function checkLines(): TerminalLine[] {
 export function Preflight({ children }: { children: ReactNode }) {
   return (
     <section
-      className="nexus-front__screen nexus-bay"
+      className="meridian-screen nexus-front__screen nexus-bay"
       id="pre-flight"
       aria-labelledby="pre-flight-check"
     >

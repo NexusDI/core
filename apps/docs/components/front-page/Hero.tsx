@@ -14,7 +14,7 @@ import InstallLine from './InstallLine';
  */
 export default function Hero({ children }: { children: ReactNode }) {
   return (
-    <section className="nexus-front__screen nexus-hero">
+    <section className="meridian-screen nexus-front__screen nexus-hero">
       <HeroArt />
       <div className="nexus-hero__copy">
         {children}

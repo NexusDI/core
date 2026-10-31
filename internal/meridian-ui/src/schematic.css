@@ -3,28 +3,9 @@
  * `@nexusdi/meridian-ui/schematic.css` entry. A page that draws the painted
  * cutaway loads it beside `styles.css`, which holds the tokens, so the many
  * pages that draw none carry none of these rules. The schematic stays dark in
- * both themes (design system spec V1), so it rebinds the roles as a screen does.
+ * both themes (design system spec V1): `styles.css` rebinds the roles for it, as
+ * it does for a screen.
  */
-
-.meridian-schematic {
-  --meridian-text: var(--meridian-palette-dark-text);
-  --meridian-text-secondary: var(--meridian-palette-dark-text-secondary);
-  --meridian-text-tertiary: var(--meridian-palette-dark-text-tertiary);
-  --meridian-data: var(--meridian-palette-dark-data);
-  --meridian-action: var(--meridian-palette-dark-action);
-  --meridian-alarm: var(--meridian-palette-dark-alarm);
-  --meridian-nominal: var(--meridian-palette-dark-nominal);
-  --meridian-edge: var(--meridian-palette-dark-edge);
-  --meridian-seam: var(--meridian-palette-dark-seam);
-  --meridian-plate: var(--meridian-palette-dark-plate);
-  --meridian-plate-raised: var(--meridian-palette-dark-plate-raised);
-  --meridian-action-fill: var(--meridian-palette-dark-action-fill);
-  --meridian-on-action: var(--meridian-palette-dark-on-action);
-  --meridian-alarm-fill: var(--meridian-palette-dark-alarm-fill);
-  --meridian-on-alarm: var(--meridian-palette-dark-on-alarm);
-  --meridian-focus: var(--meridian-palette-dark-action);
-  --meridian-button-primary-border: transparent;
-}
 
 /*
  * The schematic (spec 8.4). The hull draws in hull-paint at 1.5 px, rooms fill

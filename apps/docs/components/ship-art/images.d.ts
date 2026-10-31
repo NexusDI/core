@@ -1,13 +1,7 @@
 /**
- * The hero art as Next's static imports give it. The pattern is narrower than
- * `next/image-types/global`, which declares `*.avif` and `*.webp` only where
- * `next-env.d.ts` exists, so the typecheck needs no generated file.
+ * The painted ship art as Next's static imports give it: the `*.avif` and
+ * `*.webp` modules of `next/image-types/global`, which `next-env.d.ts` also
+ * references but which a fresh checkout has not generated. One wildcard is all
+ * a module pattern may hold, so the reference is how every art import types.
  */
-declare module '*/ship-art/*/*.avif' {
-  const image: { src: string; width: number; height: number };
-  export default image;
-}
-declare module '*/ship-art/*/*.webp' {
-  const image: { src: string; width: number; height: number };
-  export default image;
-}
+/// <reference types="next/image-types/global" />

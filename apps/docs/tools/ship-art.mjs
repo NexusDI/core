@@ -30,8 +30,8 @@ import { screen } from '@nexusdi/meridian-ui/tokens';
  */
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-export const ART_DIR = join(ROOT, 'components', 'ship-art');
-export const GEOMETRY_FILE = join(
+const ART_DIR = join(ROOT, 'components', 'ship-art');
+const GEOMETRY_FILE = join(
   ROOT,
   '..',
   '..',
@@ -42,16 +42,16 @@ export const GEOMETRY_FILE = join(
 );
 
 /** The orthographic camera of the side views: 25.6 pixels per metre. */
-export const PIXELS_PER_METRE = 25.6;
-export const FRAME = '-5 0 80 20';
+const PIXELS_PER_METRE = 25.6;
+const FRAME = '-5 0 80 20';
 const ORIGIN = [128, 448];
 /** u = (x + 5) * 25.6 and v = (17.5 - z) * 25.6, in metres. */
 export const project = (x, z) => [(x + 5) * 25.6, (17.5 - z) * 25.6];
 
 /** Pipes keyed by chroma: HSV saturation over this (90 of 255), and grey at this share of luminance. */
 export const PIPE_KEY = 90 / 255;
-export const PIPE_LUMINANCE = 0.55;
-export const PIPE_WIDTH = 9;
+const PIPE_LUMINANCE = 0.55;
+const PIPE_WIDTH = 9;
 
 const REACH = 12;
 const SEED = 0x4d455244;
@@ -109,7 +109,7 @@ export function geometryHash(geometry = readGeometry()) {
     .digest('hex');
 }
 
-export const viewDir = (view) => join(ART_DIR, view);
+const viewDir = (view) => join(ART_DIR, view);
 export const masterOf = (view) =>
   join(viewDir(view), `meridian-${view}-master.png`);
 
@@ -138,40 +138,37 @@ async function shapes(width, height, svg, blur = 0) {
   return image.raw().toBuffer();
 }
 
-/** The geometry's conduit paths, projected and drawn 9 pixels wide. */
-export async function pipeMask(geometry, width, height) {
+/**
+ * The geometry's conduit paths, projected and drawn `stroke` pixels wide, as
+ * one flag per pixel where the raster passes `threshold` of 255.
+ */
+async function conduitRaster(geometry, width, height, stroke, threshold) {
   const lines = geometry.conduits
     .map((conduit) => {
       const points = conduit.path
         .map(([x, , z]) => project(x, z).join(','))
         .join(' ');
-      return `<polyline points="${points}" fill="none" stroke="white" stroke-width="${PIPE_WIDTH}" stroke-linejoin="round" stroke-linecap="round"/>`;
+      return `<polyline points="${points}" fill="none" stroke="white" stroke-width="${stroke}" stroke-linejoin="round" stroke-linecap="round"/>`;
     })
     .join('');
   const raster = await shapes(width, height, lines);
-  return Uint8Array.from(raster, (value) => (value > 64 ? 1 : 0));
+  return Uint8Array.from(raster, (value) => (value > threshold ? 1 : 0));
 }
+
+/** The pipe mask: the conduit paths drawn 9 pixels wide. */
+const pipeMask = (geometry, width, height) =>
+  conduitRaster(geometry, width, height, PIPE_WIDTH, 64);
 
 /**
  * A band around each conduit path, `reach` pixels to either side, as one flag
  * per pixel. Where the pipe mask covers the painted pipes, no painted pipe is
  * left in the band.
  */
-export async function pipeBand(geometry, width, height, reach) {
-  const lines = geometry.conduits
-    .map((conduit) => {
-      const points = conduit.path
-        .map(([x, , z]) => project(x, z).join(','))
-        .join(' ');
-      return `<polyline points="${points}" fill="none" stroke="white" stroke-width="${reach * 2 + 1}" stroke-linejoin="round" stroke-linecap="round"/>`;
-    })
-    .join('');
-  const raster = await shapes(width, height, lines);
-  return Uint8Array.from(raster, (value) => (value > 128 ? 1 : 0));
-}
+export const pipeBand = (geometry, width, height, reach) =>
+  conduitRaster(geometry, width, height, reach * 2 + 1, 128);
 
 /** HSV hue in degrees, 0 for a grey. */
-export function hue(r, g, b) {
+function hue(r, g, b) {
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   if (max === min) return 0;
@@ -288,6 +285,27 @@ function addStars(out, ground, width, height) {
   }
 }
 
+/** The luminance of the pixel `at` of raw RGB. */
+const luma = (data, at) =>
+  0.299 * data[at * 3] + 0.587 * data[at * 3 + 1] + 0.114 * data[at * 3 + 2];
+
+/**
+ * Moves the pixel `at` by `weight` toward `target(value, luminance)` for each
+ * channel, rounded and held to 0 to 255.
+ */
+function blendToward(data, at, weight, target) {
+  const luminance = luma(data, at);
+  for (let c = 0; c < 3; c += 1) {
+    const value = data[at * 3 + c];
+    data[at * 3 + c] = Math.round(
+      Math.min(
+        255,
+        Math.max(0, value * (1 - weight) + target(value, luminance) * weight),
+      ),
+    );
+  }
+}
+
 /** The master of `view` after every step of its row, as raw RGB. */
 export async function bake(view, options = {}) {
   const row = { ...VIEWS[view], ...options };
@@ -326,12 +344,12 @@ export async function bake(view, options = {}) {
       .toBuffer();
     for (let at = 0; at < width * height; at += 1) {
       const k = Math.max(soft[at] / 255, keyed[at]);
-      if (k === 0) continue;
-      const luminance =
-        0.299 * out[at * 3] + 0.587 * out[at * 3 + 1] + 0.114 * out[at * 3 + 2];
-      for (let c = 0; c < 3; c += 1) {
-        out[at * 3 + c] = Math.round(
-          out[at * 3 + c] * (1 - k) + luminance * PIPE_LUMINANCE * k,
+      if (k > 0) {
+        blendToward(
+          out,
+          at,
+          k,
+          (_value, luminance) => luminance * PIPE_LUMINANCE,
         );
       }
     }
@@ -339,19 +357,14 @@ export async function bake(view, options = {}) {
     if (row.roomSaturation !== undefined && row.roomSaturation !== 1) {
       const rooms = await roomMask(geometry, width, height);
       for (let at = 0; at < width * height; at += 1) {
-        const r = rooms[at] / 255;
-        if (r === 0) continue;
-        const luminance =
-          0.299 * out[at * 3] +
-          0.587 * out[at * 3 + 1] +
-          0.114 * out[at * 3 + 2];
-        for (let c = 0; c < 3; c += 1) {
-          const value = out[at * 3 + c];
-          const graded = luminance + (value - luminance) * row.roomSaturation;
-          out[at * 3 + c] = Math.round(
-            Math.min(255, Math.max(0, value * (1 - r) + graded * r)),
-          );
-        }
+        if (rooms[at] === 0) continue;
+        blendToward(
+          out,
+          at,
+          rooms[at] / 255,
+          (value, luminance) =>
+            luminance + (value - luminance) * row.roomSaturation,
+        );
       }
     }
   }
@@ -390,7 +403,7 @@ export function bakeHash(view) {
 }
 
 /** The sidecar of a view (design system 8.3). */
-export function sidecarOf(view, size) {
+function sidecarOf(view, size) {
   const row = VIEWS[view];
   if (!row.camera) {
     return {
@@ -465,7 +478,7 @@ async function main() {
     }
     writeFileSync(
       join(viewDir(view), `${view}.json`),
-      `${JSON.stringify(sidecarOf(view, { width: baked.width, height: baked.height }), null, 2)}\n`,
+      `${JSON.stringify(sidecarOf(view, { width: baked.width, height: baked.height }), null, 2).replace(/\[\s+(\d+),\s+(\d+)\s+\]/g, '[$1, $2]')}\n`,
     );
   }
 }

@@ -392,74 +392,94 @@ export function checkBehaviour(out) {
 }
 
 /**
- * Measures the condensed family's two woff2 files and holds each to
- * `FONT_BUDGET`. `next/font` copies a font into `out/_next/static/media` under
- * a hashed name, so the check finds each source file there by its bytes. A
- * source with no identical copy in the export was not shipped.
+ * The files `next` copied into `out/_next/static/media`, as bytes, that pass
+ * `keep`. It copies a static import there under a hashed name, so a check finds
+ * each source file by its bytes. No media directory means no copy.
  */
-export function checkFonts(out, { sources = CONDENSED_FONTS } = {}) {
+function mediaCopies(out, keep = () => true) {
   const media = join(out, '_next', 'static', 'media');
   let shipped = [];
   try {
-    shipped = readdirSync(media).filter((name) => name.endsWith('.woff2'));
+    shipped = readdirSync(media).filter(keep);
   } catch {
-    // No media directory: every source reports as not shipped below.
+    // No media directory: every source reports as not shipped.
   }
-  const copies = shipped.map((name) => readFileSync(join(media, name)));
+  return {
+    where: relative(out, media) || media,
+    copies: shipped.map((name) => readFileSync(join(media, name))),
+  };
+}
 
+/**
+ * One row for a source file, and its findings: no identical copy in the
+ * export, or more bytes than `limit`. `missing` and `over` finish the two
+ * messages with the fix.
+ */
+function holdFile({ name, bytes, limit, found, where, missing, over }) {
+  const findings = [];
+  if (!found)
+    findings.push(`${name}: no identical copy under ${where}. ${missing}`);
+  if (bytes.length > limit)
+    findings.push(
+      `${name}: ${kB(bytes.length)}, over the ${kB(limit)} budget. ${over}`,
+    );
+  return {
+    row: { file: name, bytes: bytes.length, shipped: Boolean(found) },
+    findings,
+  };
+}
+
+/**
+ * Measures the condensed family's two woff2 files and holds each to
+ * `FONT_BUDGET`. A source with no identical copy in the export was not shipped.
+ */
+export function checkFonts(out, { sources = CONDENSED_FONTS } = {}) {
+  const { where, copies } = mediaCopies(out, (name) => name.endsWith('.woff2'));
   const rows = [];
   const findings = [];
   for (const source of sources) {
-    const name = source.split(sep).pop();
     const bytes = readFileSync(source);
-    const found = copies.find((copy) => copy.equals(bytes));
-    rows.push({ file: name, bytes: bytes.length, shipped: Boolean(found) });
-    if (!found)
-      findings.push(
-        `${name}: no identical copy under ${relative(out, media) || media}. app/layout.tsx must load the condensed family through next/font/local.`,
-      );
-    if (bytes.length > FONT_BUDGET.perFile)
-      findings.push(
-        `${name}: ${kB(bytes.length)}, over the ${FONT_BUDGET.perFile / 1000} kB budget for a condensed woff2 file. Raise FONT_BUDGET with the new measurement and the reason.`,
-      );
+    const held = holdFile({
+      name: source.split(sep).pop(),
+      bytes,
+      limit: FONT_BUDGET.perFile,
+      found: copies.find((copy) => copy.equals(bytes)),
+      where,
+      missing:
+        'app/layout.tsx must load the condensed family through next/font/local.',
+      over: 'Raise FONT_BUDGET with the new measurement and the reason.',
+    });
+    rows.push(held.row);
+    findings.push(...held.findings);
   }
   return { findings, rows };
 }
 
 /**
  * Holds each ship art file to its row of `ART_BUDGET`, and the three files of
- * `ART_SUM` to their sum. `next` copies a static import into
- * `out/_next/static/media` under a hashed name, so the check finds each source
- * file there by its bytes, as `checkFonts` does. A source with no identical
- * copy in the export was not shipped.
+ * `ART_SUM` to their sum. A source with no identical copy in the export was
+ * not shipped.
  */
 export function checkArt(
   out,
   { dir = ART_DIR, budget = ART_BUDGET, sum = ART_SUM } = {},
 ) {
-  const media = join(out, '_next', 'static', 'media');
-  let shipped = [];
-  try {
-    shipped = readdirSync(media);
-  } catch {
-    // No media directory: every source reports as not shipped below.
-  }
-  const copies = shipped.map((name) => readFileSync(join(media, name)));
-
+  const { where, copies } = mediaCopies(out);
   const rows = [];
   const findings = [];
   for (const [name, limit] of Object.entries(budget)) {
     const bytes = readFileSync(join(dir, name));
-    const found = copies.find((copy) => copy.equals(bytes));
-    rows.push({ file: name, bytes: bytes.length, shipped: Boolean(found) });
-    if (!found)
-      findings.push(
-        `${name}: no identical copy under ${relative(out, media) || media}. A component must import it statically.`,
-      );
-    if (bytes.length > limit)
-      findings.push(
-        `${name}: ${kB(bytes.length)}, over the ${kB(limit)} budget. Run tools/ship-art.mjs with a lower quality, or raise ART_BUDGET with the new measurement and the reason.`,
-      );
+    const held = holdFile({
+      name,
+      bytes,
+      limit,
+      found: copies.find((copy) => copy.equals(bytes)),
+      where,
+      missing: 'A component must import it statically.',
+      over: 'Run tools/ship-art.mjs with a lower quality, or raise ART_BUDGET with the new measurement and the reason.',
+    });
+    rows.push(held.row);
+    findings.push(...held.findings);
   }
   const total = sum.files.reduce(
     (all, name) => all + readFileSync(join(dir, name)).length,

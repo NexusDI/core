@@ -36,24 +36,8 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
   white-space: nowrap;
 }
 
-/* Screens: dark in both themes, full width past the article's padding. */
+/* Screens: dark in both themes (`meridian-screen` rebinds the roles), full width past the article's padding. */
 .nexus-front__screen {
-  --meridian-bulkhead: var(--meridian-palette-dark-bulkhead);
-  --meridian-plate: var(--meridian-palette-dark-plate);
-  --meridian-plate-raised: var(--meridian-palette-dark-plate-raised);
-  --meridian-seam: var(--meridian-palette-dark-seam);
-  --meridian-edge: var(--meridian-palette-dark-edge);
-  --meridian-text: var(--meridian-palette-dark-text);
-  --meridian-text-secondary: var(--meridian-palette-dark-text-secondary);
-  --meridian-text-tertiary: var(--meridian-palette-dark-text-tertiary);
-  --meridian-data: var(--meridian-palette-dark-data);
-  --meridian-action: var(--meridian-palette-dark-action);
-  --meridian-action-fill: var(--meridian-palette-dark-action-fill);
-  --meridian-on-action: var(--meridian-palette-dark-on-action);
-  --meridian-alarm: var(--meridian-palette-dark-alarm);
-  --meridian-nominal: var(--meridian-palette-dark-nominal);
-  --meridian-focus: var(--meridian-palette-dark-action);
-  --meridian-button-primary-border: transparent;
   position: relative;
   background: var(--meridian-screen);
   color: var(--meridian-text);
@@ -204,6 +188,11 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
   line-height: var(--meridian-leading-micro);
   color: var(--meridian-text-secondary);
   font-variant-numeric: tabular-nums;
+}
+
+/* The release line under the version line, on the `/next/` front page. */
+.nexus-install__release {
+  margin-block-start: var(--meridian-space-1);
 }
 
 /* The install section sits on the bulkhead, so its strip keeps the dark screen face. */
