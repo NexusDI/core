@@ -480,21 +480,20 @@ at run time, and marketing art, which is painted and lit once.
 
 ### 8.1 Views and their sources
 
-| View        | Where                                                                          | Source                                                                                                                                                                                  | Format                            |
-| ----------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| hero        | front page top, feature pages, Academy hub, demo splash                        | marketing art: a lit paint-over of the `sv01-hero` three-quarter render of `build_ship.py`                                                                                              | AVIF and WebP, 1x and 2x          |
-| cutaway     | front-page bay                                                                 | runtime art: the unlit cutaway (`cutaway-unlit-v1`, the `cutaway-cut-a-s211-h375` pass with its light removed), lit at run time by the deck view (8.2), orthographic at 25.6 px/m (8.3) | AVIF and WebP, 1024 to 2048 wide  |
-| cutaway lit | ship systems strip crops                                                       | marketing art: the painted `cutaway-cut-a-s211-h375` pass, lit once                                                                                                                     | AVIF and WebP, 1024 to 2048 wide  |
-| side        | ship systems strip backdrop, feature pages                                     | marketing art: the painted `side-ext-d-s211-h25-d-clip` pass, the same camera                                                                                                           | AVIF and WebP, 1024 to 2048 wide  |
-| schematic   | front-page state layer, feature-page crops, docs concept pages                 | vector: `ship_svg.py`'s side cutaway, with `data-room`, `data-door`, `data-fixture`                                                                                                     | inline SVG                        |
-| deck map    | the MeridianOS deck view, Academy missions, front-page scenes after 0.4 (11.2) | runtime art: the layers of 8.2, placed by `SHIP_GEOMETRY` from `@nexusdi/meridian-systems/geometry`                                                                                     | PixiJS v8 canvas plus a DOM layer |
-| icon        | favicon, navbar mark, Ship-note glyph, Academy badges                          | vector: the top silhouette, hand-snapped to the pixel grid at each size                                                                                                                 | SVG, and PNG for the favicon      |
+| View      | Where                                                                          | Source                                                                                                                                                                                  | Format                            |
+| --------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| hero      | front page top, feature pages, Academy hub, demo splash                        | marketing art: a lit paint-over of the `sv01-hero` three-quarter render of `build_ship.py`                                                                                              | AVIF and WebP, 1x and 2x          |
+| cutaway   | front-page bay, ship systems strip crops                                       | runtime art: the unlit cutaway (`cutaway-unlit-v1`, the `cutaway-cut-a-s211-h375` pass with its light removed), lit at run time by the deck view (8.2), orthographic at 25.6 px/m (8.3) | AVIF and WebP, 1024 to 2048 wide  |
+| side      | ship systems strip backdrop, feature pages                                     | marketing art: the painted `side-ext-d-s211-h25-d-clip` pass, the same camera                                                                                                           | AVIF and WebP, 1024 to 2048 wide  |
+| schematic | front-page state layer, feature-page crops, docs concept pages                 | vector: `ship_svg.py`'s side cutaway, with `data-room`, `data-door`, `data-fixture`                                                                                                     | inline SVG                        |
+| deck map  | the MeridianOS deck view, Academy missions, front-page scenes after 0.4 (11.2) | runtime art: the layers of 8.2, placed by `SHIP_GEOMETRY` from `@nexusdi/meridian-systems/geometry`                                                                                     | PixiJS v8 canvas plus a DOM layer |
+| icon      | favicon, navbar mark, Ship-note glyph, Academy badges                          | vector: the top silhouette, hand-snapped to the pixel grid at each size                                                                                                                 | SVG, and PNG for the favicon      |
 
 The lit painted exteriors are marketing art for the front page and the feature pages
 alone. Until the paint-over is done, the hero uses the mesh render as it is. The schematic
 and the icon stay vector, so they theme, scale and print with no raster. The front page
-bay draws the schematic as the state layer over the unlit `cutaway`, and the ship systems
-strip draws it over the lit one (OR4, OR5, TL13). The schematic's hit geometry stays the
+bay and the strip's crops draw the schematic as the state layer over the unlit `cutaway`
+(OR4, OR5, TL13, TL30), and the strip's backdrop is the lit `side` view. The schematic's hit geometry stays the
 vector's.
 
 ### 8.2 Runtime layers
@@ -522,9 +521,14 @@ The light model starts from these values (OR5 mock): a powered room keeps an amb
 radius of its light in the geometry; an alarmed room drops to the unpowered ambient and
 30% of its lamps, with the alarm sprite on top, so the red does not wash out to white. The
 light texture stays 8-bit, since a float texture is 8-bit under software GL and the pools
-would clip. A housing wider than 5 m (a long strip) glows at 45% in the emissive mask. The
-glow-kind lights stand for the screens: every emissive housing in the geometry is a lamp
-housing, so an unpowered room's lamp housings go dark with their lamps.
+would clip, so the light accumulates at half strength and the room clip scales it back by its
+largest channel, which keeps the hue where the lamp and glow tints overlap. A housing wider
+than 5 m (a long strip) glows at 45% in the emissive mask. A light that names a fixture draws
+its housing at that fixture's level, and a lamp's housing follows its room's lamp level, so
+an unpowered room goes dark but for the housings of its fixtures, the screens (OR5). The
+lights file gives each light its room (the rectangle that holds its centre in the side view),
+its gain and its housing box, so the deck compares no part of the geometry's vocabulary
+(P1).
 
 The simulation drives the light. A room with power shows its `lamp` pools, a room without
 power goes dark but for its emissive screens, and an alarm adds a pulsing
@@ -546,7 +550,7 @@ the light (8.4), so data stays crisp at every zoom.
   names its view (`deck-<id>`, `side`, `top`, `cutaway`), its pixels per metre and the pixel of the
   origin. The game places an image by its sidecar alone. The paint-over's output aligns
   through the sidecar with no change to any view.
-- Marketing scale: the painted `cutaway` and `side` views and the unlit cutaway use 25.6
+- Marketing scale: the unlit `cutaway` and the painted `side` view use 25.6
   pixels per metre on the frame `-5 0 80 20` (2048 by 512, origin at pixel (128, 448)), with
   `u = (x + 5) * 25.6` and `v = (17.5 - z) * 25.6`. The unlit cutaway's masks use the same
   scale and frame: the room index mask and the emissive mask are 2048 by 512, 8-bit grey, and
@@ -818,7 +822,7 @@ TL27):
   `prefers-reduced-data`, without WebGL2 or in forced colours. 11.2 and 13 follow.
 - TL25: the fallback is the unlit base with retuned tints, and the canvas swaps them away
   when it presents. 7.7 and 8.4 follow.
-- TL26: the strip of site UX 4.8 stays on the lit exterior, so 8.1 keeps a lit cutaway row.
+- TL30 (replaces TL26): the crops of site UX 4.8 use the unlit cutaway with the seed tints and no Pixi light, and the backdrop stays the lit side exterior. 8.1 has no lit cutaway row.
 - TL27: the work is its own pull request, ahead of the bay's Pixi tasks.
 
 ## 13. Risks
