@@ -480,6 +480,7 @@ test.describe('the bay baselines', () => {
   const SIZES = [
     { name: '1440', width: 1440, height: 900 },
     { name: '1024', width: 1024, height: 900 },
+    { name: '640', width: 640, height: 900 },
     { name: '390', width: 390, height: 844 },
   ];
   for (const size of SIZES) {
@@ -513,8 +514,12 @@ test.describe('the bay baselines', () => {
         ],
       ];
       for (const [state, act] of states) {
-        // 1024 guards the lit art at a stage that is not 1344 wide: one baseline.
-        if (size.name === '1024' && (theme !== 'dark' || state !== 'rest'))
+        // 1024 guards the lit art at a stage that is not 1344 wide, and 640 the
+        // hint above the hull: one baseline each.
+        if (
+          (size.name === '1024' || size.name === '640') &&
+          (theme !== 'dark' || state !== 'rest')
+        )
           continue;
         test(`${state} at ${size.name} in ${theme} mode`, async ({
           page,

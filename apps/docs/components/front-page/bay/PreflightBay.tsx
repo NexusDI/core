@@ -547,6 +547,7 @@ export default function PreflightBay({
     if (!root || litGate(model.phone) !== null) return;
     const phone = model.phone;
     let cancelled = false;
+    const abort = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     let losses = 0;
     let unsubscribe: (() => void) | undefined;
@@ -588,11 +589,25 @@ export default function PreflightBay({
           await import('./light');
         setLightMark(bayLightMark());
         if (cancelled) return;
-        const light = await createLight({
-          base: await decodeBase((base ?? first) as HTMLImageElement),
-          reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)')
-            .matches,
-        });
+        const bitmap = await decodeBase(
+          (base ?? first) as HTMLImageElement,
+          abort.signal,
+        );
+        if (cancelled) {
+          bitmap.close();
+          return;
+        }
+        let light: Awaited<ReturnType<typeof createLight>>;
+        try {
+          light = await createLight({
+            base: bitmap,
+            reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)')
+              .matches,
+          });
+        } catch (error) {
+          bitmap.close();
+          throw error;
+        }
         if (cancelled) {
           await light.dispose();
           return;
@@ -654,6 +669,7 @@ export default function PreflightBay({
     near.observe(root);
     return () => {
       cancelled = true;
+      abort.abort();
       near.disconnect();
       clearTimeout(timer);
       unsubscribe?.();

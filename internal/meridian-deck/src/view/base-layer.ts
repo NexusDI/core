@@ -11,9 +11,9 @@ async function decoded(image: DeckImage): Promise<DeckImage> {
 }
 
 /**
- * The unlit cutaway. The layer uploads the image the app hands it, which is
- * the decoded image of the page's `<picture>`, so the base never downloads
- * twice.
+ * The unlit cutaway. The layer uploads the image the app hands it, a decoded
+ * bitmap at the size of its file or an image element, so the view never
+ * downloads the base itself.
  */
 export class BaseLayer implements IDeckLayer {
   private sprite: Sprite | undefined;
