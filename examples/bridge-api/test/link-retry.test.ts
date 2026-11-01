@@ -5,7 +5,7 @@ import {
   TICK_LOOP,
 } from '@nexusdi/meridian-systems';
 import { createTestingContainer } from '@nexusdi/testing';
-import { expect, it, vi } from 'vitest';
+import { expect, it, onTestFinished, vi } from 'vitest';
 
 import { COMMS_LOG } from '../src/ship/contracts';
 import { Meridian } from '../src/ship/meridian.module';
@@ -69,28 +69,34 @@ it('stops retrying when another attempt would pass the deadline', async () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
     throw new Error('the relay timed out');
   };
-  await using ship: Nexus = await powered(link, 3, {
+  const ship: Nexus = await powered(link, 3, {
     delayMs: 1,
     deadlineMs: 60,
   });
+  // onTestFinished runs last to first: the clock is real again when the ship
+  // disposes, which waits on timers.
+  onTestFinished(() => ship[Symbol.asyncDispose]());
   // The retry reads Date.now() and waits on setTimeout. A fake clock gives
   // both the same 50 ms, so a loaded runner cannot stretch the timeout past
   // the deadline's margin.
-  vi.useFakeTimers();
-  try {
-    const started = Date.now();
-    const outcome = expect(
-      ship.get(SUBSPACE_LINK).signOff({ tick: 1, output: 1 }),
-    ).rejects.toThrow('the relay timed out');
-    await vi.advanceTimersByTimeAsync(50);
-    await outcome;
-    expect(link.calls).toBe(1);
-    // The retry slept no delay: no timer is pending and the clock shows the one timeout.
-    expect(vi.getTimerCount()).toBe(0);
-    expect(Date.now() - started).toBe(50);
-  } finally {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'Date'] });
+  // This also runs when the test times out, so the fake clock never reaches
+  // the next test.
+  onTestFinished(() => {
     vi.useRealTimers();
-  }
+  });
+  const started = Date.now();
+  const outcome = expect(
+    ship.get(SUBSPACE_LINK).signOff({ tick: 1, output: 1 }),
+  ).rejects.toThrow('the relay timed out');
+  // Runs every timer the retry sets, so a regressed deadline check retries
+  // and fails on the call count instead of hanging.
+  await vi.runAllTimersAsync();
+  await outcome;
+  expect(link.calls).toBe(1);
+  // The retry slept no delay: no timer is pending and the clock shows the one timeout.
+  expect(vi.getTimerCount()).toBe(0);
+  expect(Date.now() - started).toBe(50);
 });
 
 it('gives a fast-refusing relay every attempt inside the deadline', async () => {

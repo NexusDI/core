@@ -26,8 +26,9 @@ import { serve } from './nexus-server';
 // testing-library's findBy and waitFor give up after 1 s by default, a bound
 // below the 5 s test timeout. The first form submit of a file takes about
 // 150 ms warm, and a runner that shares its CPU stretches that past 1 s. A
-// 4 s wait ends before the test timeout, so a real hang still names the
-// missing element.
+// hang in the first wait of a test ends at 4 s, before the 5 s test timeout,
+// and the error names the missing element. A test with two waits can reach
+// the test timeout first.
 configure({ asyncUtilTimeout: 4000 });
 
 type StubRoute = Parameters<typeof createRoutesStub>[0][number];
