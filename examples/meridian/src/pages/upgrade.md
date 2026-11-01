@@ -398,3 +398,73 @@ console.log(privateToken);
 ```
 
 <!-- #endregion has-visibility -->
+
+<!-- #region child-reads-parent -->
+
+```ts @import.meta.vitest
+import {
+  Nexus,
+  Token,
+  defineModule,
+  isNexusError,
+  provide,
+} from '@nexusdi/core';
+
+interface IReactorCore {
+  readonly output: number;
+}
+interface IShipComputer {
+  status(): string;
+}
+const REACTOR = new Token<IReactorCore>('ReactorCore');
+const COMPUTER = new Token<IShipComputer>('ShipComputer');
+
+class FusionReactor implements IReactorCore {
+  readonly output = 1.21;
+}
+class QuantumComputer implements IShipComputer {
+  static deps = [REACTOR] as const;
+  constructor(private readonly reactor: IReactorCore) {}
+  status() {
+    return `Reactor output ${this.reactor.output} GW.`;
+  }
+}
+
+// 0.3 shape: the parent provides REACTOR, and its child module reads it.
+const Engineering = defineModule({
+  name: 'Engineering',
+  providers: [provide(COMPUTER, { useClass: QuantumComputer })],
+  exports: [COMPUTER],
+});
+const Tactical = defineModule({
+  name: 'Tactical',
+  imports: [Engineering],
+  providers: [provide(REACTOR, { useClass: FusionReactor })],
+});
+const error = await Nexus.create(Tactical).catch((caught: unknown) => caught);
+const inner = isNexusError(error, 'NEXUS_BLUEPRINT_INVALID')
+  ? error.errors
+  : [];
+const codes = inner.map((each) => each.code); // -> ['NEXUS_MISSING_PROVIDER']
+console.log(codes);
+
+// 0.4 shape: REACTOR moves into a module that the child imports.
+const Reactor = defineModule({
+  name: 'Reactor',
+  providers: [provide(REACTOR, { useClass: FusionReactor })],
+  exports: [REACTOR],
+});
+const EngineeringFixed = defineModule({
+  name: 'Engineering',
+  imports: [Reactor],
+  providers: [provide(COMPUTER, { useClass: QuantumComputer })],
+  exports: [COMPUTER],
+});
+await using ship = await Nexus.create(
+  defineModule({ name: 'Tactical', imports: [EngineeringFixed] }),
+);
+const status = ship.get(COMPUTER).status(); // -> 'Reactor output 1.21 GW.'
+console.log(status);
+```
+
+<!-- #endregion child-reads-parent -->
