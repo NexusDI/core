@@ -92,24 +92,32 @@ function runManyStep(
   job?: string,
 ): { step: Step; targets: string[] } {
   const where = job ? `${file} job ${job}` : file;
-  const matches = stepsOf(readWorkflow(file), job).filter((step) =>
-    step.run?.includes('nx run-many'),
-  );
+  const matches = runManySteps(file, job);
 
   expect(
     matches.length,
     `${where} must have exactly one step running nx run-many`,
   ).toBe(1);
 
-  const step = matches[0] as Step;
-  const targets = targetsOf(step.run as string);
+  return matches[0] as { step: Step; targets: string[] };
+}
 
-  expect(
-    targets,
-    `${where} runs nx run-many without a readable -t list`,
-  ).toBeDefined();
-
-  return { step, targets: targets as string[] };
+/** Every step that runs `nx run-many` in a workflow, with its targets. */
+function runManySteps(
+  file: string,
+  job?: string,
+): { step: Step; targets: string[] }[] {
+  const where = job ? `${file} job ${job}` : file;
+  return stepsOf(readWorkflow(file), job)
+    .filter((step) => step.run?.includes('nx run-many'))
+    .map((step) => {
+      const targets = targetsOf(step.run as string);
+      expect(
+        targets,
+        `${where} runs nx run-many without a readable -t list`,
+      ).toBeDefined();
+      return { step, targets: targets as string[] };
+    });
 }
 
 /** Every `--exclude=` value a command passes, sorted. */
@@ -147,7 +155,11 @@ function ciGate(): {
 
 describe('the release verify gate', () => {
   const ci = ciGate();
-  const release = runManyStep('release.yml');
+  const releaseSteps = runManySteps('release.yml');
+  const release = {
+    steps: releaseSteps.map((each) => each.step),
+    targets: [...new Set(releaseSteps.flatMap((each) => each.targets))],
+  };
 
   it('reports the gate jobs under the main check, red when one is not green', () => {
     const main = readWorkflow('ci.yml').jobs?.main as Job & { if?: string };
@@ -184,6 +196,37 @@ describe('the release verify gate', () => {
     expect(parallel * workers).toBeLessThanOrEqual(4);
   });
 
+  /**
+   * One run-many for lint, test, build and typecheck starved a 4 vCPU
+   * runner on a cache miss. The release runs the compilers and linters in
+   * one step and the suites in the next, as ci.yml does in two jobs.
+   */
+  it('runs the release gate in two steps, the suites capped like main-test', () => {
+    expect(releaseSteps.length, 'release.yml runs two gate steps').toBe(2);
+    const [first, second] = releaseSteps as (typeof releaseSteps)[number][];
+    const build = runManyStep('ci.yml', 'main-build');
+    const test = runManyStep('ci.yml', 'main-test');
+
+    expect(first.targets).toEqual(build.targets);
+    expect(second.targets).toEqual(test.targets);
+    expect(second.targets).toEqual(['test']);
+
+    const parallel = Number(
+      /--parallel=(\d+)/.exec(second.step.run ?? '')?.[1],
+    );
+    const workers = Number(second.step.env?.VITEST_MAX_WORKERS);
+    expect(parallel, 'the test step sets --parallel').toBeGreaterThan(0);
+    expect(workers, 'the test step sets VITEST_MAX_WORKERS').toBeGreaterThan(0);
+    expect(parallel * workers).toBeLessThanOrEqual(4);
+    expect(first.step.run, 'the first step sets no cap').not.toContain(
+      '--parallel',
+    );
+
+    for (const { step } of releaseSteps) {
+      expect(step.if, 'a sync skips the gate').toBe("inputs.event != 'sync'");
+    }
+  });
+
   it('runs every target the pull request gate runs', () => {
     expect(ci.targets.length, 'ci.yml runs no targets').toBeGreaterThan(0);
 
@@ -195,12 +238,12 @@ describe('the release verify gate', () => {
 
   it('runs over every project, since every release publishes every package', () => {
     expect(
-      release.step.run,
+      release.steps.map((step) => step.run).join('\n'),
       'a release publishes every package under libs/',
     ).not.toMatch(/--projects|\s-p\s/);
 
     expect(
-      release.step.run,
+      release.steps.map((step) => step.run).join('\n'),
       'an affected comparison on workflow_dispatch resolves to nothing',
     ).not.toContain('affected');
   });
@@ -209,7 +252,9 @@ describe('the release verify gate', () => {
     for (const { job, step } of ci.steps) {
       expect(excludesOf(step.run as string), job).toEqual([DEMO_FRONTEND]);
     }
-    expect(excludesOf(release.step.run as string)).toEqual([DEMO_FRONTEND]);
+    for (const step of release.steps) {
+      expect(excludesOf(step.run as string)).toEqual([DEMO_FRONTEND]);
+    }
   });
 
   it('excludes only private demo projects, and keeps bridge-api and bridge-console', async () => {
