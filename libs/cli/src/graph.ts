@@ -20,7 +20,7 @@ export interface GraphResult {
 
 /**
  * The CliError for an error inspect() threw. Any NexusError is classified,
- * a third party's included. Nexus.check wraps an error from a plugin hook
+ * a third party's included. check() wraps an error from a plugin hook
  * in a NexusError and lets an error from a forRoot() options schema
  * propagate, so a schema is the usual source of any other value; a bug in
  * core or devtools is the other. Exit 1, since Nexus.create fails on a
@@ -59,7 +59,7 @@ function schemaFailure(error: unknown): CliError {
 }
 
 /**
- * One stderr line per module whose options Nexus.check left unchecked, or ''
+ * One stderr line per module whose options check() left unchecked, or ''
  * for none. A reason this CLI does not know gets the default line.
  */
 export function uncheckedWarnings(graph: NexusGraph): string {

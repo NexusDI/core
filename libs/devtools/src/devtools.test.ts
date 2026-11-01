@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   Nexus,
   Token,
+  check,
   defineModule,
   provide,
   type ErrorTextPack,
@@ -15,6 +16,13 @@ import {
   reactorText,
 } from '../test-support/third-party-codes.js';
 import { devtools, graph, inspect, type TraceEvent } from './index.js';
+
+// check() is a named export, which vi.spyOn cannot wrap. The wrapper runs the
+// real check() and records its calls.
+vi.mock('@nexusdi/core', async (importOriginal) => {
+  const core = await importOriginal<typeof import('@nexusdi/core')>();
+  return { ...core, check: vi.fn(core.check) };
+});
 
 const CHARTS = new Token<string>('Charts');
 const Tactical = defineModule({
@@ -101,7 +109,7 @@ describe('inspect', () => {
     ]);
   });
 
-  it('takes a provider array and a root object, as Nexus.check does', () => {
+  it('takes a provider array and a root object, as check() does', () => {
     const fromArray = inspect([provide(CHARTS, { useValue: 'charts' })]);
     const fromObject = inspect({
       providers: [provide(CHARTS, { useValue: 'charts' })],
@@ -117,7 +125,7 @@ describe('inspect', () => {
     expect(view.modules.map((m) => m.name)).toEqual(['Tactical']);
   });
 
-  it('throws the BlueprintError Nexus.check throws, with @nexusdi/errors text', () => {
+  it('throws the BlueprintError check() throws, with @nexusdi/errors text', () => {
     const Broken = defineModule({
       name: 'Broken',
       providers: [
@@ -157,21 +165,22 @@ describe('inspect', () => {
     });
   });
 
-  it('keeps options.text and options.annotate out of Nexus.check', () => {
-    const check = vi.spyOn(Nexus, 'check');
+  it('keeps options.text and options.annotate out of check()', () => {
+    const spy = vi.mocked(check);
+    spy.mockClear();
     try {
       inspect(Science, {
         text: [reactorText],
         annotate: [() => []],
         load: [Tactical],
       });
-      expect(check).toHaveBeenCalledOnce();
-      expect(Object.keys(check.mock.calls[0]?.[1] ?? {}).sort()).toEqual([
+      expect(spy).toHaveBeenCalledOnce();
+      expect(Object.keys(spy.mock.calls[0]?.[1] ?? {}).sort()).toEqual([
         'load',
         'plugins',
       ]);
     } finally {
-      check.mockRestore();
+      spy.mockClear();
     }
   });
 });

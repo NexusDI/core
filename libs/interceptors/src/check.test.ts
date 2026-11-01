@@ -1,9 +1,10 @@
 import {
+  type BlueprintView,
+  check,
   defineModule,
   Nexus,
   provide,
   Token,
-  type BlueprintView,
 } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
@@ -180,12 +181,12 @@ describe('compile.check', () => {
     );
   });
 
-  it('reports through Nexus.check with no build', () => {
+  it('reports through check() with no build', () => {
     class Service {
       static interceptors = { class: [OTHER] };
     }
     const error = thrown(() =>
-      Nexus.check(app(Service), {
+      check(app(Service), {
         plugins: [
           interceptors({ register: [interceptor(AUDIT, { useClass: Pass })] }),
         ],

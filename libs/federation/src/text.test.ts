@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { Nexus, defineModule, provide } from '@nexusdi/core';
+import { check, defineModule, provide } from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 
 import { defineContract, federation } from './index.js';
@@ -34,7 +34,7 @@ function messageOf(required: string, provided: string): string | undefined {
     ],
   });
   try {
-    Nexus.check(graph, {
+    check(graph, {
       plugins: [federation(), errors({ text: [federationText] })],
     });
   } catch (error) {
