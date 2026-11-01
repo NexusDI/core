@@ -12,10 +12,11 @@ import { describe, expect, it } from 'vitest';
  * target list on every pull request. The gate runs in two jobs on two
  * runners, `main-build` and `main-test`, and the `main` job reports their
  * result under the check name the rulesets require. `.github/workflows/release.yml` runs the
- * same list before anything is versioned or published. A target present in CI
- * and absent from the release step means a package can be published having
- * passed less than the pull request that introduced it, and nothing goes red:
- * the release step succeeds, having run one target fewer.
+ * same list, in two steps on one runner, before anything is versioned or
+ * published: lint, build and typecheck first, then test. A target present in
+ * CI and absent from both release steps means a package can be published
+ * having passed less than the pull request that introduced it, and nothing
+ * goes red: the steps succeed, having run one target fewer.
  *
  * Both lists are written by hand in shell, in two files that have no reason to
  * be edited together, so they are held against each other here.
@@ -42,6 +43,7 @@ interface Step {
   name?: string;
   uses?: string;
   if?: string;
+  'continue-on-error'?: boolean;
   run?: string;
   with?: Record<string, string>;
   env?: Record<string, string>;
@@ -224,6 +226,10 @@ describe('the release verify gate', () => {
 
     for (const { step } of releaseSteps) {
       expect(step.if, 'a sync skips the gate').toBe("inputs.event != 'sync'");
+      expect(
+        step['continue-on-error'],
+        'a red verify step must stop the release',
+      ).toBeUndefined();
     }
   });
 
