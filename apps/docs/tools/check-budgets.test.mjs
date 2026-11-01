@@ -1,47 +1,39 @@
 // @vitest-environment node
 import { randomBytes } from 'node:crypto';
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
-  readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
-  BACKGROUND_MARK,
   BAY_MARK,
+  CSS_BUDGET,
+  FIRST_LOAD_JS,
+  FONT_FILE_BUDGET,
+  GIANT_ASSET,
+  HERO_BUDGET,
+  HTML_BUDGET,
   LIGHT_MARK,
   RUNTIME_MARK,
-  checkMarkedChunks,
-  importGroups,
-  classify,
-  BEHAVIOUR_BUDGET,
-  BUDGETS,
-  GUIDE_BUDGET,
-  GUIDE_PAGE,
-  GUIDE_SLACK,
-  PAGE_BUDGET,
   assetsOf,
+  checkAssets,
   checkPages,
+  classify,
   elementsOf,
-  checkGuideTotal,
-  ISLAND_MARK,
-  checkBehaviour,
-  checkBudgets,
-  checkArt,
-  checkFonts,
-  ART_BUDGET,
-  ART_DIR,
-  ART_SUM,
-  CONDENSED_FONTS,
-  FONT_BUDGET,
-  scriptsOf,
+  fontsOf,
+  importGroups,
+  measureBehaviour,
+  measureLazyChunks,
+  measurePages,
+  reportLines,
+  routeType,
 } from './check-budgets.mjs';
 
 const dirs = [];
@@ -56,185 +48,81 @@ function noise(gzippedBytes) {
   return `/*${randomBytes(Math.ceil(gzippedBytes)).toString('base64')}*/`;
 }
 
-function page(scripts) {
-  return `<html><head>${scripts
+function exportDir() {
+  const out = mkdtempSync(join(tmpdir(), 'budgets-'));
+  dirs.push(out);
+  return out;
+}
+
+function write(out, path, content) {
+  mkdirSync(dirname(join(out, path)), { recursive: true });
+  writeFileSync(join(out, path), content);
+}
+
+/** A page whose HTML names `scripts`, `styles` and the preloaded `fonts`, under /next. */
+function html({ scripts = [], styles = [], fonts = [], body = '' }) {
+  return `<html><head>${fonts
+    .map(
+      (font) =>
+        `<link rel="preload" href="/next/_next/static/media/${font}" as="font" crossorigin="" type="font/woff2"/>`,
+    )
+    .join('')}${styles
+    .map(
+      (style) =>
+        `<link rel="stylesheet" href="/next/_next/static/chunks/${style}" data-precedence="next"/>`,
+    )
+    .join('')}${scripts
     .map(
       (src) =>
         `<script src="/next/_next/static/chunks/${src}" async=""></script>`,
     )
-    .join('')}</head><body></body></html>`;
+    .join('')}</head><body>${body}</body></html>`;
 }
 
-/** An export with a shared chunk, a landing page, a concept page and the Playground. */
-function site({
-  contentBytes,
-  islandBytes = 1000,
-  backgroundBytes = 1000,
-  toolBytes = 1000,
-}) {
-  const out = mkdtempSync(join(tmpdir(), 'budgets-'));
-  dirs.push(out);
-  const write = (path, text) => {
-    mkdirSync(dirname(join(out, path)), { recursive: true });
-    writeFileSync(join(out, path), text);
-  };
-  const chunk = (name, text) => write(`_next/static/chunks/${name}`, text);
-
+/** An export of a front page, a guide, the API page and the Playground. */
+function site({ guideBytes = 1000, apiHtml = '', fontBytes = 1000 } = {}) {
+  const out = exportDir();
+  const chunk = (name, text) => write(out, `_next/static/chunks/${name}`, text);
   chunk('shared.js', noise(5_000));
-  chunk('theme.js', noise(50_000));
-  chunk('tokens.js', noise(contentBytes));
-  chunk('island.js', `const mark="${ISLAND_MARK}";${noise(islandBytes)}`);
-  chunk(
-    'background.js',
-    `canvas.dataset.module="${BACKGROUND_MARK}";${noise(backgroundBytes)}`,
-  );
-  chunk('playground.js', noise(toolBytes));
-
-  write('index.html', page(['shared.js', 'theme.js', 'background.js']));
+  chunk('guide.js', noise(guideBytes));
+  chunk('playground.js', noise(1_000));
+  chunk('site.css', 'a{}');
+  write(out, '_next/static/media/plex.woff2', randomBytes(fontBytes));
+  const common = { styles: ['site.css'], fonts: ['plex.woff2'] };
+  write(out, 'index.html', html({ ...common, scripts: ['shared.js'] }));
   write(
-    'tokens/index.html',
-    page(['shared.js', 'theme.js', 'tokens.js', 'island.js', 'background.js']),
+    out,
+    'scopes/index.html',
+    html({ ...common, scripts: ['shared.js', 'guide.js'] }),
   );
   write(
+    out,
+    'api/index.html',
+    html({ ...common, scripts: ['shared.js'], body: apiHtml }),
+  );
+  write(
+    out,
     'playground/index.html',
-    page(['shared.js', 'theme.js', 'playground.js', 'background.js']),
+    html({ ...common, scripts: ['shared.js', 'playground.js'] }),
   );
   // The error pages skip the theme chunk, as in the real export.
-  write('404/index.html', page(['shared.js']));
-  write('_not-found/index.html', page(['shared.js']));
+  write(out, '404/index.html', html({ scripts: [] }));
+  write(out, '_not-found/index.html', html({ scripts: [] }));
   return out;
 }
 
-describe('scriptsOf', () => {
-  it('reads each script src and strips the base path', () => {
-    expect(scriptsOf(page(['a.js', 'b.js']), '/next')).toEqual([
-      '/_next/static/chunks/a.js',
-      '/_next/static/chunks/b.js',
-    ]);
+describe('routeType', () => {
+  it('sorts a page by its path', () => {
+    expect(routeType('index.html')).toBe('front');
+    expect(routeType('api/index.html')).toBe('api');
+    expect(routeType('api-react/index.html')).toBe('guide');
+    expect(routeType('playground/index.html')).toBe('tool');
+    expect(routeType('academy/one/index.html')).toBe('tool');
+    expect(routeType('scopes/index.html')).toBe('guide');
   });
 });
 
-describe('checkBudgets', () => {
-  it('passes an export inside every row', () => {
-    const { findings } = checkBudgets(site({ contentBytes: 4000 }), {
-      basePath: '/next',
-    });
-    expect(findings).toEqual([]);
-  });
-
-  it('fails a content page over its budget and names the page', () => {
-    const { findings } = checkBudgets(site({ contentBytes: 14_000 }), {
-      basePath: '/next',
-    });
-    expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatch(
-      /^tokens\/index\.html: content-page JavaScript is \d+\.\d kB gzipped, over the 10 kB budget/,
-    );
-  });
-
-  it('counts the console island and the background against their own rows', () => {
-    const { findings } = checkBudgets(
-      site({ contentBytes: 1000, islandBytes: 40_000, backgroundBytes: 9_000 }),
-      { basePath: '/next' },
-    );
-    expect(findings.join('\n')).toMatch(
-      /console island is .* over the 35 kB budget/,
-    );
-    expect(findings.join('\n')).toMatch(
-      /background module is .* over the 8 kB budget/,
-    );
-  });
-
-  it('holds the Playground to the tool row', () => {
-    const inside = checkBudgets(
-      site({ contentBytes: 1000, toolBytes: 150_000 }),
-      {
-        basePath: '/next',
-      },
-    );
-    const over = checkBudgets(
-      site({ contentBytes: 1000, toolBytes: 220_000 }),
-      {
-        basePath: '/next',
-      },
-    );
-    expect(inside.findings).toEqual([]);
-    expect(over.findings[0]).toMatch(
-      /^playground\/index\.html: tool-route JavaScript .* over the 200 kB budget/,
-    );
-  });
-
-  it('states the rows of spec §16.2 in bytes', () => {
-    expect(BUDGETS).toEqual({
-      content: 10_000,
-      island: 35_000,
-      background: 8_000,
-      tool: 200_000,
-      bay: 22_000,
-      runtime: 32_000,
-      light: 150_000,
-    });
-  });
-});
-
-describe('checkBehaviour', () => {
-  /** An export holding one behaviour sidecar of `text`. */
-  function sidecar(text) {
-    const out = mkdtempSync(join(tmpdir(), 'budgets-'));
-    dirs.push(out);
-    mkdirSync(join(out, 'behaviour', 'core'), { recursive: true });
-    writeFileSync(join(out, 'behaviour', 'core', 'Nexus.json'), text);
-    return out;
-  }
-
-  it('passes a sidecar inside both ceilings', () => {
-    expect(checkBehaviour(sidecar('{"bodies":{}}')).findings).toEqual([]);
-  });
-
-  it('fails a sidecar over the raw ceiling, however well it compresses', () => {
-    const { findings } = checkBehaviour(
-      sidecar(`{"html":"${'a'.repeat(BEHAVIOUR_BUDGET.raw)}"}`),
-    );
-    expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatch(
-      new RegExp(
-        `^behaviour/core/Nexus\\.json: the behaviour sidecar is .* over the ${BEHAVIOUR_BUDGET.raw / 1000} kB raw`,
-      ),
-    );
-  });
-
-  it('fails a sidecar over the gzip ceiling', () => {
-    const { findings } = checkBehaviour(
-      sidecar(`{"html":"${noise(BEHAVIOUR_BUDGET.gzip)}"}`),
-    );
-    expect(findings).toHaveLength(1);
-  });
-
-  it('names the target to run when the export has no sidecars', () => {
-    const out = mkdtempSync(join(tmpdir(), 'budgets-'));
-    dirs.push(out);
-    expect(checkBehaviour(out).findings[0]).toMatch(
-      /@nexusdi\/docs:behaviour-data/,
-    );
-  });
-});
-
-describe('checkGuideTotal', () => {
-  /** An export whose guide page loads one script of `bytes` random bytes. */
-  function guide(bytes) {
-    const out = mkdtempSync(join(tmpdir(), 'budgets-'));
-    dirs.push(out);
-    mkdirSync(join(out, '_next/static/chunks'), { recursive: true });
-    mkdirSync(join(out, dirname(GUIDE_PAGE)), { recursive: true });
-    writeFileSync(join(out, '_next/static/chunks/a.js'), randomBytes(bytes));
-    writeFileSync(join(out, '_next/static/chunks/a.css'), 'a{}');
-    writeFileSync(
-      join(out, GUIDE_PAGE),
-      '<link rel="stylesheet" href="/next/_next/static/chunks/a.css"><script src="/next/_next/static/chunks/a.js"></script>',
-    );
-    return out;
-  }
-
+describe('assetsOf and fontsOf', () => {
   it('reads every script and stylesheet a page loads', () => {
     expect(
       assetsOf(
@@ -244,41 +132,87 @@ describe('checkGuideTotal', () => {
     ).toEqual(['/_next/y.js', '/_next/x.css']);
   });
 
-  it('passes a total inside the ratchet', () => {
-    const { findings } = checkGuideTotal(
-      guide(GUIDE_BUDGET.gzip - GUIDE_SLACK / 2),
-      { basePath: '/next' },
-    );
-    expect(findings).toEqual([]);
-  });
-
-  it('fails a total over the ratchet and names the way out', () => {
-    const { findings } = checkGuideTotal(guide(GUIDE_BUDGET.gzip + 1_000), {
-      basePath: '/next',
-    });
-    expect(findings[0]).toMatch(/over the .* ratchet\. A component/);
-  });
-
-  it('fails a total far enough under the ratchet to lower it', () => {
-    const { findings } = checkGuideTotal(guide(GUIDE_BUDGET.gzip / 2), {
-      basePath: '/next',
-    });
-    expect(findings[0]).toMatch(/Lower GUIDE_BUDGET/);
+  it('reads the fonts a page preloads and nothing else', () => {
+    expect(
+      fontsOf(
+        '<link rel="preload" href="/next/_next/static/media/a.woff2" as="font"/><link rel="preload" href="/next/_next/static/media/b.png" as="image"/>',
+        '/next',
+      ),
+    ).toEqual(['/_next/static/media/a.woff2']);
   });
 });
 
-describe('checkPages', () => {
-  /** An export whose one page holds `elements` divs of `text`. */
-  function site(elements, text = '') {
-    const out = mkdtempSync(join(tmpdir(), 'budgets-'));
-    dirs.push(out);
-    mkdirSync(join(out, 'api'), { recursive: true });
-    writeFileSync(
-      join(out, 'api', 'index.html'),
-      `<html><body>${'<div></div>'.repeat(elements)}${text}<script>self.__next_f.push([1,"<div><div><div>"])</script></body></html>`,
+describe('measurePages and checkPages', () => {
+  it('passes an export inside every ceiling', () => {
+    const rows = measurePages(site(), { basePath: '/next' });
+    expect(rows.map((row) => row.path)).toEqual([
+      'api/index.html',
+      'index.html',
+      'playground/index.html',
+      'scopes/index.html',
+    ]);
+    expect(checkPages(rows)).toEqual([]);
+  });
+
+  it('counts the shared chunks in a page first-load JavaScript', () => {
+    const rows = measurePages(site({ guideBytes: 5_000 }), {
+      basePath: '/next',
+    });
+    const front = rows.find((row) => row.type === 'front');
+    const guide = rows.find((row) => row.type === 'guide');
+    expect(guide.js.gzip - front.js.gzip).toBeGreaterThan(4_000);
+    expect(front.js.gzip).toBeGreaterThan(4_000);
+  });
+
+  it('fails a guide over its first-load ceiling and names the page', () => {
+    const findings = checkPages(
+      measurePages(site({ guideBytes: FIRST_LOAD_JS.guide }), {
+        basePath: '/next',
+      }),
     );
-    return out;
-  }
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatch(
+      /^scopes\/index\.html: guide first-load JavaScript is \d+\.\d kB gzipped, over the 350 kB ceiling/,
+    );
+  });
+
+  it('fails stylesheets over the render-blocking ceiling', () => {
+    const out = site();
+    write(out, '_next/static/chunks/site.css', noise(CSS_BUDGET));
+    const findings = checkPages(measurePages(out, { basePath: '/next' }));
+    expect(findings).toHaveLength(4);
+    expect(findings[0]).toMatch(
+      /the stylesheets are .* over the 32 kB ceiling/,
+    );
+  });
+
+  it('fails a page whose HTML gzips past the ceiling, and ignores its element count', () => {
+    const findings = checkPages(
+      measurePages(site({ apiHtml: noise(HTML_BUDGET) }), {
+        basePath: '/next',
+      }),
+    );
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatch(/^api\/index\.html: the page's HTML is/);
+    const many = checkPages(
+      measurePages(site({ apiHtml: '<div></div>'.repeat(30_000) }), {
+        basePath: '/next',
+      }),
+    );
+    expect(many).toEqual([]);
+  });
+
+  it('fails a preloaded font over its ceiling once', () => {
+    const findings = checkPages(
+      measurePages(site({ fontBytes: FONT_FILE_BUDGET + 1 }), {
+        basePath: '/next',
+      }),
+    );
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatch(
+      /^\/_next\/static\/media\/plex\.woff2: the preloaded font/,
+    );
+  });
 
   it('counts the elements outside scripts', () => {
     expect(
@@ -290,163 +224,85 @@ describe('checkPages', () => {
     expect(elementsOf('<p>a</p><script>"<b>"</script ><i>b</i>')).toBe(2);
     expect(elementsOf('<p>a</p><script>"<b><i>"')).toBe(1);
   });
+});
 
-  it('passes a page inside both ceilings', () => {
-    expect(checkPages(site(10)).findings).toEqual([]);
-  });
-
-  it('fails a page with too many elements', () => {
-    expect(checkPages(site(PAGE_BUDGET.elements + 1)).findings[0]).toMatch(
-      /^api\/index\.html: the page's HTML is .* over the .* element budget/,
+describe('checkAssets', () => {
+  it('passes small art and fonts', () => {
+    const out = exportDir();
+    write(
+      out,
+      '_next/static/media/meridian-hero-1536.abcdef123456.avif',
+      randomBytes(1000),
     );
+    expect(checkAssets(out)).toEqual([]);
   });
 
-  it('fails a page whose HTML gzips past the ceiling', () => {
-    expect(
-      checkPages(site(1, noise(PAGE_BUDGET.htmlGzip))).findings,
-    ).toHaveLength(1);
+  it('fails a hero image over its ceiling, hashed name or not', () => {
+    const out = exportDir();
+    write(
+      out,
+      '_next/static/media/meridian-hero-1536.abcdef123456.webp',
+      randomBytes(HERO_BUDGET + 1),
+    );
+    write(
+      out,
+      '_next/static/media/meridian-side-2048.abcdef123456.webp',
+      randomBytes(HERO_BUDGET + 1),
+    );
+    const findings = checkAssets(out);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatch(/^meridian-hero-1536.*the hero image is/);
+  });
+
+  it('fails any image or font over the giant guard, wherever it sits', () => {
+    const out = exportDir();
+    write(out, 'public/photo.png', randomBytes(GIANT_ASSET + 1));
+    write(out, '_next/static/media/big.woff2', randomBytes(GIANT_ASSET + 1));
+    write(out, 'data.json', randomBytes(GIANT_ASSET + 1));
+    const findings = checkAssets(out);
+    expect(findings).toHaveLength(2);
+    expect(findings.join('\n')).toMatch(/public\/photo\.png/);
+    expect(findings.join('\n')).not.toMatch(/data\.json/);
   });
 });
 
-describe('checkFonts', () => {
-  /** An export whose media directory holds copies of `files` under hashed names. */
-  function exportWith(files) {
-    const out = mkdtempSync(join(tmpdir(), 'budgets-'));
-    dirs.push(out);
-    const media = join(out, '_next', 'static', 'media');
-    mkdirSync(media, { recursive: true });
-    files.forEach((bytes, at) =>
-      writeFileSync(join(media, `hash${at}.p.woff2`), bytes),
+describe('the report rows', () => {
+  /** An export holding one behaviour sidecar of `text` and one oversized page. */
+  function heavy() {
+    const out = site({ apiHtml: noise(HTML_BUDGET) });
+    write(
+      out,
+      'behaviour/core/Nexus.json',
+      `{"html":"${'a'.repeat(5_000_000)}"}`,
     );
     return out;
   }
 
-  /** Two source files of `size` bytes each, on disk. */
-  function sources(size) {
-    const dir = mkdtempSync(join(tmpdir(), 'fonts-'));
-    dirs.push(dir);
-    return [500, 600].map((weight) => {
-      const path = join(dir, `condensed-${weight}.woff2`);
-      writeFileSync(path, randomBytes(size));
-      return path;
-    });
-  }
-
-  it('measures the real condensed files against the ceiling', () => {
-    for (const path of CONDENSED_FONTS) {
-      expect(readFileSync(path).length).toBeLessThanOrEqual(
-        FONT_BUDGET.perFile,
-      );
-    }
+  it('measures the sidecars, largest first', () => {
+    const out = heavy();
+    write(out, 'behaviour/core/Small.json', '{}');
+    const rows = measureBehaviour(out);
+    expect(rows.map((row) => row.path)).toEqual([
+      'behaviour/core/Nexus.json',
+      'behaviour/core/Small.json',
+    ]);
   });
 
-  it('passes two shipped files inside the ceiling', () => {
-    const paths = sources(1000);
-    const out = exportWith(paths.map((path) => readFileSync(path)));
-    const { findings, rows } = checkFonts(out, { sources: paths });
-    expect(findings).toEqual([]);
-    expect(rows.map((row) => row.bytes)).toEqual([1000, 1000]);
-  });
-
-  it('fails a file the export does not ship', () => {
-    const paths = sources(1000);
-    const out = exportWith([readFileSync(paths[0])]);
-    const { findings } = checkFonts(out, { sources: paths });
-    expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatch(/^condensed-600\.woff2: no identical copy/);
-  });
-
-  it('fails a file over the ceiling', () => {
-    const paths = sources(FONT_BUDGET.perFile + 1);
-    const out = exportWith(paths.map((path) => readFileSync(path)));
-    const { findings } = checkFonts(out, { sources: paths });
-    expect(findings).toHaveLength(2);
-    expect(findings[0]).toMatch(/over the 20\.5 kB budget/);
-  });
-});
-
-describe('checkArt', () => {
-  /** An export whose media directory holds copies of the art under hashed names. */
-  function exportWith(files) {
-    const out = mkdtempSync(join(tmpdir(), 'budgets-'));
-    dirs.push(out);
-    const media = join(out, '_next', 'static', 'media');
-    mkdirSync(media, { recursive: true });
-    files.forEach((bytes, at) =>
-      writeFileSync(join(media, `hash${at}.p.bin`), bytes),
+  it('prints an oversized sidecar and an oversized HTML page and fails on neither', () => {
+    const out = heavy();
+    const rows = measurePages(out, { basePath: '/next' });
+    const lines = reportLines(out, rows).join('\n');
+    expect(lines).toMatch(
+      /behaviour sidecars, fetched on demand; the largest is behaviour\/core\/Nexus\.json at 5000\.\d kB raw/,
     );
-    return out;
-  }
-
-  /** Two source files of `size` bytes each, on disk, with a ceiling of `limit`. */
-  function sources(size, limit) {
-    const dir = mkdtempSync(join(tmpdir(), 'art-'));
-    dirs.push(dir);
-    const names = ['one.avif', 'two.webp'];
-    for (const name of names) writeFileSync(join(dir, name), randomBytes(size));
-    return {
-      dir,
-      budget: Object.fromEntries(names.map((n) => [n, limit])),
-      sum: { files: names, limit: limit * 3 },
-    };
-  }
-
-  const copiesOf = ({ dir, budget }) =>
-    Object.keys(budget).map((name) => readFileSync(join(dir, name)));
-
-  it('holds the committed art inside its rows', () => {
-    for (const [name, limit] of Object.entries(ART_BUDGET)) {
-      expect(readFileSync(join(ART_DIR, name)).length).toBeLessThanOrEqual(
-        limit,
-      );
-    }
-  });
-
-  it('holds the three wide AVIF files inside their sum row', () => {
-    const total = ART_SUM.files.reduce(
-      (all, name) => all + readFileSync(join(ART_DIR, name)).length,
-      0,
-    );
-    expect(total).toBeLessThanOrEqual(ART_SUM.limit);
-  });
-
-  it('passes shipped files inside their rows', () => {
-    const art = sources(1000, 1200);
-    const { findings, rows } = checkArt(exportWith(copiesOf(art)), art);
-    expect(findings).toEqual([]);
-    expect(rows.map((row) => row.bytes)).toEqual([1000, 1000, 2000]);
-  });
-
-  it('fails a file the export does not ship', () => {
-    const art = sources(1000, 1200);
-    const out = exportWith(copiesOf(art).slice(0, 1));
-    const { findings } = checkArt(out, art);
-    expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatch(/^two\.webp: no identical copy/);
-  });
-
-  it('fails a file over its row', () => {
-    const art = sources(1000, 900);
-    const { findings } = checkArt(exportWith(copiesOf(art)), art);
-    expect(findings).toHaveLength(2);
-    expect(findings[0]).toMatch(/one\.avif: 1\.0 kB, over the 0\.9 kB budget/);
-  });
-
-  it('fails three files over their sum', () => {
-    const art = sources(1000, 1200);
-    const { findings } = checkArt(exportWith(copiesOf(art)), {
-      ...art,
-      sum: { files: Object.keys(art.budget), limit: 1500 },
-    });
-    expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatch(/load 2\.0 kB of AVIF together/);
+    expect(lines).toMatch(/the heaviest page is api\/index\.html/);
+    expect(checkAssets(out)).toEqual([]);
+    expect(checkPages(rows.filter((row) => row.type !== 'api'))).toEqual([]);
   });
 });
 
 describe('classify', () => {
   it('sorts a chunk by the marker it carries', () => {
-    expect(classify(`x="${ISLAND_MARK}"`)).toBe('island');
-    expect(classify(`x="${BACKGROUND_MARK}"`)).toBe('background');
     expect(classify(`x="${BAY_MARK}"`)).toBe('bay');
     expect(classify(`x="${RUNTIME_MARK}"`)).toBe('runtime');
     expect(classify('const nothing = 1')).toBe('page');
@@ -482,7 +338,7 @@ describe('importGroups', () => {
   });
 });
 
-describe('checkMarkedChunks', () => {
+describe('measureLazyChunks', () => {
   /**
    * An export with the loader chunk that lists each `import()` group, as
    * Turbopack writes it, and the chunks and media the groups name.
@@ -524,13 +380,13 @@ describe('checkMarkedChunks', () => {
   });
 
   it('measures the three rows, which no page names', () => {
-    const { findings, rows } = checkMarkedChunks(lazySite(base()));
-    expect(findings).toEqual([]);
+    const { notes, rows } = measureLazyChunks(lazySite(base()));
+    expect(notes).toEqual([]);
     expect(rows.map((row) => row.row)).toEqual(['bay', 'runtime', 'light']);
   });
 
-  it('fails a row over its budget and names its chunks', () => {
-    const { findings } = checkMarkedChunks(
+  it('reports a large row and never fails it', () => {
+    const { notes, rows } = measureLazyChunks(
       lazySite(
         base({
           chunks: {
@@ -540,13 +396,13 @@ describe('checkMarkedChunks', () => {
         }),
       ),
     );
-    expect(findings).toHaveLength(2);
-    expect(findings[0]).toContain('bay controller');
-    expect(findings[1]).toContain('core runtime');
+    expect(notes).toEqual([]);
+    expect(rows[0].gzip).toBeGreaterThan(22_000);
+    expect(rows[1].gzip).toBeGreaterThan(32_000);
   });
 
   it('counts an unmarked chunk in the group of the marked one, once in each group that lists it', () => {
-    const { findings, rows } = checkMarkedChunks(
+    const { rows } = measureLazyChunks(
       lazySite(
         base({
           chunks: {
@@ -570,22 +426,22 @@ describe('checkMarkedChunks', () => {
       false,
       true,
     ]);
-    expect(findings).toHaveLength(1);
-    expect(findings[0]).toContain('core runtime');
+    expect(rows[1].gzip).toBeGreaterThan(32_000);
+    expect(rows[2].gzip).toBeGreaterThan(32_000);
   });
 
   it('leaves out an unmarked chunk that no group lists with the marked one', () => {
-    const { findings, rows } = checkMarkedChunks(
+    const { notes, rows } = measureLazyChunks(
       lazySite(base({ chunks: { 'stray.js': noise(60_000) } })),
     );
-    expect(findings).toEqual([]);
+    expect(notes).toEqual([]);
     expect(rows[0].chunks.map((chunk) => chunk.file)).toEqual([
       '_next/static/chunks/bay.js',
     ]);
   });
 
   it('counts the mask PNGs that the light group emits', () => {
-    const { findings, rows } = checkMarkedChunks(
+    const { rows } = measureLazyChunks(
       lazySite(
         base({
           chunks: {
@@ -598,39 +454,37 @@ describe('checkMarkedChunks', () => {
       ),
     );
     expect(rows[2].media).toBe(60_000);
-    expect(findings).toHaveLength(1);
-    expect(findings[0]).toContain('bay light');
+    expect(rows[2].gzip).toBeGreaterThan(160_000);
   });
 
-  it('fails a row with no marked chunk, so a minifier that drops a marker is seen', () => {
-    const { findings } = checkMarkedChunks(
+  it('notes a row with no marked chunk, so a minifier that drops a marker is seen', () => {
+    const { notes } = measureLazyChunks(
       lazySite({
         chunks: { 'bay.js': mark(BAY_MARK, 1_000), 'other.js': noise(1_000) },
         groups: [['bay.js'], ['other.js']],
       }),
     );
-    expect(findings).toHaveLength(2);
-    expect(findings.join(' ')).toContain(RUNTIME_MARK);
-    expect(findings.join(' ')).toContain(LIGHT_MARK);
+    expect(notes).toHaveLength(2);
+    expect(notes.join(' ')).toContain(RUNTIME_MARK);
+    expect(notes.join(' ')).toContain(LIGHT_MARK);
   });
 });
 
-describe('the bay and runtime rows', () => {
-  it('states the rows of site UX spec 12.1 in bytes', () => {
-    expect(BUDGETS.bay).toBe(22_000);
-    expect(BUDGETS.runtime).toBe(32_000);
-  });
-});
-
-describe('checkMarkedChunks on a built export', () => {
+describe('the docs build', () => {
   const built = join(import.meta.dirname, '..', 'out');
 
   it.skipIf(!existsSync(join(built, '_next', 'static')))(
-    'finds the bay controller and the run chunk of the docs build inside their rows',
+    'finds the bay controller, the run chunk and the light chunk, and passes every gate row',
     () => {
-      const { findings, rows } = checkMarkedChunks(built);
-      expect(findings).toEqual([]);
+      const { notes, rows } = measureLazyChunks(built);
+      expect(notes).toEqual([]);
       expect(rows.every((row) => row.chunks.length >= 1)).toBe(true);
+      expect(
+        checkPages(
+          measurePages(built, { basePath: process.env.DOCS_BASE_PATH ?? '' }),
+        ),
+      ).toEqual([]);
+      expect(checkAssets(built)).toEqual([]);
     },
   );
 });
