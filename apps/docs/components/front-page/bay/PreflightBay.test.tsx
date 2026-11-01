@@ -137,7 +137,7 @@ describe('the pre-flight bay controller', () => {
     ).toContain('chart server unreachable');
     expect(
       document.querySelector('.nexus-bay__caption')?.textContent,
-    ).toContain('Nexus.check passed: the wiring is right.');
+    ).toContain('check() passed: the wiring is right.');
   });
 
   it('closes the DRONE hatch, passes the check and fails the bridge lookup after Launch', async () => {

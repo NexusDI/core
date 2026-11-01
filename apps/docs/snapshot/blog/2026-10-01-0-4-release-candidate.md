@@ -89,7 +89,7 @@ With `errors()` from `@nexusdi/errors` registered, each error says what is wrong
   Fix: add NavCharts to Tactical's exports and import Tactical into Engineering.
 ```
 
-`Nexus.check` runs the same validation and builds nothing, so a CI job can check the graph without starting a service.
+`check()` runs the same validation and builds nothing, so a CI job can check the graph without starting a service.
 
 ### Async startup, synchronous `get()`
 
@@ -139,7 +139,7 @@ import { federationText } from '@nexusdi/federation/text';
 const plugins = [errors({ text: [federationText] })];
 ```
 
-`nexusdi graph` checks the graph with `Nexus.check`, builds nothing, and writes Mermaid, DOT, JSON, SVG or PNG. It exits with code 1 when the graph is invalid, so a CI step fails on a broken graph. SVG output needs `@viz-js/viz`.
+`nexusdi graph` checks the graph with `check()`, builds nothing, and writes Mermaid, DOT, JSON, SVG or PNG. It exits with code 1 when the graph is invalid, so a CI step fails on a broken graph. SVG output needs `@viz-js/viz`.
 
 ```sh
 npx nexusdi graph src/meridian.module.ts#Meridian -o graph.svg

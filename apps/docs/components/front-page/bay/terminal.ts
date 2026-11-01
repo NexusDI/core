@@ -110,7 +110,7 @@ export function launchLines(outcome: LaunchOutcome): LogLine[] {
 export function captionOf(outcome: LaunchOutcome | null): string | null {
   if (outcome === null) return null;
   if (!outcome.ok && outcome.error?.kind === 'provider-failed')
-    return 'Nexus.check passed: the wiring is right. The chart server failed at startup, and Nexus.create took down what it had built.';
+    return 'check() passed: the wiring is right. The chart server failed at startup, and Nexus.create took down what it had built.';
   if (outcome.lookup?.error.kind === 'not-visible')
     return "The wiring passed. The bridge's lookup is your own code, which no check sees, and it asked for a system that its module keeps private.";
   return null;

@@ -86,7 +86,7 @@ The `options` include `setup`, `create`, and `containerScope` (`'test'` or `'fil
 
 ```
 
-The setup above replaces `REACTOR` with `FakeReactor` and leaves `HEALTH_CHECKS` alone. `Nexus.check(Meridian)` in a CI test returns a `CheckReport` without building any providers, and it throws `NEXUS_BLUEPRINT_INVALID` when a module keeps a contribution private and no provider in that module reads it.
+The setup above replaces `REACTOR` with `FakeReactor` and leaves `HEALTH_CHECKS` alone. `check(Meridian)` in a CI test returns a `CheckReport` without building any providers, and it throws `NEXUS_BLUEPRINT_INVALID` when a module keeps a contribution private and no provider in that module reads it.
 
 `override(HEALTH_CHECKS, ...)` pins the token. Every collector reads only one record, and the unread-contribution check is skipped for that token. Wiring tests should avoid overriding the token, as doing so hides the missing export the test is there to find:
 
@@ -94,7 +94,7 @@ The setup above replaces `REACTOR` with `FakeReactor` and leaves `HEALTH_CHECKS`
 
 ```
 
-**Try it:** Save the region as `pin.ts` and run it. It prints `NEXUS_UNREAD_CONTRIBUTION` and then `fake`. The pinned container starts although `Tactical` forgot its export. Add `exports: [HEALTH_CHECKS],` to `Tactical` and run it again: `Nexus.check` finds nothing, so the first line prints `null`.
+**Try it:** Save the region as `pin.ts` and run it. It prints `NEXUS_UNREAD_CONTRIBUTION` and then `fake`. The pinned container starts although `Tactical` forgot its export. Add `exports: [HEALTH_CHECKS],` to `Tactical` and run it again: `check()` finds nothing, so the first line prints `null`.
 
 ## Contributions in Loaded Modules
 

@@ -132,9 +132,9 @@ The following example demonstrates these constraints: `Fresh` is not yet in the 
 
 ### Checking Load Imports before Startup
 
-To validate loading logic without initializing the container, use `Nexus.check(root, { load })`. This synchronously compiles each entry of the `load` list against the root and the entries before it, and stops at the first compile that fails. An entry takes load imports as `{ module, imports }` in place of the module.
+To validate loading logic without initializing the container, use `check(root, { load })`. This synchronously compiles each entry of the `load` list against the root and the entries before it, and stops at the first compile that fails. An entry takes load imports as `{ module, imports }` in place of the module.
 
-`Nexus.check` returns a `CheckReport` if all compiles pass. The `unchecked` array in the report lists modules whose options can only be validated by `Nexus.create`. If a compile fails, `Nexus.check` throws `NEXUS_BLUEPRINT_INVALID`, and its `errors` array holds the compile errors, or the one `NEXUS_LOAD_IMPORT` when a load import is refused.
+`check()` returns a `CheckReport` if all compiles pass. The `unchecked` array in the report lists modules whose options can only be validated by `Nexus.create`. If a compile fails, `check()` throws `NEXUS_BLUEPRINT_INVALID`, and its `errors` array holds the compile errors, or the one `NEXUS_LOAD_IMPORT` when a load import is refused.
 
 ```ts file=examples/meridian/src/pages/load.md region=load-import-check
 
@@ -168,7 +168,7 @@ To maintain the integrity of the graph, NexusDI imposes a few restrictions on dy
 
 **Try it:** Delete the `global: true,` line and run the region again. The load resolves and the region prints an empty line and then `undefined` twice, because there is no error to show.
 
-`load()` rejects a module that publishes a contribution to a multi token with [NEXUS_LOAD_CONTRIBUTION](/errors/NEXUS_LOAD_CONTRIBUTION/), which it throws directly as well. Its `module` and `token` properties name the module and the token. `Nexus.check` with the `load` option reports it inside `NEXUS_BLUEPRINT_INVALID`.
+`load()` rejects a module that publishes a contribution to a multi token with [NEXUS_LOAD_CONTRIBUTION](/errors/NEXUS_LOAD_CONTRIBUTION/), which it throws directly as well. Its `module` and `token` properties name the module and the token. `check()` with the `load` option reports it inside `NEXUS_BLUEPRINT_INVALID`.
 
 ```ts file=examples/meridian/src/pages/load.md region=load-contribution
 
@@ -200,5 +200,5 @@ In 0.3, `set()` registered one provider into a mutable container at any time, be
 - `get()` of a token from a module that is not loaded yet throws `NEXUS_MISSING_PROVIDER`.
 - A loaded module cannot publish a contribution to a `MultiToken`. It publishes one when it exports the token or a `compile.provider` hook pins the provider, a pin first made at the load included. `load()` then fails with `NEXUS_LOAD_CONTRIBUTION`. A private contribution that no provider of its module reads fails the load with `NEXUS_UNREAD_CONTRIBUTION`.
 - Every module `load(module, { imports })` adds sees the exports of each host module in `imports`, each already in the graph. It sees none of their private providers. A load import is recorded per module and stays fixed on later loads. It fails with `NEXUS_LOAD_IMPORT` for a module outside the graph (`not-in-graph`), the root (`root`) or another set on a repeat (`already-loaded`).
-- `Nexus.check(root, { load: [{ module, imports }] })` checks load imports synchronously and reports their errors inside `NEXUS_BLUEPRINT_INVALID`.
+- `check(root, { load: [{ module, imports }] })` checks load imports synchronously and reports their errors inside `NEXUS_BLUEPRINT_INVALID`.
 - A load import is wiring, with no isolation and no security boundary.

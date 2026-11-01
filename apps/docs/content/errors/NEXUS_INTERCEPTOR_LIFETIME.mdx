@@ -8,7 +8,7 @@ errorClass: InterceptorError
 
 # NEXUS_INTERCEPTOR_LIFETIME
 
-`@nexusdi/interceptors` reports `NEXUS_INTERCEPTOR_LIFETIME` when an interceptor is registered with the lifetime `scoped` or `transient`. The plugin builds every interceptor once, with the container, and every intercepted call of every scope runs through that one instance. The plugin's check finds it while the graph compiles, before any constructor runs. `Nexus.create` and `ship.load()` reject with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) holding it, and `Nexus.check` throws that error.
+`@nexusdi/interceptors` reports `NEXUS_INTERCEPTOR_LIFETIME` when an interceptor is registered with the lifetime `scoped` or `transient`. The plugin builds every interceptor once, with the container, and every intercepted call of every scope runs through that one instance. The plugin's check finds it while the graph compiles, before any constructor runs. `Nexus.create` and `ship.load()` reject with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) holding it, and `check()` throws that error.
 
 ## Reproduce `NEXUS_INTERCEPTOR_LIFETIME`
 

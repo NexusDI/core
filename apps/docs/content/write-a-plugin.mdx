@@ -152,7 +152,7 @@ Plugin API 1: `@nexusdi/core` 0.4.0 and later.
 
 Issue [#289](https://github.com/NexusDI/core/issues/289) tracks a release check of the version rule.
 
-**Version Mismatches**. If a plugin's `apiVersion` is missing, not a number or not in the supported list, `Nexus.create` rejects and `Nexus.check` throws `NEXUS_BLUEPRINT_INVALID`, which holds a [NEXUS_PLUGIN_VERSION](/errors/NEXUS_PLUGIN_VERSION/) for the plugin. The error names the plugin, the declared version and the supported list. Core registers none of that plugin's hooks, so its `formatError`, `setup` and every other hook never run.
+**Version Mismatches**. If a plugin's `apiVersion` is missing, not a number or not in the supported list, `Nexus.create` rejects and `check()` throws `NEXUS_BLUEPRINT_INVALID`, which holds a [NEXUS_PLUGIN_VERSION](/errors/NEXUS_PLUGIN_VERSION/) for the plugin. The error names the plugin, the declared version and the supported list. Core registers none of that plugin's hooks, so its `formatError`, `setup` and every other hook never run.
 
 [Guarantees for Plugin and Adapter Authors](/extension-contract/) states what stays stable across a version and what may change.
 

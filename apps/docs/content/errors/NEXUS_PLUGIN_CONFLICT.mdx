@@ -8,7 +8,7 @@ errorClass: PluginError
 
 # NEXUS_PLUGIN_CONFLICT
 
-`NEXUS_PLUGIN_CONFLICT` means two plugins both rewrite the same module or provider through their `compile.module` or `compile.provider` hooks. The first plugin to return a rewrite wins, and each later plugin that also returns one adds a conflict with the first. A hook that returns `undefined` takes no part. The conflict is reported inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/): `Nexus.create` and `load()` reject with it and `Nexus.check` throws it. No call raises `NEXUS_PLUGIN_CONFLICT` bare. The `target` field names the module or the provider.
+`NEXUS_PLUGIN_CONFLICT` means two plugins both rewrite the same module or provider through their `compile.module` or `compile.provider` hooks. The first plugin to return a rewrite wins, and each later plugin that also returns one adds a conflict with the first. A hook that returns `undefined` takes no part. The conflict is reported inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/): `Nexus.create` and `load()` reject with it and `check()` throws it. No call raises `NEXUS_PLUGIN_CONFLICT` bare. The `target` field names the module or the provider.
 
 ## Reproduce `NEXUS_PLUGIN_CONFLICT`
 

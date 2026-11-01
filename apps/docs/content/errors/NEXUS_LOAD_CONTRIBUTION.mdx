@@ -8,7 +8,7 @@ errorClass: LoadContributionError
 
 # NEXUS_LOAD_CONTRIBUTION
 
-`NEXUS_LOAD_CONTRIBUTION` means `ship.load()` received a module that exports a contribution to a `MultiToken`. A collector that `Nexus.create` built holds the list it had at startup, so a loaded module cannot add to it. `load()` rejects with the error directly. `Nexus.check` with the `load` option reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). A loaded module may keep a contribution private and read it inside the module. `load()` accepts a module the graph holds when a plugin's `compile.module` hook replaces it with a fresh object on every compile. It rejects a load at which a hook adds an exported contribution. A record a `compile.provider` hook pins for the first time at a load counts as exported, so `load()` rejects that too.
+`NEXUS_LOAD_CONTRIBUTION` means `ship.load()` received a module that exports a contribution to a `MultiToken`. A collector that `Nexus.create` built holds the list it had at startup, so a loaded module cannot add to it. `load()` rejects with the error directly. `check()` with the `load` option reports it inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). A loaded module may keep a contribution private and read it inside the module. `load()` accepts a module the graph holds when a plugin's `compile.module` hook replaces it with a fresh object on every compile. It rejects a load at which a hook adds an exported contribution. A record a `compile.provider` hook pins for the first time at a load counts as exported, so `load()` rejects that too.
 
 ## Reproduce `NEXUS_LOAD_CONTRIBUTION`
 

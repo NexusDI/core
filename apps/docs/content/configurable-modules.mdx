@@ -73,7 +73,7 @@ To prevent your app from starting with invalid configuration, you can attach a `
 
 ```
 
-If the options provided to `forRoot` fail the schema check, `Nexus.create` rejects with `NEXUS_PROVIDER_FAILED`, whose `cause` is `NEXUS_INVALID_MODULE_OPTIONS`. The module's providers are never built with the bad value. The cause carries the schema's issues. `Nexus.check` runs the same schema without building anything, as the next section shows. See [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) and [NEXUS_INVALID_MODULE_OPTIONS](/errors/NEXUS_INVALID_MODULE_OPTIONS/).
+If the options provided to `forRoot` fail the schema check, `Nexus.create` rejects with `NEXUS_PROVIDER_FAILED`, whose `cause` is `NEXUS_INVALID_MODULE_OPTIONS`. The module's providers are never built with the bad value. The cause carries the schema's issues. `check()` runs the same schema without building anything, as the next section shows. See [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/) and [NEXUS_INVALID_MODULE_OPTIONS](/errors/NEXUS_INVALID_MODULE_OPTIONS/).
 
 **Schema defaults** allow you to simplify the configuration required by the importer. `CommsSchema` gives `transport` the default `'relay'`, so `Comms.forRoot({ frequency: 1420 })` leaves the field out. `forRoot()` and the `forRootAsync()` factory take the schema's input type, while `COMMS_OPTIONS` resolves to the schema's output, the value with all defaults filled in. `SubspaceRelay` reads `transport` from that output, and the last line of the region prints `relay on 1420`. A module without a schema types `forRoot()` with its options token, and so does a module whose schema declares its input as `unknown` or `any`.
 
@@ -81,15 +81,15 @@ If the options provided to `forRoot` fail the schema check, `Nexus.create` rejec
 
 ## Checking Options before Startup
 
-`Nexus.check(root)` compiles the module graph as `Nexus.create` does and builds no provider. When every compile passed, it calls the options schema of each `forRoot()` value, so a test in CI can catch a bad value before the app starts. It throws `NEXUS_BLUEPRINT_INVALID` whose `errors` hold `NEXUS_INVALID_MODULE_OPTIONS` for each value that a synchronous schema rejects. The inner error is the one `Nexus.create` gives as the `cause` of `NEXUS_PROVIDER_FAILED`, with the same text.
+`check(root)` compiles the module graph as `Nexus.create` does and builds no provider. When every compile passed, it calls the options schema of each `forRoot()` value, so a test in CI can catch a bad value before the app starts. It throws `NEXUS_BLUEPRINT_INVALID` whose `errors` hold `NEXUS_INVALID_MODULE_OPTIONS` for each value that a synchronous schema rejects. The inner error is the one `Nexus.create` gives as the `cause` of `NEXUS_PROVIDER_FAILED`, with the same text.
 
 ```ts file=examples/meridian/src/pages/configurable-modules.md region=check-schema
 
 ```
 
-Two cases can fail only at `Nexus.create`: a schema whose `validate` returns a promise, since `Nexus.check` is synchronous, and a module with a schema imported with `forRootAsync()`, whose options exist only once its factory ran. `Nexus.check` returns both in `unchecked`, each with its `module` and a `reason` of `'async-schema'` or `'for-root-async'`. After the graph compiles, `Nexus.check` calls every options schema, an async one included, and awaits none, so keep each schema free of side effects. A schema that throws makes `Nexus.check` throw the same exception.
+Two cases can fail only at `Nexus.create`: a schema whose `validate` returns a promise, since `check()` is synchronous, and a module with a schema imported with `forRootAsync()`, whose options exist only once its factory ran. `check()` returns both in `unchecked`, each with its `module` and a `reason` of `'async-schema'` or `'for-root-async'`. After the graph compiles, `check()` calls every options schema, an async one included, and awaits none, so keep each schema free of side effects. A schema that throws makes `check()` throw the same exception.
 
-**Try it:** Install valibot with `npm install valibot@1.5.0`, save the region as `check.ts` and run it. It prints `[ 'NEXUS_INVALID_MODULE_OPTIONS' ]` and `[ 'Comms: for-root-async' ]`. Change `-5` to `1420` and run it again. The first `Nexus.check` call throws nothing, so `codes` stays empty and the first line prints `[]`.
+**Try it:** Install valibot with `npm install valibot@1.5.0`, save the region as `check.ts` and run it. It prints `[ 'NEXUS_INVALID_MODULE_OPTIONS' ]` and `[ 'Comms: for-root-async' ]`. Change `-5` to `1420` and run it again. The first `check()` call throws nothing, so `codes` stays empty and the first line prints `[]`.
 
 ## Sharing Configured Modules
 

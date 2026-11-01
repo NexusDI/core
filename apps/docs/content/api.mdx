@@ -17,15 +17,17 @@ An app declares its object graph as a tree of modules, and `@nexusdi/core` check
 
 `Nexus.create(root, { plugins })` registers the plugins in array order.
 
-`Nexus.create` and `Nexus.check` take a root that is a module, a provider array or a `RootConfig` object `{ providers, imports, exports }`, a root without a name. Its `providers` holds the root's own providers, and its `imports` lists the modules it imports. Its `exports` works as a module's `exports` does, so a root that exports a `MultiToken` publishes its own contributions to every collector.
+`Nexus.create` and `check()` take a root that is a module, a provider array or a `RootConfig` object `{ providers, imports, exports }`, a root without a name. Its `providers` holds the root's own providers, and its `imports` lists the modules it imports. Its `exports` works as a module's `exports` does, so a root that exports a `MultiToken` publishes its own contributions to every collector.
 
 `get(token, { module })` resolves as if called from inside that module, and `has`, `resolve` and `validate` take the same `{ module }`. The module must be in the graph. `get()` throws `NEXUS_INVALID_MODULE` for a module the graph does not hold. `Nexus.create` rejects a contribution to a `MultiToken` in a non-root module with `NEXUS_UNREAD_CONTRIBUTION` when the module does not export the token and none of its providers reads it through `all()` or `lazy(all())`. A `get(TOKEN, { module })` call is no reader.
 
-`load(module, { imports })` gives the exports of host modules already in the graph to the loaded module and to each module of its subtree that the graph did not hold. Each module in `imports` is a load import. `Nexus.check(root, { plugins, load: [{ module, imports }] })` takes the same load imports per entry, and runs the `plugins`' compile, tokenKey, observe and formatError hooks, with no setup. A load import names a host module. It cannot name the root. A load import is wiring. It isolates nothing and is no security boundary.
+`load(module, { imports })` gives the exports of host modules already in the graph to the loaded module and to each module of its subtree that the graph did not hold. Each module in `imports` is a load import. `check(root, { plugins, load: [{ module, imports }] })` takes the same load imports per entry, and runs the `plugins`' compile, tokenKey, observe and formatError hooks, with no setup. A load import names a host module. It cannot name the root. A load import is wiring. It isolates nothing and is no security boundary.
 
-```ts file=libs/core/docs/modules.md region=load-import
+## `check`
 
-```
+<!-- reference @nexusdi/core#check example=load-import -->
+
+`check(root, { plugins, load })` runs the plugins' compile, tokenKey, observe and formatError hooks, and no setup, and compiles each `load` entry after the root. An entry is a module, or `{ module, imports }` with the load imports that `load(module, { imports })` takes.
 
 ## `Token`
 
@@ -141,7 +143,7 @@ An app declares its object graph as a tree of modules, and `@nexusdi/core` check
 
 <!-- reference @nexusdi/core#CheckOptions -->
 
-`Nexus.check(root, { plugins, load })` runs the plugins' compile, tokenKey, observe and formatError hooks, and no setup, and compiles each `load` entry after the root. An entry is a module, or `{ module, imports }` with the load imports that `load(module, { imports })` takes.
+`plugins` lists the plugins whose compile, tokenKey, observe and formatError hooks `check` runs. `load` lists the modules that `check` compiles after the root. An entry is a module, or `{ module, imports }` with the load imports that `load(module, { imports })` takes.
 
 ## `CheckReport`
 

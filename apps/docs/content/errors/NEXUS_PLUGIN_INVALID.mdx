@@ -8,7 +8,7 @@ errorClass: PluginError
 
 # NEXUS_PLUGIN_INVALID
 
-`NEXUS_PLUGIN_INVALID` means a plugin passed to `Nexus.create` or `Nexus.check` is malformed: `plugins` is not an array, an entry is not an object, a plugin has no name or the name of an earlier plugin, or a hook has the wrong type. Core validates every plugin before it compiles anything and reports each fault inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). `Nexus.create` rejects with that error and `Nexus.check` throws it. No call raises `NEXUS_PLUGIN_INVALID` bare, and the `reason` field says which fault it is.
+`NEXUS_PLUGIN_INVALID` means a plugin passed to `Nexus.create` or `check()` is malformed: `plugins` is not an array, an entry is not an object, a plugin has no name or the name of an earlier plugin, or a hook has the wrong type. Core validates every plugin before it compiles anything and reports each fault inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). `Nexus.create` rejects with that error and `check()` throws it. No call raises `NEXUS_PLUGIN_INVALID` bare, and the `reason` field says which fault it is.
 
 ## Reproduce `NEXUS_PLUGIN_INVALID`
 

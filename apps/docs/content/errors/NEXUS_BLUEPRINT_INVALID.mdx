@@ -1,14 +1,14 @@
 ---
 title: NEXUS_BLUEPRINT_INVALID
 kind: code
-description: Nexus.create, Nexus.check, validate() or load() found errors in the module graph and built nothing.
+description: Nexus.create, check(), validate() or load() found errors in the module graph and built nothing.
 package: '@nexusdi/core'
 errorClass: BlueprintError
 ---
 
 # NEXUS_BLUEPRINT_INVALID
 
-`NEXUS_BLUEPRINT_INVALID` is the error that `Nexus.create`, `Nexus.check`, `ship.validate()` and `ship.load()` throw when the compiler finds one or more errors in the module graph. It lists every wiring mistake it found at once, and no constructor has run. When every compile passed, `Nexus.check` calls each `forRoot()` options schema and throws this error with one [NEXUS_INVALID_MODULE_OPTIONS](/errors/NEXUS_INVALID_MODULE_OPTIONS/) for each value that a synchronous schema rejects. A graph with wiring errors never reaches its schemas.
+`NEXUS_BLUEPRINT_INVALID` is the error that `Nexus.create`, `check()`, `ship.validate()` and `ship.load()` throw when the compiler finds one or more errors in the module graph. It lists every wiring mistake it found at once, and no constructor has run. When every compile passed, `check()` calls each `forRoot()` options schema and throws this error with one [NEXUS_INVALID_MODULE_OPTIONS](/errors/NEXUS_INVALID_MODULE_OPTIONS/) for each value that a synchronous schema rejects. A graph with wiring errors never reaches its schemas.
 
 ## Reproduce `NEXUS_BLUEPRINT_INVALID`
 
@@ -34,4 +34,4 @@ Try it: delete the `provide(REACTOR, ...)` line from `Engineering` in `fixed.ts`
 
 `BlueprintError` has one field. Its `message` lists the inner errors, one per line.
 
-- `errors`: every error one compilation found, in pass order, or for `Nexus.check` the rejected `forRoot()` values in record order. Each is a `NexusError` with its own `code`, so `error.errors.map((inner) => inner.code)` lists the codes.
+- `errors`: every error one compilation found, in pass order, or for `check()` the rejected `forRoot()` values in record order. Each is a `NexusError` with its own `code`, so `error.errors.map((inner) => inner.code)` lists the codes.

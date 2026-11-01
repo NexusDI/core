@@ -17,7 +17,7 @@ NexusDI identifies this as an `UnreadContributionError` to prevent dead code and
 - No provider in the module requests the token via `all()` or `lazy(all())` in its `deps` or properties.
 - The token is not pinned.
 
-`Nexus.create` reports this error as part of [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), occurring after the binding pass and following provider order. Because `ship.load()` and `Nexus.check` both trigger a compilation, they report the error in the same manner. A loaded module is an import of the root module. The root module is the only module the rule exempts, so it applies to a loaded module. A forgotten `exports: [TOKEN]` entry is a likely cause.
+`Nexus.create` reports this error as part of [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), occurring after the binding pass and following provider order. Because `ship.load()` and `check()` both trigger a compilation, they report the error in the same manner. A loaded module is an import of the root module. The root module is the only module the rule exempts, so it applies to a loaded module. A forgotten `exports: [TOKEN]` entry is a likely cause.
 
 ## Reproduce `NEXUS_UNREAD_CONTRIBUTION`
 

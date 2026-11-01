@@ -10,7 +10,7 @@ errorClass: LoadImportError
 
 When you use `ship.load(module, { imports })`, you provide load imports, a list of host modules whose exports the loaded modules can see. `NEXUS_LOAD_IMPORT` means `ship.load()` received a load import it cannot apply because it breaks a rule of the graph. It throws a `LoadImportError`.
 
-If you call `load()` directly, it rejects with this error. If you use `Nexus.check` with the `load` option, this error is reported as part of [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
+If you call `load()` directly, it rejects with this error. If you use `check()` with the `load` option, this error is reported as part of [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/).
 
 ## Understanding the Reasons
 
