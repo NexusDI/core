@@ -1,14 +1,15 @@
 import {
   all,
+  type BlueprintError,
+  check,
   defineModule,
+  type Dep,
   lazy,
   MultiToken,
   Nexus,
+  type NexusPlugin,
   provide,
   Token,
-  type BlueprintError,
-  type Dep,
-  type NexusPlugin,
 } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
@@ -310,14 +311,14 @@ describe('exempt', () => {
     expect(ship.get(USERS).find('1')).toBe('1');
   });
 
-  it('reports each reason from Nexus.check', () => {
+  it('reports each reason from check()', () => {
     class Journal {
       static interceptors = { class: [AUTH] };
       write(): void {}
     }
     const JOURNAL = new Token<Journal>('Journal');
     const error = thrown(() =>
-      Nexus.check(
+      check(
         defineModule({
           name: 'App',
           imports: [UsersModule],

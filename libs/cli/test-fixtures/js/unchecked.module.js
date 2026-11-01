@@ -3,7 +3,7 @@ import { Token, defineModule } from '@nexusdi/core';
 const OPTIONS = new Token('CommsOptions');
 const good = { frequency: 1420 };
 
-// An async schema: Nexus.check cannot judge it, only Nexus.create can.
+// An async schema: check() cannot judge it, only Nexus.create can.
 const Uplink = defineModule({
   name: 'Uplink',
   options: OPTIONS,

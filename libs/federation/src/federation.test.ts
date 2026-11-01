@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  Nexus,
-  Token,
   all,
+  check,
   defineModule,
+  Nexus,
   optional,
   provide,
+  Token,
 } from '@nexusdi/core';
 import type { ModuleDefinition, NexusPlugin } from '@nexusdi/core';
 
@@ -211,20 +212,18 @@ describe('federation', () => {
     });
   });
 
-  it('gives Nexus.check the verdict create gives, in either order', () => {
+  it('gives check() the verdict create gives, in either order', () => {
     const newer = remoteUsing(remoteBank.token<IAuth>('Auth')).module;
     const patched = shellOf(defineContract({ key: 'bank', version: '2.4.1' }));
     const older = remoteUsing(shellBank.token<IAuth>('Auth')).module;
     for (const graph of [root(Shell, newer), root(newer, Shell)])
-      expect(() => Nexus.check(graph, { plugins: [federation()] })).toThrow(
+      expect(() => check(graph, { plugins: [federation()] })).toThrow(
         expect.objectContaining({
           errors: [expect.objectContaining(mismatch('2.4.0', '2.3.0'))],
         }),
       );
     for (const graph of [root(patched, older), root(older, patched)])
-      expect(() =>
-        Nexus.check(graph, { plugins: [federation()] }),
-      ).not.toThrow();
+      expect(() => check(graph, { plugins: [federation()] })).not.toThrow();
   });
 
   it('checks each contributor of a contract multi token against an all() dependent, in either order', async () => {

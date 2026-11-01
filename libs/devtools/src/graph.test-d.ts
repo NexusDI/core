@@ -26,7 +26,7 @@ describe('devtools', () => {
 });
 
 describe('inspect', () => {
-  it("takes Nexus.check's options plus text and annotate", () => {
+  it("takes check()'s options plus text and annotate", () => {
     expectTypeOf<InspectOptions>().toEqualTypeOf<
       CheckOptions & {
         readonly text?: readonly ErrorTextPack[];

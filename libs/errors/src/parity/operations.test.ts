@@ -2,17 +2,18 @@ import { describe, expect, it } from 'vitest';
 
 import {
   all,
+  type BlueprintError,
+  check,
   defineModule,
   lazy,
   MultiToken,
   Nexus,
+  type NexusError,
   optional,
   provide,
+  type ProviderError,
   REQUEST,
   Token,
-  type BlueprintError,
-  type NexusError,
-  type ProviderError,
 } from '@nexusdi/core';
 
 import { rejected, thrown } from '../../test-support/catch.js';
@@ -42,10 +43,10 @@ const NAV_CHARTS = new Token<NavCharts>('NavCharts');
 const DIAGNOSTICS = new MultiToken<{ run(): boolean }>('Diagnostics');
 const charts: NavCharts = { plot: () => 'x' };
 
-/** The inner errors of the BlueprintError Nexus.check throws for `root`, with errors() registered. */
-function checkErrors(root: Parameters<typeof Nexus.check>[0]): NexusError[] {
+/** The inner errors of the BlueprintError check() throws for `root`, with errors() registered. */
+function checkErrors(root: Parameters<typeof check>[0]): NexusError[] {
   const error = thrown(() =>
-    Nexus.check(root, { plugins: [errors()] }),
+    check(root, { plugins: [errors()] }),
   ) as BlueprintError;
   return [...error.errors];
 }
@@ -440,7 +441,7 @@ describe('errors', () => {
   describe('compile', () => {
     it('writes a BlueprintError whose message lists each error on its own line', () => {
       const error = thrown(() =>
-        Nexus.check(
+        check(
           defineModule({
             name: 'Root',
             providers: [null as never, 42 as never],
@@ -455,7 +456,7 @@ describe('errors', () => {
       ]);
     });
 
-    it('words the NEXUS_INVALID_MODULE_OPTIONS of Nexus.check as create words its cause', async () => {
+    it('words the NEXUS_INVALID_MODULE_OPTIONS of check() as create words its cause', async () => {
       const Comms = defineModule({
         name: 'Comms',
         options: new Token<{ frequency: number }>('CommsOptions'),
@@ -474,7 +475,7 @@ describe('errors', () => {
         imports: [Comms.forRoot({ frequency: 'high' } as never)],
       });
       const checkError = thrown(() =>
-        Nexus.check(root, { plugins: [errors()] }),
+        check(root, { plugins: [errors()] }),
       ) as BlueprintError;
       const createError = (await rejected(
         Nexus.create(root, { plugins: [errors()] }),

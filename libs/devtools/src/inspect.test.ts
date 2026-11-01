@@ -70,7 +70,7 @@ describe('inspect', () => {
       });
     const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-    it('lists the modules whose options Nexus.check left unchecked, in compile order', async () => {
+    it('lists the modules whose options check() left unchecked, in compile order', async () => {
       const Uplink = comms('Uplink', () => Promise.resolve({ value: good }));
       const Comms = comms('Comms');
       const Meridian = defineModule({

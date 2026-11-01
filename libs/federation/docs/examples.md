@@ -80,7 +80,7 @@ refused?.errors.map((error) => error.code); // -> ['NEXUS_CONTRACT_VERSION']
 <!-- #region text -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+import { check, defineModule, provide, Token } from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 import { defineContract, federation } from '@nexusdi/federation';
 import { federationText } from '@nexusdi/federation/text';
@@ -121,9 +121,9 @@ const graph = defineModule({
   ],
 });
 
-const messageWith = (options: Parameters<typeof Nexus.check>[1]) => {
+const messageWith = (options: Parameters<typeof check>[1]) => {
   try {
-    Nexus.check(graph, options);
+    check(graph, options);
   } catch (error) {
     return (error as { errors: Error[] }).errors[0]?.message.split('\n');
   }

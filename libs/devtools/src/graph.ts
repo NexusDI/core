@@ -88,7 +88,7 @@ export interface NexusGraph {
     kind: 'required' | 'optional' | 'lazy' | 'all' | 'alias';
   }>;
   /**
-   * The configurable modules whose options Nexus.check could not judge,
+   * The configurable modules whose options check() could not judge,
    * from its CheckReport, in compile order: `module` is the module's name
    * and `reason` is core's, `'async-schema'` or `'for-root-async'`. Only
    * Nexus.create validates their options. graph() of a running container
@@ -125,7 +125,7 @@ export function notesOf(
  * The graph of `view`. `asyncOf` answers a factory's `async`; null reports
  * every provider's `async` as null, for a graph nothing was built from.
  * `notes` maps a provider id to its labels, as notesOf builds it.
- * `unchecked` is Nexus.check's report; graph() passes [].
+ * `unchecked` is check()'s report; graph() passes [].
  */
 export function graphOf(
   view: BlueprintView,

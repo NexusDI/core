@@ -52,7 +52,7 @@ import { stripFences, type DocsPage } from './site';
  * which a union member declares only to rule a sibling's key out. A
  * property whose value is an options type, alone, in an array or as a union
  * member, also owes that type's keys as a path under the same heading:
- * `Nexus.check(root, { load: [{ module, imports }] })` owes
+ * `check(root, { load: [{ module, imports }] })` owes
  * `CheckOptions.load[].imports` under `## Nexus`. A nested type literal
  * counts there whatever alias holds it, since the caller writes it inside
  * the options. `oweTree` bounds the walk.
