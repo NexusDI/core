@@ -1,4 +1,5 @@
 import {
+  importsReach,
   REQUEST,
   Token,
   type BlueprintView,
@@ -12,7 +13,9 @@ type MissingLookup = NonNullable<MissingProviderError['lookup']>;
 /**
  * Where a token exists that `lookup.moduleId` cannot see: a module that
  * provides it without exporting it, a module that exports it and is not
- * imported, and a distinct Token with the same description. Classes compare
+ * imported, a module that provides it and reaches `lookup.moduleId` through
+ * imports (importing it would close a cycle), and a distinct Token with the
+ * same description. Classes compare
  * by identity, so two classes with one name are never a near miss.
  */
 export function nearMissesOf(
@@ -34,10 +37,12 @@ export function nearMissesOf(
     owners.add(provider.module);
     const owner = modules.get(provider.module);
     const exported = owner?.exports.includes(provider.id) ?? false;
-    misses.push({
-      kind: exported ? 'not-imported' : 'not-exported',
-      module: owner?.name ?? provider.module,
-    });
+    const kind = importsReach(view, provider.module, lookup.moduleId)
+      ? 'importer'
+      : exported
+        ? 'not-imported'
+        : 'not-exported';
+    misses.push({ kind, module: owner?.name ?? provider.module });
   }
 
   const token = lookup.token;

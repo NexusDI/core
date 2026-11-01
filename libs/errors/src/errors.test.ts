@@ -103,6 +103,38 @@ describe('errors', () => {
     });
   });
 
+  it('never advises an import that closes a cycle', async () => {
+    const APP_SOURCE = new Token<NavCharts>('AppSource');
+    const DeckOptions = new Token<{ source: NavCharts }>('DeckOptions');
+    const DeckState = defineModule({ name: 'DeckState', options: DeckOptions });
+    const App = defineModule({
+      name: 'App',
+      providers: [provide(APP_SOURCE, { useValue: { plot: () => 'x' } })],
+      imports: [
+        DeckState.forRootAsync({
+          useFactory: (source: NavCharts) => ({ source }),
+          deps: [APP_SOURCE],
+        }),
+      ],
+    });
+    const error = await Nexus.create(App, { plugins: [errors()] }).then(
+      () => undefined,
+      (caught: unknown) => caught,
+    );
+    expect(error).toMatchObject({
+      errors: [
+        {
+          code: 'NEXUS_MISSING_PROVIDER',
+          nearMisses: [{ kind: 'importer', module: 'App' }],
+          message:
+            '[NEXUS_MISSING_PROVIDER] DeckOptions (module DeckState) depends on AppSource, but no provider of AppSource is visible in DeckState.\n' +
+            '  AppSource is provided in App, which imports DeckState, directly or through other modules.\n' +
+            '  Fix: App imports DeckState, so DeckState cannot import App. Move AppSource into a module that DeckState imports, or make that module global. A module factory that imports the module providing AppSource also works.',
+        },
+      ],
+    });
+  });
+
   it('leaves nearMisses empty without the plugin', async () => {
     const error = await Nexus.create(Meridian).then(
       () => undefined,

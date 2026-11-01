@@ -15,8 +15,13 @@ interface INavCharts {
 }
 const NAV_CHARTS = new Token<INavCharts>('NavCharts');
 
-function moduleView(id: string, name: string, exports: string[] = []) {
-  return { id, name, exports } as Partial<ModuleView> as ModuleView;
+function moduleView(
+  id: string,
+  name: string,
+  exports: string[] = [],
+  imports: string[] = [],
+) {
+  return { id, name, exports, imports } as Partial<ModuleView> as ModuleView;
 }
 
 function providerView(id: string, token: unknown, module: string) {
@@ -39,6 +44,20 @@ describe('nearMissesOf', () => {
         viewWith('p9', NAV_CHARTS),
       ),
     ).toEqual([{ kind: 'not-exported', module: 'Deck' }]);
+  });
+
+  it('names a providing module that reaches the requester as an importer, however far', () => {
+    const view = {
+      modules: [
+        moduleView('m0', 'Bridge'),
+        moduleView('m1', 'Deck', [], ['m2']),
+        moduleView('m2', 'Hull', [], ['m0']),
+      ],
+      providers: [providerView('p9', NAV_CHARTS, 'm1')],
+    } as Partial<BlueprintView> as BlueprintView;
+    expect(nearMissesOf({ token: NAV_CHARTS, moduleId: 'm0' }, view)).toEqual([
+      { kind: 'importer', module: 'Deck' },
+    ]);
   });
 
   it("skips core's request provider by its token, whatever its id", () => {
