@@ -65,6 +65,5 @@ jobs:
       - name: Fail on unexplained growth
         if: steps.compare.outputs.failed == 'true'
         run: |
-          echo "Size check failed: $(cat reason.txt)"
-          echo "Add a '## Size' section to the description that says what the added bytes give the user."
+          echo "Size check failed: $(cat reason.txt 2>/dev/null || echo "size-compare.mjs crashed; see the Compare step")"
           exit 1
