@@ -98,7 +98,14 @@ function Callouts({
       {hinted && keep(hinted.at) ? (
         <p
           className="nexus-bay__hint"
-          style={percent(hinted.at, FRAME) as CSSProperties}
+          style={
+            {
+              ...percent(hinted.at, FRAME),
+              // The hint hangs left of its part: it wraps to the room that the
+              // visible crop leaves there, so a narrow stage never clips it.
+              maxInlineSize: `calc(${((hinted.at[0] - WIDE_CROP[0]) / FRAME[2]) * 100}% - 28px)`,
+            } as CSSProperties
+          }
         >
           Click a conduit to cut it
         </p>

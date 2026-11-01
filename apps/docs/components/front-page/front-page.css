@@ -479,7 +479,7 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
   border: 1px solid var(--meridian-action);
   font-size: var(--meridian-text-small);
   color: var(--meridian-text);
-  white-space: nowrap;
+  inline-size: max-content;
   transform: translate(calc(-100% - 22px), -50%);
 }
 
