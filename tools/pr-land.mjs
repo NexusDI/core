@@ -38,11 +38,17 @@ function stop(reason) {
 
 /** Runs gh and returns stdout. Retries transient API and network errors with backoff. */
 async function gh(...args) {
+  return ghWith({}, ...args);
+}
+
+/** Runs gh with extra execFileSync options, such as a larger buffer or a timeout. */
+async function ghWith(options, ...args) {
   for (let attempt = 1; ; attempt++) {
     try {
       return execFileSync('gh', args, {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
+        ...options,
       });
     } catch (error) {
       const message = String(error.stderr || error.message).trim();
@@ -108,29 +114,41 @@ async function rerunWhenComplete(id) {
   await gh('run', 'rerun', id, '--failed');
 }
 
+/** A line that names a failed test or task: vitest, Playwright's dot reporter and Nx. */
+const SUMMARY =
+  / FAIL |^\s*\d+\) \[\w+\] › |^\s*\[\w+\] › .*:\d+:\d+|Failed tasks|^\s*- @\S+:\S+/;
+/** A line that says why a test failed. */
+const CAUSE = /timed out|Test timeout of|AssertionError|Error:/;
+
 /**
- * The lines of a failed run's log that name what failed. A rerun replaces the
- * log GitHub serves, so pr-land prints them first to tell a flake from a new
- * failure afterwards.
+ * failureLines returns the lines of a failed run's log that name what failed.
+ * After a rerun, `gh run view --log-failed` shows the new attempt, so pr-land
+ * prints the first attempt's lines and the command that fetches its full log.
  */
 async function failureLines(id) {
+  const command = `gh run view ${id} --attempt 1 --log-failed`;
   try {
-    const log = await gh('run', 'view', id, '--log-failed');
-    const lines = log
-      .replace(/(?:\x1b|\^\[)\[[0-9;]*m/g, '')
-      .split('\n')
-      // A log line starts with the job, the step and a timestamp.
-      .map((line) => line.replace(/^[^\t]*\t[^\t]*\t\S+Z /, ''))
-      .filter((line) =>
-        / FAIL |timed out|AssertionError|Error:|Failed tasks|\s- @\S+:\S+/.test(
-          line,
-        ),
-      );
-    return (
-      [...new Set(lines)].slice(0, 20).join('\n') || '(no failure lines found)'
+    const log = await ghWith(
+      { maxBuffer: 256 * 1024 * 1024, timeout: 60_000 },
+      'run',
+      'view',
+      id,
+      '--log-failed',
     );
+    const lines = log
+      .replace(/(?:\x1b|\^\[)\[[0-9;]*[A-Za-z]/g, '')
+      .split(/\r?\n/)
+      // A log line starts with the job, the step and a timestamp.
+      .map((line) => line.replace(/^[^\t]*\t[^\t]*\t\S+Z /, ''));
+    // The runners print their summaries last, so the summary lines come first
+    // and the newest causes fill what is left of the 20.
+    const unique = (list) => [...new Set(list)];
+    const summary = unique(lines.filter((line) => SUMMARY.test(line)));
+    const causes = unique(lines.filter((line) => CAUSE.test(line))).slice(-20);
+    const shown = [...summary, ...causes].slice(0, 20);
+    return [...shown, `full log: ${command}`].join('\n');
   } catch (error) {
-    return `(could not read the log: ${error.message.split('\n')[0]})`;
+    return `(could not read the log: ${error.message.split('\n')[0]}; try ${command})`;
   }
 }
 
