@@ -104,7 +104,34 @@ async function rerunWhenComplete(id) {
     await sleep(POLL_MS);
   }
   console.log(`rerunning the failed jobs of run ${id}`);
+  console.log(await failureLines(id));
   await gh('run', 'rerun', id, '--failed');
+}
+
+/**
+ * The lines of a failed run's log that name what failed. A rerun replaces the
+ * log GitHub serves, so pr-land prints them first to tell a flake from a new
+ * failure afterwards.
+ */
+async function failureLines(id) {
+  try {
+    const log = await gh('run', 'view', id, '--log-failed');
+    const lines = log
+      .replace(/(?:\x1b|\^\[)\[[0-9;]*m/g, '')
+      .split('\n')
+      // A log line starts with the job, the step and a timestamp.
+      .map((line) => line.replace(/^[^\t]*\t[^\t]*\t\S+Z /, ''))
+      .filter((line) =>
+        / FAIL |timed out|AssertionError|Error:|Failed tasks|\s- @\S+:\S+/.test(
+          line,
+        ),
+      );
+    return (
+      [...new Set(lines)].slice(0, 20).join('\n') || '(no failure lines found)'
+    );
+  } catch (error) {
+    return `(could not read the log: ${error.message.split('\n')[0]})`;
+  }
 }
 
 async function land() {
