@@ -188,6 +188,26 @@ test.describe('the pre-flight bay', () => {
     await expect(terminal(page)).toContainText('Kepler-442b');
   });
 
+  test('the ship names its rooms on the art, and the labels let every press through', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openBay(page);
+    const rooms = page.locator('.nexus-bay__rooms');
+    await expect(rooms).toHaveAttribute('aria-hidden', 'true');
+    await expect(rooms).toHaveCSS('pointer-events', 'none');
+    await expect(rooms.getByText('Bridge', { exact: true })).toBeVisible();
+    await expect(rooms.getByText('Meridian (module)')).toBeVisible();
+    await expect(
+      rooms.getByText('Reactor, FusionReactor (provider)'),
+    ).toBeVisible();
+    await expect(page.locator('.nexus-bay__legend')).not.toContainText(
+      'Painted pipes',
+    );
+    await press(page, 'conduit-Tactical-Comms');
+    await expect(page.locator('.nexus-bay__alert')).toBeVisible();
+  });
+
   test('Tab reaches the hotspots in hull order', async ({ page }) => {
     await openBay(page);
     const order: number[] = [];

@@ -79,6 +79,62 @@ export const ALL_ROOMS = [
   'shuttle-bay',
 ] as const;
 
+/**
+ * What the ship says about a room on the art: the room's name, the module of
+ * its hull section and the provider that sits in it. The label sits at the
+ * corner of the room's rect that `anchor` names in the schematic, so
+ * the table holds no coordinates. The room and module come from `PLACEMENT`.
+ */
+export interface RoomLabel {
+  readonly room: string;
+  readonly title: string;
+  readonly module: string;
+  /** The provider that the room hosts, when the label names it. */
+  readonly provider?: string;
+  /**
+   * Where the label hangs on the room's rect: inside its top-left corner, inside its bottom-left corner,
+   * inside its bottom-right corner, or just under its bottom-left corner, for
+   * a room that parts already fill.
+   */
+  readonly anchor: 'top' | 'bottom' | 'bottom-end' | 'below';
+}
+
+export const ROOM_LABELS: readonly RoomLabel[] = [
+  { room: 'bridge', title: 'Bridge', module: 'Meridian', anchor: 'top' },
+  { room: 'comms-relay', title: 'Comms relay', module: 'Comms', anchor: 'top' },
+  {
+    room: 'engineering',
+    title: 'Engineering',
+    module: 'Engineering',
+    provider: 'Reactor, FusionReactor',
+    anchor: 'top',
+  },
+  {
+    room: 'shuttle-bay',
+    title: 'Shuttle bay',
+    module: 'BridgeApi',
+    anchor: 'bottom-end',
+  },
+  {
+    room: 'computer-core',
+    title: 'Computer core',
+    module: 'Engineering',
+    anchor: 'bottom',
+  },
+  {
+    room: 'chart-room',
+    title: 'Chart room',
+    module: 'Tactical',
+    anchor: 'below',
+  },
+  {
+    room: 'drone-bay',
+    title: 'Drone bay',
+    module: 'Tactical',
+    anchor: 'bottom',
+  },
+];
+
 export function isSystemId(token: string): token is SystemId {
   return (SYSTEM_IDS as readonly string[]).includes(token);
 }

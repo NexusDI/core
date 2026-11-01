@@ -292,10 +292,6 @@ export function BayView(props: BayViewProps) {
               <span>= {item.code}</span>
             </span>
           ))}
-          <span className="nexus-bay__legend-note">
-            Painted pipes are greyed in the bay so they never read as DI
-            conduits.
-          </span>
         </div>
 
         {interactive && actions ? (
