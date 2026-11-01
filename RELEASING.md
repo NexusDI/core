@@ -186,9 +186,13 @@ On `release/X.Y`, with no rc tag of the line, the version is `X.Y.0-rc.0`.
 After that it is one past the highest rc tag, compared as numbers, so rc.10
 follows rc.9.
 
-1. Verify gate: `nx run-many -t lint test build typecheck --exclude=tag:demo-frontend`
-   over every project except the private federation demos, which ci.yml's
-   `demo-apps` job runs, then `npm run verify:packaging`.
+1. Verify gate, in two steps on one runner:
+   `nx run-many -t lint build typecheck --exclude=tag:demo-frontend`, then
+   `nx run-many -t test --exclude=tag:demo-frontend --parallel=2` with
+   `VITEST_MAX_WORKERS=2`. Together they cover every project except the
+   private federation demos, which ci.yml's `demo-apps` job runs, and they
+   run the targets of ci.yml's `main-build` and `main-test` jobs. Then
+   `npm run verify:packaging`.
 2. `nx release version <version>`.
 3. `nx release changelog <version> --git-commit --git-tag --git-push --git-remote origin --git-push-args="HEAD:refs/heads/release/X.Y"`.
    One atomic push carries the release commit and the tag, and nx creates the

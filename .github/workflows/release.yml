@@ -172,16 +172,30 @@ jobs:
         if: inputs.event != 'sync'
         run: npx playwright install --with-deps chromium
 
-      - name: Verify
+      # The target list and scope of CI's main gate, run as main-build and
+      # main-test run it, in two steps on this runner.
+      # tools/repo-checks/src/release-verify-gate.test.ts holds the steps
+      # against ci.yml. A fixed release group publishes every package, so no
+      # --projects filter applies, and `--affected` on a dispatch compares a
+      # commit with itself and verifies nothing. The one exclusion,
+      # tag:demo-frontend, drops the private federation demos, which the
+      # demo-apps job in ci.yml runs on the same commit.
+      #
+      # One run-many for all four targets starved a 4 vCPU runner on a cache
+      # miss: CPU at 97%, swapping, and tests at vitest's 5 s timeout. The
+      # compilers and linters run first, then the suites.
+      - name: Verify lint, build and typecheck
         if: inputs.event != 'sync'
-        # The target list and scope of CI's main job.
-        # tools/repo-checks/src/release-verify-gate.test.ts holds the two
-        # steps against each other. A fixed release group publishes every
-        # package, so no --projects filter applies, and `--affected` on a
-        # dispatch compares a commit with itself and verifies nothing. The
-        # one exclusion, tag:demo-frontend, drops the private federation
-        # demos, which the demo-apps job in ci.yml runs on the same commit.
-        run: npx nx run-many -t lint test build typecheck --exclude=tag:demo-frontend
+        run: npx nx run-many -t lint build typecheck --exclude=tag:demo-frontend
+
+      # Nx runs two tasks at once and each vitest run starts two workers, so
+      # the suites hold the runner's 4 vCPUs and no more. Vitest reads
+      # VITEST_MAX_WORKERS over every project's config.
+      - name: Verify test
+        if: inputs.event != 'sync'
+        env:
+          VITEST_MAX_WORKERS: 2
+        run: npx nx run-many -t test --exclude=tag:demo-frontend --parallel=2
 
       # Problems that exist only once a package is packed, such as emitted
       # .d.ts files a nodenext consumer cannot resolve.
