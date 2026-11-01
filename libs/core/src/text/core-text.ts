@@ -62,6 +62,8 @@ function nearMissHint(token: string, module: string, miss: NearMiss): string {
       return `${token} is provided in ${miss.module}, which does not export it.`;
     case 'not-imported':
       return `${token} is exported by ${miss.module}, which ${module} does not import.`;
+    case 'importer':
+      return `${token} is provided in ${miss.module}, which imports ${module}, directly or through other modules.`;
     case 'same-description':
       return `A Token with the same description '${token}' exists in ${miss.module}. Tokens compare by identity, so use that Token object.`;
   }
@@ -72,12 +74,18 @@ function nearMissFix(
   module: string,
   misses: readonly NearMiss[],
 ): string {
-  const first = misses[0];
-  if (first?.kind === 'not-exported') {
-    return `add ${token} to ${first.module}'s exports and import ${first.module} into ${module}.`;
+  const reachable = misses.find(
+    (miss) => miss.kind === 'not-exported' || miss.kind === 'not-imported',
+  );
+  if (reachable?.kind === 'not-exported') {
+    return `add ${token} to ${reachable.module}'s exports and import ${reachable.module} into ${module}.`;
   }
-  if (first?.kind === 'not-imported')
-    return `import ${first.module} into ${module}.`;
+  if (reachable?.kind === 'not-imported')
+    return `import ${reachable.module} into ${module}.`;
+  const importer = misses.find((miss) => miss.kind === 'importer');
+  if (importer !== undefined) {
+    return `${importer.module} imports ${module}, so ${module} cannot import ${importer.module}. Move ${token} into a module that ${module} imports, or make that module global. A module factory that imports the module providing ${token} also works.`;
+  }
   return `provide ${token} in ${module} or in a module ${module} imports.`;
 }
 

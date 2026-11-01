@@ -1,9 +1,14 @@
 import { errorBase } from './nexus-error.js';
 
-/** A place the token exists that the requester cannot see. */
+/**
+ * A place the token exists that the requester cannot see. `importer` is a
+ * module that provides the token and reaches the requester through imports,
+ * so importing it into the requester would close a cycle.
+ */
 export type NearMiss =
   | { readonly kind: 'not-exported'; readonly module: string }
   | { readonly kind: 'not-imported'; readonly module: string }
+  | { readonly kind: 'importer'; readonly module: string }
   | { readonly kind: 'same-description'; readonly module: string };
 
 interface MissingProviderFields {

@@ -107,6 +107,7 @@ export { REQUEST } from './definitions/request.js';
 export type { NexusRequest } from './definitions/request.js';
 export type { StandardSchemaV1 } from './definitions/standard-schema.js';
 export { splitLoadEntry } from './blueprint/load-entry.js';
+export { importsReach } from './blueprint/reach.js';
 export { loadOnce } from './runtime/load-once.js';
 export { Nexus } from './runtime/nexus.js';
 export { check } from './runtime/check.js';
