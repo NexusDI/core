@@ -198,6 +198,7 @@ function RoomLabels({ layout }: { layout: RoomLayout }) {
           entry.leader ? (
             <polyline
               key={entry.label.room}
+              data-leader={entry.label.room}
               points={entry.leader.map((p) => p.join(',')).join(' ')}
               vectorEffect="non-scaling-stroke"
             />

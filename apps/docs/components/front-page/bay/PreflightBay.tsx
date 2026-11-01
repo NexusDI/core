@@ -5,6 +5,7 @@ import type { NexusGraph } from '@nexusdi/devtools';
 import type { ConduitId, SystemId } from '@nexusdi/meridian/scenes/front-page';
 import type { TraceEvent } from '@nexusdi/core';
 
+import { applyRoomCoverage } from './room-coverage';
 import { BayView, type Actions, type Stamped } from './BayView';
 import {
   HINT_PART,
@@ -535,6 +536,18 @@ export default function PreflightBay({
   const [lightPhase, setLightPhase] = useState<
     'off' | 'loading' | 'on' | 'failed'
   >('off');
+  // A callout the visitor caused hides the room plates under it (OR6).
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    applyRoomCoverage(root);
+    // The type and the notes settle after the first frame, and a callout moves
+    // the layout: measure again once they have.
+    const frame = requestAnimationFrame(() => applyRoomCoverage(root));
+    void document.fonts?.ready.then(() => applyRoomCoverage(root));
+    return () => cancelAnimationFrame(frame);
+  });
+
   const lightKey = JSON.stringify([view.light.rooms, view.light.glow]);
 
   useEffect(() => {
