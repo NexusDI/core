@@ -4,7 +4,7 @@ import { LoadImportError } from './load-import-error.js';
 
 /**
  * Whether compile() threw the error alone, on a load, before its later
- * passes ran. Nexus.check wraps each such error in a BlueprintError.
+ * passes ran. check() wraps each such error in a BlueprintError.
  */
 export function isLoadError(
   error: unknown,

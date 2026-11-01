@@ -10,6 +10,7 @@ import { MultiToken, Token } from '../definitions/token.js';
 import { REQUEST } from '../definitions/request.js';
 import type { StandardSchemaV1 } from '../definitions/standard-schema.js';
 import { Nexus } from './nexus.js';
+import { check } from './check.js';
 import type { BlueprintView } from '../blueprint/views.js';
 import type { NexusPlugin } from './plugins.js';
 import type { TraceEvent } from './trace.js';
@@ -150,9 +151,9 @@ describe('run', () => {
     expect(only(events, 'scope:extend')).toMatchObject([{ run: 3 }]);
   });
 
-  it('gives a Nexus.check compile no run and emits no run event', () => {
+  it('gives a check() compile no run and emits no run event', () => {
     const { events, plugin } = recordEvents();
-    Nexus.check(Engineering, { plugins: [plugin] });
+    check(Engineering, { plugins: [plugin] });
     expect(events).toMatchObject([
       { type: 'compile', phase: 'check', run: null },
     ]);

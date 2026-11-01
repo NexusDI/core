@@ -7,6 +7,7 @@ import { provide } from '../definitions/provide.js';
 import { Token } from '../definitions/token.js';
 import type { BlueprintError, NexusError } from '../errors/index.js';
 import { Nexus } from './nexus.js';
+import { check } from './check.js';
 
 class Logger {
   log(line: string) {
@@ -91,9 +92,9 @@ describe('Nexus.create', () => {
   });
 });
 
-describe('Nexus.check', () => {
+describe('check', () => {
   it('takes a provider array', () => {
-    expect(thrown(() => Nexus.check([UserService]))).toMatchObject({
+    expect(thrown(() => check([UserService]))).toMatchObject({
       errors: [{ code: 'NEXUS_MISSING_PROVIDER', module: 'root' }],
     });
   });

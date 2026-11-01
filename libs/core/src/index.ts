@@ -109,6 +109,7 @@ export type { StandardSchemaV1 } from './definitions/standard-schema.js';
 export { splitLoadEntry } from './blueprint/load-entry.js';
 export { loadOnce } from './runtime/load-once.js';
 export { Nexus } from './runtime/nexus.js';
+export { check } from './runtime/check.js';
 export type {
   CheckOptions,
   CheckReport,

@@ -5,6 +5,7 @@ import { reportMiss } from '../../test-support/third-party-trace.js';
 import { defineModule } from '../definitions/define-module.js';
 import { MissingDepsError } from '../errors/index.js';
 import { Nexus } from './nexus.js';
+import { check } from './check.js';
 import {
   NEXUS_PLUGIN_API,
   SUPPORTED_PLUGIN_APIS,
@@ -206,10 +207,10 @@ describe('Nexus.create', () => {
     expect((error as Error).message).toContain('Version refused.');
   });
 
-  it('throws NEXUS_PLUGIN_VERSION from Nexus.check', () => {
+  it('throws NEXUS_PLUGIN_VERSION from check()', () => {
     let thrown: unknown;
     try {
-      Nexus.check(Root, { plugins: [{ name: 'future', apiVersion: 2 }] });
+      check(Root, { plugins: [{ name: 'future', apiVersion: 2 }] });
     } catch (error) {
       thrown = error;
     }

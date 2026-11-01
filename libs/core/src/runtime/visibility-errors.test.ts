@@ -6,6 +6,7 @@ import { provide } from '../definitions/provide.js';
 import { MultiToken, Token } from '../definitions/token.js';
 import { BlueprintError, type NexusError } from '../errors/index.js';
 import { Nexus } from './nexus.js';
+import { check } from './check.js';
 
 interface IReactor {
   readonly output: number;
@@ -112,7 +113,7 @@ describe('visibility errors across modules', () => {
     expect(
       errorSet(
         thrown(() =>
-          Nexus.check(defineModule({ name: 'Bridge', imports: [Tactical] })),
+          check(defineModule({ name: 'Bridge', imports: [Tactical] })),
         ),
       ),
     ).toEqual([
@@ -130,7 +131,7 @@ describe('visibility errors across modules', () => {
     expect(
       errorSet(
         thrown(() =>
-          Nexus.check(
+          check(
             defineModule({ name: 'Bridge', imports: [Tactical, Engineering] }),
           ),
         ),
@@ -153,7 +154,7 @@ describe('visibility errors across modules', () => {
     expect(
       errorSet(
         thrown(() =>
-          Nexus.check(
+          check(
             defineModule({ name: 'Bridge', imports: [Engineering, Tactical] }),
           ),
         ),
@@ -173,7 +174,7 @@ describe('visibility errors across modules', () => {
     expect(
       errorSet(
         thrown(() =>
-          Nexus.check(defineModule({ name: 'Bridge', imports: [Tactical] })),
+          check(defineModule({ name: 'Bridge', imports: [Tactical] })),
         ),
       ),
     ).toEqual([ambiguous('Reactor', 'Tactical', ['Port', 'Starboard'])]);
@@ -191,9 +192,7 @@ describe('visibility errors across modules', () => {
     expect(
       errorSet(
         thrown(() =>
-          Nexus.check(
-            defineModule({ name: 'Bridge', imports: [Grid, Tactical] }),
-          ),
+          check(defineModule({ name: 'Bridge', imports: [Grid, Tactical] })),
         ),
       ),
     ).toEqual([ambiguous('Reactor', 'Tactical', ['Port', 'Grid'])]);
@@ -222,9 +221,7 @@ describe('visibility errors across modules', () => {
     expect(
       errorSet(
         thrown(() =>
-          Nexus.check(
-            defineModule({ name: 'Bridge', imports: [Fleet, Tactical] }),
-          ),
+          check(defineModule({ name: 'Bridge', imports: [Fleet, Tactical] })),
         ),
       ),
     ).toEqual(
@@ -258,9 +255,7 @@ describe('visibility errors across modules', () => {
     expect(
       errorSet(
         thrown(() =>
-          Nexus.check(
-            defineModule({ name: 'Bridge', imports: [Relay, Beacon] }),
-          ),
+          check(defineModule({ name: 'Bridge', imports: [Relay, Beacon] })),
         ),
       ),
     ).toEqual(
@@ -318,7 +313,7 @@ describe('visibility errors across modules', () => {
       ambiguous('Shields', 'Bridge', ['Tactical', 'Helm']),
       invalidExport('Comms', 'Comms'),
     ]);
-    expect(errorSet(thrown(() => Nexus.check(Bridge)))).toEqual(expected);
+    expect(errorSet(thrown(() => check(Bridge)))).toEqual(expected);
     expect(errorSet(await rejected(Nexus.create(Bridge)))).toEqual(expected);
   });
 });
@@ -385,9 +380,9 @@ describe('visibility errors from load() and extend()', () => {
       ambiguous('Reactor', 'Science', ['Engineering', 'Port']),
       invalidExport('Comms', 'Science'),
     ]);
-    expect(
-      errorSet(thrown(() => Nexus.check(Bridge, { load: [Science] }))),
-    ).toEqual(expected);
+    expect(errorSet(thrown(() => check(Bridge, { load: [Science] })))).toEqual(
+      expected,
+    );
 
     const ship = await Nexus.create(Bridge);
     const shuttle = await ship.createScope();

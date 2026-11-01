@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
-import { defineModule, Nexus as NexusClass, Token } from '../index.js';
+import { check, defineModule, Token } from '../index.js';
 import type {
   CheckOptions,
   CheckReport,
@@ -59,10 +59,10 @@ describe('CreateOptions', () => {
   });
 });
 
-describe('Nexus.check', () => {
+describe('check', () => {
   it('returns a CheckReport whose reasons are a closed union', () => {
     const Root = defineModule({ name: 'Root' });
-    expectTypeOf(NexusClass.check(Root)).toEqualTypeOf<CheckReport>();
+    expectTypeOf(check(Root)).toEqualTypeOf<CheckReport>();
     expectTypeOf<CheckReport['unchecked'][number]['reason']>().toEqualTypeOf<
       'async-schema' | 'for-root-async'
     >();

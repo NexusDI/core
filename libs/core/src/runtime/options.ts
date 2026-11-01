@@ -18,15 +18,15 @@ export interface LookupOptions {
   readonly module?: ModuleRef;
 }
 
-/** The options `Nexus.check` takes: its plugins, and the modules to compile after the root. */
+/** The options `check()` takes: its plugins, and the modules to compile after the root. */
 export interface CheckOptions {
-  /** Plugins, in order. Nexus.check runs their compile hooks, tokenKey, observe and formatError, and no setup. */
+  /** Plugins, in order. check() runs their compile hooks, tokenKey, observe and formatError, and no setup. */
   readonly plugins?: readonly NexusPlugin[];
   /** Modules to compile after the root, in order, as load() would. An entry with `imports` carries the load imports load() would take. */
   readonly load?: readonly LoadEntry[];
 }
 
-/** What Nexus.check returns: the modules whose options it could not judge. */
+/** What check() returns: the modules whose options it could not judge. */
 export interface CheckReport {
   /**
    * Each configurable module whose options check could not judge, in compile

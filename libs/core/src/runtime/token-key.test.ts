@@ -12,6 +12,7 @@ import { provide } from '../definitions/provide.js';
 import { REQUEST } from '../definitions/request.js';
 import { MultiToken, Token } from '../definitions/token.js';
 import { Nexus } from './nexus.js';
+import { check } from './check.js';
 import type { NexusPlugin, PluginContext } from './plugins.js';
 
 /** Two copies of a contracts package make two Token objects per name. */
@@ -167,9 +168,9 @@ describe('tokenKey', () => {
       expect(seen[0]).toEqual(seen[1]);
     });
 
-    it('keys its token in a Nexus.check view', () => {
+    it('keys its token in a check() view', () => {
       const seen: (readonly string[])[] = [];
-      Nexus.check(Shell, {
+      check(Shell, {
         plugins: [
           {
             ...byDescription,
@@ -237,7 +238,7 @@ describe('tokenKey', () => {
       for (const token of seen) expect(token).toBe(remoteAuth);
     });
 
-    it('keys its token in a compile.check view, a setup view and a Nexus.check view', async () => {
+    it('keys its token in a compile.check view, a setup view and a check() view', async () => {
       const seen: unknown[] = [];
       const plugin = {
         ...byDescription,
@@ -249,7 +250,7 @@ describe('tokenKey', () => {
           void seen.push(context.blueprint().canonical(remoteAuth)),
       };
       await Nexus.create(Shell, { plugins: [plugin] });
-      Nexus.check(Shell, { plugins: [plugin] });
+      check(Shell, { plugins: [plugin] });
       expect(seen).toHaveLength(3);
       for (const token of seen) expect(token).toBe(shellAuth);
     });
@@ -447,15 +448,15 @@ describe('tokenKey', () => {
       exports: [copyB],
       global: true,
     });
-    /** The view a compile.check hook receives from Nexus.check. */
+    /** The view a compile.check hook receives from check(). */
     const checkView = (
       root: unknown,
       plugin: NexusPlugin = keyed,
     ): BlueprintView => {
       let seen: BlueprintView | undefined;
-      const check = (view: BlueprintView): void => void (seen = view);
-      Nexus.check(root as never, {
-        plugins: [{ ...plugin, compile: { ...plugin.compile, check } }],
+      const record = (view: BlueprintView): void => void (seen = view);
+      check(root as never, {
+        plugins: [{ ...plugin, compile: { ...plugin.compile, check: record } }],
       });
       if (seen === undefined) throw new Error('compile.check never ran');
       return seen;
@@ -658,13 +659,13 @@ describe('tokenKey', () => {
     expect(scope.has(remoteAuth)).toBe(true);
   });
 
-  it('keys a Nexus.check root the way create does', () => {
+  it('keys a check() root the way create does', () => {
     class Remote {
       static deps = [remoteAuth] as const;
       constructor(readonly auth: string) {}
     }
     expect(
-      Nexus.check(
+      check(
         defineModule({
           name: 'Shell',
           providers: [provide(shellAuth, { useValue: 'x' }), Remote],
