@@ -17,6 +17,7 @@ import {
   HATCH_IDS,
   HIT_PX,
   PARTS_IN_HULL_ORDER,
+  ROOM_LABELS,
   SECTIONS,
   SYSTEM_IDS,
   cutPath,
@@ -111,6 +112,28 @@ describe('the registered frame', () => {
         `${part.id} sits in ${inside.map((room) => room.id).join(', ')}`,
       ).toBe(true);
     }
+  });
+});
+
+describe('the room labels', () => {
+  const markup = readFileSync(
+    join(import.meta.dirname, '..', 'meridian-schematic.svg'),
+    'utf8',
+  );
+
+  it('name a room of the schematic and the module the placement gives it', () => {
+    for (const label of ROOM_LABELS) {
+      expect(markup, label.room).toContain(`data-room="${label.room}"`);
+      const modules = Object.entries(PLACEMENT.hullSections)
+        .filter(([, ids]) => ids.includes(label.room))
+        .map(([name]) => name);
+      expect(modules, label.room).toEqual([label.module]);
+    }
+  });
+
+  it('label each room once', () => {
+    const rooms = ROOM_LABELS.map((label) => label.room);
+    expect(new Set(rooms).size).toBe(rooms.length);
   });
 });
 

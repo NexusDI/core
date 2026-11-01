@@ -316,12 +316,6 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
   color: var(--meridian-text);
 }
 
-.nexus-bay__legend-note {
-  margin-inline-start: auto;
-  font-size: var(--meridian-text-micro);
-  color: var(--meridian-text-tertiary);
-}
-
 /* The four glyphs of the legend and the "On the ship" panel. */
 .nexus-bay__glyph {
   position: relative;
@@ -467,6 +461,41 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
 }
 
 .nexus-bay__placard small {
+  color: var(--meridian-text-secondary);
+}
+
+/* The room labels: drawn over the art, never in the way of a press. */
+.nexus-bay__rooms {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.nexus-bay__room {
+  position: absolute;
+  display: grid;
+  margin: 0;
+  padding: 0 4px;
+  font-size: var(--meridian-text-micro);
+  line-height: var(--meridian-leading-micro);
+  color: var(--meridian-text);
+  white-space: nowrap;
+  /* A translucent plate keeps the text readable on the lit and the unlit art. */
+  background: color-mix(in srgb, var(--meridian-plate-raised) 70%, transparent);
+}
+
+.nexus-bay__room--bottom {
+  transform: translateY(-100%);
+}
+
+.nexus-bay__room--bottom-end {
+  transform: translate(-100%, -100%);
+  text-align: end;
+}
+
+.nexus-bay__room small {
+  font-size: inherit;
   color: var(--meridian-text-secondary);
 }
 
@@ -894,7 +923,6 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
     display: none;
   }
 
-  .nexus-bay__legend-note,
   .nexus-bay__hint {
     display: none;
   }

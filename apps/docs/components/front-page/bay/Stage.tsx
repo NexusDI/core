@@ -8,11 +8,13 @@ import {
   FRAME,
   HIT_PX,
   PARTS_IN_HULL_ORDER,
+  ROOM_LABELS,
   partById,
   partsInRun,
   runScale,
   type Part,
   type Point,
+  type RoomLabel,
   type SectionId,
 } from './geometry';
 import { Overlay, placardLines, type PartHandlers } from './Overlay';
@@ -174,6 +176,61 @@ function Callouts({
   );
 }
 
+/** The rect of each room in the schematic's markup, in metres. */
+function roomRects(
+  markup: string,
+): ReadonlyMap<string, readonly [number, number, number, number]> {
+  const rects = new Map<string, readonly [number, number, number, number]>();
+  for (const match of markup.matchAll(
+    /<rect[^>]*x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)" data-room="([^"]+)"/g,
+  )) {
+    const id = match[5] as string;
+    if (!rects.has(id))
+      rects.set(id, [
+        Number(match[1]),
+        Number(match[2]),
+        Number(match[3]),
+        Number(match[4]),
+      ]);
+  }
+  return rects;
+}
+
+/**
+ * The name of each hull section's rooms, drawn on the art. The screen reader
+ * already reaches the rooms through the parts, so the layer is hidden from it.
+ */
+function RoomLabels({ markup }: { markup: string }) {
+  const rects = roomRects(markup);
+  return (
+    <div className="nexus-bay__rooms" aria-hidden="true">
+      {ROOM_LABELS.map((label) => {
+        const rect = rects.get(label.room);
+        if (!rect) return null;
+        const [x, y, w, h] = rect;
+        const corners: Record<RoomLabel['anchor'], Point> = {
+          top: [x, y],
+          bottom: [x, y + h],
+          below: [x, y + h],
+          'bottom-end': [x + w, y + h],
+        };
+        const at = corners[label.anchor];
+        return (
+          <p
+            key={label.room}
+            className={`nexus-bay__room nexus-bay__room--${label.anchor}`}
+            style={percent(at, FRAME) as CSSProperties}
+          >
+            <span>{label.title}</span>
+            <small>{label.module} (module)</small>
+            {label.provider ? <small>{label.provider} (provider)</small> : null}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 function Hull({
   markup,
   scope,
@@ -182,7 +239,9 @@ function Hull({
   ppm,
   keep,
   light,
+  labels,
 }: {
+  labels?: boolean;
   light?: { canvas: ReactNode; lit: boolean } | null;
   markup: string;
   scope: string;
@@ -218,6 +277,7 @@ function Hull({
           graph={props.graph}
         />
       </Schematic>
+      {labels ? <RoomLabels markup={markup} /> : null}
       <Callouts
         items={view.callouts}
         notes={view.notes}
@@ -255,6 +315,7 @@ export function Stage(props: StageProps) {
               props={props}
               ppm={props.width.wide / WIDE_CROP[2]}
               keep={() => true}
+              labels
               light={props.light}
             />
           </HullCrop>
