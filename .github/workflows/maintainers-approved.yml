@@ -1,17 +1,19 @@
-name: Owner approved
+name: Maintainers approved
 
 # The "Main" ruleset requires this check, so a pull request into main merges
-# only after the owner adds the `owner-approved` label. Agents work through the
-# owner's login and the ruleset needs 0 approvals, so without it a green pull
-# request into main could merge by accident. Anyone with triage access can add
-# the label: this guards against an accident, not against an attacker.
+# only after a maintainer adds the `maintainers-approved` label. Agents work
+# through a maintainer's login and the ruleset needs 0 approvals, so without it
+# a green pull request into main could merge by accident. Anyone with triage
+# access can add the label: this guards against an accident, not against an
+# attacker.
 #
 # The approval belongs to a commit. A pass on a head commit starts only with
-# the labeled event for `owner-approved`, whose run reports on the head the
-# owner saw. Any other event on a labeled pull request passes only when that
-# commit already has a successful owner-approved run, so a pushed commit fails
-# and loses the label until the owner labels the pull request again. Event
-# payloads carry the label list from before a push, so no run trusts it alone.
+# the labeled event for `maintainers-approved`, whose run reports on the head
+# the maintainer saw. Any other event on a labeled pull request passes only
+# when that commit already has a successful maintainers-approved run, so a
+# pushed commit fails and loses the label until a maintainer labels the pull
+# request again. Event payloads carry the label list from before a push, so no
+# run trusts it alone.
 #
 # A push to main passes, because release.yml's plan requires every ruleset
 # check to be green on the commit it releases, and a rebase merge gives main a
@@ -30,7 +32,7 @@ on:
 permissions: {}
 
 jobs:
-  owner-approved:
+  maintainers-approved:
     runs-on: ubuntu-latest
     permissions:
       checks: read
@@ -38,7 +40,7 @@ jobs:
     steps:
       # On push the step is skipped and the job concludes success, which the
       # release plan needs. A job-level `if` would conclude skipped.
-      - name: Check the owner approved this head commit
+      - name: Check a maintainer approved this head commit
         if: github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -51,23 +53,23 @@ jobs:
           # The payload holds the labels and head from when the event fired, so
           # a pass also needs the label and this head to be current.
           live=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels,headRefOid \
-            --jq '"\(.headRefOid) \([.labels[].name] | index("owner-approved") != null)"')
+            --jq '"\(.headRefOid) \([.labels[].name] | index("maintainers-approved") != null)"')
           if [ "$live" != "$HEAD true" ]; then
-            echo "::error::A pull request into main needs the owner-approved label from the owner on its current head."
+            echo "::error::A pull request into main needs the maintainers-approved label from a maintainer on its current head."
             exit 1
           fi
-          if [ "$ACTION" = labeled ] && [ "$LABEL" = owner-approved ]; then
-            echo "The owner approved $HEAD."
+          if [ "$ACTION" = labeled ] && [ "$LABEL" = maintainers-approved ]; then
+            echo "A maintainer approved $HEAD."
             exit 0
           fi
           # filter=latest (the default) hides a success behind a later failure,
-          # which fails safe: the owner labels the pull request again.
-          approved=$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD/check-runs?check_name=owner-approved&status=completed" \
+          # which fails safe: a maintainer labels the pull request again.
+          approved=$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD/check-runs?check_name=maintainers-approved&status=completed" \
             --jq '[.check_runs[] | select(.app.slug == "github-actions" and .conclusion == "success")] | length')
           if [ "$approved" -gt 0 ]; then
-            echo "The owner approved $HEAD earlier."
+            echo "A maintainer approved $HEAD earlier."
             exit 0
           fi
-          gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label owner-approved
-          echo "::error::$HEAD arrived after the owner-approved label. The owner labels the pull request again after reviewing it."
+          gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label maintainers-approved
+          echo "::error::$HEAD arrived after the maintainers-approved label. A maintainer labels the pull request again after reviewing it."
           exit 1
