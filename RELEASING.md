@@ -543,7 +543,9 @@ All three carry the same rules:
   `ci.yml`) with the strict policy. The last three are matrix jobs, so each
   reports one check per leg: 4 `adapter-runtimes`, 14 `adapter-peers` and
   14 `node-floor`. The owner adds the three to the rulesets before 0.4.0-rc.2,
-  and until then this line records the target state.
+  and until then this line records the target state. The `main` job runs no
+  checks of its own: it reports the result of `main-build` and `main-test`,
+  which run the gate on two runners, so the rulesets require `main` alone.
 - `demo-apps` joins the required checks once it has run green on three
   consecutive pushes to `release/0.4`. The owner makes that ruleset change
   in all three rulesets. `release.yml` reads its required checks from the

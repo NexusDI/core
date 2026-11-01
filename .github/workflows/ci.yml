@@ -82,7 +82,15 @@ jobs:
 
       - run: npx prettier --check .
 
-  main:
+  # The gate runs in two jobs on two runners, and `main` reports their
+  # result under the check name the rulesets require. One 4 vCPU runner
+  # held the whole gate at 97% CPU for 11 minutes with a run queue of 14,
+  # because Nx ran three tasks at once and each vitest run started three
+  # workers beside the docs build's dozen. A test that takes 100 ms on a
+  # laptop then took 2 to 5 s and hit vitest's 5 s timeout (#141).
+  # main-build runs the compilers and linters, and main-test runs the
+  # suites with nothing else on the runner.
+  main-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -135,14 +143,6 @@ jobs:
       # full build.
       - run: npx fallow dead-code --fail-on-issues && npx fallow dupes
 
-      # core's test target depends on test-browser (regression R20), which
-      # runs in Chromium through Playwright.
-      - run: npx playwright install --with-deps chromium
-
-      # The six federation demo projects carry the demo-frontend tag. They
-      # build with rspack, and the demo-apps job below runs their targets, so
-      # this step and release.yml's verify step leave them out. bridge-api
-      # and bridge-console carry only the demo tag and stay here.
       # DIAGNOSTIC: samples CPU, memory and the busiest processes during the gate.
       - name: Start the resource sampler
         run: |
@@ -151,24 +151,95 @@ jobs:
           sample > "$RUNNER_TEMP/ps.log" 2>&1 &
           nproc; free -m
 
-      - run: npx nx run-many -t lint test build typecheck --exclude=tag:demo-frontend --output-style=static
+      # The six federation demo projects carry the demo-frontend tag. They
+      # build with rspack, and the demo-apps job below runs their targets, so
+      # this step, main-test's and release.yml's verify step leave them out.
+      # bridge-api and bridge-console carry only the demo tag and stay here.
+      - run: npx nx run-many -t lint build typecheck --exclude=tag:demo-frontend --output-style=static
         env:
-          NX_PROFILE: ${{ runner.temp }}/nx-profile.json
+          NX_PROFILE: nx-profile.json
 
       - name: Upload the resource samples
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: main-resources
+          name: main-build-resources
           path: |
             ${{ runner.temp }}/vmstat.log
             ${{ runner.temp }}/ps.log
-            ${{ runner.temp }}/nx-profile.json
+            nx-profile.json
 
       # Reports the run's task results to Nx Cloud. `always()` because the run
       # it reports on is the failing one.
       - run: npx nx fix-ci
         if: always()
+
+  main-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # docs:test depends on benchmark-data, which walks the git log the
+          # way main-build's comment describes.
+          filter: blob:none
+          fetch-depth: 0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - run: npm ci
+
+      # core's test target depends on test-browser (regression R20), which
+      # runs in Chromium through Playwright.
+      - run: npx playwright install --with-deps chromium
+
+      # DIAGNOSTIC: samples CPU, memory and the busiest processes during the gate.
+      - name: Start the resource sampler
+        run: |
+          nohup vmstat -n -t 2 > "$RUNNER_TEMP/vmstat.log" 2>&1 &
+          sample() { while sleep 5; do echo "== $(date -u +%T)"; ps -eo pid,ppid,pcpu,rss,etimes,args --sort=-pcpu | head -25 | cut -c1-220; done; }
+          sample > "$RUNNER_TEMP/ps.log" 2>&1 &
+          nproc; free -m
+
+      # Nx runs two tasks at once and each vitest run starts two workers, so
+      # the suites hold the runner's 4 vCPUs and no more. Vitest reads
+      # VITEST_MAX_WORKERS over every project's config, and without it each
+      # run starts one worker per CPU less one.
+      - run: npx nx run-many -t test --exclude=tag:demo-frontend --parallel=2 --output-style=static
+        env:
+          VITEST_MAX_WORKERS: 2
+          NX_PROFILE: nx-profile.json
+
+      - name: Upload the resource samples
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: main-test-resources
+          path: |
+            ${{ runner.temp }}/vmstat.log
+            ${{ runner.temp }}/ps.log
+            nx-profile.json
+
+      - run: npx nx fix-ci
+        if: always()
+
+  # The rulesets and release.yml require a check named `main`. This job
+  # gives that check the gate's result: green when both halves are green,
+  # red when either failed, was cancelled or was skipped. `always()` runs it
+  # after a red half too, since a skipped job reports no failure.
+  main:
+    needs: [main-build, main-test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require both gate jobs green
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$NEEDS" | jq -e 'all(.[]; .result == "success")' > /dev/null
 
   # The second gate: every project tagged demo runs its e2e suite here,
   # against the workspace's packages, so a package change that breaks an app

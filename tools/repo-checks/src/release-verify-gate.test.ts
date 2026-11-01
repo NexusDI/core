@@ -8,8 +8,10 @@ import { describe, expect, it } from 'vitest';
 /**
  * The invariant: the release gate is not weaker than the pull request gate.
  *
- * The `main` job of `.github/workflows/ci.yml` runs `nx run-many` over a fixed
- * target list on every pull request. `.github/workflows/release.yml` runs the
+ * The gate jobs of `.github/workflows/ci.yml` run `nx run-many` over a fixed
+ * target list on every pull request. The gate runs in two jobs on two
+ * runners, `main-build` and `main-test`, and the `main` job reports their
+ * result under the check name the rulesets require. `.github/workflows/release.yml` runs the
  * same list before anything is versioned or published. A target present in CI
  * and absent from the release step means a package can be published having
  * passed less than the pull request that introduced it, and nothing goes red:
@@ -29,7 +31,7 @@ import { describe, expect, it } from 'vitest';
  * targets (demo apps spec §10.1), and a test below holds the exclusion to
  * private demo projects.
  *
- * This file reads only the `main` job of ci.yml. The `demo-apps` and
+ * This file reads the jobs `main` needs as the gate. The `demo-apps` and
  * `demo-growth` jobs run `nx run-many` too, and the tests below check them
  * as the second gate.
  */
@@ -119,9 +121,56 @@ function excludesOf(run: string): string[] {
 
 const DEMO_FRONTEND = 'tag:demo-frontend';
 
+/** The jobs whose result ci.yml's `main` check reports. */
+function gateJobs(): string[] {
+  const needs = readWorkflow('ci.yml').jobs?.main?.needs;
+  return typeof needs === 'string' ? [needs] : (needs ?? []);
+}
+
+/**
+ * The gate's run-many step in each gate job, and the targets the gate runs
+ * across all of them.
+ */
+function ciGate(): {
+  steps: { job: string; step: Step; targets: string[] }[];
+  targets: string[];
+} {
+  const steps = gateJobs().map((job) => ({
+    job,
+    ...runManyStep('ci.yml', job),
+  }));
+  return {
+    steps,
+    targets: [...new Set(steps.flatMap((each) => each.targets))],
+  };
+}
+
 describe('the release verify gate', () => {
-  const ci = runManyStep('ci.yml', 'main');
+  const ci = ciGate();
   const release = runManyStep('release.yml');
+
+  it('reports the gate jobs under the main check, red when one is not green', () => {
+    const main = readWorkflow('ci.yml').jobs?.main as Job & { if?: string };
+    expect(gateJobs()).toEqual(['main-build', 'main-test']);
+    expect(main.if, 'main runs after a red gate job too').toBe('always()');
+    const check = (main.steps ?? []).map((step) => step.run ?? '').join('\n');
+    expect(check).toContain('all(.[]; .result == "success")');
+  });
+
+  /**
+   * Nx runs `--parallel` tasks at once and each vitest run starts
+   * VITEST_MAX_WORKERS workers, so their product is how many test workers
+   * share the runner. Past its 4 vCPUs the workers starve each other, and
+   * a 100 ms test reaches vitest's 5 s timeout (#141).
+   */
+  it('holds main-test to one test worker per vCPU of the runner', () => {
+    const { step } = runManyStep('ci.yml', 'main-test');
+    const parallel = Number(/--parallel=(\d+)/.exec(step.run ?? '')?.[1]);
+    const workers = Number(step.env?.VITEST_MAX_WORKERS);
+    expect(parallel, 'main-test sets --parallel').toBeGreaterThan(0);
+    expect(workers, 'main-test sets VITEST_MAX_WORKERS').toBeGreaterThan(0);
+    expect(parallel * workers).toBeLessThanOrEqual(4);
+  });
 
   it('runs every target the pull request gate runs', () => {
     expect(ci.targets.length, 'ci.yml runs no targets').toBeGreaterThan(0);
@@ -145,7 +194,9 @@ describe('the release verify gate', () => {
   });
 
   it('excludes the demo-frontend projects in both gates and nothing else', () => {
-    expect(excludesOf(ci.step.run as string)).toEqual([DEMO_FRONTEND]);
+    for (const { job, step } of ci.steps) {
+      expect(excludesOf(step.run as string), job).toEqual([DEMO_FRONTEND]);
+    }
     expect(excludesOf(release.step.run as string)).toEqual([DEMO_FRONTEND]);
   });
 
@@ -300,7 +351,8 @@ function playwrightSetup(steps: Step[], job: string): number {
 /** Every action pinned by SHA, and by main's SHA where main uses it too. */
 function expectMainPins(ci: Workflow, steps: Step[]): void {
   const pins = new Map(
-    stepsOf(ci, 'main')
+    gateJobs()
+      .flatMap((job) => stepsOf(ci, job))
       .filter((step) => step.uses)
       .map((step) => (step.uses as string).split('@') as [string, string]),
   );
