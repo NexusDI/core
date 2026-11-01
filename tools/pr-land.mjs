@@ -79,6 +79,21 @@ async function checks() {
   return [];
 }
 
+/**
+ * The failing checks outside the required list, such as CodeQL, whose alerts
+ * block a merge through the code scanning rule and leave the state BLOCKED.
+ */
+async function blockers() {
+  try {
+    const failed = JSON.parse(
+      (await gh('pr', 'checks', pr, '--json', 'name,bucket,link')) || '[]',
+    ).filter((c) => c.bucket === 'fail');
+    return failed.map((c) => `\nfailed: ${c.name} ${c.link}`).join('');
+  } catch {
+    return '';
+  }
+}
+
 /** GitHub refuses to rerun the failed jobs of a run that is still in progress. */
 async function rerunWhenComplete(id) {
   for (;;) {
@@ -168,7 +183,7 @@ async function land() {
       settling ??= Date.now();
       if (Date.now() - settling > SETTLE_MS) {
         stop(
-          `checks pass but the merge state stayed ${state.mergeStateStatus}`,
+          `checks pass but the merge state stayed ${state.mergeStateStatus}${await blockers()}`,
         );
       }
       await sleep(POLL_MS);
