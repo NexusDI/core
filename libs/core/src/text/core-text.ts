@@ -111,7 +111,13 @@ function fixContext(
   const failing = modules.find((m) => m.id === lookup?.moduleId);
   return {
     configured: failing?.configured ?? false,
-    isGlobal: (name) => modules.some((m) => m.name === name && m.global),
+    // A near miss names its module, not its id. Two modules of one name
+    // count as global only when both are, so a clash never prints the wrong
+    // sentence.
+    isGlobal: (name) => {
+      const named = modules.filter((m) => m.name === name);
+      return named.length > 0 && named.every((m) => m.global);
+    },
   };
 }
 
