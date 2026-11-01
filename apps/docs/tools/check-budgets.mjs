@@ -340,14 +340,16 @@ export function importGroups(sources) {
   const groups = [];
   const open = 'Promise.all([';
   for (const source of sources) {
-    // indexOf scans each list once, so a long or broken list costs linear time.
+    // indexOf scans each list once, so a long or broken list takes linear time.
+    // A list counts only when it holds quoted names alone, as Turbopack writes it.
     let at = source.indexOf(open);
     while (at !== -1) {
       const start = at + open.length;
       const end = source.indexOf(']', start);
       if (end === -1) break;
       const list = source.slice(start, end);
-      const chunks = [...list.matchAll(/"([^"]*)"/g)]
+      const names = /^[\s,]*$/.test(list.replace(/"[^"]*"/g, ''));
+      const chunks = (names ? [...list.matchAll(/"([^"]*)"/g)] : [])
         .map((each) => each[1])
         .filter((path) => path.endsWith('.js'));
       if (chunks.length > 0) groups.push(chunks);
