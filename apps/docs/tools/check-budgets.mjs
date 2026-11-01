@@ -96,7 +96,9 @@ export const GUIDE_SLACK = 5_000;
  * area. The ceiling rose once, from 205,000 to 211,000 bytes gzipped, when
  * `check` became a named export of core with an entry of its own. That entry
  * took `/api/` from 203,155 to 209,375 bytes gzipped and from 13,737 to
- * 14,032 elements.
+ * 14,033 elements. Its weight is the eighty-one test sentences it lists, one
+ * button each, which is what `provide` (seventy-eight) and `Token`
+ * (seventy-six) carry too. The signature and the example add little.
  */
 export const PAGE_BUDGET = { htmlGzip: 211_000, elements: 19_000 };
 
