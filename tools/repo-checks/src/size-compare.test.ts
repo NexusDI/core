@@ -156,6 +156,29 @@ describe('compareSizes', () => {
       expect(result.markdown).toContain('the base was already over');
     });
 
+    it('passes a standalone fixture already over on the base and not grown', () => {
+      const worker = {
+        name: 'hono-worker',
+        label: 'hono-worker',
+        size: 32_392,
+        budget: 32_000,
+        reason: 'the whole bundle',
+      };
+      const standaloneBase: Sizes = {
+        ...base,
+        standalone: { 'hono-worker': 32_392 },
+        overBudget: [worker],
+      };
+      const standaloneHead: Sizes = {
+        ...base,
+        standalone: { 'hono-worker': 32_392 },
+        overBudget: [worker],
+      };
+      const result = compareSizes(standaloneBase, standaloneHead, '', 2);
+      expect(result.fail).toBe(false);
+      expect(result.markdown).toContain('the base was already over');
+    });
+
     it('fails and names the fixture when the base was over and this pull request grew it', () => {
       const grown = {
         ...head,

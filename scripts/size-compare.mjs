@@ -48,8 +48,9 @@ export function compareSizes(base, head, body, threshold) {
       : null;
   const justified = /^## Size\b/m.test(body ?? '');
   // A fixture over its budget fails only when this pull request grew it.
-  // One already over on the base and not grown here is reported, never
-  // failed, so a pull request does not inherit an overage it did not cause.
+  // size-compare lists a fixture already over on the base and not grown
+  // here, and passes it, so a pull request does not inherit an overage it
+  // did not cause.
   const overBudget = head.overBudget ?? [];
   const baseSize = ({ name, label }) =>
     label === name ? base.standalone?.[name] : base.packages?.[name];
@@ -64,15 +65,19 @@ export function compareSizes(base, head, body, threshold) {
   const coreOver = baseHasCore && growth > threshold && !justified;
   const reasons = [
     ...(!headHasCore
-      ? ['core has no figure: it did not bundle against the fixture.']
+      ? [
+          'core has no figure: it did not bundle against the fixture. Fix the build; a `## Size` section cannot justify a broken build.',
+        ]
       : []),
     ...(coreOver
-      ? [`core grew ${growth.toFixed(2)}%, over the ${threshold}% threshold.`]
+      ? [
+          `core grew ${growth.toFixed(2)}%, over the ${threshold}% threshold. Add a \`## Size\` section to the pull request description that says what the added bytes give the user and why they cannot live in a plugin.`,
+        ]
       : []),
     ...(unjustified.length === 0
       ? []
       : [
-          `${unjustified.map(({ label }) => label).join(', ')} grew past ${unjustified.length === 1 ? 'its budget' : 'their budgets'}.`,
+          `${unjustified.map(({ label }) => label).join(', ')} grew past ${unjustified.length === 1 ? 'its budget' : 'their budgets'}. Name ${unjustified.length === 1 ? 'it' : 'them'} in a \`## Size\` section of the pull request description, and say what the added bytes give the user.`,
         ]),
   ];
   const fail = reasons.length > 0;
