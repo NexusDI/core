@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 import ts from 'typescript';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 const SRC = import.meta.dirname;
 
@@ -38,7 +38,7 @@ function examplesFiles(dir: string): string[] {
 }
 
 /** Every block of every examples file, each as a module of its own. */
-function blocks(): Map<string, string> {
+function readBlocks(): Map<string, string> {
   const out = new Map<string, string>();
   for (const file of examplesFiles(SRC)) {
     const text = readFileSync(file, 'utf8');
@@ -56,6 +56,12 @@ function blocks(): Map<string, string> {
   return out;
 }
 
+/** The blocks, read once before the first test and shared by both. */
+let corpus: Map<string, string>;
+beforeAll(() => {
+  corpus = readBlocks();
+});
+
 /**
  * The blocks that import one module in two value statements. A type-only
  * import beside a value import of the same module is allowed, as in
@@ -63,7 +69,7 @@ function blocks(): Map<string, string> {
  */
 function duplicateImports(): string[] {
   const out: string[] = [];
-  for (const [name, code] of blocks()) {
+  for (const [name, code] of corpus) {
     const source = ts.createSourceFile(
       name,
       code,
@@ -97,7 +103,7 @@ describe('the examples files', () => {
 // One TypeScript program over every block takes about 6 s on a CI runner.
 describe('the examples files', { timeout: 60_000 }, () => {
   it('type-check, each block as a module of its own', () => {
-    const files = blocks();
+    const files = corpus;
     const marked = examplesFiles(SRC)
       .map(
         (file) =>
