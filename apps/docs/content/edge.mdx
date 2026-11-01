@@ -44,15 +44,15 @@ Deno, Bun and Vercel Edge allow I/O at module scope, so there the module-scope f
 
 ## Check the Graph before Deploy
 
-With the function form, `inject` checks its record on the first request, so a wrong token answers a 500 in production. `Nexus.check()` compiles the graph and runs no factory. It does call each `forRoot()` options schema. Call it in a test, and a wrong graph fails CI before deploy:
+With the function form, `inject` checks its record on the first request, so a wrong token answers a 500 in production. `check()` compiles the graph and runs no factory. It does call each `forRoot()` options schema. Call it in a test, and a wrong graph fails CI before deploy:
 
 ```ts file=examples/meridian/src/pages/edge.md region=check
 
 ```
 
-`COURSE` needs `FLIGHT_LOG`, which no provider binds, so `Nexus.check` throws [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), and the `NAV_CHARTS` factory never runs (`downloads` stays `0`).
+`COURSE` needs `FLIGHT_LOG`, which no provider binds, so `check()` throws [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), and the `NAV_CHARTS` factory never runs (`downloads` stays `0`).
 
-A `forRoot()` value that its schema rejects fails the check the same way, with [NEXUS_INVALID_MODULE_OPTIONS](/errors/NEXUS_INVALID_MODULE_OPTIONS/) in the `errors` of `NEXUS_BLUEPRINT_INVALID`. `Nexus.check` calls every `forRoot()` schema, an async one included. A Worker that calls `Nexus.check` at module scope runs each schema there, so keep a schema free of side effects. A schema whose `validate` returns a promise, and a module imported with `forRootAsync()`, can fail only at `Nexus.create`. `Nexus.check` lists them in the `unchecked` array it returns ([Checking Options before Startup](/configurable-modules/#checking-options-before-startup)).
+A `forRoot()` value that its schema rejects fails the check the same way, with [NEXUS_INVALID_MODULE_OPTIONS](/errors/NEXUS_INVALID_MODULE_OPTIONS/) in the `errors` of `NEXUS_BLUEPRINT_INVALID`. `check()` calls every `forRoot()` schema, an async one included. A Worker that calls `check()` at module scope runs each schema there, so keep a schema free of side effects. A schema whose `validate` returns a promise, and a module imported with `forRootAsync()`, can fail only at `Nexus.create`. `check()` lists them in the `unchecked` array it returns ([Checking Options before Startup](/configurable-modules/#checking-options-before-startup)).
 
 ## Configure the Worker
 

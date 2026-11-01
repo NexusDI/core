@@ -49,11 +49,11 @@ import type { BayLight } from './light';
 const BAY_MARK = 'nexus-preflight-bay';
 
 /** The program the CI step runs, which the Source tab shows (4.3). */
-const SOURCE = `import { Nexus } from '@nexusdi/core';
+const SOURCE = `import { check } from '@nexusdi/core';
 import { errors } from '@nexusdi/errors';
 import { Meridian } from './meridian.js';
 
-Nexus.check(Meridian, { plugins: [errors()] }); // CI runs this
+check(Meridian, { plugins: [errors()] }); // CI runs this
 console.log('pre-flight ok');
 `;
 

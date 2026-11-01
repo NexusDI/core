@@ -8,7 +8,7 @@ errorClass: PluginError
 
 # NEXUS_PLUGIN_VERSION
 
-`NEXUS_PLUGIN_VERSION` means a plugin declares an `apiVersion` this `@nexusdi/core` does not support. A missing or non-numeric `apiVersion` counts as a version no core supports. Core checks every plugin's version before it compiles anything and reports a mismatch inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). `Nexus.create` rejects with that error and `Nexus.check` throws it. No call raises `NEXUS_PLUGIN_VERSION` bare.
+`NEXUS_PLUGIN_VERSION` means a plugin declares an `apiVersion` this `@nexusdi/core` does not support. A missing or non-numeric `apiVersion` counts as a version no core supports. Core checks every plugin's version before it compiles anything and reports a mismatch inside [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/). `Nexus.create` rejects with that error and `check()` throws it. No call raises `NEXUS_PLUGIN_VERSION` bare.
 
 ## Reproduce `NEXUS_PLUGIN_VERSION`
 

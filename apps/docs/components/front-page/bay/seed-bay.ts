@@ -13,7 +13,7 @@ import type { LogLine } from './terminal';
 
 /**
  * What the server renders the bay from: the seed fixture that
- * `scene-fixtures.mjs` wrote by running `Nexus.check` and `Nexus.create` on the
+ * `scene-fixtures.mjs` wrote by running `check()` and `Nexus.create` on the
  * seed. The terminal is the fixture's check text, and the lit ship is the
  * fixture's trace folded with the same reducer the launch uses.
  */

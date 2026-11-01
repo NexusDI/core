@@ -168,7 +168,7 @@ test.describe('the pre-flight bay', () => {
       failed?.cause?.message as string,
     );
     await expect(page.locator('.nexus-bay__caption')).toContainText(
-      'Nexus.check passed: the wiring is right.',
+      'check() passed: the wiring is right.',
     );
     // The launch can run again after the failed one: Relaunch disposes first.
     await page.getByRole('button', { name: 'Reset' }).click();

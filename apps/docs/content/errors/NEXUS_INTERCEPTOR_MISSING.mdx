@@ -8,7 +8,7 @@ errorClass: InterceptorError
 
 # NEXUS_INTERCEPTOR_MISSING
 
-`@nexusdi/interceptors` reports `NEXUS_INTERCEPTOR_MISSING` when a global entry, a binding, a `static interceptors` declaration or a `@UseInterceptors` call names an interceptor token that `interceptors({ register })` does not list. The plugin's check finds it while the graph compiles, before any constructor runs. `Nexus.create` and `ship.load()` reject with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) holding one error for each unregistered use, and `Nexus.check` throws that error. A token is compared by identity, so a second `new Token('Audit')` is another token, and the message prints the same name for both.
+`@nexusdi/interceptors` reports `NEXUS_INTERCEPTOR_MISSING` when a global entry, a binding, a `static interceptors` declaration or a `@UseInterceptors` call names an interceptor token that `interceptors({ register })` does not list. The plugin's check finds it while the graph compiles, before any constructor runs. `Nexus.create` and `ship.load()` reject with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/) holding one error for each unregistered use, and `check()` throws that error. A token is compared by identity, so a second `new Token('Audit')` is another token, and the message prints the same name for both.
 
 ## Reproduce `NEXUS_INTERCEPTOR_MISSING`
 

@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { Nexus } from '@nexusdi/core';
+import { check } from '@nexusdi/core';
 import { DECK_BINDINGS } from '@nexusdi/meridian-deck';
 import { rootOf, SEED } from '@nexusdi/meridian/scenes/front-page';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -64,7 +64,7 @@ describe('the bay light', () => {
   it('keeps the deck out of the seed graph', () => {
     const tokens = graphOf(SEED).providers.map((provider) => provider.token);
     expect(tokens.filter((token) => /Deck|Pixi/.test(token))).toEqual([]);
-    expect(() => Nexus.check(rootOf(SEED))).not.toThrow();
+    expect(() => check(rootOf(SEED))).not.toThrow();
     expect(DECK_BINDINGS.description).toBe('DeckBindings');
   });
 

@@ -28,7 +28,7 @@ The `graph(ship)` function returns the entire compiled dependency graph as a str
 - **Modules:** The names and visibility (global/private) of every module. A module has a `name`, `global`, `imports`, `loadImports` and `exports`. The `loadImports` list holds the module ids that a [load import](/load/#giving-a-loaded-plugin-access-to-host-services) added to the module's own imports, and each also appears in `imports`. A load import of a module the module already imports stays out of `loadImports`. `toMermaid()` and `toDot()` draw a load import as a dashed edge and the other imports as solid edges.
 - **Providers:** Details on every provider, including its token, lifetime (singleton/transient), and whether it is eager or async. A provider has a `token` (the token's description or the class name), `module`, `lifetime`, `kind` (`class`, `value`, `factory` or `alias`), `eager`, `async`, the annotators' `notes`, the `implementation` class name, `internal` and `unresolved`, the names of the optional deps and properties that bound to no provider, such as an `optional()` dep with nothing to bind.
 - **Edges:** Every dependency link between providers, labeled by type (required, optional, lazy). The `kind` of an edge is `required`, `optional`, `lazy`, `all` or `alias`.
-- **Unchecked:** Modules with options `Nexus.check` cannot judge. Each entry contains the `module` name and a core `reason`: `'async-schema'` or `'for-root-async'`. Core may add a reason in a minor release, so handle one you do not know. `graph(ship)` of a running container lists none, since `Nexus.create` already validated every module's options.
+- **Unchecked:** Modules with options `check()` cannot judge. Each entry contains the `module` name and a core `reason`: `'async-schema'` or `'for-root-async'`. Core may add a reason in a minor release, so handle one you do not know. `graph(ship)` of a running container lists none, since `Nexus.create` already validated every module's options.
 
 ```ts file=examples/meridian/src/pages/introspection.md region=graph
 
@@ -40,7 +40,7 @@ The `graph(ship)` function returns the entire compiled dependency graph as a str
 
 ### Checking a Graph Without Building It
 
-`inspect(root)` compiles a graph with `Nexus.check` and builds nothing, so no constructor runs. It takes the root forms `Nexus.create` takes and returns the same JSON as `graph()`, with every provider's `async` set to `null`, since nothing ran. It throws the `BlueprintError` that `Nexus.check` throws. Like `Nexus.check`, it calls each `forRoot()` options schema and fails on a synchronous rejection. Its `unchecked` list names the modules whose options only `Nexus.create` can validate, from the report `Nexus.check` returns. A schema that throws causes `inspect()` to throw the same error.
+`inspect(root)` compiles a graph with `check()` and builds nothing, so no constructor runs. It takes the root forms `Nexus.create` takes and returns the same JSON as `graph()`, with every provider's `async` set to `null`, since nothing ran. It throws the `BlueprintError` that `check()` throws. Like `check()`, it calls each `forRoot()` options schema and fails on a synchronous rejection. Its `unchecked` list names the modules whose options only `Nexus.create` can validate, from the report `check()` returns. A schema that throws causes `inspect()` to throw the same error.
 
 A module whose schema is async stays unchecked:
 
@@ -78,7 +78,7 @@ Nine more types exist:
 
 | `type`             | When NexusDI emits it                                                      |
 | ------------------ | -------------------------------------------------------------------------- |
-| `compile`          | once per compile, at `create`, `load` or `Nexus.check`                     |
+| `compile`          | once per compile, at `create`, `load` or `check()`                         |
 | `untracked`        | for a disposable instance that no container or scope owns                  |
 | `lazy:read`        | a `lazy()` thunk returned a value, once per contribution for `lazy(all())` |
 | `scope:extend`     | when `scope.extend()` built what a later `load()` added                    |

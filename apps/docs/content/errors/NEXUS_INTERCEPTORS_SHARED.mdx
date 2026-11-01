@@ -12,7 +12,7 @@ errorClass: InterceptorError
 
 Where the error arrives depends on when the second `create` meets the first container. A second `create` that compiles while the first container is running rejects with [NEXUS_BLUEPRINT_INVALID](/errors/NEXUS_BLUEPRINT_INVALID/), and its `errors` list holds this error with core's one-line message. A second `create` that overlaps the first, so that both compile before either builds, rejects with [NEXUS_PROVIDER_FAILED](/errors/NEXUS_PROVIDER_FAILED/). Its `cause` is a [NEXUS_PLUGIN_FAILED](/errors/NEXUS_PLUGIN_FAILED/) for the `construct` hook, and that error's `cause` is this error with its full text.
 
-`Nexus.check` reports nothing for this code, even with the plugin object of a running container.
+`check()` reports nothing for this code, even with the plugin object of a running container.
 
 ## Reproduce `NEXUS_INTERCEPTORS_SHARED`
 

@@ -176,7 +176,7 @@ const KINDS: readonly { glyph: string; word: string; text: ReactNode }[] = [
     word: 'Conduit',
     text: (
       <>
-        click to cut. <code>Nexus.check</code> reruns.
+        click to cut. <code>check</code> reruns.
       </>
     ),
   },

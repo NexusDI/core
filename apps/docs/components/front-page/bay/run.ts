@@ -1,11 +1,12 @@
 import {
   BlueprintError,
+  check as checkRoot,
   InvalidExportError,
+  isNexusError,
   MissingProviderError,
   Nexus,
   NotVisibleError,
   ProviderError,
-  isNexusError,
   type TraceEvent,
 } from '@nexusdi/core';
 import { inspect, trace, type NexusGraph } from '@nexusdi/devtools';
@@ -109,10 +110,10 @@ export function describeError(error: unknown): DescribedError {
   return { kind: 'other', code: null, message };
 }
 
-/** `Nexus.check` over the root of `state`, with or without `errors()`. */
+/** `check()` over the root of `state`, with or without `errors()`. */
 export function check(state: BayState, withErrors: boolean): CheckResult {
   try {
-    Nexus.check(rootOf(state), { plugins: withErrors ? [errors()] : [] });
+    checkRoot(rootOf(state), { plugins: withErrors ? [errors()] : [] });
     return { ok: true, error: null };
   } catch (error) {
     return { ok: false, error: describeError(error) };

@@ -2,7 +2,7 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { BlueprintError, Nexus, isNexusError } from '@nexusdi/core';
+import { BlueprintError, check, isNexusError, Nexus } from '@nexusdi/core';
 import { inspect, trace } from '@nexusdi/devtools';
 import { errors } from '@nexusdi/errors';
 import {
@@ -116,7 +116,7 @@ function describeError(error) {
 
 function checkOnce(root, plugins) {
   try {
-    const report = Nexus.check(root, { plugins });
+    const report = check(root, { plugins });
     return { ok: true, unchecked: report.unchecked, error: null };
   } catch (error) {
     return { ok: false, unchecked: [], error: describeError(error) };
