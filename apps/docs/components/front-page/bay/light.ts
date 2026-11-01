@@ -39,16 +39,18 @@ const LIGHTS = lightsJson as unknown as readonly DeckLight[];
 const LEGEND = legendJson as unknown as DeckLegend;
 
 /**
- * The base at the size of its file. The page's `<img>` answers `naturalWidth`
- * with the width of its `sizes` slot, not with the pixels of the file that its
- * `srcset` picked, so a texture made from the element is the wrong size
- * wherever the two differ (every stage under 1440). The file is in the HTTP
- * cache already, so this reads it from there and decodes it at its own size.
+ * The base at the size of its file. The page's `<img>` reports `naturalWidth`
+ * as the width of its `sizes` slot, which differs from the pixels of the file
+ * that its `srcset` picked wherever the slot and the file have different
+ * widths. A texture made from the element takes the slot's width. This reads
+ * the picked file from the HTTP cache and decodes it at its own size; `signal`
+ * aborts the read when the bay unmounts.
  */
 export async function decodeBase(
   image: HTMLImageElement,
+  signal?: AbortSignal,
 ): Promise<ImageBitmap> {
-  const response = await fetch(image.currentSrc);
+  const response = await fetch(image.currentSrc, { signal });
   if (!response.ok)
     throw new Error(
       `The base ${image.currentSrc} did not load: ${response.status}.`,
@@ -69,7 +71,7 @@ export interface BayLight {
  * of it enters the seed's graph.
  */
 export async function createLight(options: {
-  /** The decoded image of the page's `<picture>`, so the base downloads once. */
+  /** The bitmap of the page's cutaway file from `decodeBase`; `dispose` closes it. */
   base: DeckImage;
   reducedMotion: boolean;
 }): Promise<BayLight> {

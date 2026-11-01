@@ -76,6 +76,10 @@ const percent = (
   top: `${((point[1] - box[1]) / box[3]) * 100}%`,
 });
 
+/** The gap that the hint keeps from its conduit, and the least width at which it still reads left of it. */
+const HINT_GAP_PX = 28;
+const HINT_MIN_PX = 120;
+
 function Callouts({
   items,
   notes,
@@ -83,7 +87,9 @@ function Callouts({
   hint,
   view,
   keep,
+  ppm,
 }: {
+  ppm: number;
   hint: string | null;
   items: readonly Callout[];
   notes: readonly Note[];
@@ -93,18 +99,28 @@ function Callouts({
 }) {
   const part = hover ? partById(hover) : undefined;
   const hinted = hint ? partById(hint) : undefined;
+  // The room left of the hinted conduit, in metres and in pixels.
+  const room = hinted ? hinted.at[0] - WIDE_CROP[0] : 0;
+  const hintFits = room * ppm - HINT_GAP_PX >= HINT_MIN_PX;
   return (
     <div className="nexus-bay__callouts" aria-hidden="true">
       {hinted && keep(hinted.at) ? (
         <p
-          className="nexus-bay__hint"
+          className={`nexus-bay__hint${hintFits ? '' : ' nexus-bay__hint--sky'}`}
           style={
-            {
-              ...percent(hinted.at, FRAME),
-              // The hint hangs left of its part: it wraps to the room that the
-              // visible crop leaves there, so a narrow stage never clips it.
-              maxInlineSize: `calc(${((hinted.at[0] - WIDE_CROP[0]) / FRAME[2]) * 100}% - 28px)`,
-            } as CSSProperties
+            (hintFits
+              ? {
+                  ...percent(hinted.at, FRAME),
+                  // Left of the conduit the hint wraps to the room that the
+                  // crop leaves there.
+                  maxInlineSize: `calc(${(room / FRAME[2]) * 100}% - ${HINT_GAP_PX}px)`,
+                }
+              : {
+                  // Where that room is under HINT_MIN_PX the hint sits in the
+                  // sky above the hull, centred over the conduit.
+                  left: percent(hinted.at, FRAME).left,
+                  top: `${((WIDE_CROP[1] + 0.2 - FRAME[1]) / FRAME[3]) * 100}%`,
+                }) as CSSProperties
           }
         >
           Click a conduit to cut it
@@ -209,6 +225,7 @@ function Hull({
         hint={props.hint}
         view={view}
         keep={keep}
+        ppm={ppm}
       />
     </div>
   );

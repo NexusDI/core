@@ -483,6 +483,10 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
   transform: translate(calc(-100% - 22px), -50%);
 }
 
+.nexus-bay__hint--sky {
+  transform: translateX(-50%);
+}
+
 /* The parts the overlay draws */
 .bay-part {
   outline: none;
