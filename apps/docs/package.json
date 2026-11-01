@@ -145,6 +145,7 @@
       "test": {
         "dependsOn": [
           "^build",
+          "benchmark-data",
           "behaviour-data",
           "scene-fixtures"
         ],
