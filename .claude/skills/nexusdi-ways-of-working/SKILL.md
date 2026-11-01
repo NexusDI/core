@@ -185,10 +185,12 @@ Content rules:
 - Heavy jobs (run-many, next build, e2e, Playwright): on weekdays 09:00 to
   17:00, one at a time across all agents. Run the job in a subshell that takes
   the lock and only then sets the trap that releases it:
-  `(until mkdir /tmp/nexusdi-heavy.lock 2>/dev/null; do sleep 30; done; trap 'rmdir /tmp/nexusdi-heavy.lock' EXIT; <job>)`.
+  `(until mkdir /tmp/nexusdi-heavy.lock 2>/dev/null; do sleep 30; done; trap 'rmdir /tmp/nexusdi-heavy.lock' EXIT; trap 'exit 1' INT TERM HUP; <job>)`.
   A trailing `rmdir` after the job releases the lock even when the take
-  failed, and so frees a lock another agent holds. Pass `--parallel=2`. If the
-  holder died, remove the lock by hand. Run at most 2 subagents then, and at
+  failed, and so frees a lock another agent holds. zsh skips the EXIT trap
+  when INT or TERM kills the shell, so the second trap turns those signals
+  into an exit. SIGKILL skips every trap, so a killed holder leaves the lock
+  stale. Pass `--parallel=2`. If the holder died, remove the lock by hand. Run at most 2 subagents then, and at
   most 4 at other times.
 
 ## Git rules
