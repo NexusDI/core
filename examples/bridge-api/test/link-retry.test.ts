@@ -5,7 +5,7 @@ import {
   TICK_LOOP,
 } from '@nexusdi/meridian-systems';
 import { createTestingContainer } from '@nexusdi/testing';
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 
 import { COMMS_LOG } from '../src/ship/contracts';
 import { Meridian } from '../src/ship/meridian.module';
@@ -73,12 +73,24 @@ it('stops retrying when another attempt would pass the deadline', async () => {
     delayMs: 1,
     deadlineMs: 60,
   });
-  const started = Date.now();
-  await expect(
-    ship.get(SUBSPACE_LINK).signOff({ tick: 1, output: 1 }),
-  ).rejects.toThrow('the relay timed out');
-  expect(link.calls).toBe(1);
-  expect(Date.now() - started).toBeLessThan(100);
+  // The retry reads Date.now() and waits on setTimeout. A fake clock gives
+  // both the same 50 ms, so a loaded runner cannot stretch the timeout past
+  // the deadline's margin.
+  vi.useFakeTimers();
+  try {
+    const started = Date.now();
+    const outcome = expect(
+      ship.get(SUBSPACE_LINK).signOff({ tick: 1, output: 1 }),
+    ).rejects.toThrow('the relay timed out');
+    await vi.advanceTimersByTimeAsync(50);
+    await outcome;
+    expect(link.calls).toBe(1);
+    // The retry slept no delay: no timer is pending and the clock shows the one timeout.
+    expect(vi.getTimerCount()).toBe(0);
+    expect(Date.now() - started).toBe(50);
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 it('gives a fast-refusing relay every attempt inside the deadline', async () => {
