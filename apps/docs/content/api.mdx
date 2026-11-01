@@ -27,7 +27,7 @@ An app declares its object graph as a tree of modules, and `@nexusdi/core` check
 
 <!-- reference @nexusdi/core#check example=load-import -->
 
-`check(root, { plugins, load })` runs the plugins' compile, tokenKey, observe and formatError hooks, and no setup, and compiles each `load` entry after the root. An entry is a module, or `{ module, imports }` with the load imports that `load(module, { imports })` takes.
+The `plugins` option and the `load` option, whose entries are a module or `{ module, imports }`, are described under [`CheckOptions`](#checkoptions).
 
 ## `Token`
 
