@@ -16,19 +16,20 @@ import { gzipSync } from 'node:zlib';
  * bookkeeping, so growth there starts a conversation in review and fails
  * nothing.
  *
- * Every ceiling sits about 25 percent over the measurement of 2026-11-01, so
+ * Each ceiling names its measurement of 2026-11-01 and its headroom, so
  * ordinary feature work does not trip it.
  */
 
 /**
- * The route types. A page is a `front` page, an `api` page, a `tool` route or,
- * with everything else, a `guide`. Nextra serves every MDX page from one
+ * The route types. A page is a `front` page, an `api` page (`/api/` and the
+ * package pages `/api-<name>/`), a `tool` route or, with everything else, a
+ * `guide`. Nextra serves every MDX page from one
  * catch-all route, so the types differ in their ceilings and not in what they
  * load today.
  */
 export function routeType(path) {
   if (path === 'index.html') return 'front';
-  if (path.startsWith('api/')) return 'api';
+  if (path.startsWith('api/') || path.startsWith('api-')) return 'api';
   if (TOOL_ROUTES.some((route) => path.startsWith(route))) return 'tool';
   return 'guide';
 }
@@ -37,57 +38,63 @@ const TOOL_ROUTES = ['playground/', 'academy/'];
 
 /**
  * First-load JavaScript per route type, gzipped, in bytes: every script the
- * page's HTML names, the shared chunks included. That is what the browser
- * downloads, parses and runs before the page takes input, and on a mid-range
- * phone the parse and run time grows with it. All three content types measure
- * 278.9 kB today (864.6 kB raw). A tool route loads the Playground or
- * Academy shell on top of the shared load. The old tool row allowed 200 kB of
- * that, so its ceiling is 480 kB; no build has measured a tool route since the
- * budget rework.
+ * page's HTML names, the shared chunks included, and no `nomodule` script (a
+ * modern browser skips it; the report prints it apart). That is what the
+ * browser downloads, parses and runs before the page takes input, and on a
+ * mid-range phone the parse and run time grows with it. The content types
+ * measure 239.3 kB today (headroom 30 percent). A tool route loads the
+ * Playground or Academy shell on top of the shared load. The old tool row
+ * allowed 200 kB of that, so its ceiling is 440 kB; no build has measured a
+ * tool route since the budget rework.
  */
 export const FIRST_LOAD_JS = {
-  guide: 350_000,
-  front: 350_000,
-  api: 350_000,
-  tool: 480_000,
+  guide: 310_000,
+  front: 310_000,
+  api: 310_000,
+  tool: 440_000,
 };
 
 /**
  * The stylesheets a page names block its first paint, so they get their own
- * ceiling per page, gzipped. They measure 25.2 kB today.
+ * ceiling per page, gzipped, whatever path they load from. They measure
+ * 26.9 kB today with /code-classes.css (headroom 26 percent).
  */
-export const CSS_BUDGET = 32_000;
+export const CSS_BUDGET = 34_000;
 
 /**
  * The ceiling on the HTML document of one page, gzipped. The HTML is content
  * the reader came for (`/api/` lists core's behaviour sentences and measures
  * 209.4 kB), so this row does not trim it. It stops a runaway: at Lighthouse's
  * mobile profile of 1.6 Mbps, 400 kB takes two seconds to download, which
- * delays first paint by that long even with streaming.
+ * delays first paint by that long even with streaming. The ceiling sits
+ * 91 percent over the measurement.
  */
 export const HTML_BUDGET = 400_000;
 
 /**
  * The ceiling on one font file that a page preloads, in bytes. The files are
- * woff2, so the size is the transfer size. The largest measures 24.3 kB.
+ * woff2, so the size is the transfer size. The largest measures 24.3 kB (headroom 32 percent).
  */
 export const FONT_FILE_BUDGET = 32_000;
 
 /**
- * The ceiling on one hero image, in bytes. The hero art is the LCP element on
- * a wide screen and on a phone (site UX spec 12.3). The largest, the 1536 WebP
- * fallback, measures 34.7 kB.
+ * The ceiling on one hero image, in bytes. The hero is the picture of the
+ * front page whose `<img>` carries `fetchpriority="high"`, the LCP element on a
+ * wide screen and on a phone (site UX spec 12.3). The check reads every
+ * `srcset` URL and the `src` of that picture from `index.html`. The largest
+ * file, the 1536 WebP fallback, measures 34.7 kB (headroom 73 percent).
  */
 export const HERO_BUDGET = 60_000;
 
 /**
  * The guard against a committed giant: any image or font in the export over
- * this many bytes fails. The largest measures under 100 kB today.
+ * this many bytes fails. The largest measures under 100 kB today, so the
+ * guard has 900 kB of headroom.
  */
 export const GIANT_ASSET = 1_000_000;
 
-const GIANT_EXTENSIONS = /\.(avif|webp|png|jpe?g|gif|svg|woff2?|ttf|otf)$/i;
-const HERO_FILE = /^meridian-hero-.*\.(avif|webp)$/;
+const GIANT_EXTENSIONS =
+  /\.(avif|webp|png|jpe?g|gif|svg|ico|woff2?|ttf|otf|eot)$/i;
 
 /** The front page's bay controller (site UX spec 12.1). */
 export const BAY_MARK = 'nexus-preflight-bay';
@@ -138,37 +145,98 @@ function pages(out) {
 
 const kB = (bytes) => `${(bytes / 1000).toFixed(1)} kB`;
 
-/** Every script and stylesheet a page's HTML loads, base path stripped. */
+/** The attributes of one start tag, by lower-case name; a bare attribute is ''. */
+function attrsOf(tag) {
+  const attrs = {};
+  for (const match of tag.matchAll(/([a-z][\w:-]*)(?:\s*=\s*"([^"]*)")?/gi))
+    attrs[match[1].toLowerCase()] ??= match[2] ?? '';
+  return attrs;
+}
+
+/**
+ * The export path a URL names, or null for an external one: the query and
+ * fragment go, and so does the base path.
+ */
+function localPath(url, basePath) {
+  const bare = url.replace(/[?#].*$/, '');
+  if (basePath && bare.startsWith(`${basePath}/`))
+    return bare.slice(basePath.length);
+  return bare.startsWith('/') && !bare.startsWith('//') ? bare : null;
+}
+
+/**
+ * The scripts and stylesheets a page's HTML loads, base path stripped. A
+ * `nomodule` script goes in `noModule`, and a stylesheet counts from any path.
+ */
 export function assetsOf(html, basePath) {
-  const local = (url) =>
-    url.startsWith(`${basePath}/_next/`) ? [url.slice(basePath.length)] : [];
-  return [
-    ...new Set([
-      ...[...html.matchAll(/<script\b[^>]*\bsrc="([^"]+\.js)"/g)].flatMap(
-        (match) => local(match[1]),
-      ),
-      ...[...html.matchAll(/<link\b[^>]*\bhref="([^"]+\.css)"/g)].flatMap(
-        (match) => local(match[1]),
-      ),
-    ]),
-  ];
+  const scripts = new Set();
+  const noModule = new Set();
+  const styles = new Set();
+  for (const [tag] of html.matchAll(/<(?:script|link)\b[^>]*>/gi)) {
+    const attrs = attrsOf(tag);
+    if (tag.toLowerCase().startsWith('<script')) {
+      const path = attrs.src ? localPath(attrs.src, basePath) : null;
+      if (path?.endsWith('.js'))
+        ('nomodule' in attrs ? noModule : scripts).add(path);
+    } else if ((attrs.rel ?? '').toLowerCase() === 'stylesheet') {
+      const path = attrs.href ? localPath(attrs.href, basePath) : null;
+      if (path) styles.add(path);
+    }
+  }
+  return {
+    scripts: [...scripts],
+    noModule: [...noModule],
+    styles: [...styles],
+  };
 }
 
 /** The font files a page's HTML preloads, base path stripped. */
 export function fontsOf(html, basePath) {
   return [
     ...new Set(
-      [...html.matchAll(/<link\b[^>]*>/g)]
-        .map((match) => match[0])
-        .filter((tag) => /\bas="font"/.test(tag))
-        .flatMap((tag) => {
-          const href = /\bhref="([^"]+)"/.exec(tag)?.[1] ?? '';
-          return href.startsWith(`${basePath}/_next/`)
-            ? [href.slice(basePath.length)]
-            : [];
+      [...html.matchAll(/<link\b[^>]*>/gi)]
+        .map((match) => attrsOf(match[0]))
+        .filter((attrs) => (attrs.as ?? '').toLowerCase() === 'font')
+        .flatMap((attrs) => {
+          const path = attrs.href ? localPath(attrs.href, basePath) : null;
+          return path ? [path] : [];
         }),
     ),
   ];
+}
+
+/**
+ * The files of the hero picture: the `<picture>` that holds the `<img>` with
+ * `fetchpriority="high"`, every `srcset` URL of its sources and the `src` of
+ * the image. An empty list means the page has no such image.
+ */
+export function heroOf(html, basePath) {
+  for (const match of html.matchAll(/<img\b[^>]*>/gi)) {
+    const img = attrsOf(match[0]);
+    if ((img.fetchpriority ?? '').toLowerCase() !== 'high') continue;
+    const before = html.slice(0, match.index);
+    const open = before.toLowerCase().lastIndexOf('<picture');
+    const closed = before.toLowerCase().lastIndexOf('</picture');
+    const picture = open > closed ? before.slice(open) : '';
+    const urls = [
+      ...[...picture.matchAll(/<source\b[^>]*>/gi)].flatMap((source) =>
+        (attrsOf(source[0]).srcset ?? '')
+          .split(',')
+          .map((entry) => entry.trim().split(/\s+/)[0])
+          .filter(Boolean),
+      ),
+      img.src,
+    ];
+    return [
+      ...new Set(
+        urls.flatMap((url) => {
+          const path = url ? localPath(url, basePath) : null;
+          return path ? [path] : [];
+        }),
+      ),
+    ];
+  }
+  return [];
 }
 
 /**
@@ -194,14 +262,19 @@ export function elementsOf(html) {
 
 /**
  * Measures every exported page: the scripts and stylesheets its HTML names
- * (gzipped and raw), the fonts it preloads, and its HTML.
+ * (gzipped and raw), the `nomodule` scripts apart, the fonts it preloads, and
+ * its HTML. A named file that the export lacks lands in `missing`.
  */
 export function measurePages(out, { basePath = '' } = {}) {
   const sizes = new Map();
   const size = (file) => {
     if (!sizes.has(file)) {
-      const text = readFileSync(join(out, file));
-      sizes.set(file, { raw: text.length, gzip: gzipSync(text).length });
+      try {
+        const text = readFileSync(join(out, file));
+        sizes.set(file, { raw: text.length, gzip: gzipSync(text).length });
+      } catch {
+        sizes.set(file, null);
+      }
     }
     return sizes.get(file);
   };
@@ -209,25 +282,33 @@ export function measurePages(out, { basePath = '' } = {}) {
     const raw = readFileSync(join(out, path));
     const html = raw.toString('utf8');
     const assets = assetsOf(html, basePath);
+    const missing = [];
     const total = (list) =>
       list.reduce(
-        (sum, file) => ({
-          raw: sum.raw + size(file).raw,
-          gzip: sum.gzip + size(file).gzip,
-        }),
+        (sum, file) => {
+          const found = size(file);
+          if (!found) missing.push(file);
+          return {
+            raw: sum.raw + (found?.raw ?? 0),
+            gzip: sum.gzip + (found?.gzip ?? 0),
+          };
+        },
         { raw: 0, gzip: 0 },
       );
-    const js = total(assets.filter((file) => file.endsWith('.js')));
-    const css = total(assets.filter((file) => file.endsWith('.css')));
     return {
       path,
       type: routeType(path),
-      js,
-      css,
-      fonts: fontsOf(html, basePath).map((file) => ({
-        file,
-        bytes: statSync(join(out, file)).size,
-      })),
+      js: { ...total(assets.scripts), count: assets.scripts.length },
+      noModule: total(assets.noModule),
+      css: { ...total(assets.styles), count: assets.styles.length },
+      missing,
+      fonts: fontsOf(html, basePath).flatMap((file) => {
+        try {
+          return [{ file, bytes: statSync(join(out, file)).size }];
+        } catch {
+          return [];
+        }
+      }),
       htmlGzip: gzipSync(raw).length,
       elements: elementsOf(html),
     };
@@ -242,6 +323,14 @@ export function checkPages(rows) {
   const findings = [];
   for (const row of rows) {
     const limit = FIRST_LOAD_JS[row.type];
+    if (row.js.count === 0 || row.css.count === 0)
+      findings.push(
+        `${row.path}: the HTML names ${row.js.count} scripts and ${row.css.count} stylesheets. A page with none means the measurement lost its assets (a ?dpl= query, an assetPrefix or a DOCS_BASE_PATH that does not match the build).`,
+      );
+    for (const file of row.missing)
+      findings.push(
+        `${row.path}: the HTML names ${file}, which the export does not hold.`,
+      );
     if (row.js.gzip > limit)
       findings.push(
         `${row.path}: ${row.type} first-load JavaScript is ${kB(row.js.gzip)} gzipped, over the ${limit / 1000} kB ceiling. Load the code with import() on use, or raise FIRST_LOAD_JS.${row.type} with the new measurement and the reason.`,
@@ -282,16 +371,37 @@ function mediaFiles(out) {
 }
 
 /**
- * The gate rows over the export's files: each hero image against `HERO_BUDGET`,
- * and any image or font anywhere in the export against `GIANT_ASSET`.
+ * The gate rows over the export's files: each file of the hero picture in
+ * `index.html` against `HERO_BUDGET` (no hero picture fails), and any image or
+ * font anywhere in the export against `GIANT_ASSET`.
  */
-export function checkAssets(out) {
+export function checkAssets(out, { basePath = '' } = {}) {
   const findings = [];
-  for (const { name, bytes } of mediaFiles(out))
-    if (HERO_FILE.test(name) && bytes > HERO_BUDGET)
+  let front = '';
+  try {
+    front = readFileSync(join(out, 'index.html'), 'utf8');
+  } catch {
+    // The finding below names the missing page.
+  }
+  const hero = heroOf(front, basePath);
+  if (hero.length === 0)
+    findings.push(
+      'index.html: no <picture> holds an <img fetchpriority="high">, so the check finds no LCP image. Mark the hero image with fetchPriority="high".',
+    );
+  for (const file of hero) {
+    let bytes = 0;
+    try {
+      bytes = statSync(join(out, file)).size;
+    } catch {
       findings.push(
-        `${name}: the hero image is ${kB(bytes)}, over the ${kB(HERO_BUDGET)} ceiling. It paints the LCP element; run tools/ship-art.mjs with a lower quality.`,
+        `${file}: the hero picture names a file that the export does not hold.`,
       );
+    }
+    if (bytes > HERO_BUDGET)
+      findings.push(
+        `${file}: the hero image is ${kB(bytes)}, over the ${kB(HERO_BUDGET)} ceiling. It paints the LCP element; run tools/ship-art.mjs with a lower quality.`,
+      );
+  }
   const files = readdirSync(out, { recursive: true, withFileTypes: true });
   for (const entry of files) {
     if (!entry.isFile() || !GIANT_EXTENSIONS.test(entry.name)) continue;
@@ -454,7 +564,17 @@ export function reportLines(out, rows) {
   const [heaviest] = [...rows].sort((a, b) => b.htmlGzip - a.htmlGzip);
   if (heaviest)
     lines.push(
-      `report: the heaviest page is ${heaviest.path}: ${kB(heaviest.htmlGzip)} of HTML gzipped, ${heaviest.elements} elements`,
+      `report: the heaviest page is ${heaviest.path}: ${kB(heaviest.htmlGzip)} of HTML gzipped`,
+    );
+  const [densest] = [...rows].sort((a, b) => b.elements - a.elements);
+  if (densest)
+    lines.push(
+      `report: the page with the most elements is ${densest.path}: ${densest.elements} elements`,
+    );
+  const [legacy] = [...rows].sort((a, b) => b.noModule.gzip - a.noModule.gzip);
+  if (legacy)
+    lines.push(
+      `report: nomodule scripts, which modern browsers skip, are up to ${kB(legacy.noModule.gzip)} gzipped on ${legacy.path}`,
     );
   const behaviour = measureBehaviour(out);
   if (behaviour[0])
@@ -472,13 +592,15 @@ export function reportLines(out, rows) {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
-  const out = join(import.meta.dirname, '..', 'out');
-  const rows = measurePages(out, {
-    basePath: process.env.DOCS_BASE_PATH ?? '',
-  });
+  const out = process.env.DOCS_OUT ?? join(import.meta.dirname, '..', 'out');
+  const basePath = process.env.DOCS_BASE_PATH ?? '';
+  const rows = measurePages(out, { basePath });
   for (const type of Object.keys(FIRST_LOAD_JS)) {
     const own = rows.filter((row) => row.type === type);
-    if (own.length === 0) continue;
+    if (own.length === 0) {
+      console.log(`${type}: no pages in this build`);
+      continue;
+    }
     const js = Math.max(...own.map((row) => row.js.gzip));
     const css = Math.max(...own.map((row) => row.css.gzip));
     console.log(
@@ -486,7 +608,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
     );
   }
   for (const line of reportLines(out, rows)) console.log(line);
-  const findings = [...checkPages(rows), ...checkAssets(out)];
+  const findings = [...checkPages(rows), ...checkAssets(out, { basePath })];
   if (findings.length > 0) {
     console.error(findings.join('\n'));
     process.exit(1);
