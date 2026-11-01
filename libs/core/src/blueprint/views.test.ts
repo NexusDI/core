@@ -72,6 +72,40 @@ describe('loadImports on the view', () => {
   });
 });
 
+describe('configured on the view', () => {
+  it('is true for a forRoot() and a forRootAsync() instance, false for a plain module and a loaded one', () => {
+    const OPTIONS = new Token<{ readonly band: number }>('CommsOptions');
+    const Comms = defineModule({ name: 'Comms', options: OPTIONS });
+    const Relay = defineModule({ name: 'Relay', options: OPTIONS });
+    const Science = defineModule({ name: 'Science' });
+    const Host = defineModule({
+      name: 'Host',
+      imports: [
+        Comms.forRoot({ band: 1 }),
+        Relay.forRootAsync({ useFactory: () => ({ band: 2 }) }),
+        Helm,
+      ],
+    });
+    const first = compile({ root: Host });
+    const bp = compile({
+      root: Host,
+      extraImports: [{ module: Science, imports: [Helm] }],
+      previous: first,
+    });
+    const view = viewOfBlueprint(bp, sameToken);
+    const configured = Object.fromEntries(
+      view.modules.map((m) => [m.name, m.configured]),
+    );
+    expect(configured).toEqual({
+      Host: false,
+      Comms: true,
+      Relay: true,
+      Helm: false,
+      Science: false,
+    });
+  });
+});
+
 describe('buildView', () => {
   it('keys the token of visible() through the canonicalizer', () => {
     const bp = compile({ root: Helm });
