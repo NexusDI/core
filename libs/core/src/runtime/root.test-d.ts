@@ -4,6 +4,7 @@ import { defineModule } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
 import { Token } from '../definitions/token.js';
 import { Nexus } from './nexus.js';
+import { check } from './check.js';
 import type { CheckedRoot, RootConfig, RootRef } from './root.js';
 
 class Logger {
@@ -146,15 +147,15 @@ describe('Nexus.create', () => {
   });
 });
 
-describe('Nexus.check', () => {
+describe('check', () => {
   it('reports on the element in both forms', () => {
-    Nexus.check([Logger]);
-    Nexus.check([
+    check([Logger]);
+    check([
       Logger,
       // @ts-expect-error static deps lists a string where a Logger goes
       UserService,
     ]);
-    Nexus.check({
+    check({
       providers: [
         // @ts-expect-error static deps lists a string where a Logger goes
         UserService,

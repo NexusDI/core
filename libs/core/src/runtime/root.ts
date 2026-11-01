@@ -21,7 +21,7 @@ export interface RootConfig {
   readonly exports?: readonly ExportEntry[];
 }
 
-/** Every root Nexus.create and Nexus.check accept. */
+/** Every root Nexus.create and check() accept. */
 export type RootRef = ModuleRef | readonly ProviderEntry[] | RootConfig;
 
 /**
@@ -73,7 +73,7 @@ export type CheckedRoot<R> = R extends readonly unknown[]
  * The default of R when TypeScript infers nothing, which happens when a
  * literal holds an unannotated function. Both forms then check each element
  * as UninferredEntry, and the untyped function reports UntypedFunctionMessage.
- * A function that wraps Nexus.check declares `<const R = UninferredRoot>`
+ * A function that wraps check() declares `<const R = UninferredRoot>`
  * and takes `CheckedRoot<R>`, as devtools' inspect() does.
  */
 export type UninferredRoot =
@@ -82,7 +82,7 @@ export type UninferredRoot =
 const ROOT_KEYS = ['providers', 'imports', 'exports'] as const;
 
 /**
- * The module Nexus.create and Nexus.check compile: `root` itself when it is
+ * The module Nexus.create and check() compile: `root` itself when it is
  * a module, otherwise a module named `root` built from an array of providers
  * or from `{ providers, imports, exports }`. Own keys only (SEC-003).
  */

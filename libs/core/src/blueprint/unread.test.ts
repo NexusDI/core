@@ -9,7 +9,7 @@ import { all, lazy } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
 import { MultiToken, Token } from '../definitions/token.js';
 import type { Blueprint, ProviderRecord } from './blueprint.js';
-import { Nexus } from '../runtime/nexus.js';
+import { check } from '../runtime/check.js';
 import { compile } from './compile.js';
 import { contributionLabel } from './contribution-label.js';
 import { unreadContributions } from './unread.js';
@@ -170,10 +170,10 @@ describe('unread contributions under compile.provider hooks', () => {
     apiVersion: 1 as const,
     compile: { provider: answer },
   });
-  /** What Nexus.check throws with the plugins, or undefined when it passes. */
+  /** What check() throws with the plugins, or undefined when it passes. */
   const checkedWith = (root: unknown, plugins: readonly object[]) => {
     try {
-      Nexus.check(root as never, { plugins: plugins as never });
+      check(root as never, { plugins: plugins as never });
     } catch (error) {
       return error;
     }

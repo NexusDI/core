@@ -155,12 +155,12 @@ entry.imports[0] === Engineering; // -> true
 
 ## Importing Host Modules into a Loaded Module
 
-`load(module, { imports })` lets the loaded module and each module of its subtree that the graph did not hold see the exports of host modules already in the graph, as if they imported them. Each module in `imports` is a load import. A load import is wiring. It isolates nothing and is no security boundary. `Nexus.check(root, { load: [{ module, imports }] })` takes the same load imports.
+`load(module, { imports })` lets the loaded module and each module of its subtree that the graph did not hold see the exports of host modules already in the graph, as if they imported them. Each module in `imports` is a load import. A load import is wiring. It isolates nothing and is no security boundary. `check(root, { load: [{ module, imports }] })` takes the same load imports.
 
 <!-- #region load-import -->
 
 ```ts @import.meta.vitest
-import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+import { check, defineModule, Nexus, provide, Token } from '@nexusdi/core';
 
 interface IHullSensors {
   readonly range: number;
@@ -193,7 +193,7 @@ const Survey = defineModule({
 });
 const Meridian = defineModule({ name: 'Meridian', imports: [Sensors] });
 
-const report = Nexus.check(Meridian, {
+const report = check(Meridian, {
   load: [{ module: Survey, imports: [Sensors] }],
 });
 report.unchecked.length; // -> 0

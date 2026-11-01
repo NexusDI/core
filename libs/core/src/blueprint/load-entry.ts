@@ -10,7 +10,7 @@ export interface LoadOptions {
   readonly imports?: readonly ModuleRef[];
 }
 
-/** A module for Nexus.check to load, with its load imports. */
+/** A module for check() to load, with its load imports. */
 export type LoadEntry =
   | ModuleRef
   | {

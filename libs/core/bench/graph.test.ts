@@ -58,7 +58,7 @@ describe('makeModularGraph', () => {
 
   it('creates and resolves every lookup from the root, with no check errors', async () => {
     const { root, lookups } = makeModularGraph(core);
-    expect(() => core.Nexus.check(root as never)).not.toThrow();
+    expect(() => core.check(root as never)).not.toThrow();
     const ship = await core.Nexus.create(root as never);
     for (const token of lookups) expect(ship.get(token as never)).toBeDefined();
     await ship[Symbol.asyncDispose]();

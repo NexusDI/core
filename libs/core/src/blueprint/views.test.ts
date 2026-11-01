@@ -12,6 +12,7 @@ import { all, lazy, optional } from '../definitions/modifiers.js';
 import { provide } from '../definitions/provide.js';
 import { MultiToken, Token } from '../definitions/token.js';
 import { Nexus } from '../runtime/nexus.js';
+import { check } from '../runtime/check.js';
 import type { NexusPlugin } from '../runtime/plugins.js';
 import { compile } from './compile.js';
 import {
@@ -199,7 +200,7 @@ describe('unresolved deps on the view', () => {
     plugins: NexusPlugin[] = [],
   ): BlueprintView {
     let seen: BlueprintView | undefined;
-    Nexus.check(defineModule({ name: 'Bridge', providers }), {
+    check(defineModule({ name: 'Bridge', providers }), {
       plugins: [
         ...plugins,
         {
@@ -355,7 +356,7 @@ describe('unresolved deps on the view', () => {
     }
     let seen: BlueprintView | undefined;
     try {
-      Nexus.check(
+      check(
         defineModule({
           name: 'Bridge',
           providers: [

@@ -65,7 +65,7 @@ export interface TraceEventByType {
     modules: number;
     providers: number;
     errors: number;
-    /** The run this compile starts; null for Nexus.check. */
+    /** The run this compile starts; null for check(). */
     run: number | null;
     startMs: number;
     durationMs: number;

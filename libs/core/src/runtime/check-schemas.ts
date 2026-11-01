@@ -9,7 +9,7 @@ import {
 import type { CheckReport } from './options.js';
 
 /**
- * Nexus.check's options pass over the last compiled blueprint: judges
+ * check()'s options pass over the last compiled blueprint: judges
  * each schema result of a forRoot() value that comes back synchronously,
  * and returns the async schemas and the forRootAsync() modules it could
  * not judge. Throws one BlueprintError for every rejected value, in

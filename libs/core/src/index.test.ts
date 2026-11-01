@@ -10,6 +10,7 @@ const RUNTIME_EXPORTS: string[] = [
   'all',
   'AmbiguousProviderError',
   'AsyncTransientError',
+  'check',
   'BlueprintError',
   'CircularDependencyError',
   'CoreNotSharedError',

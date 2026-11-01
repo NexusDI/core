@@ -415,3 +415,11 @@ describe('Nexus', () => {
     });
   });
 });
+
+describe('check', () => {
+  it('is a named export of the package, and Nexus has no static check', async () => {
+    const core = await import('../index.js');
+    expect(core.check).toBeTypeOf('function');
+    expect('check' in Nexus).toBe(false);
+  });
+});

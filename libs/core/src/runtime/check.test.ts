@@ -6,7 +6,7 @@ import { defineModule } from '../definitions/define-module.js';
 import { provide } from '../definitions/provide.js';
 import { MultiToken, Token } from '../definitions/token.js';
 import { frequencySchema } from '../../test-support/schema.js';
-import { Nexus } from './nexus.js';
+import { check } from './check.js';
 import type { TraceEvent } from './trace.js';
 
 const REACTOR = new Token<{ output: number }>('ReactorCore');
@@ -15,7 +15,7 @@ class Bridge {
   constructor(readonly reactor: { output: number }) {}
 }
 
-describe('Nexus.check', () => {
+describe('check', () => {
   it('compiles the root and each load in order, and builds nothing', () => {
     let built = 0;
     const Engineering = defineModule({
@@ -38,7 +38,7 @@ describe('Nexus.check', () => {
     // Science imports Engineering, so the root imports Engineering: with
     // Engineering as the root, load() would report a module import cycle.
     const Meridian = defineModule({ name: 'Meridian', imports: [Engineering] });
-    expect(Nexus.check(Meridian, { load: [Science] })).toEqual({
+    expect(check(Meridian, { load: [Science] })).toEqual({
       unchecked: [],
     });
     expect(built).toBe(0);
@@ -67,7 +67,7 @@ describe('Nexus.check', () => {
       },
     } as never;
     expect(
-      Nexus.check(Root, {
+      check(Root, {
         plugins: [fresh],
         load: [defineModule({ name: 'Other' })],
       }),
@@ -77,9 +77,7 @@ describe('Nexus.check', () => {
   it('throws one BlueprintError for the first compile that fails', () => {
     const Science = defineModule({ name: 'Science', providers: [Bridge] });
     expect(
-      thrown(() =>
-        Nexus.check(defineModule({ name: 'Root' }), { load: [Science] }),
-      ),
+      thrown(() => check(defineModule({ name: 'Root' }), { load: [Science] })),
     ).toMatchObject({
       code: 'NEXUS_BLUEPRINT_INVALID',
       errors: [{ code: 'NEXUS_MISSING_PROVIDER', requester: 'Bridge' }],
@@ -89,7 +87,7 @@ describe('Nexus.check', () => {
   it('runs compile hooks with phase check and observers see compile events', () => {
     const phases: string[] = [];
     const events: string[] = [];
-    Nexus.check(defineModule({ name: 'Root' }), {
+    check(defineModule({ name: 'Root' }), {
       load: [defineModule({ name: 'Science' })],
       plugins: [
         {
@@ -106,7 +104,7 @@ describe('Nexus.check', () => {
 
   it('gives compile.check hooks a view whose root is the checked root', () => {
     const roots: string[] = [];
-    Nexus.check(defineModule({ name: 'Meridian' }), {
+    check(defineModule({ name: 'Meridian' }), {
       load: [defineModule({ name: 'Science' })],
       plugins: [
         {
@@ -129,7 +127,7 @@ describe('Nexus.check', () => {
     const Wrapper = defineModule({ name: 'Wrapper', imports: [Telemetry] });
     const events: TraceEvent[] = [];
     const error = thrown(() =>
-      Nexus.check(defineModule({ name: 'Root' }), {
+      check(defineModule({ name: 'Root' }), {
         load: [Wrapper],
         plugins: [
           { name: 'watch', apiVersion: 1, observe: (e) => events.push(e) },
@@ -154,7 +152,7 @@ describe('Nexus.check', () => {
       exports: [LOG],
     });
     const error = thrown(() =>
-      Nexus.check(defineModule({ name: 'Root' }), { load: [Listener] }),
+      check(defineModule({ name: 'Root' }), { load: [Listener] }),
     );
     expect(error).toMatchObject({
       code: 'NEXUS_BLUEPRINT_INVALID',
@@ -175,7 +173,7 @@ describe('Nexus.check', () => {
       providers: [provide(LOG, { useValue: 'own' })],
     });
     const error = thrown(() =>
-      Nexus.check(defineModule({ name: 'Root' }), { load: [Silent] }),
+      check(defineModule({ name: 'Root' }), { load: [Silent] }),
     );
     expect(error).toMatchObject({
       code: 'NEXUS_BLUEPRINT_INVALID',
@@ -194,7 +192,7 @@ describe('Nexus.check', () => {
     const Telemetry = defineModule({ name: 'Telemetry', global: true });
     const Wrapper = defineModule({ name: 'Wrapper', imports: [Telemetry] });
     expect(
-      Nexus.check(defineModule({ name: 'Root', imports: [Telemetry] }), {
+      check(defineModule({ name: 'Root', imports: [Telemetry] }), {
         load: [Wrapper],
       }),
     ).toEqual({ unchecked: [] });
@@ -208,7 +206,7 @@ describe('Nexus.check', () => {
     });
     const Lab = defineModule({ name: 'Lab', imports: [Engineering] });
     expect(
-      Nexus.check(defineModule({ name: 'Root', imports: [Lab] }), {
+      check(defineModule({ name: 'Root', imports: [Lab] }), {
         load: [Lab, Lab],
       }),
     ).toEqual({ unchecked: [] });
@@ -218,7 +216,7 @@ describe('Nexus.check', () => {
     const phases: boolean[] = [];
     const Science = defineModule({ name: 'Science', providers: [Bridge] });
     thrown(() =>
-      Nexus.check(defineModule({ name: 'Root' }), {
+      check(defineModule({ name: 'Root' }), {
         load: [Science, defineModule({ name: 'Medical' })],
         plugins: [
           {
@@ -249,7 +247,7 @@ describe('Nexus.check', () => {
         },
       },
     });
-    Nexus.check(defineModule({ name: 'Root' }), {
+    check(defineModule({ name: 'Root' }), {
       load: [Configured.forRoot({ level: 1 })],
       plugins: [
         {
@@ -266,7 +264,7 @@ describe('Nexus.check', () => {
   it('formats the thrown BlueprintError and its inner errors with formatError', () => {
     const views: (BlueprintView | undefined)[] = [];
     const error = thrown(() =>
-      Nexus.check(defineModule({ name: 'Root', providers: [Bridge] }), {
+      check(defineModule({ name: 'Root', providers: [Bridge] }), {
         plugins: [
           {
             name: 'fmt',
@@ -292,7 +290,7 @@ describe('Nexus.check', () => {
     const Telemetry = defineModule({ name: 'Telemetry', global: true });
     const views: (BlueprintView | undefined)[] = [];
     thrown(() =>
-      Nexus.check(defineModule({ name: 'Root' }), {
+      check(defineModule({ name: 'Root' }), {
         load: [Telemetry],
         plugins: [
           {
@@ -328,16 +326,14 @@ describe('Nexus.check', () => {
 
     it('accepts a module with imports and compiles the load import', () => {
       expect(
-        Nexus.check(Root, {
+        check(Root, {
           load: [{ module: Science, imports: [Navigation] }],
         }),
       ).toEqual({ unchecked: [] });
     });
 
     it('reports a missing provider when the entry has no load import', () => {
-      expect(
-        thrown(() => Nexus.check(Root, { load: [Science] })),
-      ).toMatchObject({
+      expect(thrown(() => check(Root, { load: [Science] }))).toMatchObject({
         code: 'NEXUS_BLUEPRINT_INVALID',
         errors: [{ code: 'NEXUS_MISSING_PROVIDER' }],
       });
@@ -351,7 +347,7 @@ describe('Nexus.check', () => {
       (reason, imported, name) => {
         expect(
           thrown(() =>
-            Nexus.check(Root, {
+            check(Root, {
               load: [{ module: Science, imports: [imported] }],
             }),
           ),
@@ -372,7 +368,7 @@ describe('Nexus.check', () => {
     it('reports already-loaded for a load import on a module the root imports', () => {
       expect(
         thrown(() =>
-          Nexus.check(Root, {
+          check(Root, {
             load: [{ module: Wrapper, imports: [Navigation] }],
           }),
         ),
@@ -436,7 +432,7 @@ describe('Nexus.check', () => {
         name: 'Root',
         imports: [Comms.forRoot(bad)],
       });
-      expect(thrown(() => Nexus.check(root))).toMatchObject({
+      expect(thrown(() => check(root))).toMatchObject({
         code: 'NEXUS_BLUEPRINT_INVALID',
         errors: [
           {
@@ -450,7 +446,7 @@ describe('Nexus.check', () => {
     });
 
     it('returns no unchecked module when every schema ran', () => {
-      const report = Nexus.check(
+      const report = check(
         defineModule({ name: 'Root', imports: [comms().forRoot(good)] }),
       );
       expect(report).toEqual({ unchecked: [] });
@@ -462,7 +458,7 @@ describe('Nexus.check', () => {
       const Comms = comms('Comms');
       const Uplink = comms('Uplink');
       const error = thrown(() =>
-        Nexus.check(
+        check(
           defineModule({
             name: 'Root',
             imports: [Comms.forRoot(bad), Uplink.forRoot(bad)],
@@ -487,7 +483,7 @@ describe('Nexus.check', () => {
           },
         },
       });
-      const report = Nexus.check(
+      const report = check(
         defineModule({ name: 'Root', imports: [Comms.forRoot(good)] }),
       );
       expect(report.unchecked).toEqual([
@@ -500,7 +496,7 @@ describe('Nexus.check', () => {
 
     it('lists a forRootAsync() module with a schema as unchecked and runs no factory', () => {
       let factories = 0;
-      const report = Nexus.check(
+      const report = check(
         defineModule({
           name: 'Root',
           imports: [
@@ -524,7 +520,7 @@ describe('Nexus.check', () => {
     it('lists nothing for a forRootAsync() module without a schema', () => {
       const Plain = defineModule({ name: 'Plain', options: COMMS_OPTIONS });
       expect(
-        Nexus.check(
+        check(
           defineModule({
             name: 'Root',
             imports: [Plain.forRootAsync({ useFactory: () => good, deps: [] })],
@@ -542,9 +538,7 @@ describe('Nexus.check', () => {
         },
       });
       expect(
-        Nexus.check(
-          defineModule({ name: 'Root', imports: [Comms.forRoot(good)] }),
-        ),
+        check(defineModule({ name: 'Root', imports: [Comms.forRoot(good)] })),
       ).toEqual({ unchecked: [] });
     });
 
@@ -557,7 +551,7 @@ describe('Nexus.check', () => {
         },
       });
       const Comms = comms('Comms');
-      const report = Nexus.check(
+      const report = check(
         defineModule({
           name: 'Root',
           imports: [
@@ -588,12 +582,12 @@ describe('Nexus.check', () => {
         name: 'Root',
         imports: [Comms.forRoot(good)],
       });
-      expect(thrown(() => Nexus.check(root))).toBe(boom);
+      expect(thrown(() => check(root))).toBe(boom);
     });
 
     it("checks a load entry's forRoot() value", () => {
       const error = thrown(() =>
-        Nexus.check(defineModule({ name: 'Root' }), {
+        check(defineModule({ name: 'Root' }), {
           load: [comms().forRoot(bad)],
         }),
       ) as Error & { errors: { code: string }[] };
@@ -606,7 +600,7 @@ describe('Nexus.check', () => {
       const { seen, schema } = counting();
       const Science = defineModule({ name: 'Science', providers: [Bridge] });
       const error = thrown(() =>
-        Nexus.check(
+        check(
           defineModule({
             name: 'Root',
             imports: [comms('Comms', schema).forRoot(bad)],
@@ -622,7 +616,7 @@ describe('Nexus.check', () => {
 
     it('reports rejected values of the root and of a load entry in one BlueprintError', () => {
       const error = thrown(() =>
-        Nexus.check(
+        check(
           defineModule({
             name: 'Root',
             imports: [comms('Comms').forRoot(bad)],
@@ -642,7 +636,7 @@ describe('Nexus.check', () => {
 
     it('runs a root schema once across every load compile', () => {
       const { seen, schema } = counting('accept');
-      Nexus.check(
+      check(
         defineModule({
           name: 'Root',
           imports: [comms('Comms', schema).forRoot(good)],
@@ -660,7 +654,7 @@ describe('Nexus.check', () => {
     it('runs no schema when the graph has an error', () => {
       const { seen, schema } = counting();
       const error = thrown(() =>
-        Nexus.check(
+        check(
           defineModule({
             name: 'Root',
             imports: [comms('Comms', schema).forRoot(bad)],
@@ -677,21 +671,18 @@ describe('Nexus.check', () => {
     it('formats the schema failure with the view of the compile that passed', () => {
       const views: (BlueprintView | undefined)[] = [];
       thrown(() =>
-        Nexus.check(
-          defineModule({ name: 'Root', imports: [comms().forRoot(bad)] }),
-          {
-            plugins: [
-              {
-                name: 'fmt',
-                apiVersion: 1,
-                formatError: (_error, view) => {
-                  views.push(view);
-                  return undefined;
-                },
+        check(defineModule({ name: 'Root', imports: [comms().forRoot(bad)] }), {
+          plugins: [
+            {
+              name: 'fmt',
+              apiVersion: 1,
+              formatError: (_error, view) => {
+                views.push(view);
+                return undefined;
               },
-            ],
-          },
-        ),
+            },
+          ],
+        }),
       );
       expect(views.length).toBeGreaterThan(0);
       expect(
