@@ -92,11 +92,11 @@ export interface RoomLabel {
   /** The provider that the room hosts, when the label names it. */
   readonly provider?: string;
   /**
-   * `top` and `below` put a callout in the band above or under the hull, joined
-   * to its room by a leader line. The `in-*` places keep the label inside the
-   * room, at the middle of its bottom edge.
+   * `top` and `below` put a callout above or under the hull, joined to its room
+   * by a leader line. `in-room` keeps the label inside the room, on
+   * its bottom or top edge, wherever it clears the parts.
    */
-  readonly place: 'top' | 'below' | 'in-bottom-middle';
+  readonly place: 'top' | 'below' | 'in-room';
 }
 
 export const ROOM_LABELS: readonly RoomLabel[] = [
@@ -106,14 +106,14 @@ export const ROOM_LABELS: readonly RoomLabel[] = [
     room: 'engineering',
     title: 'Engineering',
     module: 'Engineering',
-    provider: 'Reactor, FusionReactor',
+    provider: 'ReactorCore',
     place: 'top',
   },
   {
     room: 'shuttle-bay',
     title: 'Shuttle bay',
     module: 'BridgeApi',
-    place: 'in-bottom-middle',
+    place: 'in-room',
   },
   {
     room: 'computer-core',
@@ -140,11 +140,12 @@ export const HINT_PART = 'conduit-Tactical-Comms';
 
 /**
  * The part of the cutaway the wide stage shows, in metres: the hull with a
- * band above and under it for the room callouts. The picture draws at the
+ * margin under it for the room callouts. The callouts above the hull hang in
+ * the empty sky over the bow and over the top plating of the stern. The picture draws at the
  * ratio of the frame to this crop.
  */
 export const WIDE_CROP: readonly [number, number, number, number] = [
-  -1, 1.5, 72.5, 18.3,
+  -1, 4.2, 72.5, 14.4,
 ];
 
 export function isSystemId(token: string): token is SystemId {

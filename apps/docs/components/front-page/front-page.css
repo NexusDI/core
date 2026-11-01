@@ -455,6 +455,10 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
   color: var(--meridian-text-secondary);
 }
 
+.nexus-bay__note--start {
+  transform: translate(-14px, 16px);
+}
+
 .nexus-bay__placard {
   display: grid;
   transform: translate(18px, -50%);
@@ -483,13 +487,20 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
   stroke-dasharray: 2 2;
 }
 
+.nexus-bay__room span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .nexus-bay__room {
   position: absolute;
-  display: grid;
+  box-sizing: border-box;
   margin: 0;
-  padding: 0 4px;
+  padding: 0 5px;
+  overflow: hidden;
   font-size: var(--meridian-text-micro);
-  line-height: var(--meridian-leading-micro);
+  line-height: 18px;
   color: var(--meridian-text);
   white-space: nowrap;
   /* An opaque plate: no hull line shows through the text. */
@@ -497,8 +508,14 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
   border: 1px solid var(--meridian-edge);
 }
 
-.nexus-bay__room small {
-  font-size: inherit;
+/* Under the width where the plates clear every part, the rooms are named in a line. */
+.nexus-bay__room-captions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--meridian-space-1) var(--meridian-space-4);
+  margin: 0;
+  padding: var(--meridian-space-2) var(--meridian-space-3);
+  font-size: var(--meridian-text-micro);
   color: var(--meridian-text-secondary);
 }
 
