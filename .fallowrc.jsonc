@@ -277,6 +277,12 @@
   // yet, so nothing imports the names today. Drop each name once a guard
   // imports it.
   "ignoreExports": [
+    // Next loads postcss.config.js by file path and reads `plugins` off
+    // module.exports. fallow 3.36 reports that property as an unused export.
+    {
+      "file": "apps/docs/postcss.config.js",
+      "exports": ["plugins"],
+    },
     // The default export of each is the Turbopack loader. next.config.ts
     // reaches it by file path through tools/loader-chain.mjs, which no
     // import edge shows to fallow.
