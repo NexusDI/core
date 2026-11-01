@@ -23,7 +23,7 @@ const { compareSizes } = (await import(
     head: Sizes,
     body: string,
     threshold: number,
-  ): { markdown: string; fail: boolean };
+  ): { markdown: string; fail: boolean; reason: string };
 };
 
 const base: Sizes = { core: 10_000, packages: { errors: 3000 } };
@@ -141,5 +141,56 @@ describe('compareSizes', () => {
     const body =
       '## Size\n\n@nexusdi/express grows for its new option.\n\n## Notes\n\n@nexusdi/hono too.';
     expect(compareSizes(withWorker, head, body, 2).fail).toBe(true);
+  });
+
+  describe('a fixture over its budget on the base', () => {
+    const baseOver: Sizes = {
+      ...base,
+      packages: { errors: 3000, hono: 2600 },
+      overBudget: [over],
+    };
+
+    it('passes when the base was over and this pull request did not grow it', () => {
+      const result = compareSizes(baseOver, head, '', 2);
+      expect(result.fail).toBe(false);
+      expect(result.markdown).toContain('the base was already over');
+    });
+
+    it('fails and names the fixture when the base was over and this pull request grew it', () => {
+      const grown = {
+        ...head,
+        packages: { errors: 3000, hono: 2650 },
+        overBudget: [{ ...over, size: 2650 }],
+      };
+      const result = compareSizes(baseOver, grown, '', 2);
+      expect(result.fail).toBe(true);
+      expect(result.reason).toContain('@nexusdi/hono');
+      expect(result.reason).not.toContain('core');
+    });
+
+    it('fails when this pull request pushes a fixture over its budget for the first time', () => {
+      const under: Sizes = { ...base, packages: { errors: 3000, hono: 2400 } };
+      const result = compareSizes(under, head, '', 2);
+      expect(result.fail).toBe(true);
+      expect(result.reason).toContain('@nexusdi/hono');
+    });
+
+    it('passes a grown fixture when the Size section names it', () => {
+      const grown = {
+        ...head,
+        packages: { errors: 3000, hono: 2650 },
+        overBudget: [{ ...over, size: 2650 }],
+      };
+      const body =
+        '## Size\n\n@nexusdi/hono grows 50 bytes for the abort signal.';
+      const result = compareSizes(baseOver, grown, body, 2);
+      expect(result.fail).toBe(false);
+      expect(result.reason).toBe('');
+    });
+  });
+
+  it('reports core as the reason when core grew past the threshold', () => {
+    const result = compareSizes(base, { ...base, core: 10_500 }, '', 2);
+    expect(result.reason).toContain('core grew 5.00%');
   });
 });

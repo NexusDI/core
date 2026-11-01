@@ -2,11 +2,13 @@
 /**
  * Compares two size-report.mjs outputs for a pull request (spec §12.4).
  * Core growth above the threshold fails unless the description has a
- * `## Size` section; package growth is reported only.
+ * `## Size` section; package growth is reported only. A fixture over its
+ * budget fails only when this pull request made it bigger than the base.
+ * The reason for a failure goes to the optional third argument's file.
  *
- *   PR_BODY="$body" node scripts/size-compare.mjs base.json head.json
+ *   PR_BODY="$body" node scripts/size-compare.mjs base.json head.json [reason.txt]
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -45,12 +47,35 @@ export function compareSizes(base, head, body, threshold) {
       ? ((head.core - base.core) / base.core) * 100
       : null;
   const justified = /^## Size\b/m.test(body ?? '');
-  const fail =
-    !headHasCore ||
-    (baseHasCore && growth > threshold && !justified) ||
-    (head.overBudget ?? []).some(
-      ({ name, label }) => !sizeSectionNames(body, name, label),
-    );
+  // A fixture over its budget fails only when this pull request grew it.
+  // One already over on the base and not grown here is reported, never
+  // failed, so a pull request does not inherit an overage it did not cause.
+  const overBudget = head.overBudget ?? [];
+  const baseSize = ({ name, label }) =>
+    label === name ? base.standalone?.[name] : base.packages?.[name];
+  const grewOver = (entry) => {
+    const was = baseSize(entry);
+    return typeof was !== 'number' || entry.size > was;
+  };
+  const unjustified = overBudget.filter(
+    (entry) =>
+      grewOver(entry) && !sizeSectionNames(body, entry.name, entry.label),
+  );
+  const coreOver = baseHasCore && growth > threshold && !justified;
+  const reasons = [
+    ...(!headHasCore
+      ? ['core has no figure: it did not bundle against the fixture.']
+      : []),
+    ...(coreOver
+      ? [`core grew ${growth.toFixed(2)}%, over the ${threshold}% threshold.`]
+      : []),
+    ...(unjustified.length === 0
+      ? []
+      : [
+          `${unjustified.map(({ label }) => label).join(', ')} grew past ${unjustified.length === 1 ? 'its budget' : 'their budgets'}.`,
+        ]),
+  ];
+  const fail = reasons.length > 0;
   const coreRow = !headHasCore
     ? `| core | ${baseHasCore ? base.core : 'no figure'} | no figure | | |`
     : baseHasCore
@@ -82,13 +107,9 @@ export function compareSizes(base, head, body, threshold) {
         return `| ${name} (whole bundle) | ${was} | ${now} | ${bytes(was, now)} | ${pct(was, now)} |`;
       }),
   ];
-  // An adapter fixture over its budget fails like core over its threshold,
-  // unless the description's `## Size` section names that fixture and says
-  // what the added bytes give the user (spec 13.6).
-  const overBudget = head.overBudget ?? [];
-  const unjustified = overBudget.filter(
-    ({ name, label }) => !sizeSectionNames(body, name, label),
-  );
+  // An adapter fixture that grew over its budget fails like core over its
+  // threshold, unless the description's `## Size` section names that fixture
+  // and says what the added bytes give the user (spec 13.6).
   const budgets =
     overBudget.length === 0
       ? []
@@ -96,8 +117,8 @@ export function compareSizes(base, head, body, threshold) {
           '',
           'Over budget:',
           ...overBudget.map(
-            ({ label, size, budget, reason }) =>
-              `- ${label} is ${size} bytes, over its ${budget}-byte budget (${reason})`,
+            (entry) =>
+              `- ${entry.label} is ${entry.size} bytes, over its ${entry.budget}-byte budget (${entry.reason})${grewOver(entry) ? '' : '; the base was already over, so this does not fail the check'}`,
           ),
           ...(unjustified.length === 0
             ? []
@@ -128,11 +149,11 @@ export function compareSizes(base, head, body, threshold) {
     '',
     verdict,
   ].join('\n');
-  return { markdown, fail };
+  return { markdown, fail, reason: reasons.join(' ') };
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
-  const [baseFile, headFile] = process.argv.slice(2);
+  const [baseFile, headFile, reasonFile] = process.argv.slice(2);
   const read = (file) => JSON.parse(readFileSync(file, 'utf8'));
   const { coreGrowthPercent } = read(
     join(import.meta.dirname, '..', 'size-report.json'),
@@ -144,5 +165,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
     coreGrowthPercent,
   );
   console.log(result.markdown);
+  if (reasonFile && result.fail)
+    writeFileSync(reasonFile, `${result.reason}\n`);
   process.exit(result.fail ? 1 : 0);
 }
