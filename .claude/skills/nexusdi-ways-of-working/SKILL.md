@@ -183,10 +183,13 @@ Content rules:
 - After merge: `git worktree remove <path>`, delete the local branch and any
   backup branches, then run `node ~/.claude/scripts/clean-worktrees.mjs --apply`.
 - Heavy jobs (run-many, next build, e2e, Playwright): on weekdays 09:00 to
-  17:00, one at a time across all agents. Take the lock with
-  `until mkdir /tmp/nexusdi-heavy.lock 2>/dev/null; do sleep 30; done`, release
-  it with `rmdir`, and pass `--parallel=2`. If the holder died, remove the lock
-  by hand. Run at most 2 subagents then, and at most 4 at other times.
+  17:00, one at a time across all agents. Run the job in a subshell that takes
+  the lock and only then sets the trap that releases it:
+  `(until mkdir /tmp/nexusdi-heavy.lock 2>/dev/null; do sleep 30; done; trap 'rmdir /tmp/nexusdi-heavy.lock' EXIT; <job>)`.
+  A trailing `rmdir` after the job releases the lock even when the take
+  failed, and so frees a lock another agent holds. Pass `--parallel=2`. If the
+  holder died, remove the lock by hand. Run at most 2 subagents then, and at
+  most 4 at other times.
 
 ## Git rules
 
