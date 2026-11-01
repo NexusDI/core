@@ -463,11 +463,22 @@ describe('importGroups', () => {
     ]);
   });
 
-  it('reads an unclosed list of many empty strings in linear time', () => {
-    const source = `Promise.all([""${' ""'.repeat(50_000)}`;
+  it('reads a long list and an unclosed list in linear time', () => {
+    const closed = `Promise.all([""${' ""'.repeat(50_000)}])`;
+    const unclosed = `Promise.all([""${' ""'.repeat(50_000)}`;
     const started = performance.now();
-    expect(importGroups([source])).toEqual([]);
+    expect(importGroups([closed, unclosed])).toEqual([]);
     expect(performance.now() - started).toBeLessThan(1_000);
+  });
+
+  it('skips a list that holds anything besides quoted names', () => {
+    expect(
+      importGroups([
+        'Promise.all(["a.js", x[0],"b.js"])',
+        'Promise.all([f("a.js")])',
+        'Promise.all([x,"a.js"])',
+      ]),
+    ).toEqual([]);
   });
 });
 
