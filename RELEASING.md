@@ -554,13 +554,13 @@ All three carry the same rules:
 - One bypass actor, `DeployKey`, always. No role bypasses, so a failing
   required check blocks a maintainer the same as anyone else.
 
-"Main" also requires `owner-approved` from `owner-approved.yml`. That check
-fails on a pull request into `main` until the owner adds the `owner-approved`
-label, and passes on a push to `main`, so the release plan finds it green on
-the commit it releases. The label guards against an agent merging into `main`
-by accident, since agents work through the owner's login. A push to the pull
-request removes the label. The owner adds the
-check to "Main" once the workflow is on `main`.
+"Main" also requires `maintainers-approved` from `maintainers-approved.yml`.
+That check fails on a pull request into `main` until a maintainer adds the
+`maintainers-approved` label, and passes on a push to `main`, so the release
+plan finds it green on the commit it releases. The label guards against an
+agent merging into `main` by accident, since agents work through a
+maintainer's login. A push to the pull request removes the label. A maintainer
+adds the check to "Main" once the workflow is on `main`.
 
 CodeQL runs through the advanced setup in `codeql.yml`, on push and pull
 request for `main`, `release/**` and `[0-9]*.x`, plus push to `sync/**`.
