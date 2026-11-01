@@ -141,11 +141,12 @@ export const HINT_PART = 'conduit-Tactical-Comms';
 /**
  * The part of the cutaway the wide stage shows, in metres: the hull with a
  * margin under it for the room callouts. The callouts above the hull hang in
- * the empty sky over the bow and over the top plating of the stern. The picture draws at the
+ * the empty sky over the bow, and the cut-state callout of the Comms conduit
+ * still fits above its handle. The picture draws at the
  * ratio of the frame to this crop.
  */
 export const WIDE_CROP: readonly [number, number, number, number] = [
-  -1, 4.2, 72.5, 14.4,
+  -1, 3.2, 72.5, 15,
 ];
 
 export function isSystemId(token: string): token is SystemId {

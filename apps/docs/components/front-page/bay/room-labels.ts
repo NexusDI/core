@@ -12,8 +12,8 @@ import {
 /**
  * Where the room labels go on the wide stage, in metres of the schematic's
  * frame. A callout takes a place in the band above or under the hull and is
- * joined to its room by a leader line. An in-room label hangs on the bottom
- * edge of its room. The layout reads the room rects of the schematic and the
+ * joined to its room by a leader line. An in-room label takes the first clear
+ * place on the bottom or the top edge of its room. The layout reads the room rects of the schematic and the
  * parts of the ship, and sizes every plate from the text with the type metrics
  * below, so the table of labels holds no coordinates.
  *
@@ -49,11 +49,18 @@ export interface RoomLayout {
 export type RoomRect = readonly [x: number, y: number, w: number, h: number];
 
 /** The type metrics of a plate in CSS pixels, close to the bay's micro type. */
-const METRICS = { charPx: 7, lineHeightPx: 18, padPx: 12 } as const;
+const METRICS = { charPx: 7, lineHeightPx: 16, padPx: 12 } as const;
 /** The idle hint in CSS pixels, and the gap that it keeps from its part. */
-const HINT = { widthPx: 180, heightPx: 34, gapPx: 22 } as const;
+const HINT = { widthPx: 175, lineHeightPx: 18, padPx: 16, gapPx: 22 } as const;
 /** The view notes (below a part) and the cut-state callouts (above it), in CSS pixels. */
-const NOTE = { widthPx: 260, heightPx: 20, dropPx: 16, startPx: 14 } as const;
+const NOTE = { widthPx: 260, heightPx: 24, dropPx: 16 } as const;
+/** The flight log's standing note in CSS pixels: it starts under its glyph and runs right. */
+const STANDING = {
+  widthPx: 130,
+  heightPx: 24,
+  dropPx: 12,
+  startPx: 14,
+} as const;
 const HOLO = { widthPx: 170, heightPx: 70 } as const;
 /** The least ring half-size of the overlay in CSS pixels, and its share of the glyph size. */
 const RING = { minHalfM: 0.825, minPx: 14, share: 1.1 } as const;
@@ -63,6 +70,8 @@ const GAP_M = 0.5;
 const MARGIN_M = 0.15;
 const LEADER_MARGIN_M = 0.05;
 const STEP_M = 0.25;
+/** A plate in a band keeps this far from the edge of the crop. */
+const EDGE_M = 0.05;
 
 /** The lines of a plate: one for a callout, the room and its module for a label inside a room. */
 function linesOf(label: RoomLabel): readonly string[] {
@@ -124,23 +133,44 @@ export function glyphBoxes(ppm: number): Box[] {
   });
 }
 
+/**
+ * The idle hint's size in CSS pixels. It hangs left of its part, so on a
+ * narrow stage the room left of the part is less than its natural width and the
+ * text wraps to fit it.
+ */
+function hintSize(ppm: number): {
+  widthPx: number;
+  heightPx: number;
+  lines: number;
+} {
+  const at = partById(HINT_PART)?.at ?? [0, 0];
+  const room = (at[0] - WIDE_CROP[0]) * ppm - HINT.gapPx - 6;
+  const widthPx = Math.max(70, Math.min(HINT.widthPx, room));
+  const lines = Math.ceil((HINT.widthPx - HINT.padPx) / (widthPx - HINT.padPx));
+  return {
+    widthPx,
+    lines,
+    heightPx: lines * HINT.lineHeightPx + HINT.padPx,
+  };
+}
+
 /** The box of the idle hint, which hangs left of the part that it names. */
 export function hintBox(ppm: number): Box {
   const at = partById(HINT_PART)?.at ?? [0, 0];
-  const w = HINT.widthPx / ppm;
-  const h = HINT.heightPx / ppm;
+  const size = hintSize(ppm);
+  const w = size.widthPx / ppm;
+  const h = size.heightPx / ppm;
   return { x: at[0] - HINT.gapPx / ppm - w, y: at[1] - h / 2, w, h };
 }
 
 /** The note that the flight log carries at rest ("Builds per request"), which starts under its glyph and runs right. */
 export function standingNoteBox(ppm: number): Box {
   const at = partById('system-FlightLog')?.at ?? [0, 0];
-  const w = 130 / ppm;
   return {
-    x: at[0] - NOTE.startPx / ppm,
-    y: at[1] + NOTE.dropPx / ppm,
-    w,
-    h: NOTE.heightPx / ppm,
+    x: at[0] - STANDING.startPx / ppm,
+    y: at[1] + STANDING.dropPx / ppm,
+    w: STANDING.widthPx / ppm,
+    h: STANDING.heightPx / ppm,
   };
 }
 
@@ -189,7 +219,7 @@ export function layoutRoomLabels(
   const plates = () => placed.map((entry) => inflate(entry.box, 0.2));
 
   // Labels inside their rooms first: the callouts steer around them. Each
-  // slides along the room's bottom edge to the first clear place.
+  // slides along the room's bottom edge, then its top edge, to the first clear place.
   for (const label of ROOM_LABELS) {
     if (label.place !== 'in-room') continue;
     const rect = rects.get(label.room);
@@ -224,8 +254,7 @@ export function layoutRoomLabels(
       const lines = linesOf(label);
       const [w, h] = sizeOf(lines, ppm);
       if (w > cropW) return CAPTIONS;
-      const y =
-        side === 'top' ? cropY + MARGIN_M : cropY + cropH - MARGIN_M - h;
+      const y = side === 'top' ? cropY + EDGE_M : cropY + cropH - EDGE_M - h;
       const edgeY = side === 'top' ? y + h : y;
       const roomY = side === 'top' ? ry : ry + rh;
       // Anchors along the room's edge, nearest its middle first.

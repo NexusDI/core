@@ -261,6 +261,74 @@ test.describe('the pre-flight bay', () => {
     });
   }
 
+  /** The plates and leaders that show (not faded out) under a visible callout, note or placard. */
+  async function visibleUnderCallouts(page: Page) {
+    return page.evaluate(() => {
+      const covers = [
+        ...document.querySelectorAll(
+          '.nexus-bay__wide .nexus-bay__callout, .nexus-bay__wide .nexus-bay__note, .nexus-bay__wide .nexus-bay__placard',
+        ),
+      ].map((el) => el.getBoundingClientRect());
+      const shows = (el: Element) =>
+        Number(getComputedStyle(el).opacity) > 0.05;
+      const plates = [...document.querySelectorAll('[data-room-label]')]
+        .filter((el) => shows(el))
+        .filter((el) => {
+          const b = el.getBoundingClientRect();
+          return covers.some(
+            (c) =>
+              b.left < c.right &&
+              c.left < b.right &&
+              b.top < c.bottom &&
+              c.top < b.bottom,
+          );
+        })
+        .map((el) => el.getAttribute('data-room-label'));
+      const frame = document
+        .querySelector('.nexus-bay__leaders')
+        ?.getBoundingClientRect();
+      const leaders = frame
+        ? [...document.querySelectorAll('[data-leader]')]
+            .filter((el) => shows(el))
+            .filter((el) => {
+              const pts = (el.getAttribute('points') ?? '')
+                .split(' ')
+                .map((pair) => pair.split(',').map(Number));
+              return Array.from({ length: 41 }, (_, i) => i / 40).some((t) => {
+                const [a, b] = [pts[0] ?? [0, 0], pts[1] ?? [0, 0]];
+                const x =
+                  frame.left +
+                  (((a[0] ?? 0) + ((b[0] ?? 0) - (a[0] ?? 0)) * t + 5) / 80) *
+                    frame.width;
+                const y =
+                  frame.top +
+                  (((a[1] ?? 0) + ((b[1] ?? 0) - (a[1] ?? 0)) * t) / 20) *
+                    frame.height;
+                return covers.some(
+                  (c) =>
+                    x >= c.left && x <= c.right && y >= c.top && y <= c.bottom,
+                );
+              });
+            })
+            .map((el) => `leader ${el.getAttribute('data-leader')}`)
+        : [];
+      return [...plates, ...leaders];
+    });
+  }
+
+  /** The plates that are faded out. */
+  async function hiddenPlates(page: Page) {
+    return page.evaluate(() =>
+      [...document.querySelectorAll('[data-room-label], [data-leader]')]
+        .filter((el) => Number(getComputedStyle(el).opacity) < 0.95)
+        .map(
+          (el) =>
+            el.getAttribute('data-room-label') ??
+            el.getAttribute('data-leader'),
+        ),
+    );
+  }
+
   type Geometry = Awaited<ReturnType<typeof roomGeometry>>;
   type B = Geometry['labels'][number];
   const overlaps = (a: B, b: B) =>
@@ -313,6 +381,26 @@ test.describe('the pre-flight bay', () => {
         'Painted pipes',
       );
       await expect(page.locator('.nexus-bay__hint')).toBeVisible();
+      // The idle hint stays inside the stage whatever its width.
+      const inside = await page.evaluate(() => {
+        const hint = document
+          .querySelector('.nexus-bay__hint')
+          ?.getBoundingClientRect();
+        const stage = document
+          .querySelector('.nexus-bay__wide')
+          ?.getBoundingClientRect();
+        return hint && stage
+          ? { left: hint.left - stage.left, right: stage.right - hint.right }
+          : null;
+      });
+      expect(
+        inside?.left,
+        'hint clear of the left edge',
+      ).toBeGreaterThanOrEqual(0);
+      expect(
+        inside?.right,
+        'hint clear of the right edge',
+      ).toBeGreaterThanOrEqual(0);
       const found = await roomGeometry(page);
       if (found.mode === 'callouts') {
         expect(found.captions).toBe(false);
@@ -360,8 +448,15 @@ test.describe('the pre-flight bay', () => {
               overlaps(label, box),
               `${part}: ${label.name} over a ${box.name}`,
             ).toBe(false);
+        // A callout, which the press caused, wins: no plate or leader that it
+        // covers stays visible while it shows.
+        await expect
+          .poll(() => visibleUnderCallouts(page), { message: part })
+          .toEqual([]);
         await page.getByRole('button', { name: 'Reset' }).click();
         await expect(page.locator('.nexus-bay__alert')).toBeHidden();
+        // The plates and leaders return when the alarm clears.
+        await expect.poll(() => hiddenPlates(page)).toEqual([]);
       }
     });
   }

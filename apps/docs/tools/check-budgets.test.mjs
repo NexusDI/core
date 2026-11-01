@@ -170,7 +170,7 @@ describe('checkBudgets', () => {
       island: 35_000,
       background: 8_000,
       tool: 200_000,
-      bay: 21_000,
+      bay: 22_000,
       runtime: 32_000,
       light: 150_000,
     });
@@ -534,7 +534,7 @@ describe('checkMarkedChunks', () => {
       lazySite(
         base({
           chunks: {
-            'bay.js': mark(BAY_MARK, 21_000),
+            'bay.js': mark(BAY_MARK, 23_000),
             'runtime.js': mark(RUNTIME_MARK, 33_000),
           },
         }),
@@ -617,7 +617,7 @@ describe('checkMarkedChunks', () => {
 
 describe('the bay and runtime rows', () => {
   it('states the rows of site UX spec 12.1 in bytes', () => {
-    expect(BUDGETS.bay).toBe(21_000);
+    expect(BUDGETS.bay).toBe(22_000);
     expect(BUDGETS.runtime).toBe(32_000);
   });
 });

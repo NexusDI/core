@@ -456,7 +456,7 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
 }
 
 .nexus-bay__note--start {
-  transform: translate(-14px, 16px);
+  transform: translate(-14px, 12px);
 }
 
 .nexus-bay__placard {
@@ -487,6 +487,23 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
   stroke-dasharray: 2 2;
 }
 
+.nexus-bay__room,
+.nexus-bay__leaders polyline {
+  transition: opacity 0.15s ease;
+}
+
+.nexus-bay__room.is-covered,
+.nexus-bay__leaders polyline.is-covered {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexus-bay__room,
+  .nexus-bay__leaders polyline {
+    transition: none;
+  }
+}
+
 .nexus-bay__room span {
   display: block;
   overflow: hidden;
@@ -500,7 +517,7 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
   padding: 0 5px;
   overflow: hidden;
   font-size: var(--meridian-text-micro);
-  line-height: 18px;
+  line-height: 16px;
   color: var(--meridian-text);
   white-space: nowrap;
   /* An opaque plate: no hull line shows through the text. */
