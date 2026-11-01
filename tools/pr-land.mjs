@@ -116,23 +116,30 @@ async function rerunWhenComplete(id) {
 
 /** A line that names a failed test or task: vitest, Playwright's dot reporter and Nx. */
 const SUMMARY =
-  / FAIL |^\s*\d+\) \[\w+\] › |^\s*\[\w+\] › .*:\d+:\d+|Failed tasks|^\s*- @\S+:\S+/;
+  / FAIL |^\s*\d+\) \[[^\]]+\] › |^\s*\[[^\]]+\] › .*:\d+:\d+|Failed tasks|^\s*- @\S+:\S+/;
 /** A line that says why a test failed. */
 const CAUSE = /timed out|Test timeout of|AssertionError|Error:/;
 
 /**
- * failureLines returns the lines of a failed run's log that name what failed.
- * After a rerun, `gh run view --log-failed` shows the new attempt, so pr-land
- * prints the first attempt's lines and the command that fetches its full log.
+ * failureLines returns the lines of a run's latest attempt that name what
+ * failed, with the command that fetches that attempt's full log. A rerun adds
+ * an attempt and keeps the earlier ones, so the command still works after
+ * pr-land reruns the run.
  */
 async function failureLines(id) {
-  const command = `gh run view ${id} --attempt 1 --log-failed`;
+  let command = `gh run view ${id} --log-failed`;
   try {
+    const { attempt } = JSON.parse(
+      await gh('run', 'view', id, '--json', 'attempt'),
+    );
+    command = `gh run view ${id} --attempt ${attempt} --log-failed`;
     const log = await ghWith(
       { maxBuffer: 256 * 1024 * 1024, timeout: 60_000 },
       'run',
       'view',
       id,
+      '--attempt',
+      String(attempt),
       '--log-failed',
     );
     const lines = log
@@ -140,12 +147,21 @@ async function failureLines(id) {
       .split(/\r?\n/)
       // A log line starts with the job, the step and a timestamp.
       .map((line) => line.replace(/^[^\t]*\t[^\t]*\t\S+Z /, ''));
-    // The runners print their summaries last, so the summary lines come first
-    // and the newest causes fill what is left of the 20.
-    const unique = (list) => [...new Set(list)];
-    const summary = unique(lines.filter((line) => SUMMARY.test(line)));
-    const causes = unique(lines.filter((line) => CAUSE.test(line))).slice(-20);
-    const shown = [...summary, ...causes].slice(0, 20);
+    // The runners print their summaries last. Up to 12 summary lines come
+    // first, and the newest causes fill the rest of the 20.
+    const summary = [...new Set(lines.filter((line) => SUMMARY.test(line)))];
+    const shownSummary = summary.slice(0, 12);
+    const causes = [
+      ...new Set(
+        lines.filter(
+          (line) => CAUSE.test(line) && !shownSummary.includes(line),
+        ),
+      ),
+    ];
+    const shown = [
+      ...shownSummary,
+      ...causes.slice(-(20 - shownSummary.length)),
+    ];
     return [...shown, `full log: ${command}`].join('\n');
   } catch (error) {
     return `(could not read the log: ${error.message.split('\n')[0]}; try ${command})`;
