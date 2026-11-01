@@ -3,7 +3,8 @@ name: Size report
 # Core has no size budget (spec §0, D5). This reports core's ESM gzip size
 # against the merge base on every pull request, and fails when core grows
 # more than size-report.json's coreGrowthPercent without a `## Size`
-# section in the description. Editing the description re-runs it.
+# section in the description. A fixture over its budget fails only when the
+# pull request grew it. Editing the description re-runs it.
 on:
   pull_request:
     types: [opened, synchronize, edited, reopened]
@@ -40,7 +41,7 @@ jobs:
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          if node scripts/size-compare.mjs base.json head.json > report.md; then
+          if node scripts/size-compare.mjs base.json head.json reason.txt > report.md; then
             echo "failed=false" >> "$GITHUB_OUTPUT"
           else
             echo "failed=true" >> "$GITHUB_OUTPUT"
@@ -64,5 +65,6 @@ jobs:
       - name: Fail on unexplained growth
         if: steps.compare.outputs.failed == 'true'
         run: |
-          echo "Core grew past the threshold. Add a '## Size' section to the description."
+          echo "Size check failed: $(cat reason.txt)"
+          echo "Add a '## Size' section to the description that says what the added bytes give the user."
           exit 1
