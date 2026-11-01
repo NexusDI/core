@@ -56,20 +56,14 @@ function readBlocks(): Map<string, string> {
   return out;
 }
 
-/** The blocks, read once before the first test and shared by both. */
-let corpus: Map<string, string>;
-beforeAll(() => {
-  corpus = readBlocks();
-});
-
 /**
  * The blocks that import one module in two value statements. A type-only
  * import beside a value import of the same module is allowed, as in
  * eslint's `import/no-duplicates`: the two statements do different work.
  */
-function duplicateImports(): string[] {
+function duplicateImports(blocks: Map<string, string>): string[] {
   const out: string[] = [];
-  for (const [name, code] of corpus) {
+  for (const [name, code] of blocks) {
     const source = ts.createSourceFile(
       name,
       code,
@@ -94,9 +88,17 @@ function duplicateImports(): string[] {
   return out;
 }
 
+/** The blocks and the duplicate imports in them, computed once before the first test. */
+let corpus: Map<string, string>;
+let duplicates: string[];
+beforeAll(() => {
+  corpus = readBlocks();
+  duplicates = duplicateImports(corpus);
+});
+
 describe('the examples files', () => {
   it('import each module in one value statement per block', () => {
-    expect(duplicateImports()).toEqual([]);
+    expect(duplicates).toEqual([]);
   });
 });
 
