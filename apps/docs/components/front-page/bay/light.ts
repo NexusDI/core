@@ -38,6 +38,24 @@ const PALETTE = {
 const LIGHTS = lightsJson as unknown as readonly DeckLight[];
 const LEGEND = legendJson as unknown as DeckLegend;
 
+/**
+ * The base at the size of its file. The page's `<img>` answers `naturalWidth`
+ * with the width of its `sizes` slot, not with the pixels of the file that its
+ * `srcset` picked, so a texture made from the element is the wrong size
+ * wherever the two differ (every stage under 1440). The file is in the HTTP
+ * cache already, so this reads it from there and decodes it at its own size.
+ */
+export async function decodeBase(
+  image: HTMLImageElement,
+): Promise<ImageBitmap> {
+  const response = await fetch(image.currentSrc);
+  if (!response.ok)
+    throw new Error(
+      `The base ${image.currentSrc} did not load: ${response.status}.`,
+    );
+  return createImageBitmap(await response.blob());
+}
+
 /** What the bay holds of the deck: the source to feed, the view to attach, and the way down. */
 export interface BayLight {
   readonly source: PreflightDeckSource;
@@ -84,6 +102,10 @@ export async function createLight(options: {
   return {
     source,
     view: nexus.get(DECK_VIEW),
-    dispose: () => nexus[Symbol.asyncDispose](),
+    dispose: async () => {
+      await nexus[Symbol.asyncDispose]();
+      // A bitmap from `decodeBase` holds its pixels until it is closed.
+      if ('close' in options.base) options.base.close();
+    },
   };
 }

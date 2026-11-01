@@ -584,11 +584,12 @@ export default function PreflightBay({
         if (!(base ?? first) || !canvas)
           throw new Error('The bay has no stage to light.');
         await (base ?? first)?.decode();
-        const { bayLightMark, createLight } = await import('./light');
+        const { bayLightMark, createLight, decodeBase } =
+          await import('./light');
         setLightMark(bayLightMark());
         if (cancelled) return;
         const light = await createLight({
-          base: (base ?? first) as HTMLImageElement,
+          base: await decodeBase((base ?? first) as HTMLImageElement),
           reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)')
             .matches,
         });
