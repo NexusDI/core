@@ -1,4 +1,4 @@
-import { Nexus } from '@nexusdi/core';
+import { check, Nexus } from '@nexusdi/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Comms } from '../src/systems/comms/comms.module';
@@ -51,7 +51,7 @@ describe('comms on the offline ship', () => {
   test('passes the check and plots a course over the bundled charts', ({
     nexus: ship,
   }) => {
-    expect(() => Nexus.check(shipRoot({ reads: READS }))).not.toThrow();
+    expect(() => check(shipRoot({ reads: READS }))).not.toThrow();
     expect(ship.get(COMMS_ARRAY).linked).toBe(false);
     expect(ship.get(NAV_CHARTS).plot('Kepler-442b')).toEqual({
       to: 'Kepler-442b',

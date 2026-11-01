@@ -235,11 +235,11 @@ console.log(hail);
 
 ```ts @import.meta.vitest
 import {
-  Nexus,
-  Token,
+  check,
   defineModule,
   isNexusError,
   provide,
+  Token,
 } from '@nexusdi/core';
 import * as v from 'valibot';
 
@@ -272,7 +272,7 @@ const Comms = defineModule({
 
 let codes: string[] = [];
 try {
-  Nexus.check(
+  check(
     defineModule({
       name: 'Meridian',
       imports: [Comms.forRoot({ frequency: -5 })],
@@ -286,7 +286,7 @@ try {
 const inner = codes; // -> ['NEXUS_INVALID_MODULE_OPTIONS']
 console.log(inner);
 
-const report = Nexus.check(
+const report = check(
   defineModule({
     name: 'Meridian',
     imports: [

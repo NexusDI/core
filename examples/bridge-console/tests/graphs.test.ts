@@ -1,4 +1,4 @@
-import { Nexus } from '@nexusdi/core';
+import { check, Nexus } from '@nexusdi/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { BridgeClient } from '../app/di/bridge.client';
@@ -14,11 +14,11 @@ describe('the bridge console graphs', () => {
   });
 
   it('compiles the server graph, so a broken wiring fails before a page loads', () => {
-    expect(() => Nexus.check(BridgeConsole)).not.toThrow();
+    expect(() => check(BridgeConsole)).not.toThrow();
   });
 
   it('compiles the client graph', () => {
-    expect(() => Nexus.check(BridgeClient)).not.toThrow();
+    expect(() => check(BridgeClient)).not.toThrow();
   });
 
   // SSR resolves useService(TELEMETRY_CLIENT) from the server graph, and

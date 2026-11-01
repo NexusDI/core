@@ -1,9 +1,9 @@
 import {
-  Nexus,
-  Token,
+  check,
   defineModule,
   isNexusError,
   provide,
+  Token,
 } from '@nexusdi/core';
 import { SectionConflictError, SectionError } from '@nexusdi/react';
 import { render, screen } from '@testing-library/react';
@@ -33,7 +33,7 @@ function missingProvider(): unknown {
     name: 'Station',
     providers: [provide(CHARTS, { useClass: Plotter })],
   });
-  return caught(() => Nexus.check(Station));
+  return caught(() => check(Station));
 }
 
 /** The SectionError a failed load hands the fallback, with `cause` as its load error. */

@@ -569,11 +569,11 @@ console.log(report);
 
 ```ts @import.meta.vitest
 import {
-  Nexus,
-  Token,
+  check,
   defineModule,
   isNexusError,
   provide,
+  Token,
 } from '@nexusdi/core';
 
 interface INavCharts {
@@ -610,7 +610,7 @@ const Survey = defineModule({
 });
 const Meridian = defineModule({ name: 'Meridian', imports: [Tactical] });
 
-// What Nexus.check throws, as the codes or reasons of its inner errors.
+// What check() throws, as the codes or reasons of its inner errors.
 const failures = (run: () => unknown): string[] => {
   try {
     run();
@@ -624,11 +624,11 @@ const failures = (run: () => unknown): string[] => {
 };
 
 // No load import: check throws, and nothing was built.
-const bare = failures(() => Nexus.check(Meridian, { load: [Survey] })); // -> ['NEXUS_MISSING_PROVIDER']
+const bare = failures(() => check(Meridian, { load: [Survey] })); // -> ['NEXUS_MISSING_PROVIDER']
 console.log(bare);
 
 // With the load import, check returns a CheckReport at once.
-const report = Nexus.check(Meridian, {
+const report = check(Meridian, {
   load: [{ module: Survey, imports: [Tactical] }],
 });
 const unchecked = report.unchecked.length; // -> 0
@@ -637,7 +637,7 @@ console.log(unchecked);
 // A load import error comes back inside NEXUS_BLUEPRINT_INVALID too.
 const Fresh = defineModule({ name: 'Fresh' });
 const imported = [{ module: Survey, imports: [Fresh] }];
-const refused = failures(() => Nexus.check(Meridian, { load: imported })); // -> ['not-in-graph']
+const refused = failures(() => check(Meridian, { load: imported })); // -> ['not-in-graph']
 console.log(refused);
 ```
 

@@ -134,11 +134,11 @@ await ship[Symbol.asyncDispose]();
 
 ```ts @import.meta.vitest
 import {
-  Nexus,
-  Token,
+  check,
   defineModule,
   isNexusError,
   provide,
+  Token,
 } from '@nexusdi/core';
 
 interface Course {
@@ -179,7 +179,7 @@ const Tactical = defineModule({
 
 let code = '';
 try {
-  Nexus.check(Tactical); // in a test, so a wrong graph fails CI before deploy
+  check(Tactical); // in a test, so a wrong graph fails CI before deploy
 } catch (error) {
   if (isNexusError(error)) code = error.code;
 }

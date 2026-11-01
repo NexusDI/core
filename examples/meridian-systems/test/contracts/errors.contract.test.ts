@@ -1,4 +1,4 @@
-import { defineModule, Nexus, provide, Token } from '@nexusdi/core';
+import { check, defineModule, Nexus, provide, Token } from '@nexusdi/core';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -64,7 +64,7 @@ describe('the NEXUS errors a ship build reaches', () => {
   it('NEXUS_MISSING_PROVIDER names the token and the module and words a fix', () => {
     // FtlDrive alone lacks the kernel that Simulation gives a ship.
     const error = findCode(
-      thrown(() => Nexus.check(FtlDrive)),
+      thrown(() => check(FtlDrive)),
       'NEXUS_MISSING_PROVIDER',
     );
     expect(error).toMatchObject({ module: 'FtlDrive' });
@@ -99,7 +99,7 @@ describe('the NEXUS errors a ship build reaches', () => {
     });
     const error = findCode(
       thrown(() =>
-        Nexus.check(
+        check(
           defineModule({
             name: 'Root',
             imports: [Simulation.forRoot(SHIP_OPTIONS), Reader],
@@ -160,7 +160,7 @@ describe('the NEXUS errors a ship build reaches', () => {
     });
     const error = findCode(
       thrown(() =>
-        Nexus.check(shipRoot({ reads: [Engineering] }), { load: [Eager] }),
+        check(shipRoot({ reads: [Engineering] }), { load: [Eager] }),
       ),
       'NEXUS_CIRCULAR_DEPENDENCY',
     );

@@ -1,4 +1,4 @@
-import { Nexus } from '@nexusdi/core';
+import { check, Nexus } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
 import { ShipLifeSupport } from '../src/systems/life-support/life-support.module';
@@ -42,7 +42,7 @@ function roomPressure(ship: ShipSnapshot, deck: DeckPlan, id: CompartmentId) {
 
 describe('LifeSupport', () => {
   test('passes the check', () => {
-    expect(() => Nexus.check(shipRoot({ reads: READS }))).not.toThrow();
+    expect(() => check(shipRoot({ reads: READS }))).not.toThrow();
   });
 
   test('shows the root its sensor in a scope and its panel', async ({

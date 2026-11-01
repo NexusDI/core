@@ -1,4 +1,4 @@
-import { isNexusError, Nexus } from '@nexusdi/core';
+import { check, isNexusError, Nexus } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
 import { MeridianSystems } from '../src/meridian-systems.module';
@@ -26,7 +26,7 @@ describe('MeridianSystems', () => {
   const test = shipTest(shipRoot());
 
   it('passes the check', () => {
-    expect(() => Nexus.check(shipRoot())).not.toThrow();
+    expect(() => check(shipRoot())).not.toThrow();
   });
 
   it('exports nothing, so a root reads TELEMETRY only when it imports Telemetry', async () => {

@@ -1,4 +1,4 @@
-import { Nexus, defineModule } from '@nexusdi/core';
+import { check, defineModule, Nexus } from '@nexusdi/core';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { DeckState } from './state/deck-state.module.js';
@@ -86,7 +86,7 @@ describe('the deck container graph', () => {
   });
 
   it('declares no import of DeckState, so DeckView alone fails the check', () => {
-    expect(() => Nexus.check(DeckView)).toThrowError(
+    expect(() => check(DeckView)).toThrowError(
       expect.objectContaining({ code: 'NEXUS_BLUEPRINT_INVALID' }),
     );
   });

@@ -1,4 +1,4 @@
-import { all, defineModule, Nexus, provide } from '@nexusdi/core';
+import { all, check, defineModule, Nexus, provide } from '@nexusdi/core';
 import { describe, expect, it } from 'vitest';
 
 import { Engineering } from '../src/systems/engineering/engineering.module';
@@ -39,7 +39,7 @@ const shieldsLoad = (ship: ShipSnapshot) => loadOf(ship, 'shields');
 
 describe('Engineering', () => {
   it('passes the check', () => {
-    expect(() => Nexus.check(shipRoot({ reads: READS }))).not.toThrow();
+    expect(() => check(shipRoot({ reads: READS }))).not.toThrow();
   });
 
   test('shows its panel to the root and keeps its pipes', ({ nexus: ship }) => {
@@ -73,7 +73,7 @@ describe('Engineering', () => {
         provide(POWER_CONSUMERS, { useClass: WeaponsPower }),
       ],
     });
-    expect(() => Nexus.check(Eager)).toThrow(
+    expect(() => check(Eager)).toThrow(
       expect.objectContaining({
         code: 'NEXUS_BLUEPRINT_INVALID',
         errors: [

@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { BlueprintError, Nexus } from '@nexusdi/core';
+import { BlueprintError, check } from '@nexusdi/core';
 import { inspect } from '@nexusdi/devtools';
 import { errors } from '@nexusdi/errors';
 import { describe, expect, it } from 'vitest';
@@ -50,9 +50,7 @@ describe('the front-page scene', () => {
   });
 
   it('passes the check on the seed', () => {
-    expect(() =>
-      Nexus.check(rootOf(SEED), { plugins: [errors()] }),
-    ).not.toThrow();
+    expect(() => check(rootOf(SEED), { plugins: [errors()] })).not.toThrow();
   });
 
   it('builds a fresh root on every call', () => {
@@ -74,7 +72,7 @@ describe('the front-page scene', () => {
     expect(tactical?.imports).toHaveLength(2);
     let thrown: unknown;
     try {
-      Nexus.check(rootOf(cut), { plugins: [errors()] });
+      check(rootOf(cut), { plugins: [errors()] });
     } catch (error) {
       thrown = error;
     }

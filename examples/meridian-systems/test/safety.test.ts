@@ -1,4 +1,4 @@
-import { defineModule, Nexus, provide } from '@nexusdi/core';
+import { check, defineModule, provide } from '@nexusdi/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { Safety } from '../src/systems/safety/safety.module';
@@ -84,7 +84,7 @@ beforeEach(() => {
 
 describe('Safety', () => {
   it('passes the check', () => {
-    expect(() => Nexus.check(shipRoot({ reads: READS }))).not.toThrow();
+    expect(() => check(shipRoot({ reads: READS }))).not.toThrow();
   });
 
   test("shows the root Safety's tokens and the probe Safety reads", ({

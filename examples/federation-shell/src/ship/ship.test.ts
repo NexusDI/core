@@ -1,4 +1,4 @@
-import { Nexus } from '@nexusdi/core';
+import { check } from '@nexusdi/core';
 import { federation } from '@nexusdi/federation';
 import {
   COMMAND_LINK,
@@ -14,10 +14,8 @@ import { createShip } from './ship';
 import { Tactical } from './tactical';
 
 describe('the shell', () => {
-  it('passes Nexus.check with federation()', () => {
-    expect(() =>
-      Nexus.check(Meridian, { plugins: [federation()] }),
-    ).not.toThrow();
+  it('passes check() with federation()', () => {
+    expect(() => check(Meridian, { plugins: [federation()] })).not.toThrow();
   });
 
   it('keeps Tactical out of the globals, since the shell imports it into each station', () => {

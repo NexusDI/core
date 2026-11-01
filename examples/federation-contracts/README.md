@@ -70,7 +70,7 @@ that provides the three contract tokens over doubles: `FixedNavCharts`,
 `{ imports: [FakeTactical] }`. A station test builds its container with
 `nexusTest(test, FakeShell)` and loads its station with
 `nexus.load(Station, STATION_IMPORTS)`, as the shell does. `stationLoad(Station)` is the
-same load as a `Nexus.check` entry. The fixture builds a new container per test, so
+same load as a `check()` entry. The fixture builds a new container per test, so
 `nexus.get(RECORDING_LINK).sent` starts empty and `nexus.get(FAKE_TELEMETRY).show(state)`
 drives the feed.
 
