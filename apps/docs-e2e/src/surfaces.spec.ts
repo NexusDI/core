@@ -39,7 +39,12 @@ for (const theme of ['dark', 'light'] as const) {
  * `TINTS` lists the elements whose partial-alpha background is meant to sit on
  * the surface behind them.
  */
-const TINTS: readonly string[] = [];
+const TINTS: readonly string[] = [
+  // A twoslash error draws its squiggle as a background image under the
+  // error's own text, and its message line tints the fence at 13%.
+  '.twoslash-error',
+  '.twoslash-meta-line.twoslash-error-line',
+];
 
 async function offenders(page: Page): Promise<string[]> {
   return page.evaluate((tints) => {
@@ -62,6 +67,25 @@ async function offenders(page: Page): Promise<string[]> {
       }
     probe.style.background = 'var(--meridian-screen)';
     surfaces.add(getComputedStyle(probe).backgroundColor);
+    /**
+     * The face of a control is a surface under that control alone: the primary
+     * button's `action-fill`, and the alarm banner's `alarm-fill`. A panel
+     * paints its `seam` as a 1px rim on the element and its plate on `::before`,
+     * as the article does, so the walk reads the rim there.
+     */
+    const faces = new Map<string, Set<string>>();
+    for (const [selector, role] of [
+      ['.meridian-button--primary', 'action-fill'],
+      ['.meridian-alert--alarm', 'alarm-fill'],
+      ['.meridian-panel__face', 'seam'],
+    ] as const) {
+      const colours = new Set<string>();
+      for (const theme of ['dark', 'light']) {
+        probe.style.background = `var(--meridian-palette-${theme}-${role})`;
+        colours.add(getComputedStyle(probe).backgroundColor);
+      }
+      faces.set(selector, colours);
+    }
     probe.remove();
 
     const found: string[] = [];
@@ -102,7 +126,14 @@ async function offenders(page: Page): Promise<string[]> {
         surface = surface.parentElement;
       }
       if (!colour) problem ||= 'no opaque surface';
-      else if (!surfaces.has(colour) && !problem)
+      else if (
+        !surfaces.has(colour) &&
+        !problem &&
+        ![...faces].some(
+          ([selector, colours]) =>
+            colours.has(colour) && surface?.matches(selector),
+        )
+      )
         problem = `the surface ${colour} is no design system surface`;
       if (problem) found.push(`${name} (${problem})`);
     }

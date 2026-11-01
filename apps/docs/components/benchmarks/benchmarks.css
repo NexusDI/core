@@ -31,6 +31,19 @@
   color: var(--meridian-text-secondary);
 }
 
+/*
+ * The rows sit on the plate. Nextra stripes a table with a gray that the
+ * theme maps to the seam, which is a hairline and never a surface (design
+ * system 4.1). The doubled class outranks its striping rules.
+ */
+.nexus-bench__table.nexus-bench__table :is(tr, th, td) {
+  background: var(--meridian-plate);
+}
+
+.nexus-bench__table.nexus-bench__table thead :is(tr, th) {
+  background: var(--meridian-plate-raised);
+}
+
 .nexus-bench__table th,
 .nexus-bench__table td {
   padding: var(--meridian-space-3);
