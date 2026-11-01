@@ -153,8 +153,20 @@ describe('the release verify gate', () => {
     const main = readWorkflow('ci.yml').jobs?.main as Job & { if?: string };
     expect(gateJobs()).toEqual(['main-build', 'main-test']);
     expect(main.if, 'main runs after a red gate job too').toBe('always()');
-    const check = (main.steps ?? []).map((step) => step.run ?? '').join('\n');
+    const steps = main.steps ?? [];
+    const check = steps.map((step) => step.run ?? '').join('\n');
+    expect(check).toContain('jq -e');
     expect(check).toContain('all(.[]; .result == "success")');
+    expect(
+      steps.map((step) => step.env?.NEEDS),
+      'main reads every gate job result from needs',
+    ).toContain('${{ toJSON(needs) }}');
+    for (const job of ['main', ...gateJobs()]) {
+      expect(
+        readWorkflow('ci.yml').jobs?.[job]?.['continue-on-error'],
+        `${job} must go red when its steps fail`,
+      ).toBeUndefined();
+    }
   });
 
   /**
