@@ -24,6 +24,7 @@ const RUNTIME_EXPORTS: string[] = [
   'DOCS_URL',
   'DuplicateProviderError',
   'errorBase',
+  'importsReach',
   'InvalidExportError',
   'InvalidModuleError',
   'InvalidProviderError',

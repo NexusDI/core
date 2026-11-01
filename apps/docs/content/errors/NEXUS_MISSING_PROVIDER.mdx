@@ -38,4 +38,4 @@ Try it: delete the `exports: [NAV_CHARTS],` line from `Tactical` in `fixed.ts` a
 - `requester`: the provider whose deps named the token, or `null` for a lookup from `get()`, `resolve()` or `validate()`.
 - `module`: the module the lookup ran in.
 - `entry`: the deps entry of `resolve()` or `validate()` this error is about, or `null`.
-- `nearMisses`: the places the token exists that the module cannot see. Each has a `module` and a `kind`: `not-exported` for a module that keeps the token private, and `not-imported` or `same-description` for the other places the search looks. The list is empty unless `errors()` is registered, because the search lives in `@nexusdi/errors`.
+- `nearMisses`: the places the token exists that the module cannot see. Each has a `module` and a `kind`: `not-exported` for a module that keeps the token private, `importer` for a module that provides the token and imports the failing module (importing it would close a cycle), and `not-imported` or `same-description` for the other places the search looks. The list is empty unless `errors()` is registered, because the search lives in `@nexusdi/errors`.
