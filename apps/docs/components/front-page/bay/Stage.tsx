@@ -8,16 +8,16 @@ import {
   FRAME,
   HIT_PX,
   PARTS_IN_HULL_ORDER,
-  ROOM_LABELS,
+  WIDE_CROP,
   partById,
   partsInRun,
   runScale,
   type Part,
   type Point,
-  type RoomLabel,
   type SectionId,
 } from './geometry';
 import { Overlay, placardLines, type PartHandlers } from './Overlay';
+import { layoutRoomLabels, roomRects } from './room-labels';
 import { stageBase } from './stage-base';
 import type { Callout, Note, ShipView } from './ship-view';
 
@@ -58,15 +58,6 @@ export interface StageProps {
     lit: boolean;
   } | null;
 }
-
-/**
- * The part of the cutaway the wide stage shows, in metres: the hull with a
- * little margin, so the ship fills the frame. The picture draws at the ratio
- * of the frame to this crop.
- */
-const WIDE_CROP: readonly [number, number, number, number] = [
-  -1, 3.2, 72.5, 14.8,
-];
 
 const WIDE_SIZES = '(min-width: 1440px) 1536px, calc((100vw - 2rem) * 1.143)';
 
@@ -176,57 +167,44 @@ function Callouts({
   );
 }
 
-/** The rect of each room in the schematic's markup, in metres. */
-function roomRects(
-  markup: string,
-): ReadonlyMap<string, readonly [number, number, number, number]> {
-  const rects = new Map<string, readonly [number, number, number, number]>();
-  for (const match of markup.matchAll(
-    /<rect[^>]*x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)" data-room="([^"]+)"/g,
-  )) {
-    const id = match[5] as string;
-    if (!rects.has(id))
-      rects.set(id, [
-        Number(match[1]),
-        Number(match[2]),
-        Number(match[3]),
-        Number(match[4]),
-      ]);
-  }
-  return rects;
-}
-
 /**
- * The name of each hull section's rooms, drawn on the art. The screen reader
- * already reaches the rooms through the parts, so the layer is hidden from it.
+ * The name of each hull section's rooms, drawn on the art: callouts in the
+ * bands above and under the hull with leader lines, and labels inside the
+ * rooms that have space. The screen reader already reaches the rooms through
+ * the parts, so the layer is hidden from it.
  */
-function RoomLabels({ markup }: { markup: string }) {
-  const rects = roomRects(markup);
+function RoomLabels({ markup, ppm }: { markup: string; ppm: number }) {
+  const placed = layoutRoomLabels(roomRects(markup), ppm);
   return (
     <div className="nexus-bay__rooms" aria-hidden="true">
-      {ROOM_LABELS.map((label) => {
-        const rect = rects.get(label.room);
-        if (!rect) return null;
-        const [x, y, w, h] = rect;
-        const corners: Record<RoomLabel['anchor'], Point> = {
-          top: [x, y],
-          bottom: [x, y + h],
-          below: [x, y + h],
-          'bottom-end': [x + w, y + h],
-        };
-        const at = corners[label.anchor];
-        return (
-          <p
-            key={label.room}
-            className={`nexus-bay__room nexus-bay__room--${label.anchor}`}
-            style={percent(at, FRAME) as CSSProperties}
-          >
-            <span>{label.title}</span>
-            <small>{label.module} (module)</small>
-            {label.provider ? <small>{label.provider} (provider)</small> : null}
-          </p>
-        );
-      })}
+      <svg
+        className="nexus-bay__leaders"
+        viewBox={FRAME.join(' ')}
+        preserveAspectRatio="none"
+      >
+        {placed.map((entry) =>
+          entry.leader ? (
+            <polyline
+              key={entry.label.room}
+              points={entry.leader.map((p) => p.join(',')).join(' ')}
+              vectorEffect="non-scaling-stroke"
+            />
+          ) : null,
+        )}
+      </svg>
+      {placed.map((entry) => (
+        <p
+          key={entry.label.room}
+          className="nexus-bay__room"
+          data-room-label={entry.label.room}
+          style={percent([entry.box.x, entry.box.y], FRAME) as CSSProperties}
+        >
+          <span>{entry.lines[0]}</span>
+          {entry.lines.slice(1).map((line) => (
+            <small key={line}>{line}</small>
+          ))}
+        </p>
+      ))}
     </div>
   );
 }
@@ -277,7 +255,7 @@ function Hull({
           graph={props.graph}
         />
       </Schematic>
-      {labels ? <RoomLabels markup={markup} /> : null}
+      {labels ? <RoomLabels markup={markup} ppm={ppm} /> : null}
       <Callouts
         items={view.callouts}
         notes={view.notes}

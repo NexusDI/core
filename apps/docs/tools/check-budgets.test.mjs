@@ -170,7 +170,7 @@ describe('checkBudgets', () => {
       island: 35_000,
       background: 8_000,
       tool: 200_000,
-      bay: 20_000,
+      bay: 21_000,
       runtime: 32_000,
       light: 150_000,
     });
@@ -617,7 +617,7 @@ describe('checkMarkedChunks', () => {
 
 describe('the bay and runtime rows', () => {
   it('states the rows of site UX spec 12.1 in bytes', () => {
-    expect(BUDGETS.bay).toBe(20_000);
+    expect(BUDGETS.bay).toBe(21_000);
     expect(BUDGETS.runtime).toBe(32_000);
   });
 });

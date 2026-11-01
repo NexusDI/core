@@ -81,9 +81,9 @@ export const ALL_ROOMS = [
 
 /**
  * What the ship says about a room on the art: the room's name, the module of
- * its hull section and the provider that sits in it. The label sits at the
- * corner of the room's rect that `anchor` names in the schematic, so
- * the table holds no coordinates. The room and module come from `PLACEMENT`.
+ * its hull section and the provider that sits in it. `place` names where the
+ * label goes, and `room-labels.ts` computes the position from the room's rect
+ * in the schematic, so the table holds no coordinates.
  */
 export interface RoomLabel {
   readonly room: string;
@@ -92,47 +92,59 @@ export interface RoomLabel {
   /** The provider that the room hosts, when the label names it. */
   readonly provider?: string;
   /**
-   * Where the label hangs on the room's rect: inside its top-left corner, inside its bottom-left corner,
-   * inside its bottom-right corner, or just under its bottom-left corner, for
-   * a room that parts already fill.
+   * `top` and `below` put a callout in the band above or under the hull, joined
+   * to its room by a leader line. The `in-*` places keep the label inside the
+   * room, at the middle of its bottom edge.
    */
-  readonly anchor: 'top' | 'bottom' | 'bottom-end' | 'below';
+  readonly place: 'top' | 'below' | 'in-bottom-middle';
 }
 
 export const ROOM_LABELS: readonly RoomLabel[] = [
-  { room: 'bridge', title: 'Bridge', module: 'Meridian', anchor: 'top' },
-  { room: 'comms-relay', title: 'Comms relay', module: 'Comms', anchor: 'top' },
+  { room: 'bridge', title: 'Bridge', module: 'Meridian', place: 'top' },
+  { room: 'comms-relay', title: 'Comms relay', module: 'Comms', place: 'top' },
   {
     room: 'engineering',
     title: 'Engineering',
     module: 'Engineering',
     provider: 'Reactor, FusionReactor',
-    anchor: 'top',
+    place: 'top',
   },
   {
     room: 'shuttle-bay',
     title: 'Shuttle bay',
     module: 'BridgeApi',
-    anchor: 'bottom-end',
+    place: 'in-bottom-middle',
   },
   {
     room: 'computer-core',
     title: 'Computer core',
     module: 'Engineering',
-    anchor: 'bottom',
+    place: 'below',
   },
   {
     room: 'chart-room',
     title: 'Chart room',
     module: 'Tactical',
-    anchor: 'below',
+    place: 'below',
   },
   {
     room: 'drone-bay',
     title: 'Drone bay',
     module: 'Tactical',
-    anchor: 'bottom',
+    place: 'below',
   },
+];
+
+/** The part that the idle hint ("Click a conduit to cut it") hangs beside. */
+export const HINT_PART = 'conduit-Tactical-Comms';
+
+/**
+ * The part of the cutaway the wide stage shows, in metres: the hull with a
+ * band above and under it for the room callouts. The picture draws at the
+ * ratio of the frame to this crop.
+ */
+export const WIDE_CROP: readonly [number, number, number, number] = [
+  -1, 1.5, 72.5, 18.3,
 ];
 
 export function isSystemId(token: string): token is SystemId {

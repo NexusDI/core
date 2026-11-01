@@ -6,7 +6,13 @@ import type { ConduitId, SystemId } from '@nexusdi/meridian/scenes/front-page';
 import type { TraceEvent } from '@nexusdi/core';
 
 import { BayView, type Actions, type Stamped } from './BayView';
-import { isSystemId, partById, type Part, type SectionId } from './geometry';
+import {
+  HINT_PART,
+  isSystemId,
+  partById,
+  type Part,
+  type SectionId,
+} from './geometry';
 import { entriesOf, type CheckResult, type LaunchOutcome } from './outcome';
 import { createPlayer, type Player } from './player';
 import { RunMirror } from './run-mirror';
@@ -751,7 +757,7 @@ export default function PreflightBay({
         }
         levels={model.levels}
         currentLevel={model.currentLevel}
-        hint={model.interacted ? null : 'conduit-Tactical-Comms'}
+        hint={model.interacted ? null : HINT_PART}
         hover={model.hover}
         outline={model.outline}
         graph={model.graph}

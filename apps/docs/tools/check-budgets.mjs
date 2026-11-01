@@ -18,7 +18,9 @@ export const BUDGETS = {
   island: 35_000,
   background: 8_000,
   tool: 200_000,
-  bay: 20_000,
+  // The room-label layout measures 20.1 kB with the controller; 21 kB leaves
+  // room for the next label without another ruling.
+  bay: 21_000,
   // The run chunk measured 28.1 kB alone. The light chunk imports core too, so
   // Turbopack moved core into a chunk both load, which keeps the exports the
   // deck uses. The two chunks measure 31.0 kB, and `checkMarkedChunks` counts

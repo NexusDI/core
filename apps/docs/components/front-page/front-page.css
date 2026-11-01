@@ -472,6 +472,17 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
   pointer-events: none;
 }
 
+.nexus-bay__leaders {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  fill: none;
+  stroke: var(--meridian-text-secondary);
+  stroke-width: 1px;
+  stroke-dasharray: 2 2;
+}
+
 .nexus-bay__room {
   position: absolute;
   display: grid;
@@ -481,17 +492,9 @@ article:has(.nexus-front__screen) > main ~ div[class][class] {
   line-height: var(--meridian-leading-micro);
   color: var(--meridian-text);
   white-space: nowrap;
-  /* A translucent plate keeps the text readable on the lit and the unlit art. */
-  background: color-mix(in srgb, var(--meridian-plate-raised) 70%, transparent);
-}
-
-.nexus-bay__room--bottom {
-  transform: translateY(-100%);
-}
-
-.nexus-bay__room--bottom-end {
-  transform: translate(-100%, -100%);
-  text-align: end;
+  /* An opaque plate: no hull line shows through the text. */
+  background: var(--meridian-plate-raised);
+  border: 1px solid var(--meridian-edge);
 }
 
 .nexus-bay__room small {
