@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import sharp from 'sharp';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 interface Light {
   ids: string[];
@@ -57,13 +57,53 @@ const geometry = JSON.parse(
   ),
 ) as Geometry;
 
-const grey = async (name: string) => {
+interface Grey {
+  data: Buffer;
+  info: { width: number; height: number; channels: number };
+}
+
+const grey = async (name: string): Promise<Grey> => {
   const { data, info } = await sharp(join(dir, name))
     .extractChannel(0)
     .raw()
     .toBuffer({ resolveWithObject: true });
   return { data, info };
 };
+
+/**
+ * One pass over the room mask: for each index, its pixel count and the extent
+ * of its pixels as [left, top, right, bottom), right and bottom exclusive.
+ */
+const extents = ({ data, info }: Grey) => {
+  const found = new Map<number, { count: number; box: number[] }>();
+  for (let y = 0; y < info.height; y += 1) {
+    const row = y * info.width;
+    for (let x = 0; x < info.width; x += 1) {
+      const index = data[row + x];
+      const entry = found.get(index);
+      if (entry === undefined) {
+        found.set(index, { count: 1, box: [x, y, x + 1, y + 1] });
+        continue;
+      }
+      entry.count += 1;
+      const box = entry.box;
+      if (x < box[0]) box[0] = x;
+      if (x + 1 > box[2]) box[2] = x + 1;
+      if (y + 1 > box[3]) box[3] = y + 1;
+    }
+  }
+  return found;
+};
+
+// The masks decode once for the whole file. Each test reads the buffers.
+let rooms: Grey;
+let emissive: Grey;
+beforeAll(async () => {
+  [rooms, emissive] = await Promise.all([
+    grey('meridian-cutaway-rooms.png'),
+    grey('meridian-cutaway-emissive.png'),
+  ]);
+});
 
 describe('the cutaway layers (design system 8.2 and 8.3)', () => {
   it('lists the rooms in geometry order from index 2, after space and structure', () => {
@@ -79,8 +119,8 @@ describe('the cutaway layers (design system 8.2 and 8.3)', () => {
     expect(legend.pixelsPerMetre).toBe(25.6);
   });
 
-  it('writes the room mask as one 8-bit grey channel on the 2048 by 512 frame', async () => {
-    const { data, info } = await grey('meridian-cutaway-rooms.png');
+  it('writes the room mask as one 8-bit grey channel on the 2048 by 512 frame', () => {
+    const { data, info } = rooms;
     expect([info.width, info.height, info.channels]).toEqual([2048, 512, 1]);
     const seen = new Set(data);
     expect([...seen].sort((a, b) => a - b)).toEqual([
@@ -90,21 +130,17 @@ describe('the cutaway layers (design system 8.2 and 8.3)', () => {
     ]);
   });
 
-  it('keeps each room inside the bounds the legend lists, and each bound holds its room', async () => {
-    const { data, info } = await grey('meridian-cutaway-rooms.png');
+  it('keeps each room inside the bounds the legend lists, and each bound holds its room', () => {
+    const found = extents(rooms);
     for (const [room, index] of Object.entries(legend.rooms)) {
       const [left, top, right, bottom] = legend.bounds[room] ?? [0, 0, 0, 0];
-      let found = 0;
-      for (let y = 0; y < info.height; y += 1) {
-        for (let x = 0; x < info.width; x += 1) {
-          if (data[y * info.width + x] !== index) continue;
-          found += 1;
-          expect(x >= left && x < right && y >= top && y < bottom, room).toBe(
-            true,
-          );
-        }
-      }
-      expect(found, room).toBeGreaterThan(500);
+      const entry = found.get(index);
+      expect(entry?.count ?? 0, room).toBeGreaterThan(500);
+      const [minX, minY, maxX, maxY] = entry?.box ?? [0, 0, 0, 0];
+      expect(
+        minX >= left && minY >= top && maxX <= right && maxY <= bottom,
+        `${room} extent ${[minX, minY, maxX, maxY].join()} in ${[left, top, right, bottom].join()}`,
+      ).toBe(true);
     }
   });
 
@@ -135,8 +171,8 @@ describe('the cutaway layers (design system 8.2 and 8.3)', () => {
     expect(light.centre[0]).toBeCloseTo((light.box[0] + light.box[2]) / 2, 1);
   });
 
-  it('puts every light centre and 90% of every housing on the index of its own room', async () => {
-    const { data, info } = await grey('meridian-cutaway-rooms.png');
+  it('puts every light centre and 90% of every housing on the index of its own room', () => {
+    const { data, info } = rooms;
     for (const light of lights) {
       const index = legend.rooms[light.room];
       const [left, top, right, bottom] = light.box;
@@ -178,8 +214,8 @@ describe('the cutaway layers (design system 8.2 and 8.3)', () => {
     for (const light of lights) expect(light.gain).toBeGreaterThan(0);
   });
 
-  it('covers the housing boxes of the emissive lights that name no fixture, and nothing else', async () => {
-    const { data, info } = await grey('meridian-cutaway-emissive.png');
+  it('covers the housing boxes of the emissive lights that name no fixture, and nothing else', () => {
+    const { data, info } = emissive;
     expect([info.width, info.height]).toEqual([2048, 512]);
     const inBox = (x: number, y: number, boxes: Light['box'][]) =>
       boxes.some(
@@ -193,13 +229,15 @@ describe('the cutaway layers (design system 8.2 and 8.3)', () => {
       .filter((light) => light.emissive && light.fixture === null)
       .map((light) => light.box);
     let lit = 0;
+    const strays: string[] = [];
     for (let y = 0; y < info.height; y += 1) {
       for (let x = 0; x < info.width; x += 1) {
         if (data[y * info.width + x] === 0) continue;
         lit += 1;
-        expect(inBox(x, y, boxes)).toBe(true);
+        if (!inBox(x, y, boxes)) strays.push(`${x},${y}`);
       }
     }
+    expect(strays).toEqual([]);
     expect(lit).toBeGreaterThan(1000);
     for (const light of lights.filter(
       (each) => each.emissive && each.fixture === null,
@@ -215,8 +253,8 @@ describe('the cutaway layers (design system 8.2 and 8.3)', () => {
     }
   });
 
-  it('leaves the housing of a light that names a fixture out of the mask, since the fixture sets its level', async () => {
-    const { data, info } = await grey('meridian-cutaway-emissive.png');
+  it('leaves the housing of a light that names a fixture out of the mask, since the fixture sets its level', () => {
+    const { data, info } = emissive;
     const named = lights.filter((light) => light.fixture !== null);
     expect(named.length).toBeGreaterThan(0);
     const fixtureIds = geometry.compartments.flatMap((room) =>

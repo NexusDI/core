@@ -107,12 +107,15 @@ describe('the ship systems strip', () => {
   });
 
   it('renders a link and a described placard for every feature', () => {
-    render(<ShipSystems />);
-    const links = screen.getAllByRole('link');
+    // Seven crops each inline the cutaway, so a role query walks a large tree.
+    // The test reads the links by selector and keeps the role contract: an
+    // anchor with an href is a link.
+    const { container } = render(<ShipSystems />);
+    const links = [...container.querySelectorAll('a[href]')];
     expect(links).toHaveLength(7);
-    const scopes = screen.getByRole('link', { name: /Scopes/ });
+    const scopes = links.find((link) => /Scopes/.test(link.textContent ?? ''));
     const note = document.getElementById(
-      scopes.getAttribute('aria-describedby') ?? '',
+      scopes?.getAttribute('aria-describedby') ?? '',
     );
     expect(note?.textContent).toBe('BridgeApi exports FlightLog.');
   });
