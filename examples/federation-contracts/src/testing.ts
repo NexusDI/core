@@ -1,9 +1,9 @@
 import {
-  Token,
   defineModule,
-  provide,
   type LoadEntry,
   type ModuleRef,
+  provide,
+  Token,
 } from '@nexusdi/core';
 
 import { COMMAND_LINK, NAV_CHARTS, STATION_TELEMETRY } from './index.js';
@@ -111,7 +111,7 @@ export const FakeShell = defineModule({
 /** The load imports the shell gives each station it loads, over FakeTactical. */
 export const STATION_IMPORTS = { imports: [FakeTactical] } as const;
 
-/** The load entry of `station` with its load imports, for `Nexus.check(FakeShell, { load })`. */
+/** The load entry of `station` with its load imports, for `check(FakeShell, { load })`. */
 export const stationLoad = (station: ModuleRef): LoadEntry => ({
   module: station,
   ...STATION_IMPORTS,

@@ -1,4 +1,4 @@
-import { defineModule, Nexus, provide, Token } from '@nexusdi/core';
+import { check, defineModule, Nexus, provide, Token } from '@nexusdi/core';
 import { inspect } from '@nexusdi/devtools';
 import { describe, expect, it } from 'vitest';
 
@@ -36,7 +36,7 @@ describe('the module graph', () => {
       name: 'Root',
       imports: [Kernel, MeridianSystems, Helm],
     });
-    expect(() => Nexus.check(Root)).not.toThrow();
+    expect(() => check(Root)).not.toThrow();
     const { modules } = inspect(Root);
     const names = new Map(modules.map(({ id, name }) => [id, name]));
     const helm = modules.find(({ name }) => name === 'Helm');
@@ -58,7 +58,7 @@ describe('the module graph', () => {
       ],
     });
     expect(() =>
-      Nexus.check(defineModule({ name: 'Root', imports: [Kernel, Blind] })),
+      check(defineModule({ name: 'Root', imports: [Kernel, Blind] })),
     ).toThrow(
       expect.objectContaining({
         errors: [
@@ -82,7 +82,7 @@ describe('the module graph', () => {
       ],
     });
     expect(() =>
-      Nexus.check(defineModule({ name: 'Root', imports: [Kernel, Silent] })),
+      check(defineModule({ name: 'Root', imports: [Kernel, Silent] })),
     ).toThrow(
       expect.objectContaining({
         errors: [
@@ -125,7 +125,7 @@ describe('the module graph', () => {
       ],
     });
     expect(() =>
-      Nexus.check(defineModule({ name: 'Root', imports: [Kernel, Reader] })),
+      check(defineModule({ name: 'Root', imports: [Kernel, Reader] })),
     ).toThrow(
       expect.objectContaining({
         errors: expect.arrayContaining([

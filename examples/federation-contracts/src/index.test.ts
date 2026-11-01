@@ -3,7 +3,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  Nexus,
+  check,
   defineModule,
   isNexusError,
   provide,
@@ -69,14 +69,14 @@ function stationOn(token: Token<unknown>) {
 }
 
 /**
- * The errors `Nexus.check` reports for a shell at `version` that loads
+ * The errors `check()` reports for a shell at `version` that loads
  * `remote` with its Tactical in the load imports, as the shell loads a station.
  */
 function checkAgainst(version: string, remote = Cartography): unknown[] {
   const tactical = shellAt(version);
   const root = defineModule({ name: 'Meridian', imports: [tactical] });
   try {
-    Nexus.check(root, {
+    check(root, {
       plugins: [federation()],
       load: [{ module: remote, imports: [tactical] }],
     });

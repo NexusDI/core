@@ -1,4 +1,5 @@
 import {
+  check,
   defineModule,
   isNexusError,
   Nexus,
@@ -21,24 +22,21 @@ import { bridgePlugins, graphPlugins } from '../src/ship/plugins';
 
 describe('the bridge API graph', () => {
   it('compiles the graph and runs its sync options schemas', () => {
+    expect(() => check(Meridian, { plugins: bridgePlugins() })).not.toThrow();
     expect(() =>
-      Nexus.check(Meridian, { plugins: bridgePlugins() }),
+      check(OfflineMeridian, { plugins: bridgePlugins() }),
     ).not.toThrow();
     expect(() =>
-      Nexus.check(OfflineMeridian, { plugins: bridgePlugins() }),
-    ).not.toThrow();
-    expect(() =>
-      Nexus.check(
-        offlineMeridian({ sim: { seed: 7, dt: 0.5 }, mode: 'live' }),
-        { plugins: bridgePlugins() },
-      ),
+      check(offlineMeridian({ sim: { seed: 7, dt: 0.5 }, mode: 'live' }), {
+        plugins: bridgePlugins(),
+      }),
     ).not.toThrow();
   });
 
   it('compiles the FTL drive as a load of both roots', () => {
     for (const root of [Meridian, OfflineMeridian])
       expect(() =>
-        Nexus.check(root, { plugins: bridgePlugins(), load: [FtlDrive] }),
+        check(root, { plugins: bridgePlugins(), load: [FtlDrive] }),
       ).not.toThrow();
   });
 
@@ -212,7 +210,7 @@ describe('the bridge API graph', () => {
     });
     let thrown: unknown;
     try {
-      Nexus.check(Broken);
+      check(Broken);
     } catch (error) {
       thrown = error;
     }

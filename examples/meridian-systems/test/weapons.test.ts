@@ -1,4 +1,4 @@
-import { Nexus } from '@nexusdi/core';
+import { check, Nexus } from '@nexusdi/core';
 import { describe, expect, vi } from 'vitest';
 
 import { Engineering } from '../src/systems/engineering/engineering.module';
@@ -61,9 +61,9 @@ function firstShot(ship: Nexus, range: number) {
 
 describe('the weapons', () => {
   test('checks as part of the ship', ({ nexus }) => {
-    expect(() => Nexus.check(shipRoot({ reads: READS }))).not.toThrow();
+    expect(() => check(shipRoot({ reads: READS }))).not.toThrow();
     expect(() =>
-      Nexus.check(shipRoot({ reads: READS }), { load: [FtlDrive] }),
+      check(shipRoot({ reads: READS }), { load: [FtlDrive] }),
     ).not.toThrow();
 
     const { desk, state } = parts(nexus);

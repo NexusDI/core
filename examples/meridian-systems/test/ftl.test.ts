@@ -1,4 +1,4 @@
-import { defineModule, Nexus, provide } from '@nexusdi/core';
+import { check, defineModule, Nexus, provide } from '@nexusdi/core';
 import { describe, expect, vi } from 'vitest';
 
 import { Engineering } from '../src/systems/engineering/engineering.module';
@@ -79,11 +79,11 @@ async function loaded(ship: Nexus) {
 describe('the FTL drive', () => {
   test('checks as a load and fails alone', () => {
     expect(() =>
-      Nexus.check(shipRoot({ reads: READS }), { load: [FtlDrive] }),
+      check(shipRoot({ reads: READS }), { load: [FtlDrive] }),
     ).not.toThrow();
     // FtlDrive imports Engineering and Tactical, and alone it lacks the
     // kernel that Simulation gives a ship.
-    expect(() => Nexus.check(FtlDrive)).toThrow(
+    expect(() => check(FtlDrive)).toThrow(
       expect.objectContaining({
         code: 'NEXUS_BLUEPRINT_INVALID',
         errors: expect.arrayContaining(
@@ -234,9 +234,7 @@ describe('the FTL drive', () => {
       ],
       exports: [FTL_DRIVE],
     });
-    expect(() =>
-      Nexus.check(shipRoot({ reads: READS }), { load: [Eager] }),
-    ).toThrow(
+    expect(() => check(shipRoot({ reads: READS }), { load: [Eager] })).toThrow(
       expect.objectContaining({
         errors: [
           expect.objectContaining({ code: 'NEXUS_CIRCULAR_DEPENDENCY' }),

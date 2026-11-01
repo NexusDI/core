@@ -17,7 +17,7 @@ import { JumpDrive } from './jump-drive';
  * `POWER_ROUTER` and `NAV_CHARTS` through its imports, which are the ship's
  * own `Engineering` and `Tactical`, since core keys a module by its
  * definition. It reads `TICK_LOOP`, `SHIP_STATE` and `COMMAND_DESK` from the
- * global `Simulation` of the ship it loads into, so `Nexus.check(FtlDrive)`
+ * global `Simulation` of the ship it loads into, so `check(FtlDrive)`
  * alone fails with `NEXUS_MISSING_PROVIDER` for the kernel's tokens.
  */
 export const FtlDrive = defineModule({

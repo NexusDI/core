@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { Nexus } from '@nexusdi/core';
+import { check, Nexus } from '@nexusdi/core';
 import { federation } from '@nexusdi/federation';
 import type {
   TelemetryReading,
@@ -152,9 +152,9 @@ describe('LifeSupportStation', () => {
     });
   });
 
-  test('passes Nexus.check with federation()', () => {
+  test('passes check() with federation()', () => {
     expect(() =>
-      Nexus.check(FakeShell, {
+      check(FakeShell, {
         plugins: [federation()],
         load: [stationLoad(LifeSupportStation)],
       }),

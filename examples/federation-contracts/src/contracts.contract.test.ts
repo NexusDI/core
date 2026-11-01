@@ -1,4 +1,5 @@
 import {
+  check,
   defineModule,
   type ErrorText,
   type ErrorTextKit,
@@ -65,7 +66,7 @@ it('NEXUS_CONTRACT_VERSION names the contract, both versions and a fix line from
   });
   const error = inner(
     thrown(() =>
-      Nexus.check(defineModule({ name: 'Meridian', imports: [Tactical] }), {
+      check(defineModule({ name: 'Meridian', imports: [Tactical] }), {
         plugins: [federation()],
         load: [{ module: Cartography, imports: [Tactical] }],
       }),

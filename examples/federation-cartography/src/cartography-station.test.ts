@@ -1,4 +1,4 @@
-import { isNexusError, Nexus } from '@nexusdi/core';
+import { check, isNexusError, Nexus } from '@nexusdi/core';
 import { federation } from '@nexusdi/federation';
 import {
   FAKE_HEADING,
@@ -25,9 +25,9 @@ test('finds a sector through the contract charts', ({ station: nexus }) => {
   );
 });
 
-test('passes Nexus.check with federation()', () => {
+test('passes check() with federation()', () => {
   expect(() =>
-    Nexus.check(FakeShell, {
+    check(FakeShell, {
       plugins: [federation()],
       load: [stationLoad(CartographyStation)],
     }),

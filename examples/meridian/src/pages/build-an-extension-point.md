@@ -366,12 +366,12 @@ test('the monitor runs every contributed check', async () => {
 
 ```ts @import.meta.vitest @module
 import {
-  MultiToken,
-  Nexus,
-  Token,
   all,
+  check,
   defineModule,
+  MultiToken,
   provide,
+  Token,
 } from '@nexusdi/core';
 import { nexusTest } from '@nexusdi/vitest';
 import { test as base } from 'vitest';
@@ -448,7 +448,7 @@ test('the real reactor check sees the weak reactor', ({ nexus }) => {
 
 // A CI test compiles the app and builds nothing.
 test('the app wiring compiles', () => {
-  Nexus.check(Meridian).unchecked; // -> []
+  check(Meridian).unchecked; // -> []
 });
 ```
 
@@ -458,13 +458,13 @@ test('the app wiring compiles', () => {
 
 ```ts @import.meta.vitest
 import {
-  MultiToken,
-  Nexus,
-  Token,
   all,
+  check,
   defineModule,
   isNexusError,
+  MultiToken,
   provide,
+  Token,
 } from '@nexusdi/core';
 import { createTestingContainer } from '@nexusdi/testing';
 
@@ -505,7 +505,7 @@ const Meridian = defineModule({
 // Without an override the compile finds the mistake.
 let found: string | null = null;
 try {
-  Nexus.check(Meridian);
+  check(Meridian);
 } catch (caught) {
   const inner = isNexusError(caught, 'NEXUS_BLUEPRINT_INVALID')
     ? caught.errors[0]

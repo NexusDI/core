@@ -1,4 +1,4 @@
-import { Nexus } from '@nexusdi/core';
+import { check, Nexus } from '@nexusdi/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Helm } from '../src/systems/helm/helm.module';
@@ -37,8 +37,8 @@ describe('the helm and the drive', () => {
   test('builds with the helm and the drive and lists helm on the desk', async ({
     nexus: ship,
   }) => {
-    expect(() => Nexus.check(shipRoot({ reads: READS }))).not.toThrow();
-    expect(() => Nexus.check(relayGraph())).not.toThrow();
+    expect(() => check(shipRoot({ reads: READS }))).not.toThrow();
+    expect(() => check(relayGraph())).not.toThrow();
 
     expect(ship.get(HELM)).toBeDefined();
     expect(ship.get(THRUSTERS)).toBeDefined();

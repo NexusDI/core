@@ -1,4 +1,10 @@
-import { Nexus, defineModule, isNexusError, provide } from '@nexusdi/core';
+import {
+  check,
+  defineModule,
+  isNexusError,
+  Nexus,
+  provide,
+} from '@nexusdi/core';
 import { federation } from '@nexusdi/federation';
 import { NAV_CHARTS } from '@nexusdi/federation-contracts';
 import type { TelemetryReading } from '@nexusdi/federation-contracts';
@@ -55,9 +61,9 @@ describe('CommandStation', () => {
     );
   });
 
-  test('passes Nexus.check with federation()', () => {
+  test('passes check() with federation()', () => {
     expect(() =>
-      Nexus.check(FakeShell, {
+      check(FakeShell, {
         plugins: [federation()],
         load: [stationLoad(CommandStation)],
       }),
@@ -165,7 +171,7 @@ describe('CommandStation', () => {
     expect(board.served(feed.state())).toBe('telemetry offline');
   });
 
-  test('fails Nexus.check with NEXUS_MISSING_PROVIDER when no COMMAND_LINK or STATION_TELEMETRY is provided', () => {
+  test('fails check() with NEXUS_MISSING_PROVIDER when no COMMAND_LINK or STATION_TELEMETRY is provided', () => {
     const ChartsOnly = defineModule({
       name: 'Tactical',
       providers: [provide(NAV_CHARTS, { useClass: FixedNavCharts })],
@@ -176,7 +182,7 @@ describe('CommandStation', () => {
       imports: [ChartsOnly],
     });
     const error = caught(() =>
-      Nexus.check(withoutLink, {
+      check(withoutLink, {
         plugins: [federation()],
         load: [{ module: CommandStation, imports: [ChartsOnly] }],
       }),
