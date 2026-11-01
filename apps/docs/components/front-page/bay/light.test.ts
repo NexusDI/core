@@ -47,8 +47,11 @@ describe('the bay light', () => {
       currentSrc: '/cutaway-1536.avif',
       naturalWidth: 1133,
     } as HTMLImageElement;
-    expect(await decodeBase(image)).toBe(bitmap);
-    expect(fetched).toHaveBeenCalledWith('/cutaway-1536.avif');
+    const abort = new AbortController();
+    expect(await decodeBase(image, abort.signal)).toBe(bitmap);
+    expect(fetched).toHaveBeenCalledWith('/cutaway-1536.avif', {
+      signal: abort.signal,
+    });
     expect(decoded).toHaveBeenCalledWith(blob);
     const light = await createLight({
       base: bitmap as unknown as ImageBitmap,
