@@ -134,14 +134,14 @@ git's rename threshold, so git records it as a new file.
 
 From G6 `MeridianSystems` imports `Propulsion` and `Helm` after `Tactical`. `Helm` imports
 `Propulsion` and `Tactical`, since `HelmControl` reads `MAIN_DRIVE` and `NAV_CHARTS`. `Helm`
-alone fails `Nexus.check` with `NEXUS_BLUEPRINT_INVALID` (`NEXUS_MISSING_PROVIDER` for the
+alone fails `check()` with `NEXUS_BLUEPRINT_INVALID` (`NEXUS_MISSING_PROVIDER` for the
 kernel's tokens), so `src/index.ts` exports neither module. It exports the tokens
 `MAIN_DRIVE`, `THRUSTERS` and `HELM` and the types
 `IMainDrive`, `IThrusters`, `IHelm`, `DriveRecord`, `DriveSetpoints`, `HelmRecord` and
 `HelmSetpoints`.
 
 From G7 the index exports `FtlDrive`, a module object beside the modules an app imports. It
-fails `Nexus.check` alone (`NEXUS_MISSING_PROVIDER` for `TickLoop`, `ShipState` and
+fails `check()` alone (`NEXUS_MISSING_PROVIDER` for `TickLoop`, `ShipState` and
 `CommandDesk`) and passes as a load of a ship built from `MeridianSystems`. `FtlDrive`
 imports `Engineering` and `Tactical` for `POWER_ROUTER` and `NAV_CHARTS`.
 `bridge-api` holds the module object to load it, and a `./ftl` subpath would give a reader
@@ -1686,7 +1686,7 @@ stubbed `fetch`, and from the offline root without the link.
   ticks 5 and 10, and the log holds ticks 1 and 3.
 - Eleven rounds of a hail and 5 ticks after a throttle at tick 0 end at tick 55 with
   `sent: 51` and 10 messages, the oldest at tick 10 and the newest at tick 55.
-- The offline ship passes `Nexus.check`, and its array reads `linked` false. Its charts
+- The offline ship passes `check()`, and its array reads `linked` false. Its charts
   plot `Kepler-442b` at heading 42 from the bundled table. A hail at tick 0 queues for
   tick 1, and at ticks 1, 20 and 600 the array reads
   `{ status: 'no subspace link', sent: null, messages: [] }` with the hail queued, the
@@ -1756,8 +1756,8 @@ with `FtlDrive` loaded by `ship.load` where an item says so. `test/ftl.test.ts` 
 each one (section 8.2), except the coolant's 571.9 K at tick 101 and 832.6 K at tick 300,
 which the golden holds.
 
-- `Nexus.check(root, { load: [FtlDrive] })` passes for a root of `Simulation.forRoot(options)`
-  and `MeridianSystems`, and `Nexus.check(FtlDrive)` fails with `NEXUS_MISSING_PROVIDER` for
+- `check(root, { load: [FtlDrive] })` passes for a root of `Simulation.forRoot(options)`
+  and `MeridianSystems`, and `check(FtlDrive)` fails with `NEXUS_MISSING_PROVIDER` for
   `TickLoop`, `ShipState` and `CommandDesk`.
 - The load: before it the root has no `FTL_DRIVE`, and tick 1 lists five loads (six from
   G8, with `railgun`) and reads
@@ -1808,7 +1808,7 @@ with `FtlDrive` loaded by `ship.load` where an item says so. `test/weapons.test.
 each one (section 8.2), except the coolant's 507.1, 509.1 and 512.5 K at ticks 31, 35 and
 41, which the golden holds.
 
-- `Nexus.check` passes with and without `load: [FtlDrive]`. The root reads `WEAPON_MOUNT`
+- `check()` passes with and without `load: [FtlDrive]`. The root reads `WEAPON_MOUNT`
   with `RAILGUN`, `SHIP_SYSTEMS` holds `Weapons` at phase 3, the desk refuses an unknown
   system with `expected: 'comms, engineering, helm, life-support, safety and weapons'`, and
   the snapshot's keys follow the order of section 4.1.
@@ -1868,7 +1868,7 @@ package has a row. "When" is the increment that brings the row, and 0.4 means th
 | `scope.extend()` after `load()`            | `@nexusdi/core`                                         | the telemetry stream's request scope opens before `POST /sections/ftl` loads the FTL drive; on the first frame whose `ftl.status` is no longer `offline` the stream calls `extend()` and reads `FTL_DRIVE.rating` into the frame's `ftlRating` (`NEXUS_LOADED_AFTER_SCOPE` otherwise)                                                                                                                                                                                                                                                                                                                                                | a long-lived stream outlives the graph it opened on                                                               | `bridge-api`          | G7                     |
 | `onInit` order                             | `@nexusdi/core`                                         | `SnapshotFeed` and `MasterAlarm` subscribe to the loop in `onInit`, after the loop is built                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | a listener must never see a loop that is not ready                                                                | `bridge-api`          | G0b                    |
 | Dispose order on shutdown                  | `@nexusdi/core`                                         | `ship[Symbol.asyncDispose]()`: the driver stops its timer, the alarm unsubscribes, the feed closes its streams with `ship offline`, and the reactor scram runs last; G1's test asserts `SimDriver`, then `TelemetryFeed`, before `ReactorCore`, and from G3 it asserts `SimDriver`, `MasterAlarm`, `TelemetryFeed` and `ReactorCore` in that order. From G0b, `stopOnSigterm(server, shutdown, { close?, drain?, signals? })` closes the server, then aborts `shutdown`, which ends the telemetry streams; the entry disposes the ship once the server has closed, so a request in flight at `SIGTERM` answers with the ship running | a ship stops its consumers before the reactor; the reverse creation order gives that with no code                 | `bridge-api`          | G0b, G1, G3            |
-| `Nexus.check`                              | `@nexusdi/core`                                         | `test/check.test.ts` checks `Meridian` with every system, and the console checks its own graphs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | a broken wiring fails CI before a tick runs                                                                       | `bridge-api`, console | 0.4                    |
+| `check()`                                  | `@nexusdi/core`                                         | `test/check.test.ts` checks `Meridian` with every system, and the console checks its own graphs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | a broken wiring fails CI before a tick runs                                                                       | `bridge-api`, console | 0.4                    |
 | Request scopes on Node                     | `@nexusdi/node`                                         | `nodeScopes()` makes the request's scope current for the whole handler, so `FlightRecorder`, a singleton interceptor on `BLAST_DOORS`, records `survey-7: opened habitat-airlock` into the request's scoped `FLIGHT_LOG` with no argument, and `POST /commands` answers the entry beside the tick                                                                                                                                                                                                                                                                                                                                    | a singleton interceptor serves every request, so it finds the request's log through the current scope             | `bridge-api`          | 0.4, G3                |
 | Server adapters                            | `@nexusdi/hono`, `@nexusdi/express`, `@nexusdi/fastify` | the three entries serve `/sim/*` from G0, `/telemetry` (SSE) from G0b and `/commands` from G1 over one graph, and the e2e cases run against each. The three Node entries stop through `stopOnSigterm`, which after `SIGTERM` closes each keep-alive connection as its response finishes                                                                                                                                                                                                                                                                                                                                              | a ship's bridge picks its server; the systems never notice                                                        | `bridge-api`          | 0.4, G0, G0b, G1       |
 | Interceptors as safety interlocks          | `@nexusdi/interceptors`                                 | `PressureInterlock` wraps `BLAST_DOORS.open` and throws `MERIDIAN_INTERLOCK` when the two sides differ by more than 5 kPa; `FlightRecorder` wraps `open` and `close` and records after `next()` returns, so a refused open records nothing; `NavAudit` stays on `NAV_CHARTS`, and from G6 records the helm's plot of a course, which `HelmControl` makes once, at the command                                                                                                                                                                                                                                                        | an interlock is a rule around an action, owned apart from the door; the door class stays plain                    | `bridge-api`          | 0.4, G3, G6            |
@@ -2478,7 +2478,7 @@ jump to Kepler-442b answers 202 `{ tick: 301 }`. One tick later `GET /sim` holds
 `{ ftl: { jump: 'Kepler-442b' } }` at tick 301.
 
 `check.test.ts` gains "compiles the FTL drive as a load of both roots", which passes
-`Nexus.check(root, { plugins, load: [FtlDrive] })` for `Meridian` and `OfflineMeridian`.
+`check(root, { plugins, load: [FtlDrive] })` for `Meridian` and `OfflineMeridian`.
 The `inspect()` call of "matches graph.json, the graph the CLI draws" gains
 `load: [FtlDrive]`, and a notes case loads the drive and reads `['system: FtlDrive']` on
 `FtlDrive in FtlDrive` with no phase note, since `JumpDrive` is no `SHIP_SYSTEMS`
@@ -3039,7 +3039,7 @@ builds: `Simulation.forRoot` (seed 7 and dt 0.5 by default), `SubspaceLink.forRo
 scram and that the root cannot get `COOLANT_LOOP`.
 
 G2's `test/life-support.test.ts` builds `shipRoot({ reads: [ShipLifeSupport] })` and checks
-that `Nexus.check` passes; that the root reads `ATMOSPHERE_CONTROL`, and
+that `check()` passes; that the root reads `ATMOSPHERE_CONTROL`, and
 `ATMOSPHERE_SENSOR` in a scope whose request names `habitat`; that a scope naming
 `galley` throws `UnknownCompartmentError` on `get`; that two `get()` calls around an
 `advance(1)` read two ticks; and that `online` at throttle 0 sheds `life-support`. At
@@ -3064,7 +3064,7 @@ without a trailing slash and the `relay answered 503 for charts` error. `PhasedA
 `CommsPhysics`, `CommsPower` and `CommsCommands` each have a test beside the class.
 
 G6's `test/helm.test.ts` builds `shipRoot({ reads: [Helm, Propulsion] })` offline and on the
-relay graph, with `fetch` stubbed as in `test/comms.test.ts`. It checks that `Nexus.check`
+relay graph, with `fetch` stubbed as in `test/comms.test.ts`. It checks that `check()`
 passes on both and that the root reads `HELM`, `THRUSTERS` and `MAIN_DRIVE`, and it asserts
 the figures of section 5.13. The desk refuses an unknown system with
 `expected: 'comms, engineering, helm, life-support and safety'`. `PlasmaDrive`,
@@ -4285,12 +4285,12 @@ the real core in the browser and draw the overlay from `inspect()` of the ship's
 - A section that `load()` adds appears once loaded: `FtlDrive` and its edges join after
   `POST /sections/ftl`.
 
-A missing provider or a broken import shows as a broken conduit. When `Nexus.check` throws
+A missing provider or a broken import shows as a broken conduit. When `check()` throws
 `NEXUS_BLUEPRINT_INVALID`, the overlay reads each `MissingProviderError` in it. The
 `requester` gets a conduit that ends at an empty socket labelled with the `token`, and a
 `not-imported` or `not-exported` near miss draws the module import between the requester's
 module and the near miss's module as broken. The front page's pre-flight check runs this
-path: a visitor cuts a conduit, and the overlay shows the break `Nexus.check` names.
+path: a visitor cuts a conduit, and the overlay shows the break `check()` names.
 
 The two layers share the deck's geometry. A physical conduit is drawn only where a real
 dependency or a physics flow exists:

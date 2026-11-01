@@ -159,7 +159,7 @@ anything else uses a neutral role.
   carries the word "Warning" and its glyph (7.5), and a control always has a control's
   shape.
 - Red (`alarm`) is a fault that stops something: an alarm, a refused command, a broken
-  conduit, a failed `Nexus.check`, an error in the console. Red appears nowhere else, and
+  conduit, a failed `check()`, an error in the console. Red appears nowhere else, and
   no decoration uses it.
 - Green (`nominal`) is a check that passed or a system that is online. Green appears nowhere else.
 
@@ -732,7 +732,7 @@ dependency, so the styling stays out of their DI code. Their UX spec places the 
 
 The front page opens on the hero: the painted Meridian against space, the headline in
 `display` and one primary button. Below it sits the schematic, the vector cutaway, with
-the interactions of concept E: cut a conduit and see the broken link `Nexus.check` names,
+the interactions of concept E: cut a conduit and see the broken link `check()` names,
 the power-up sequence for async startup, and the three faults (a provider offline, a
 closed hatch, an async provider that fails at startup). Each interaction runs the real
 core and prints its result in a terminal beside the ship. The pre-flight bay lights its unlit cutaway with the deck view, which loads after the bay is

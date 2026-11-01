@@ -335,7 +335,7 @@ Unit tests run in `test`, which `main` already runs:
 
 - The route tests of `react-ssr/tests/routes/` move over, on `nexusTest` and
   `nexusFixtures`, with `fakeBridgeLink` for `BRIDGE_LINK`.
-- One test runs `Nexus.check(BridgeConsole)` and `Nexus.check(BridgeClient)`, so a broken
+- One test runs `check(BridgeConsole)` and `check(BridgeClient)`, so a broken
   graph fails CI before a page loads (react spec 9.1).
 
 The Playwright suite in `e2e/` starts two web servers: `bridge-api`'s
@@ -524,7 +524,7 @@ accessor. A grep of the bundles proves neither: the shell's bundle carries the
 `nexusdi.injectable` string through core.
 
 Each remote's unit tests build its module with `createTestingContainer` and a
-`useValue` for `NAV_CHARTS`, and run `Nexus.check` on it.
+`useValue` for `NAV_CHARTS`, and run `check()` on it.
 
 ### 7.5 Build and serve in CI
 

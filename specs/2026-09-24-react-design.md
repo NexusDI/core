@@ -786,7 +786,7 @@ Rules for users, which the React Router guide states:
   the same value on both sides. A service that returns a different value on the server
   than in the browser causes a hydration mismatch. Services in render are for handlers
   and effects; data comes from loaders.
-- `Nexus.check(BridgeServer)` and `Nexus.check(BridgeClient)` run in one CI test, so an error in either
+- `check(BridgeServer)` and `check(BridgeClient)` run in one CI test, so an error in either
   graph fails the CI pipeline before any page loads.
 - A value the server computed (feature flags, tenant config) reaches the client as loader
   data, and the client graph binds it with `useValue` or `forRoot`. A client service that
@@ -1346,7 +1346,7 @@ R11. React Router 8 SSR renders with the adapter's request scope.
   server could crash at hydration. The draft e2e test would have hit exactly that. P5,
   P3.
 - Users: server HTML for components that use services, two graphs, and one CI
-  `Nexus.check` over both. The rule tells them which lifetime each side's binding may
+  `check()` over both. The rule tells them which lifetime each side's binding may
   have.
 
 R12. Next.js uses a `clientOnly` provider, and the RSC side stays a recipe.
@@ -1425,7 +1425,7 @@ K1. `BlueprintView.root`. In core 0.4.
   only when...": "`root` is the id of the root module, the module whose visibility root
   `get()`, `has()`, `resolve()`, `validate()` and every scope use (sections 3.5 and 7.1).
   `load()` adds imports to the root and never replaces it, so every view of one container
-  carries the same `root`. In a `Nexus.check` view, `root` is the checked root.
+  carries the same `root`. In a `check()` view, `root` is the checked root.
   `visible(view.root, token)` returns the providers a root lookup of `token` considers, in
   lookup order."
 - Controller: add `root` to `ViewParts`, and set it in `viewOfBlueprint`, the
@@ -1476,7 +1476,7 @@ K3. `visible()` and `tokenKey`. In core 0.4.
   way, so a plugin that asks about a token from a second copy of a contracts package gets
   the providers that `get()` of that token would consider."
 - Controller: `buildView` takes the container's canonicalizer (`RootState.canon`, or
-  `Nexus.check`'s own) and applies it in `visible`.
+  `check()`'s own) and applies it in `visible`.
 - Blocks: R4.
 
 K4. Nested scopes. Deferred to 0.5.

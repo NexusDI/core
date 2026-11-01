@@ -129,7 +129,7 @@ do not change.
      modules: number;
      providers: number;
      errors: number;
-+    /** The run this compile starts; null for Nexus.check. */
++    /** The run this compile starts; null for check(). */
 +    run: number | null;
 +    startMs: number;
      durationMs: number;
@@ -205,7 +205,7 @@ browser. The tier column refers to section 5.2.
 
 | Field        | On                                                                      | Meaning                                                                                                                                                                                                                                                                                                         | Tier                                         |
 | ------------ | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `run`        | `compile`, `construct*`, `init*`, `run`, `scope:create`, `scope:extend` | The run id. Unique within one container; `create` is run 0; `load`, `createScope` and `extend()` each take the next id from one counter on the root. `null` on `compile` for `Nexus.check`, and on builds no run scheduled (section 3.3).                                                                       | stable                                       |
+| `run`        | `compile`, `construct*`, `init*`, `run`, `scope:create`, `scope:extend` | The run id. Unique within one container; `create` is run 0; `load`, `createScope` and `extend()` each take the next id from one counter on the root. `null` on `compile` for `check()`, and on builds no run scheduled (section 3.3).                                                                           | stable                                       |
 | `kind`       | `run`                                                                   | The operation: `create`, `load`, `createScope`, `extend`. A minor release may add a member.                                                                                                                                                                                                                     | stable (the union is open to core additions) |
 | `ok`         | `run`                                                                   | `true` when the operation settled with a value, `false` when it threw or was aborted by disposal. An `extend()` that shares an in-flight `extend()` to the same blueprint reports the shared work's outcome.                                                                                                    | stable                                       |
 | `level`      | the six build events                                                    | The index into the levels array of the blueprint the run built (section 3.3). `null` for on-demand, transient, value and alias builds.                                                                                                                                                                          | presence and type stable; numbering evolving |
@@ -228,7 +228,7 @@ Derived values every consumer can compute, and that devtools uses:
 ### 3.3 Run ids and levels
 
 `RootState` gains `nextRun`, starting at 0. `Run` (`libs/core/src/runtime/state.ts`) gains
-`id`. Scopes draw ids from the root's counter. `Nexus.check` takes no id.
+`id`. Scopes draw ids from the root's counter. `check()` takes no id.
 
 Every call of `load`, `createScope` and `extend()` is a run, a call that does no work
 included. A `load()` of a module the root already imports emits `run` with `ok: true` and no
