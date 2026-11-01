@@ -4,7 +4,7 @@
  * module the way React Router runs it. The mocked `nexus.server` checks the
  * routes' deps against the same container, so a spec builds one.
  */
-import { render } from '@testing-library/react';
+import { configure, render } from '@testing-library/react';
 import type { Nexus, Scope } from '@nexusdi/core';
 import { NAV_CHARTS, type INavCharts } from '@nexusdi/meridian-systems/charts';
 import { NexusProvider } from '@nexusdi/react';
@@ -22,6 +22,13 @@ import { BridgeConsole } from '../../app/di/bridge.server';
 import { BRIDGE_LINK, TELEMETRY_CLIENT } from '../../app/di/contracts';
 import { FakeBridgeLink, FakeTelemetry, fakeBridgeLink } from '../doubles';
 import { serve } from './nexus-server';
+
+// testing-library's findBy and waitFor give up after 1 s by default, a bound
+// below the 5 s test timeout. The first form submit of a file takes about
+// 150 ms warm, and a runner that shares its CPU stretches that past 1 s. A
+// 4 s wait ends before the test timeout, so a real hang still names the
+// missing element.
+configure({ asyncUtilTimeout: 4000 });
 
 type StubRoute = Parameters<typeof createRoutesStub>[0][number];
 
