@@ -383,6 +383,9 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
     env:
       NX_NO_CLOUD: 'true'
+      # The runner mounts a home folder the container's root does not own, and
+      # Firefox refuses to start there. Playwright's CI guide sets HOME to root's.
+      HOME: /root
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -462,6 +462,13 @@ describe('importGroups', () => {
       ['static/chunks/c.js'],
     ]);
   });
+
+  it('reads an unclosed list of many empty strings in linear time', () => {
+    const source = `Promise.all([""${' ""'.repeat(50_000)}`;
+    const started = performance.now();
+    expect(importGroups([source])).toEqual([]);
+    expect(performance.now() - started).toBeLessThan(1_000);
+  });
 });
 
 describe('checkMarkedChunks', () => {
