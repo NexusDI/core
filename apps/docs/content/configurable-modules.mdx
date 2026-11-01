@@ -67,7 +67,7 @@ The factory's `deps` resolve inside the module: from its own providers, from the
 
 ## When the Factory Needs a Provider from the Importer
 
-Sometimes the importer picks the strategy a configurable module uses. `Meridian` provides a `SIGNAL_SOURCE` and wants `Comms` to read its frequency from it. The `forRootAsync` factory resolves its deps inside `Comms`, and `Comms` never sees a provider of the module that imports it. The importer's own providers stay out of reach, whatever token the factory asks for.
+Sometimes the importer picks the strategy a configurable module uses. `Meridian` provides a `SIGNAL_SOURCE` and wants `Comms` to read its frequency from it. The `forRootAsync` factory resolves its deps inside `Comms`, and `Comms` never sees a provider of the module that imports it. The importer's own providers stay out of reach, whatever token the factory asks for, unless the importer is global and exports the token.
 
 ```ts file=examples/meridian/src/pages/configurable-modules.md region=importer-provider-missing
 

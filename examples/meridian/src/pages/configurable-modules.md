@@ -504,7 +504,6 @@ import {
   defineModule,
   isNexusError,
   provide,
-  type ModuleDefinition,
 } from '@nexusdi/core';
 
 interface CommsOptions {
@@ -565,14 +564,7 @@ console.log(codes);
 <!-- #region importer-provider-global -->
 
 ```ts @import.meta.vitest
-import {
-  Nexus,
-  Token,
-  defineModule,
-  isNexusError,
-  provide,
-  type ModuleDefinition,
-} from '@nexusdi/core';
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
 
 interface CommsOptions {
   readonly frequency: number;
@@ -639,43 +631,24 @@ import {
   Nexus,
   Token,
   defineModule,
-  isNexusError,
   provide,
   type ModuleDefinition,
 } from '@nexusdi/core';
 
-interface CommsOptions {
-  readonly frequency: number;
-}
 interface ISubspaceLink {
   hail(): string;
 }
 interface ISignalSource {
   frequency(): number;
 }
-const COMMS_OPTIONS = new Token<CommsOptions>('CommsOptions');
 const SUBSPACE_LINK = new Token<ISubspaceLink>('SubspaceLink');
 const SIGNAL_SOURCE = new Token<ISignalSource>('SignalSource');
 
-class SubspaceRelay implements ISubspaceLink {
-  static deps = [COMMS_OPTIONS] as const;
-  constructor(private readonly options: CommsOptions) {}
-  hail() {
-    return `relay on ${this.options.frequency}`;
-  }
-}
 class BeaconSource implements ISignalSource {
   frequency() {
     return 1420;
   }
 }
-
-const Comms = defineModule({
-  name: 'Comms',
-  options: COMMS_OPTIONS,
-  providers: [provide(SUBSPACE_LINK, { useClass: SubspaceRelay })],
-  exports: [SUBSPACE_LINK],
-});
 
 // The library exports a function. It takes the module that provides
 // SIGNAL_SOURCE and returns a Comms that imports it.
