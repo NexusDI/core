@@ -131,6 +131,23 @@ describe('the room labels', () => {
     }
   });
 
+  it('name the provider that the placement puts in the hull section of the label', () => {
+    for (const label of ROOM_LABELS) {
+      if (!label.provider) continue;
+      const fixture = (PLACEMENT.providers as Record<string, string>)[
+        label.provider
+      ];
+      expect(fixture, label.provider).toBeDefined();
+      const sections = PLACEMENT.hullSections as Record<
+        string,
+        readonly string[]
+      >;
+      expect(sections[label.module], label.room).toContain(
+        (fixture as string).split('.')[0],
+      );
+    }
+  });
+
   it('label each room once', () => {
     const rooms = ROOM_LABELS.map((label) => label.room);
     expect(new Set(rooms).size).toBe(rooms.length);

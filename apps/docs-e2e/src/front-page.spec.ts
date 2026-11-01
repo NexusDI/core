@@ -188,111 +188,245 @@ test.describe('the pre-flight bay', () => {
     await expect(terminal(page)).toContainText('Kepler-442b');
   });
 
-  for (const width of [1440, 1280]) {
-    test(`the ship names its rooms at ${width}, and no label or leader covers a glyph or the hint`, async ({
+  /** The boxes of the room layer, the glyphs, the hint and the transient notes and callouts. */
+  async function roomGeometry(page: Page) {
+    return page.evaluate(() => {
+      type Box = { name: string; x: number; y: number; w: number; h: number };
+      const rect = (el: Element, name: string): Box => {
+        const r = el.getBoundingClientRect();
+        return { name, x: r.left, y: r.top, w: r.width, h: r.height };
+      };
+      const named = (selector: string, name: (el: Element) => string) =>
+        [...document.querySelectorAll(selector)].map((el) =>
+          rect(el, name(el)),
+        );
+      const labels = named(
+        '[data-room-label]',
+        (el) => el.getAttribute('data-room-label') ?? '',
+      );
+      // The hit circle is 24 px with a fine pointer; Firefox reports a larger
+      // box for the SVG circle, so the centre that each engine reports stands for it.
+      const glyphs = named(
+        '.nexus-bay__wide [data-bay-part] .bay-hit',
+        (el) =>
+          el.closest('[data-bay-part]')?.getAttribute('data-bay-part') ?? '',
+      ).map((r) => ({
+        ...r,
+        x: r.x + r.w / 2 - 12,
+        y: r.y + r.h / 2 - 12,
+        w: 24,
+        h: 24,
+      }));
+      const hint = named('.nexus-bay__hint', () => 'hint');
+      const transient = [
+        ...named('.nexus-bay__wide .nexus-bay__note', () => 'note'),
+        ...named('.nexus-bay__wide .nexus-bay__callout', () => 'callout'),
+      ];
+      const clipped = [...document.querySelectorAll('[data-room-label]')]
+        .filter((el) =>
+          [el, ...el.children].some((c) => c.scrollWidth > c.clientWidth + 1),
+        )
+        .map((el) => el.getAttribute('data-room-label'));
+      const svg = document.querySelector('.nexus-bay__leaders');
+      const frame = svg?.getBoundingClientRect();
+      const leaders =
+        svg && frame
+          ? [...svg.querySelectorAll('polyline')].map((line) =>
+              (line.getAttribute('points') ?? '')
+                .split(' ')
+                .map((pair) => pair.split(',').map(Number) as [number, number])
+                // The leaders draw in the frame `-5 0 80 20`.
+                .map(
+                  ([x, y]) =>
+                    [
+                      frame.left + ((x + 5) / 80) * frame.width,
+                      frame.top + (y / 20) * frame.height,
+                    ] as [number, number],
+                ),
+            )
+          : [];
+      return {
+        mode:
+          document
+            .querySelector('.nexus-bay__rooms')
+            ?.getAttribute('data-mode') ?? null,
+        captions: document.querySelector('.nexus-bay__room-captions') !== null,
+        labels,
+        glyphs,
+        hint: hint[0] ?? null,
+        transient,
+        clipped,
+        leaders,
+      };
+    });
+  }
+
+  type Geometry = Awaited<ReturnType<typeof roomGeometry>>;
+  type B = Geometry['labels'][number];
+  const overlaps = (a: B, b: B) =>
+    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  const crosses = (seg: [number, number][], box: B) => {
+    const [from, to] = seg as [[number, number], [number, number]];
+    for (let i = 0; i <= 100; i++) {
+      const x = from[0] + ((to[0] - from[0]) * i) / 100;
+      const y = from[1] + ((to[1] - from[1]) * i) / 100;
+      if (x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h)
+        return true;
+    }
+    return false;
+  };
+  /** Checks the plates and leaders against everything they may not cover. */
+  function expectClean(found: Geometry, withTransient: boolean) {
+    const avoid = [
+      ...found.glyphs,
+      ...(found.hint ? [found.hint] : []),
+      ...(withTransient ? found.transient : []),
+    ];
+    expect(found.clipped, 'plates whose text is clipped').toEqual([]);
+    for (const [i, label] of found.labels.entries()) {
+      for (const other of found.labels.slice(i + 1))
+        expect(overlaps(label, other), `${label.name} ${other.name}`).toBe(
+          false,
+        );
+      for (const box of avoid)
+        expect(overlaps(label, box), `${label.name} over ${box.name}`).toBe(
+          false,
+        );
+    }
+    for (const leader of found.leaders)
+      for (const box of [...found.glyphs, ...(found.hint ? [found.hint] : [])])
+        expect(
+          crosses(leader, box),
+          `leader ${JSON.stringify(leader)} over ${box.name}`,
+        ).toBe(false);
+  }
+
+  // The stage is the viewport less 96 px, up to 1344.
+  for (const viewport of [736, 864, 996, 1120, 1280, 1440]) {
+    test(`the ship names its rooms at a ${viewport} px viewport: clean plates or captions`, async ({
       page,
     }) => {
-      await page.setViewportSize({ width, height: 900 });
+      await page.setViewportSize({ width: viewport, height: 900 });
       await openBay(page);
       const rooms = page.locator('.nexus-bay__rooms');
-      await expect(rooms).toHaveAttribute('aria-hidden', 'true');
-      await expect(rooms).toHaveCSS('pointer-events', 'none');
-      await expect(rooms.getByText('Bridge', { exact: true })).toBeVisible();
-      await expect(rooms.getByText('Meridian (module)')).toBeVisible();
-      await expect(
-        rooms.getByText('Reactor, FusionReactor (provider)'),
-      ).toBeVisible();
       await expect(page.locator('.nexus-bay__legend')).not.toContainText(
         'Painted pipes',
       );
       await expect(page.locator('.nexus-bay__hint')).toBeVisible();
-
-      const found = await page.evaluate(() => {
-        type Box = { name: string; x: number; y: number; w: number; h: number };
-        const rect = (el: Element, name: string): Box => {
-          const r = el.getBoundingClientRect();
-          return { name, x: r.left, y: r.top, w: r.width, h: r.height };
-        };
-        const labels = [...document.querySelectorAll('[data-room-label]')].map(
-          (el) => rect(el, el.getAttribute('data-room-label') ?? ''),
-        );
-        const glyphs = [
-          ...document.querySelectorAll(
-            '.nexus-bay__wide [data-bay-part] .bay-hit',
-          ),
-        ].map((el) => {
-          // The hit circle is 24 px with a fine pointer; Firefox reports a
-          // larger box for the SVG circle, so each engine's centre stands for it.
-          const r = rect(
-            el,
-            el.closest('[data-bay-part]')?.getAttribute('data-bay-part') ?? '',
-          );
-          const cx = r.x + r.w / 2;
-          const cy = r.y + r.h / 2;
-          return { ...r, x: cx - 12, y: cy - 12, w: 24, h: 24 };
-        });
-        const hint = rect(
-          document.querySelector('.nexus-bay__hint') as Element,
-          'hint',
-        );
-        const svg = document.querySelector('.nexus-bay__leaders') as Element;
-        const frame = svg.getBoundingClientRect();
-        const leaders = [...svg.querySelectorAll('polyline')].map((line) => {
-          const pts = (line.getAttribute('points') ?? '')
-            .split(' ')
-            .map((pair) => pair.split(',').map(Number) as [number, number]);
-          // The leaders draw in the frame `-5 0 80 20`.
-          return pts.map(
-            ([x, y]) =>
-              [
-                frame.left + ((x + 5) / 80) * frame.width,
-                frame.top + (y / 20) * frame.height,
-              ] as [number, number],
-          );
-        });
-        return { labels, glyphs, hint, leaders };
-      });
-      type B = (typeof found.labels)[number];
-      const overlap = (a: B, b: B) =>
-        a.x < b.x + b.w &&
-        b.x < a.x + a.w &&
-        a.y < b.y + b.h &&
-        b.y < a.y + a.h;
-      const crosses = (seg: [number, number][], box: B) => {
-        const [from, to] = seg as [[number, number], [number, number]];
-        for (let i = 0; i <= 100; i++) {
-          const x = from[0] + ((to[0] - from[0]) * i) / 100;
-          const y = from[1] + ((to[1] - from[1]) * i) / 100;
-          if (
-            x >= box.x &&
-            x <= box.x + box.w &&
-            y >= box.y &&
-            y <= box.y + box.h
-          )
-            return true;
-        }
-        return false;
-      };
-      expect(found.labels).toHaveLength(7);
-      for (const [i, label] of found.labels.entries()) {
-        for (const other of found.labels.slice(i + 1))
-          expect(overlap(label, other), `${label.name} ${other.name}`).toBe(
-            false,
-          );
-        for (const box of [...found.glyphs, found.hint])
-          expect(overlap(label, box), `${label.name} over ${box.name}`).toBe(
-            false,
-          );
+      const found = await roomGeometry(page);
+      if (found.mode === 'callouts') {
+        expect(found.captions).toBe(false);
+        await expect(rooms).toHaveAttribute('aria-hidden', 'true');
+        await expect(rooms).toHaveCSS('pointer-events', 'none');
+        expect(found.labels).toHaveLength(7);
+        expectClean(found, false);
+        await expect(
+          rooms.getByText('Engineering (module), ReactorCore (provider)'),
+        ).toBeVisible();
+      } else {
+        // No plate is drawn: the rooms are named in a line under the ship.
+        expect(found.labels).toHaveLength(0);
+        expect(found.captions).toBe(true);
+        await expect(page.locator('.nexus-bay__room-captions')).toBeVisible();
       }
-      for (const leader of found.leaders)
-        for (const box of [...found.glyphs, found.hint])
-          expect(
-            crosses(leader, box),
-            `leader ${JSON.stringify(leader)} over ${box.name} ${JSON.stringify(box)}`,
-          ).toBe(false);
-      // A press on a glyph still goes through the label layer.
-      await press(page, 'conduit-Tactical-Comms');
-      await expect(page.locator('.nexus-bay__alert')).toBeVisible();
+      if (viewport >= 1280) expect(found.mode).toBe('callouts');
+      // A press on a glyph still goes through the layer. Below 1000 px the
+      // rings of neighbouring parts already overlap, so only a desktop presses.
+      if (viewport >= 1280) {
+        await press(page, 'conduit-Tactical-Comms');
+        await expect(page.locator('.nexus-bay__alert')).toBeVisible();
+      }
+    });
+  }
+
+  for (const width of [1440, 1280]) {
+    test(`with a conduit cut or a system offline at ${width}, no plate covers a note`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openBay(page);
+      for (const part of [
+        'conduit-Tactical-Comms',
+        'conduit-Tactical-Engineering',
+        'system-ShipComputer',
+        'hatch-ShipComputer',
+      ]) {
+        await press(page, part);
+        await expect(page.locator('.nexus-bay__alert')).toBeVisible();
+        const found = await roomGeometry(page);
+        for (const label of found.labels)
+          for (const box of found.transient.filter((b) => b.name === 'note'))
+            expect(
+              overlaps(label, box),
+              `${part}: ${label.name} over a ${box.name}`,
+            ).toBe(false);
+        await page.getByRole('button', { name: 'Reset' }).click();
+        await expect(page.locator('.nexus-bay__alert')).toBeHidden();
+      }
+    });
+  }
+
+  // Owner ruling OR2: the whole bay fits one 1440x900 viewport, whatever it shows.
+  const OR2_STATES: [string, (page: Page) => Promise<void>][] = [
+    ['rest', async () => undefined],
+    [
+      'cut',
+      async (page) => {
+        await press(page, 'conduit-Tactical-Comms');
+        await expect(terminal(page)).toContainText('exit 1');
+      },
+    ],
+    [
+      'unpowered',
+      async (page) => {
+        await press(page, 'system-ShipComputer');
+        await expect(terminal(page)).toContainText('exit 1');
+      },
+    ],
+    [
+      'failed-startup',
+      async (page) => {
+        await press(page, 'chart-server');
+        await expect(status(page)).toHaveText('Check passed');
+        await launch(page).click();
+        await expect(page.locator('.nexus-bay__caption')).toBeVisible({
+          timeout: 10_000,
+        });
+        await expect(launch(page)).toHaveText(/Relaunch/);
+      },
+    ],
+  ];
+  for (const [state, act] of OR2_STATES) {
+    test(`OR2: the ${state} state fits 1440x900`, async ({ page }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await openBay(page);
+      await act(page);
+      // The bay sits just under the navbar, as a visitor leaves it.
+      await page.evaluate(() => {
+        const bay = document.querySelector('#pre-flight');
+        if (bay)
+          window.scrollTo(
+            0,
+            bay.getBoundingClientRect().top + window.scrollY - 72,
+          );
+      });
+      const bottoms = await page.evaluate(() => {
+        const bottom = (selector: string) =>
+          document.querySelector(selector)?.getBoundingClientRect().bottom ??
+          null;
+        const log = document.querySelector('[role="log"]');
+        return {
+          body: bottom('.nexus-bay__body'),
+          terminal: log?.getBoundingClientRect().bottom ?? null,
+          launch: bottom('.nexus-bay__launch'),
+          button: bottom('#bay-launch'),
+          caption: bottom('.nexus-bay__caption'),
+          side: bottom('.nexus-bay__side'),
+        };
+      });
+      for (const [name, value] of Object.entries(bottoms))
+        if (value !== null)
+          expect(value, `${state}: bottom of ${name}`).toBeLessThanOrEqual(900);
     });
   }
 

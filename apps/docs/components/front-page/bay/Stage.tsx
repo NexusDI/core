@@ -8,6 +8,7 @@ import {
   FRAME,
   HIT_PX,
   PARTS_IN_HULL_ORDER,
+  ROOM_LABELS,
   WIDE_CROP,
   partById,
   partsInRun,
@@ -17,7 +18,7 @@ import {
   type SectionId,
 } from './geometry';
 import { Overlay, placardLines, type PartHandlers } from './Overlay';
-import { layoutRoomLabels, roomRects } from './room-labels';
+import { layoutRoomLabels, roomRects, type RoomLayout } from './room-labels';
 import { stageBase } from './stage-base';
 import type { Callout, Note, ShipView } from './ship-view';
 
@@ -141,7 +142,7 @@ function Callouts({
         .map((note) => (
           <p
             key={note.id}
-            className="nexus-bay__note"
+            className={`nexus-bay__note${note.id.startsWith('standby-') ? ' nexus-bay__note--start' : ''}`}
             style={percent(note.at, FRAME) as CSSProperties}
           >
             {note.text}
@@ -173,16 +174,27 @@ function Callouts({
  * rooms that have space. The screen reader already reaches the rooms through
  * the parts, so the layer is hidden from it.
  */
-function RoomLabels({ markup, ppm }: { markup: string; ppm: number }) {
-  const placed = layoutRoomLabels(roomRects(markup), ppm);
+const rectCache = new Map<string, ReturnType<typeof roomRects>>();
+const roomRectsOf = (markup: string) => {
+  let rects = rectCache.get(markup);
+  if (!rects) rectCache.set(markup, (rects = roomRects(markup)));
+  return rects;
+};
+
+function RoomLabels({ layout }: { layout: RoomLayout }) {
+  const { labels } = layout;
   return (
-    <div className="nexus-bay__rooms" aria-hidden="true">
+    <div
+      className="nexus-bay__rooms"
+      aria-hidden="true"
+      data-mode={layout.mode}
+    >
       <svg
         className="nexus-bay__leaders"
         viewBox={FRAME.join(' ')}
         preserveAspectRatio="none"
       >
-        {placed.map((entry) =>
+        {labels.map((entry) =>
           entry.leader ? (
             <polyline
               key={entry.label.room}
@@ -192,20 +204,38 @@ function RoomLabels({ markup, ppm }: { markup: string; ppm: number }) {
           ) : null,
         )}
       </svg>
-      {placed.map((entry) => (
+      {labels.map((entry) => (
         <p
           key={entry.label.room}
           className="nexus-bay__room"
           data-room-label={entry.label.room}
-          style={percent([entry.box.x, entry.box.y], FRAME) as CSSProperties}
+          style={
+            {
+              ...percent([entry.box.x, entry.box.y], FRAME),
+              inlineSize: `${(entry.box.w / FRAME[2]) * 100}%`,
+              blockSize: `${(entry.box.h / FRAME[3]) * 100}%`,
+            } as CSSProperties
+          }
         >
-          <span>{entry.lines[0]}</span>
-          {entry.lines.slice(1).map((line) => (
-            <small key={line}>{line}</small>
+          {entry.lines.map((line) => (
+            <span key={line}>{line}</span>
           ))}
         </p>
       ))}
     </div>
+  );
+}
+
+/** The names of the rooms in a line under the ship, for a stage too narrow for plates. */
+function RoomCaptions() {
+  return (
+    <p className="nexus-bay__room-captions" aria-hidden="true">
+      {ROOM_LABELS.map((label) => (
+        <span key={label.room}>
+          {label.title} ({label.module})
+        </span>
+      ))}
+    </p>
   );
 }
 
@@ -217,9 +247,9 @@ function Hull({
   ppm,
   keep,
   light,
-  labels,
+  roomLayout,
 }: {
-  labels?: boolean;
+  roomLayout?: RoomLayout | null;
   light?: { canvas: ReactNode; lit: boolean } | null;
   markup: string;
   scope: string;
@@ -255,7 +285,9 @@ function Hull({
           graph={props.graph}
         />
       </Schematic>
-      {labels ? <RoomLabels markup={markup} ppm={ppm} /> : null}
+      {roomLayout?.mode === 'callouts' ? (
+        <RoomLabels layout={roomLayout} />
+      ) : null}
       <Callouts
         items={view.callouts}
         notes={view.notes}
@@ -280,6 +312,9 @@ export function Stage(props: StageProps) {
   const total = crop.runs.reduce((sum, [from, to]) => sum + to - from, 0);
   const share = (metres: number) =>
     `calc((100% - ${BREAK_PX * (crop.runs.length - 1)}px) * ${metres / total})`;
+  const roomLayout = wide
+    ? layoutRoomLabels(roomRectsOf(markup), props.width.wide / WIDE_CROP[2])
+    : null;
   const className = `nexus-bay__stage${props.showGraph ? ' is-graph' : ''}`;
   return (
     <div className={className}>
@@ -293,10 +328,11 @@ export function Stage(props: StageProps) {
               props={props}
               ppm={props.width.wide / WIDE_CROP[2]}
               keep={() => true}
-              labels
+              roomLayout={roomLayout}
               light={props.light}
             />
           </HullCrop>
+          {roomLayout?.mode === 'captions' ? <RoomCaptions /> : null}
         </div>
       ) : null}
       {phone ? (
