@@ -370,7 +370,7 @@ test.describe('the pre-flight bay', () => {
   }
 
   // The stage is the viewport less 96 px, up to 1344.
-  for (const viewport of [736, 864, 996, 1120, 1280, 1440]) {
+  for (const viewport of [640, 736, 864, 996, 1120, 1280, 1440]) {
     test(`the ship names its rooms at a ${viewport} px viewport: clean plates or captions`, async ({
       page,
     }) => {

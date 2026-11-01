@@ -537,16 +537,34 @@ export default function PreflightBay({
     'off' | 'loading' | 'on' | 'failed'
   >('off');
   // A callout the visitor caused hides the room plates under it (OR6).
+  // Measure again only when what can cover a plate changes, so a terminal that
+  // streams does not force a layout on every render.
+  const coverKey = JSON.stringify([
+    view.callouts.map((item) => [item.id, item.at]),
+    view.notes.map((note) => [note.id, note.at]),
+    model.hover,
+    model.width,
+    model.interacted,
+  ]);
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
-    applyRoomCoverage(root);
+    let live = true;
+    const apply = () => {
+      if (live) applyRoomCoverage(root);
+    };
+    apply();
     // The type and the notes settle after the first frame, and a callout moves
     // the layout: measure again once they have.
-    const frame = requestAnimationFrame(() => applyRoomCoverage(root));
-    void document.fonts?.ready.then(() => applyRoomCoverage(root));
-    return () => cancelAnimationFrame(frame);
-  });
+    const frame = requestAnimationFrame(apply);
+    void document.fonts?.ready.then(apply);
+    return () => {
+      live = false;
+      cancelAnimationFrame(frame);
+    };
+    // The key holds everything that the measure reads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coverKey]);
 
   const lightKey = JSON.stringify([view.light.rooms, view.light.glow]);
 
