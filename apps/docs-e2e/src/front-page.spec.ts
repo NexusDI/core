@@ -348,7 +348,7 @@ test.describe('the lit scene', () => {
     await expect(page.locator('.meridian-schematic--lit')).toHaveCount(2);
     const canvases = page.locator('.nexus-bay__phone canvas.nexus-bay__canvas');
     await expect(canvases).toHaveCount(2);
-    // A run's canvas holds the crop of a frame, not a blank: some pixel is not clear.
+    // A run's canvas holds the crop of a frame: at least one of its pixels is opaque.
     const painted = await canvases.first().evaluate((element) => {
       const canvas = element as HTMLCanvasElement;
       const data = canvas
@@ -381,6 +381,23 @@ test.describe('the lit scene', () => {
     await openBay(page);
     await expect(light(page)).toHaveAttribute('data-light', 'off');
     await expect(page.locator('.meridian-schematic--lit')).toHaveCount(0);
+  });
+
+  test('a wide screen lights the stage whatever memory the browser reports', async ({
+    page,
+    browserName,
+  }) => {
+    test.skip(
+      browserName !== 'chromium',
+      'The software GL of Chromium is the reference.',
+    );
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'deviceMemory', { value: 2 });
+    });
+    await openBay(page);
+    await expect(light(page)).toHaveAttribute('data-light', 'on', {
+      timeout: 30_000,
+    });
   });
 });
 

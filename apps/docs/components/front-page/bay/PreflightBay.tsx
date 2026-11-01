@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NexusGraph } from '@nexusdi/devtools';
 import type { ConduitId, SystemId } from '@nexusdi/meridian/scenes/front-page';
 import type { TraceEvent } from '@nexusdi/core';
@@ -55,9 +55,10 @@ const RUNTIME_MARGIN = '600px';
 /**
  * Why the lit scene does not start, or null when it may (TL24): a reader who
  * asked to save data, asked for reduced data, forces colours, or has no
- * WebGL 2 loads nothing of it and keeps the tints.
+ * WebGL 2 loads nothing of it and keeps the tints. A phone that reports less
+ * than 4 GB of memory keeps them too (TL31).
  */
-function litGate(): string | null {
+function litGate(phone: boolean): string | null {
   const connection = (
     navigator as Navigator & { connection?: { saveData?: boolean } }
   ).connection;
@@ -69,7 +70,7 @@ function litGate(): string | null {
   // Where the browser reports its memory, a phone with less than 4 GB keeps the tints.
   const memory = (navigator as Navigator & { deviceMemory?: number })
     .deviceMemory;
-  if (memory !== undefined && memory < 4) return 'low-memory';
+  if (phone && memory !== undefined && memory < 4) return 'low-memory';
   const probe = document.createElement('canvas');
   const gl = probe.getContext('webgl2');
   if (!gl) return 'no-webgl2';
@@ -521,7 +522,7 @@ export default function PreflightBay({
   // gates in `litGate`. The tints of the Schematic light the ship until the
   // first frame.
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const mirrorRef = useRef(new RunMirror());
+  const [mirror] = useState(() => new RunMirror());
   const lightRef = useRef<BayLight | null>(null);
   const [lit, setLit] = useState(false);
   const [lightMark, setLightMark] = useState<string | null>(null);
@@ -538,14 +539,13 @@ export default function PreflightBay({
 
   // The crops of another section, or of another width, paint from the last frame.
   useEffect(() => {
-    mirrorRef.current.show(model.section);
-  }, [model.section, model.width, model.phone]);
+    mirror.show(model.section);
+  }, [mirror, model.section, model.width, model.phone]);
 
   useEffect(() => {
     const root = rootRef.current;
-    if (!root || litGate() !== null) return;
+    if (!root || litGate(model.phone) !== null) return;
     const phone = model.phone;
-    const mirror = mirrorRef.current;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let losses = 0;
@@ -664,12 +664,20 @@ export default function PreflightBay({
       light?.view.detach();
       void light?.dispose();
     };
-  }, [model.phone]);
+  }, [mirror, model.phone]);
 
   /** The 2D canvas of a run on a phone: its crop of the lit scene. */
+  const runRefs = useMemo(
+    () =>
+      [0, 1].map(
+        (run) => (element: HTMLCanvasElement | null) =>
+          mirror.register(run, element),
+      ),
+    [mirror],
+  );
   const runCanvas = (run: number) => (
     <canvas
-      ref={(element) => mirrorRef.current.register(run, element)}
+      ref={runRefs[run]}
       className="nexus-bay__canvas"
       aria-hidden="true"
     />
