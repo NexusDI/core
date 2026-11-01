@@ -417,7 +417,7 @@ export default function PreflightBay({
       if (!fix) return;
       const { state } = modelRef.current;
       if (fix.kind === 'import') {
-        const part = partById(`conduit-${fix.conduit.replace('>', '-')}`);
+        const part = partById(`conduit-${fix.conduit.replaceAll('>', '-')}`);
         if (part) {
           patch({ section: part.section });
           change(withPart(state, part, true), fix.conduit);

@@ -338,14 +338,20 @@ export function checkBudgets(out, { basePath = '' } = {}) {
  */
 export function importGroups(sources) {
   const groups = [];
+  const open = 'Promise.all([';
   for (const source of sources) {
-    for (const match of source.matchAll(
-      /Promise\.all\(\[((?:\s*"[^"]*"\s*,?)+)\]/g,
-    )) {
-      const chunks = [...match[1].matchAll(/"([^"]*)"/g)]
+    // indexOf scans each list once, so a long or broken list costs linear time.
+    let at = source.indexOf(open);
+    while (at !== -1) {
+      const start = at + open.length;
+      const end = source.indexOf(']', start);
+      if (end === -1) break;
+      const list = source.slice(start, end);
+      const chunks = [...list.matchAll(/"([^"]*)"/g)]
         .map((each) => each[1])
         .filter((path) => path.endsWith('.js'));
       if (chunks.length > 0) groups.push(chunks);
+      at = source.indexOf(open, end);
     }
   }
   return groups;
