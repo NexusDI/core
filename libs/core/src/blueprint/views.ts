@@ -1,4 +1,5 @@
 import { isInline, ordersBuild } from './build-order.js';
+import { moduleInternals } from '../definitions/define-module.js';
 import type {
   ModuleDefinition,
   ProviderEntry,
@@ -61,6 +62,8 @@ export interface ModuleView {
   readonly id: string;
   readonly name: string;
   readonly global: boolean;
+  /** True for the instance a `forRoot()` or `forRootAsync()` call made. */
+  readonly configured: boolean;
   /** The ids of the imported modules, then the ids a load import added. */
   readonly imports: readonly string[];
   /** The module ids a load import added to `imports` beyond the module's own imports, in load import order. A load import of a module the module already imports stays out of it. */
@@ -208,6 +211,7 @@ export function buildView(
         id: m.id,
         name: m.name,
         global: m.global,
+        configured: moduleInternals(m.definition)?.source !== undefined,
         imports: Object.freeze([...m.imports]),
         loadImports: Object.freeze([...m.loadImports]),
         exports: Object.freeze([...(parts.moduleExports.get(m.id) ?? [])]),

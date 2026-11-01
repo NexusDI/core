@@ -69,24 +69,50 @@ function nearMissHint(token: string, module: string, miss: NearMiss): string {
   }
 }
 
+interface FixContext {
+  /** True when the failing module is a forRoot() or forRootAsync() instance. */
+  readonly configured: boolean;
+  /** True when the module of that name is global. */
+  readonly isGlobal: (name: string) => boolean;
+}
+
 function nearMissFix(
   token: string,
   module: string,
   misses: readonly NearMiss[],
+  context: FixContext,
 ): string {
   const reachable = misses.find(
     (miss) => miss.kind === 'not-exported' || miss.kind === 'not-imported',
   );
   if (reachable?.kind === 'not-exported') {
-    return `add ${token} to ${reachable.module}'s exports and import ${reachable.module} into ${module}.`;
+    const exportIt = `add ${token} to ${reachable.module}'s exports`;
+    return context.isGlobal(reachable.module)
+      ? `${exportIt}. ${reachable.module} is global, so ${module} sees what it exports.`
+      : `${exportIt} and import ${reachable.module} into ${module}.`;
   }
   if (reachable?.kind === 'not-imported')
     return `import ${reachable.module} into ${module}.`;
   const importer = misses.find((miss) => miss.kind === 'importer');
   if (importer !== undefined) {
-    return `${importer.module} imports ${module}, so ${module} cannot import ${importer.module}. Move ${token} into a module that ${module} imports, or make that module global. A module factory that imports the module providing ${token} also works.`;
+    const factory = context.configured
+      ? ` A function that returns a module importing ${importer.module}'s provider module also works.`
+      : '';
+    return `${importer.module} imports ${module}, so ${module} cannot import ${importer.module}. Move ${token} into a module that ${module} imports, or into a global module that exports it.${factory}`;
   }
   return `provide ${token} in ${module} or in a module ${module} imports.`;
+}
+
+function fixContext(
+  view: BlueprintView | undefined,
+  lookup: MissingLookup | null | undefined,
+): FixContext {
+  const modules = view?.modules ?? [];
+  const failing = modules.find((m) => m.id === lookup?.moduleId);
+  return {
+    configured: failing?.configured ?? false,
+    isGlobal: (name) => modules.some((m) => m.name === name && m.global),
+  };
 }
 
 /**
@@ -115,7 +141,7 @@ const missingProvider = (
     message: [
       head,
       ...nearMisses.map((miss) => `  ${nearMissHint(token, module, miss)}`),
-      `  Fix: ${nearMissFix(token, module, nearMisses)}`,
+      `  Fix: ${nearMissFix(token, module, nearMisses, fixContext(view, lookup))}`,
     ].join('\n'),
     nearMisses,
   };

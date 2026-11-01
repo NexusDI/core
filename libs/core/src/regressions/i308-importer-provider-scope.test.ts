@@ -129,7 +129,7 @@ describe('#308 a configurable module and its importer', () => {
     expect(message).toBe(
       'DeckOptions (module DeckState) depends on AppSource, but no provider of AppSource is visible in DeckState.\n' +
         '  AppSource is provided in App, which imports DeckState, directly or through other modules.\n' +
-        '  Fix: App imports DeckState, so DeckState cannot import App. Move AppSource into a module that DeckState imports, or make that module global. A module factory that imports the module providing AppSource also works.',
+        '  Fix: App imports DeckState, so DeckState cannot import App. Move AppSource into a module that DeckState imports, or into a global module that exports it.',
     );
   });
 });

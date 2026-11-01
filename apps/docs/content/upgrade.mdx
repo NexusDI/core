@@ -140,7 +140,7 @@ The 0.3 static `DynamicModule.forRoot(config)` took a module config and returned
 
 ### A Child Module That Read Its Parent's Provider
 
-0.3 kept one flat provider map, so a child module could read a provider that the module importing it provided. 0.4 does not let it: a module never sees the providers of the module that imports it. `Tactical` provides `REACTOR` and imports `Engineering`, whose computer needs `REACTOR`, so `Engineering` cannot resolve it. Importing `Tactical` into `Engineering` would close an import cycle, and `exports` on `Tactical` changes nothing. Move the provider into a module that the child imports, or into a global module:
+0.3 kept one flat provider map, so a child module could read a provider that the module importing it provided. 0.4 does not let it: a module never sees the providers of the module that imports it, unless that module is global and exports the provider. `Tactical` provides `REACTOR` and imports `Engineering`, whose computer needs `REACTOR`, so `Engineering` cannot resolve it. Importing `Tactical` into `Engineering` would close an import cycle, and `exports` on `Tactical` changes nothing. Move the provider into a module that the child imports, or into a global module:
 
 ```ts file=examples/meridian/src/pages/upgrade.md region=child-reads-parent
 
