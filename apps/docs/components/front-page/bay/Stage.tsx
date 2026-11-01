@@ -6,6 +6,8 @@ import {
   CROPS,
   BREAK_PX,
   FRAME,
+  HINT_GAP_PX,
+  HINT_MIN_PX,
   HIT_PX,
   PARTS_IN_HULL_ORDER,
   ROOM_LABELS,
@@ -69,10 +71,6 @@ const percent = (
   left: `${((point[0] - box[0]) / box[2]) * 100}%`,
   top: `${((point[1] - box[1]) / box[3]) * 100}%`,
 });
-
-/** The gap that the hint keeps from its conduit, and the least width at which it still reads left of it. */
-const HINT_GAP_PX = 28;
-const HINT_MIN_PX = 120;
 
 function Callouts({
   items,
@@ -168,12 +166,6 @@ function Callouts({
   );
 }
 
-/**
- * The name of each hull section's rooms, drawn on the art: callouts in the
- * bands above and under the hull with leader lines, and labels inside the
- * rooms that have space. The screen reader already reaches the rooms through
- * the parts, so the layer is hidden from it.
- */
 const rectCache = new Map<string, ReturnType<typeof roomRects>>();
 const roomRectsOf = (markup: string) => {
   let rects = rectCache.get(markup);
@@ -181,6 +173,12 @@ const roomRectsOf = (markup: string) => {
   return rects;
 };
 
+/**
+ * The name of each hull section's rooms, drawn on the art: callouts in the
+ * bands above and under the hull with leader lines, and labels inside the
+ * rooms that have space. The screen reader already reaches the rooms through
+ * the parts, so the layer is hidden from it.
+ */
 function RoomLabels({ layout }: { layout: RoomLayout }) {
   const { labels } = layout;
   return (

@@ -135,6 +135,13 @@ export const ROOM_LABELS: readonly RoomLabel[] = [
   },
 ];
 
+/**
+ * The gap that the idle hint keeps from its conduit, and the least width at
+ * which it still reads left of it. Under that width it sits above the hull.
+ */
+export const HINT_GAP_PX = 28;
+export const HINT_MIN_PX = 120;
+
 /** The part that the idle hint ("Click a conduit to cut it") hangs beside. */
 export const HINT_PART = 'conduit-Tactical-Comms';
 

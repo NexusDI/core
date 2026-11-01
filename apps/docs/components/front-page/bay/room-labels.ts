@@ -1,4 +1,6 @@
 import {
+  HINT_GAP_PX,
+  HINT_MIN_PX,
   HINT_PART,
   HIT_PX,
   PARTS_IN_HULL_ORDER,
@@ -13,9 +15,10 @@ import {
  * Where the room labels go on the wide stage, in metres of the schematic's
  * frame. A callout takes a place in the band above or under the hull and is
  * joined to its room by a leader line. An in-room label takes the first clear
- * place on the bottom or the top edge of its room. The layout reads the room rects of the schematic and the
- * parts of the ship, and sizes every plate from the text with the type metrics
- * below, so the table of labels holds no coordinates.
+ * place on the bottom or the top edge of its room. The layout reads the room
+ * rects of the schematic and the parts of the ship, and sizes every plate from
+ * the text with the type metrics below, so the table of labels holds no
+ * coordinates.
  *
  * Each plate and leader must clear every hit ring, the idle hint, the standing
  * note of the flight log and every other plate. When the stage is too narrow
@@ -134,32 +137,43 @@ export function glyphBoxes(ppm: number): Box[] {
 }
 
 /**
- * The idle hint's size in CSS pixels. It hangs left of its part, so on a
- * narrow stage the room left of the part is less than its natural width and the
- * text wraps to fit it.
+ * The idle hint, in CSS pixels. Where the room left of its conduit is at least
+ * `HINT_MIN_PX` wide, the hint hangs left of the conduit and wraps to that
+ * room. Under it, the hint sits in the sky above the hull, in one line,
+ * centred over the conduit. The stage draws the same rule.
  */
 function hintSize(ppm: number): {
   widthPx: number;
   heightPx: number;
   lines: number;
+  sky: boolean;
 } {
   const at = partById(HINT_PART)?.at ?? [0, 0];
-  const room = (at[0] - WIDE_CROP[0]) * ppm - HINT.gapPx - 6;
-  const widthPx = Math.max(70, Math.min(HINT.widthPx, room));
+  const room = (at[0] - WIDE_CROP[0]) * ppm - HINT_GAP_PX;
+  if (room < HINT_MIN_PX)
+    return {
+      widthPx: HINT.widthPx,
+      lines: 1,
+      heightPx: HINT.lineHeightPx + HINT.padPx,
+      sky: true,
+    };
+  const widthPx = Math.min(HINT.widthPx, room);
   const lines = Math.ceil((HINT.widthPx - HINT.padPx) / (widthPx - HINT.padPx));
   return {
     widthPx,
     lines,
     heightPx: lines * HINT.lineHeightPx + HINT.padPx,
+    sky: false,
   };
 }
 
-/** The box of the idle hint, which hangs left of the part that it names. */
+/** The box of the idle hint: left of the conduit that it names, or in the sky over it. */
 export function hintBox(ppm: number): Box {
   const at = partById(HINT_PART)?.at ?? [0, 0];
   const size = hintSize(ppm);
   const w = size.widthPx / ppm;
   const h = size.heightPx / ppm;
+  if (size.sky) return { x: at[0] - w / 2, y: WIDE_CROP[1] + 0.2, w, h };
   return { x: at[0] - HINT.gapPx / ppm - w, y: at[1] - h / 2, w, h };
 }
 

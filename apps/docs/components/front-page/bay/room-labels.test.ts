@@ -21,7 +21,7 @@ const markup = readFileSync(
 const rects = roomRects(markup);
 
 // The stage is 1344 px wide at a 1440 viewport and 96 px less under it.
-const WIDTHS = [640, 768, 900, 1024, 1184, 1344];
+const WIDTHS = [544, 640, 768, 900, 1024, 1184, 1344];
 
 describe('the room rects', () => {
   it('read every room that a label names, whatever the order of the attributes', () => {
