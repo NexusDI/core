@@ -47,6 +47,9 @@
               "twoslash",
               "typescript"
             ]
+          },
+          {
+            "runtime": "node -e \"const f=require('fs'),n=['shiki','@shikijs/themes','@shikijs/transformers','@shikijs/twoslash','twoslash'];console.log(n.map(p=>{for(const d of ['apps/docs/node_modules','node_modules']){try{return p+'@'+JSON.parse(f.readFileSync(d+'/'+p+'/package.json','utf8')).version}catch{}}return p+'@none'}).join(' '))\""
           }
         ],
         "outputs": [
