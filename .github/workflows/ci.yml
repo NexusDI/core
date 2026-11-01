@@ -88,8 +88,8 @@ jobs:
   # because Nx ran three tasks at once and each vitest run started three
   # workers beside the docs build's dozen. A test that takes 100 ms on a
   # laptop then took 2 to 5 s and hit vitest's 5 s timeout (#141).
-  # main-build runs the compilers and linters, and main-test runs the
-  # suites with nothing else on the runner.
+  # main-build runs the compilers and linters. main-test runs the suites
+  # and the builds they depend on, two tasks at a time.
   main-build:
     runs-on: ubuntu-latest
     steps:
