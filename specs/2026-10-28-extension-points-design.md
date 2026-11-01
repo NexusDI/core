@@ -176,9 +176,9 @@ since the pin drops every other record of the token. A pin first made at a load 
 checked like any record (#230). A loaded module's private contributions stay legal,
 subject to K2.
 
-- `nexus.ts:108` wraps a thrown `LoadError` in `BlueprintError` for `Nexus.check`. One helper,
+- `nexus.ts:108` wraps a thrown `LoadError` in `BlueprintError` for `check()`. One helper,
   `isLoadError(error)`, covers `LoadError`, `LoadContributionError` and K4's
-  `LoadImportError`, and `Nexus.check` wraps each.
+  `LoadImportError`, and `check()` wraps each.
 - `errors/is-nexus-error.ts` maps the code to its class, and `NexusErrorCode` (`errors/codes.ts`) derives from that map.
 - `text/core-text.ts` gives the text: "`<module>` publishes a contribution to `<token>`, and
   `load()` cannot add to a multi token: collectors built at startup hold their lists." The
@@ -287,7 +287,7 @@ After pass 3 (`bind`), the compile raises `UnreadContributionError`, code
 A provider of M reads T when its record binds T through all() or lazy(all()), either as written or as the compile.provider hooks return it. The check runs over the records the hooks return, so a contribution a hook removes is not checked and a pinned token is skipped.
 
 The errors go into the `BlueprintError` list after pass 3's errors, in record order.
-`Nexus.create`, `load()` and `Nexus.check` raise them, since all three compile. A loaded
+`Nexus.create`, `load()` and `check()` raise them, since all three compile. A loaded
 module is an import of the root and not the root, so the rule applies to it.
 
 The text: "`<provider>` contributes to `<token>` in `<module>`, and no provider can read it."
@@ -337,7 +337,7 @@ interface LoadOptions {
 
 load(module: ModuleRef, options?: LoadOptions): Promise<void>;
 
-/** A module for Nexus.check to load, with its load imports. */
+/** A module for check() to load, with its load imports. */
 type LoadEntry =
   | ModuleRef
   | { readonly module: ModuleRef; readonly imports: readonly ModuleRef[] };
@@ -384,7 +384,7 @@ and react-router, and `lazySection(name, loader, options?)` in `@nexusdi/react`.
 
 `LoadImportError`, code `NEXUS_LOAD_IMPORT`, fields `module` (the loaded module), `imported`
 (the imported module's name) and `reason: 'not-in-graph' | 'root' | 'already-loaded'`. `compile()`
-raises it with the other load checks and throws it directly. `Nexus.check` wraps it through
+raises it with the other load checks and throws it directly. `check()` wraps it through
 `isLoadError` (section 4.5). It gets a code entry, an `is-nexus-error` mapping, text with a
 fix per reason in `core-text.ts`, an error page and an error example.
 
@@ -454,7 +454,7 @@ extra)` already appends `extra` refs to a node's imports, the mechanism the root
 
 - K1 goes into 0.4 (rc.3) as the default for every multi token, with `exports` as publish.
   No `collect: 'imports'` mode: no user needs it.
-- `NEXUS_LOAD_CONTRIBUTION` is enforced in `compile()`, so `Nexus.check({ load })` reports it.
+- `NEXUS_LOAD_CONTRIBUTION` is enforced in `compile()`, so `check({ load })` reports it.
 - rc users are not a constraint: "they are aware that new RCs can break things". Nothing
   moves to 0.5 to protect rc.2 API.
 - K2, K3 and K4 are in 0.4.

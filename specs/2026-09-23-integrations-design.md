@@ -77,7 +77,7 @@ API references checked against rc.1:
    change.
 3. `isNexusError(value, code?)` now takes an optional code and narrows to that code's
    class (`errors/is-nexus-error.ts`). Section 3.6 uses that form for the one 503 case.
-4. `Nexus.check(root, { plugins, load })` is new: a static compile (`runtime/nexus.ts:70-108`).
+4. `check(root, { plugins, load })` is new: a static compile (`runtime/nexus.ts:70-108`).
    The one user code it calls besides the plugin hooks is the options schema of each `forRoot()` value (owner,
    2026-10-30, #251). It judges a result that comes back synchronously. It does not await a
    schema that returns a promise, and it does not validate a `forRootAsync()` module's
@@ -970,7 +970,7 @@ The adapters use core's public API and nothing else. Each need, checked against 
 | structured log line                            | `err.code` and the own enumerable fields (`errors/nexus-error.ts`)    | none                                                  |
 | full error text in development                 | the user registers `errors()` or `devtools()`                         | `formatError`, owned by `@nexusdi/errors`             |
 | ambient scope                                  | `nodeScopes()` from `@nexusdi/node`                                   | none; not a plugin                                    |
-| a static startup check on edge                 | `Nexus.check(root, { load })` (`runtime/nexus.ts:70`)                 | none                                                  |
+| a static startup check on edge                 | `check(root, { load })` (`runtime/nexus.ts:70`)                       | none                                                  |
 | tests observe scopes                           | `trace(fn)` from `@nexusdi/devtools`                                  | `observe`, owned by core, used by `@nexusdi/devtools` |
 | `@nexusdi/vitest` builds a testing container   | `createTestingContainer` from `@nexusdi/testing`                      | `compile.*` and `onInit`, used by `@nexusdi/testing`  |
 
@@ -1939,7 +1939,7 @@ Rules the edge guide states:
 - Scoped factories that are synchronous get `eager: false`, so core builds them on first
   `get()` and a request that does not need them does not run them. Async scoped factories
   stay eager (`NEXUS_LAZY_ASYNC`).
-- The startup check runs in CI: `Nexus.check(Meridian, { load: [Navigation] })` in a test
+- The startup check runs in CI: `check(Meridian, { load: [Navigation] })` in a test
   compiles the graph and runs each sync `forRoot()` options schema, so a wrong token or a
   rejected option fails the build before deploy. The schema is the one user code the check
   calls, and it must stay free of side effects, since an isolate that calls the check at
@@ -2227,7 +2227,7 @@ The `request` mapping takes no argument and reads `headers()` and `cookies()` fr
 function form of `nexus()` on the Node runtime, so `next build` evaluates the module
 without building the container, and a development reload rebuilds it once per module
 evaluation. Typed deps are therefore checked on the first request, and the demo app runs
-`Nexus.check(Meridian)` in a test so a wrong token fails CI (section 9.2).
+`check(Meridian)` in a test so a wrong token fails CI (section 9.2).
 
 Exports: `nexus(ship, options): NexusNext` with `{ route; action }`, `ContainerSource`,
 `NexusHttpError` and `NexusNextOptions` (`request`, `scopes`, `log`). Code below a
@@ -2689,7 +2689,7 @@ against P1 to P5:
 | N2  | Copies of `request-scope.ts` and `dispose-with-body.ts`                | adapters            | P4: the named exception (V13); globs added to `no-copies.test.ts` and `.fallowrc.jsonc` | spec change here |
 | N3  | `edge-safe.test.ts`: no `eval(` or `new Function` in edge packages     | `tools/repo-checks` | none touched: a repo-check names packages, which tools may                              | new check        |
 | N4  | `eager: false` on sync scoped factories, recommended by the edge guide | core                | none; public provider option                                                            | exists           |
-| N5  | `Nexus.check` in the edge guide's CI test                              | core                | none; public API                                                                        | exists           |
+| N5  | `check()` in the edge guide's CI test                                  | core                | none; public API                                                                        | exists           |
 | N6  | The structural `scopes` option                                         | adapters            | P3 and P5: no import of `@nexusdi/node`; the user wires it                              | exists           |
 
 N4 is no request for 0.4. Core already builds a sync scoped factory with `eager: false`
@@ -2705,7 +2705,7 @@ Q1. Publish `@nexusdi/next` in 0.4?
 
 - What it does: a package with `di.route(deps, handler)` for App Router route handlers
   and `di.action(deps, fn)` for server actions. Each call gets a request scope, typed
-  deps checked on the first request (with `Nexus.check` in CI for a build-time check),
+  deps checked on the first request (with `check()` in CI for a build-time check),
   and disposal through Next's `after()`. The guide's `nexus.server.ts` imports
   `server-only`, so a client import fails the build.
 - The case: a Next 16 app that today creates `ship.createScope()` by hand in each route
@@ -2738,19 +2738,19 @@ Q2. Which RC carries the adapters?
 - Answer (owner, 2026-10-15): all adapters in rc.2, and Next may follow in rc.3. 0.4.0
   final waits until every adapter has been in at least one RC with its demo app green.
 
-Q3. Does `Nexus.check` run options schemas?
+Q3. Does `check()` run options schemas?
 
-- What it does: `Nexus.check` calls the options schema of each `forRoot()` value after
+- What it does: `check()` calls the options schema of each `forRoot()` value after
   every compile passed, and throws one `BlueprintError` holding a
   `NEXUS_INVALID_MODULE_OPTIONS` for each rejected value. It returns `{ unchecked }`, the
   modules it could not validate: a schema whose `validate` returns a promise, and a
   `forRootAsync()` module with a schema.
 - The case: `Comms.forRoot({ frequency: 99 })` with a schema that rejects 99 passes
-  `Nexus.check` and fails `Nexus.create` with `NEXUS_PROVIDER_FAILED`. A CI check that
+  `check()` and fails `Nexus.create` with `NEXUS_PROVIDER_FAILED`. A CI check that
   passes tells the team nothing about its options.
 - User consequence: check now runs sync schema code, so a schema must be free of side
   effects, and an edge isolate that calls check at module scope calls it there. An async
-  schema is called too, and its promise is dropped. `Nexus.check` returns `{ unchecked }`
+  schema is called too, and its promise is dropped. `check()` returns `{ unchecked }`
   where it returned nothing. Nothing is removed or renamed.
 - Recommendation: run sync schemas by default, with no flag. A flag leaves the CI check
   blind to bad options for every team that does not know to set it.

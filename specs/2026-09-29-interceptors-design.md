@@ -573,7 +573,7 @@ it sees the arguments it received.
 
 ### 5.4 compile.check
 
-Runs for `create`, `load` and `Nexus.check`, over `view.providers`:
+Runs for `create`, `load` and `check()`, over `view.providers`:
 
 - Each class provider's declarations: two forms (`two-forms`), method names that are not
   functions on the prototype chain (`unknown-method`), and tokens not registered

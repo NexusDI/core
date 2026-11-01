@@ -4,7 +4,7 @@ Status: owner decisions accepted 2026-09-30 (D6, D7, D8; section 9), rulings app
 Issue: NexusDI/core#18, "Graph Visualization": a `nexusdi graph` command that exports the
 dependency graph as DOT, JSON, SVG and PNG.
 Depends on: the 0.4 engine on `feat/core-0.4` (PR #60, open, not merged), specifically
-`inspect()` and `NexusGraph` in `@nexusdi/devtools` and `Nexus.check` in core
+`inspect()` and `NexusGraph` in `@nexusdi/devtools` and `check()` in core
 (`specs/2026-09-23-core-0.4-design.md` revision 2, sections 3.5, 3.10, 10 and 10.1).
 This spec changes no core API. Section 3.10.8 of the core spec already records "#18: a
 CLI calls `inspect()` and renders the JSON", and this design confirms that the plugin API
@@ -12,9 +12,9 @@ needs nothing more.
 
 ## 1. What 0.4 already ships
 
-- `inspect(root, { load, plugins })` runs `Nexus.check` with `devtools()` registered and
+- `inspect(root, { load, plugins })` runs `check()` with `devtools()` registered and
   returns a `NexusGraph` (plain JSON: modules, providers, edges). It builds nothing. It
-  throws the `BlueprintError` that `Nexus.check` throws, with `@nexusdi/errors` text.
+  throws the `BlueprintError` that `check()` throws, with `@nexusdi/errors` text.
 - `graph(ship)` returns the same shape for a live container registered with
   `devtools()`, including modules added by `load()`.
 
@@ -94,7 +94,7 @@ nexusdi graph <entry> [options]
     --view <view>        providers (default) | modules
     --load <path#export> a module to compile after the root, as load() would; repeatable
     --plugins <path#export>
-                         an exported array of plugins that Nexus.check registers
+                         an exported array of plugins that check() registers
 -h, --help
 -v, --version
 ```
@@ -126,7 +126,7 @@ nexusdi: src/meridian.module.ts has no default export.
   Pass one: nexusdi graph src/meridian.module.ts#Meridian
 ```
 
-The root export is any `RootRef` that `Nexus.check` accepts: a module, a provider array,
+The root export is any `RootRef` that `check()` accepts: a module, a provider array,
 or `{ providers, imports, exports }`. The CLI hands it to `inspect()` unchanged, so core
 does the validation. Core throws an object root with other keys as
 `NEXUS_INVALID_MODULE` before it compiles; the CLI prints core's message, which ends in
@@ -174,7 +174,7 @@ user code cannot keep the process alive. An entry that throws while it is import
 | Code | Meaning                                                                                                                                                                                                                                                |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 0    | The graph was written.                                                                                                                                                                                                                                 |
-| 1    | `Nexus.check` threw a `BlueprintError`. The CLI prints its message (the `@nexusdi/errors` text) to stderr and writes no output.                                                                                                                        |
+| 1    | `check()` threw a `BlueprintError`. The CLI prints its message (the `@nexusdi/errors` text) to stderr and writes no output.                                                                                                                            |
 | 2    | The invocation or the input is wrong: an unknown flag or format, a missing file or export, an entry that threw on import, a bad JSON graph, PNG to a terminal, an unwritable `--out`. Any error the CLI did not classify also exits 2, with its stack. |
 | 3    | The environment lacks something: `@nexusdi/core` not installed next to the CLI, no TypeScript loader for a `.ts` entry, `@nexusdi/devtools` not installed or at another version, `@viz-js/viz` or `@resvg/resvg-js` missing for SVG or PNG.            |
 
@@ -432,7 +432,7 @@ of about 20 KB; the 5 MB and 3.5 MB peers land only in projects that ask for ima
   CLI would need new devtools API to draw the unfinished view of a failed compile, and
   that view shows edges whose meaning depends on which pass stopped (ruling 7).
 - A `nexusdi check` command. `nexusdi graph` already exits 1 on an invalid graph, and a
-  test that calls `Nexus.check` stays the documented CI gate (core spec section 3.5).
+  test that calls `check()` stays the documented CI gate (core spec section 3.5).
 - Filters (`--module`, `--focus <token>`) and a watch mode. They come when a user with a
   large graph asks.
 - A web viewer. The docs playground renders `NexusGraph` already.
@@ -489,7 +489,7 @@ ran in that session and are recorded here in the same form.
     needs "invalid graph" to be exactly 1, and an internal error prints its stack under
     code 2. Final: section 3.3.
 11. Core input errors outside a `BlueprintError`. Found in the final review: an object
-    root with keys other than `providers`, `imports` and `exports` makes `Nexus.check`
+    root with keys other than `providers`, `imports` and `exports` makes `check()`
     throw `NEXUS_INVALID_MODULE` directly, and the CLI printed it as an unexpected error
     with a stack. Architect: exit 1 for every `NEXUS_` error, so "core refused it" is
     one code. Tech lead: exit 1 means the graph was checked and is invalid, which CI
@@ -498,6 +498,6 @@ ran in that session and are recorded here in the same form.
 
 ## 10. Core plugin API gaps
 
-None. `inspect()` runs `Nexus.check` with a `compile.check` hook that captures the
+None. `inspect()` runs `check()` with a `compile.check` hook that captures the
 `BlueprintView`, and `ProviderView.implementation` supplies the new field. Core spec
 section 3.10.8's row for #18 stands.
