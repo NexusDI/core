@@ -47,9 +47,15 @@ export const BEHAVIOUR_BUDGET = { raw: 1_850_000, gzip: 77_000 };
  * than `GUIDE_SLACK` gzipped bytes under it fails too, so a saving lowers the
  * ceiling in the same pull request.
  *
- * Measured at 1007.8 kB raw and 304.6 kB gzipped. The Schematic, HullCrop,
- * Switch and StepList classes in the Meridian stylesheet add about 4.7 kB raw
- * and 0.9 kB gzipped, so the ceilings sit at 1008 kB and 305 kB.
+ * Measured at 1003.1 kB raw and 303.9 kB gzipped, so the ceilings sit at 1004 kB
+ * and 304 kB. The schematic, hull crop, switch, step list and painted rules are
+ * in `@nexusdi/meridian-ui/schematic.css`, which `Styles.tsx` writes into the front
+ * page's HTML with the front page's own stylesheet, and `CopyIsland.tsx` loads its
+ * button with `import()`. Next puts any stylesheet or client component a page
+ * imports into the route's entry, which every guide loads.
+ *
+ * Measured earlier at 1007.8 kB raw and 304.6 kB gzipped, while those rules sat in
+ * the Meridian stylesheet.
  *
  * Measured earlier at 1003.1 kB raw and 303.7 kB gzipped. The docs chrome (site
  * spec section 13) added the chrome and code stylesheets and the search shell,
@@ -64,7 +70,7 @@ export const BEHAVIOUR_BUDGET = { raw: 1_850_000, gzip: 77_000 };
  * with a `twoslash` fence.
  */
 export const GUIDE_PAGE = 'scopes/index.html';
-export const GUIDE_BUDGET = { raw: 1_008_000, gzip: 305_000 };
+export const GUIDE_BUDGET = { raw: 1_004_000, gzip: 304_000 };
 export const GUIDE_SLACK = 5_000;
 
 /**
