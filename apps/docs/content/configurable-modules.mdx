@@ -65,6 +65,30 @@ The factory's `deps` resolve inside the module: from its own providers, from the
 
 **Try it:** Save the region as `async-comms.ts` and run it. It prints `relay on 1701`. Remove `global: true` from `Engineering` and run it again. `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and its one inner error is [NEXUS_MISSING_PROVIDER](/errors/NEXUS_MISSING_PROVIDER/) with `token=ShipComputer requester=CommsOptions module=Comms`: the options factory resolves its deps inside `Comms`, which no longer sees `COMPUTER`. Put `global: true` back and it prints `relay on 1701` again.
 
+## When the Factory Needs a Provider from the Importer
+
+Sometimes the importer picks the strategy a configurable module uses. `Meridian` provides a `SIGNAL_SOURCE` and wants `Comms` to read its frequency from it. The `forRootAsync` factory resolves its deps inside `Comms`, and `Comms` never sees a provider of the module that imports it. The importer's own providers stay out of reach, whatever token the factory asks for.
+
+```ts file=examples/meridian/src/pages/configurable-modules.md region=importer-provider-missing
+
+```
+
+`Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and its one inner error is `NEXUS_MISSING_PROVIDER` for `SignalSource` in `Comms`. With `errors()` registered, the message adds a `Fix:` line: "Meridian imports Comms, so Comms cannot import Meridian." The obvious repair, importing `Meridian` into `Comms`, would close an import cycle and raise [NEXUS_MODULE_IMPORT_CYCLE](/errors/NEXUS_MODULE_IMPORT_CYCLE/). Two patterns work. Pick by who owns the strategy.
+
+**Move the provider into a global module.** A global module provides and exports the token, and every module sees it. Use this when one source serves the whole ship. Two global modules that export the same token give `NEXUS_AMBIGUOUS_PROVIDER`, so each token has one global source.
+
+```ts file=examples/meridian/src/pages/configurable-modules.md region=importer-provider-global
+
+```
+
+**Use a module factory.** When the source must stay out of global scope, the library exports a function that takes the module providing the token and returns a plain module that imports it. The importer calls the function once and imports the result, as the next section advises for `forRoot()`.
+
+```ts file=examples/meridian/src/pages/configurable-modules.md region=importer-provider-factory
+
+```
+
+**Try it:** Save the first region as `missing.ts` and run it. It prints `[ 'NEXUS_MISSING_PROVIDER' ]`. Save the second as `global.ts` and the third as `factory.ts`. Each prints `relay on 1420`. In `global.ts`, remove `global: true` and run it again. `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, because `Comms` no longer sees `Beacon`'s export. Put the line back.
+
 ## Validating Options with Schemas
 
 To prevent your app from starting with invalid configuration, you can attach a `schema` to your module. NexusDI supports any Standard Schema validator (such as Valibot). The examples use valibot 1.5.0, whose schemas implement Standard Schema, so NexusDI validates them with no valibot-specific code.
