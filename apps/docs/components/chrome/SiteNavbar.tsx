@@ -2,11 +2,11 @@ import { Navbar, ThemeSwitch } from 'nextra-theme-docs';
 
 import { REPOSITORY } from '../../app/links';
 import DocsCurrent from './DocsCurrent';
-import ShipMark from './ShipMark';
+import NexusLogo from './NexusLogo';
 
 /**
- * The navbar on the bulkhead (site UX spec 13.1). The home link is the ship
- * icon and the name in the display face. Nextra renders the page-type entries
+ * The navbar on the bulkhead (site UX spec 13.1). The home link is the NexusDI
+ * logo and the name in the display face. Nextra renders the page-type entries
  * of `content/_meta.ts` (Docs; Academy, Playground and Blog join in the phase
  * that builds each), then the search the layout passes, the GitHub link and
  * this theme switch. `DocsCurrent` marks the Docs entry current on every
@@ -18,7 +18,7 @@ export default function SiteNavbar() {
     <Navbar
       logo={
         <span className="nexus-logo">
-          <ShipMark />
+          <NexusLogo />
           <span className="nexus-logo__name">NexusDI</span>
         </span>
       }

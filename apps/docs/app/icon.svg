@@ -1,0 +1,24 @@
+<svg width="32" height="32" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .ink { stroke: #2C4B7A; }
+    .node { fill: #2C4B7A; }
+    @media (prefers-color-scheme: dark) {
+      .ink { stroke: #E8ECF0; }
+      .node { fill: #E8ECF0; }
+    }
+  </style>
+  <g stroke-width="4" stroke-linecap="round">
+    <!-- Connecting Lines -->
+    <line class="ink" x1="40" y1="40" x2="40" y2="12" />
+    <line class="ink" x1="40" y1="40" x2="66" y2="55" />
+    <line class="ink" x1="40" y1="40" x2="14" y2="55" />
+
+    <!-- Central Hexagon Hub -->
+    <polygon class="ink" points="40,28 53,35 53,49 40,56 27,49 27,35" fill="#5F7BA3" />
+
+    <!-- Outer Nodes -->
+    <circle class="node" cx="40" cy="10" r="6" />
+    <circle class="node" cx="66" cy="55" r="6" />
+    <circle class="node" cx="14" cy="55" r="6" />
+  </g>
+</svg>
