@@ -39,6 +39,30 @@
   color: var(--meridian-text);
 }
 
+.nexus-mark {
+  flex: none;
+  --nexus-mark-ink: #2c4b7a;
+  --nexus-mark-hub: #5f7ba3;
+}
+
+/* The logo's own #2C4B7A holds 7.5:1 on the light bulkhead and 2.0:1 on the dark one. */
+html.dark .nexus-mark {
+  --nexus-mark-ink: var(--meridian-text);
+}
+
+.nexus-mark__line {
+  stroke: var(--nexus-mark-ink);
+}
+
+.nexus-mark__hub {
+  fill: var(--nexus-mark-hub);
+  stroke: var(--nexus-mark-ink);
+}
+
+.nexus-mark__node {
+  fill: var(--nexus-mark-ink);
+}
+
 .nexus-logo__name {
   font-family: var(--meridian-font-display);
   font-size: 1.125rem;
@@ -603,6 +627,12 @@ body {
 
   .nextra-navbar .nextra-navbar-blur {
     border-block-end-color: CanvasText;
+  }
+
+  .nexus-mark,
+  html.dark .nexus-mark {
+    --nexus-mark-ink: CanvasText;
+    --nexus-mark-hub: Canvas;
   }
 
   :focus-visible {

@@ -7,13 +7,13 @@ import { fillSearch } from './support/fill-search.js';
  * furniture, the footer, the skip link and the search's band filter.
  */
 
-test('the navbar has the ship icon, the name and no Features entry', async ({
+test('the navbar has the NexusDI logo, the name and no Features entry', async ({
   page,
 }) => {
   await page.goto('/next/scopes/');
   const navbar = page.locator('.nextra-navbar');
   await expect(navbar.getByText('NexusDI')).toBeVisible();
-  await expect(navbar.locator('svg.nexus-shipmark')).toBeVisible();
+  await expect(navbar.locator('svg.nexus-mark')).toBeVisible();
   await expect(navbar.getByRole('link', { name: 'Docs' })).toBeVisible();
   await expect(navbar.getByRole('link', { name: 'Features' })).toHaveCount(0);
 });

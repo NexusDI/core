@@ -1,0 +1,25 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a" />
+      <stop offset="50%" stop-color="#1e40af" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bgGradient)" />
+
+  <!-- The logo, geometry of logo.svg at 5x -->
+  <g transform="translate(120, 115) scale(5)" stroke-width="4" stroke-linecap="round">
+    <line x1="40" y1="40" x2="40" y2="12" stroke="#fff" />
+    <line x1="40" y1="40" x2="66" y2="55" stroke="#fff" />
+    <line x1="40" y1="40" x2="14" y2="55" stroke="#fff" />
+    <polygon points="40,28 53,35 53,49 40,56 27,49 27,35" fill="#5F7BA3" stroke="#fff" />
+    <circle cx="40" cy="10" r="6" fill="#fff" />
+    <circle cx="66" cy="55" r="6" fill="#fff" />
+    <circle cx="14" cy="55" r="6" fill="#fff" />
+  </g>
+
+  <text x="560" y="270" font-family="Helvetica, Arial, sans-serif" font-size="96" font-weight="bold" fill="#fff">NexusDI</text>
+  <text x="560" y="345" font-family="Helvetica, Arial, sans-serif" font-size="36" fill="#e2e8f0">Dependency injection for TypeScript</text>
+  <text x="560" y="400" font-family="Helvetica, Arial, sans-serif" font-size="28" fill="#cbd5e1">Checks the whole module graph at startup.</text>
+</svg>

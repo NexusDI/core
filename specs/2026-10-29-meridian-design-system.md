@@ -753,7 +753,11 @@ cyan and failures in red, running the real core. The prose sits on the bulkhead 
 ### 11.4 Docs
 
 The docs chrome is the bulkhead and plates of 6.3 on Nextra. The article is a plate on the
-bulkhead, and the navbar shows the ship icon. Concept pages carry the console as a terminal, and an explorable as a screen inside
+bulkhead, and the navbar shows the NexusDI logo (owner ruling, 2026-11-02: the site
+uses the existing logo, and the ship icon marks Ship notes only). The logo keeps its
+geometry. Its lines and nodes use the logo's `#2C4B7A` in the light theme and the `text` role in
+the dark theme, where `#2C4B7A` measures 2.0:1 on the bulkhead; the hub stays `#5F7BA3` in both
+themes, and forced colours draw the logo in `CanvasText` on `Canvas`. Concept pages carry the console as a terminal, and an explorable as a screen inside
 the article. Code fences follow the theme. Ship notes carry the ship icon. Nothing moves
 on a docs page unless the reader acts, apart from a page transition.
 
