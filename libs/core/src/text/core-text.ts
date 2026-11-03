@@ -95,10 +95,10 @@ function nearMissFix(
     return `import ${reachable.module} into ${module}.`;
   const importer = misses.find((miss) => miss.kind === 'importer');
   if (importer !== undefined) {
-    const factory = context.configured
-      ? ` A function that returns a module importing ${importer.module}'s provider module also works.`
+    const named = context.configured
+      ? ` Then name that module in ${module}.forRootAsync({ imports }).`
       : '';
-    return `${importer.module} imports ${module}, so ${module} cannot import ${importer.module}. Move ${token} into a module that ${module} imports, or into a global module that exports it.${factory}`;
+    return `${importer.module} imports ${module}, so ${module} cannot import ${importer.module}. Move ${token} into a module that ${module} imports, or into a global module that exports it.${named}`;
   }
   return `provide ${token} in ${module} or in a module ${module} imports.`;
 }
