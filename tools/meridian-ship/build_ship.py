@@ -14,6 +14,7 @@ silhouette. Nothing here is random, so the same file gives the same renders.
 """
 
 import argparse
+import json
 import math
 import os
 import sys
@@ -31,6 +32,7 @@ from ship_svg import (  # noqa: E402
     ROOM_COLOURS,
     Hull,
     export_svgs,
+    frame_sidecar,
     hump_rings,
     lerp,
     load,
@@ -759,7 +761,21 @@ def workbench(scene, background="#11151a", flat=False):
     scene.world.color = hex_rgba(background)[:3]
 
 
-def render(scene, cam, path, width, height):
+# The geometry of the run, which the frame sidecars hash.
+GEOMETRY = {}
+
+
+def write_frame_sidecar(path, view, width, height):
+    """Writes the frame sidecar of design system 8.3 beside an orthographic render."""
+    target = os.path.splitext(path)[0] + ".json"
+    with open(target, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(frame_sidecar(view, width, height, GEOMETRY), fh, indent=2)
+        fh.write("\n")
+    print(f"meridian-ship: wrote {target}")
+
+
+def render(scene, cam, path, width, height, view=None):
+    """Renders `cam` to `path`. An orthographic `view` also writes the frame sidecar."""
     scene.camera = cam
     scene.render.resolution_x = width
     scene.render.resolution_y = height
@@ -784,6 +800,8 @@ def render(scene, cam, path, width, height):
     scene.render.filepath = path
     bpy.ops.render.render(write_still=True)
     print(f"meridian-ship: wrote {path}")
+    if view is not None:
+        write_frame_sidecar(path, view, width, height)
 
 
 def exterior_only(obj):
@@ -804,6 +822,7 @@ def view_side(scene, out, width, name="sv01-side.png", flat=False):
         os.path.join(out, name),
         width,
         int(width * 0.25),
+        "side",
     )
 
 
@@ -812,7 +831,12 @@ def view_top(scene, out, width, name="sv01-top.png", flat=False):
     set_visible(exterior_only)
     loc, rot, scale = TOP_CAM
     render(
-        scene, camera("Cam.top", loc, rot, scale), os.path.join(out, name), width, int(width * 0.36)
+        scene,
+        camera("Cam.top", loc, rot, scale),
+        os.path.join(out, name),
+        width,
+        int(width * 0.36),
+        "top",
     )
 
 
@@ -837,6 +861,7 @@ def view_cutaway(scene, out, width):
         os.path.join(out, "sv01-cutaway.png"),
         w,
         int(w * 0.25),
+        "cutaway",
     )
 
 
@@ -897,8 +922,10 @@ def parse_args():
 
 
 def main():
+    global GEOMETRY
     args = parse_args()
     geometry = load(args.geometry)
+    GEOMETRY = geometry
     views = [v for v in args.views.split(",") if v]
     unknown = [v for v in views if v not in VIEWS]
     if unknown:

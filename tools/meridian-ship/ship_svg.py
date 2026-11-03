@@ -22,9 +22,18 @@ at run time, on the frame of the painted side views (2048 by 512 pixels at 25.6
 pixels per metre): `meridian-cutaway-rooms.png` (a room index mask) with its
 `meridian-cutaway-rooms.legend.json`, `meridian-cutaway-emissive.png` and
 `meridian-cutaway-lights.json`.
+
+    python3 tools/meridian-ship/ship_svg.py --deck-layers <dir>
+
+`--deck-layers` writes, per deck, into `<dir>/<deck>/` the data layers of the deck map at 32
+pixels per metre on the deck frame (-2, -10, 76, 20), which is 2432 by 640 pixels with the
+origin at pixel (64, 320): the room index mask (`roomid-<tile>.png`), the emissive mask
+(`emissive-<tile>.png`), a JSON sidecar beside each, `lights.json` in deck pixels and
+`roomid-legend.json`. Each mask is cut into a `left` and a `right` tile of 1216 by 640.
 """
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -376,15 +385,19 @@ def cutaway_svg(geometry, hull):
     return svg((-2, 0, 76, 18), body, "SV-01 Meridian, cutaway")
 
 
+def deck_outline(hull, deck):
+    """The hull cut at the middle of the deck, as (x, y) points in metres around the deck."""
+    zc = deck["floor"] + deck["height"] / 2
+    xs = [k * 0.25 for k in range(0, 4 * 72 + 1)]
+    edge = [(x, hull.half_width_at(x, zc)) for x in xs if hull.half_width_at(x, zc) > 0]
+    return edge + [(x, -w) for x, w in reversed(edge)]
+
+
 def deck_svg(geometry, hull, deck):
     """One deck's plan from above: the hull cut at the deck, its rooms and its doors."""
     floor = deck["floor"]
-    zc = floor + deck["height"] / 2
     flip = lambda y: -y  # noqa: E731
-    xs = [k * 0.25 for k in range(0, 4 * 72 + 1)]
-    edge = [(x, hull.half_width_at(x, zc)) for x in xs if hull.half_width_at(x, zc) > 0]
-    outline = edge + [(x, -w) for x, w in reversed(edge)]
-    body = [path(outline, flip, HULL_FILL)]
+    body = [path(deck_outline(hull, deck), flip, HULL_FILL)]
     labels = []
     for room in geometry["compartments"]:
         if deck["id"] not in room["decks"]:
@@ -662,6 +675,52 @@ def fill_polygon(grid, points, value):
                 grid[row][col] = value
 
 
+def round_half_up(value):
+    """The nearest integer, a half going up for a value from 0 up."""
+    return math.floor(value + 0.5) if value >= 0 else -math.floor(-value + 0.5)
+
+
+def round_half_down(value):
+    """The nearest integer, a half going down for a value from 0 up."""
+    return math.ceil(value - 0.5) if value >= 0 else -math.ceil(-value - 0.5)
+
+
+def fill_polygon_scan(grid, points, value):
+    """Fills the polygon on whole-pixel scanlines, the rule of the paint-over's reference masks.
+
+    Each coordinate truncates to an integer, every scanline from a vertex row to another is
+    filled from the nearest pixel to its left crossing to the nearest to its right one, both
+    ends included, and a horizontal edge fills its own span. A mask drawn this way matches the
+    reference tool pixel for pixel at the hull's slanted edges, where `fill_polygon`'s
+    pixel-centre rule differs by a pixel.
+    """
+    height, width = len(grid), len(grid[0])
+    corners = [(int(x), int(y)) for x, y in points]
+    edges = []
+    for (x0, y0), (x1, y1) in zip(corners, corners[1:] + corners[:1]):
+        if y0 == y1:
+            for col in range(max(min(x0, x1), 0), min(max(x0, x1), width - 1) + 1):
+                grid[y0][col] = value
+        else:
+            edges.append((x0, y0, min(y0, y1), max(y0, y1), (x1 - x0) / (y1 - y0)))
+    last = min(max(c[1] for c in corners), height - 1)
+    for row in range(max(min(c[1] for c in corners), 0), last + 1):
+        crossings = []
+        for x0, y0, top, bottom, slope in edges:
+            if top <= row <= bottom:
+                crossings.append(x0 + (row - y0) * slope if slope else x0)
+                if row == bottom and row < last:
+                    crossings.append(crossings[-1])
+            elif slope == 0 and len(crossings) % 2 == 1 and row == bottom + 1:
+                crossings.append(crossings[-1])
+        crossings.sort()
+        for left, right in zip(crossings[::2], crossings[1::2]):
+            for col in range(
+                max(round_half_down(left), 0), min(round_half_up(right), width - 1) + 1
+            ):
+                grid[row][col] = value
+
+
 def fill_rect(grid, u0, v0, u1, v1, value, outward=False):
     """Fills the pixels of the rectangle, rounded to the nearest edge or outward, one at least."""
     snap_low, snap_high = (math.floor, math.ceil) if outward else (round, round)
@@ -885,6 +944,207 @@ def export_cutaway_layers(geometry, out):
         print(f"meridian-ship: wrote {target}")
 
 
+# --- deck layers: the masks and the lights of the deck maps ------------------------------------
+
+DECK_PPM = 32
+DECK_FRAME = (-2, -10, 76, 20)
+DECK_SIZE = (2432, 640)
+DECK_ORIGIN = (64, 320)
+DECK_TILES = (("left", 0), ("right", 1216))
+TILE_SIZE = (1216, 640)
+DECK_ROOM_INSET = 0.05
+
+
+def geometry_hash(geometry):
+    """The sha256 of the parts of the geometry that the art paints.
+
+    The bytes are the ones `geometryHash()` in apps/docs/tools/ship-art.mjs hashes: the hull,
+    compartments, doors and conduits as JSON.stringify writes them, so a float with no
+    fraction prints as an integer.
+    """
+
+    def plain(value):
+        if isinstance(value, float) and value == int(value):
+            return int(value)
+        if isinstance(value, list):
+            return [plain(item) for item in value]
+        if isinstance(value, dict):
+            return {key: plain(item) for key, item in value.items()}
+        return value
+
+    parts = {key: plain(geometry[key]) for key in ("hull", "compartments", "doors", "conduits")}
+    text = json.dumps(parts, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def frame_sidecar(view, width, height, geometry):
+    """The JSON that places an orthographic render by itself (design system 8.3).
+
+    The side, top and cutaway cameras of `build_ship.py` span 80 m across the image, so the
+    scale is the image width over 80. The side and cutaway frames start at x = -5 with z = 17.5
+    at the top edge. The top frame is centred on y = 0.
+    """
+    ppm = round(width / 80, 4)
+    if view in ("side", "cutaway"):
+        frame = "-5 0 80 20"
+        origin = [5 * ppm, 17.5 * ppm]
+        camera = {"u": "(x + 5) * %g" % ppm, "v": "(17.5 - z) * %g" % ppm}
+    elif view == "top":
+        half = round(height / 2 / ppm, 4)
+        frame = "-5 %g 80 %g" % (-half, round(2 * half, 4))
+        origin = [5 * ppm, height / 2]
+        camera = {"u": "(x + 5) * %g" % ppm, "v": "(%g - y) * %g" % (half, ppm)}
+    else:
+        raise ValueError(f"no orthographic camera for the view {view!r}")
+    origin = [round(n, 4) for n in origin]
+    return {
+        "view": view,
+        "size": {"width": width, "height": height},
+        "pixelsPerMetre": ppm,
+        "origin": [int(n) if n == int(n) else n for n in origin],
+        "frame": frame,
+        "camera": {"projection": "orthographic", **camera},
+        "geometry": geometry_hash(geometry),
+    }
+
+
+def deck_px(x, y):
+    """Metres on the deck's SVG axes to pixels of the deck frame (u, v), not rounded."""
+    return (x - DECK_FRAME[0]) * DECK_PPM, (y - DECK_FRAME[1]) * DECK_PPM
+
+
+def deck_rect_px(x0, y0, x1, y1):
+    """The pixel box [left, top, right, bottom], inclusive, of a rectangle in SVG metres."""
+    (u0, v0), (u1, v1) = deck_px(x0, y0), deck_px(x1, y1)
+    return [round(u0), round(v0), round(u1) - 1, round(v1) - 1]
+
+
+def deck_plan(geometry, hull, deck):
+    """One deck's hull polygon and room rectangles in SVG metres, as `deck_svg` writes them.
+
+    The SVG rounds every coordinate to 0.01 m, and the layers round the same way, so a mask
+    edge falls where the plan's does.
+    """
+    points = [(float(f"{x:.2f}"), float(f"{-y:.2f}")) for x, y in deck_outline(hull, deck)]
+    rooms = []
+    inset = DECK_ROOM_INSET
+    for room in geometry["compartments"]:
+        if deck["id"] not in room["decks"]:
+            continue
+        for box in room["boxes"]:
+            x0, x1 = box["x"]
+            y0, y1 = box["y"]
+            x, y = float(f"{x0 + inset:.2f}"), float(f"{-y1 + inset:.2f}")
+            w, h = float(f"{x1 - x0 - 2 * inset:.2f}"), float(f"{y1 - y0 - 2 * inset:.2f}")
+            rooms.append((room["id"], (x - inset, y - inset, x + w + inset, y + h + inset)))
+    return points, rooms
+
+
+def deck_rooms_mask(geometry, hull, deck):
+    """The room index mask of one deck: 0 space, 1 hull structure, the legend index per room."""
+    width, height = DECK_SIZE
+    grid = [[SPACE] * width for _ in range(height)]
+    points, rooms = deck_plan(geometry, hull, deck)
+    fill_polygon_scan(grid, [deck_px(x, y) for x, y in points], STRUCTURE)
+    legend = room_legend(geometry)
+    for room, (x0, y0, x1, y1) in rooms:
+        (u0, v0), (u1, v1) = deck_px(x0, y0), deck_px(x1, y1)
+        fill_rect(grid, u0, v0, u1, v1, legend[room])
+    return grid
+
+
+def deck_lights(geometry, deck):
+    """The deck's lights with their housing box, centre and reach in pixels of the deck frame."""
+    lights = []
+    for light in geometry["lights"]:
+        if light["deck"] != deck["id"]:
+            continue
+        x0, x1 = light["x"]
+        y0, y1 = light["y"]
+        centre = deck_px((x0 + x1) / 2, -(y0 + y1) / 2)
+        lights.append(
+            {
+                **light,
+                "px_box": deck_rect_px(x0, -y1, x1, -y0),
+                "px_centre": list(centre),
+                "px_radius": light["radius"] * DECK_PPM,
+            }
+        )
+    return lights
+
+
+def deck_emissive_mask(lights):
+    """The housing of every emissive light of the deck at 255."""
+    width, height = DECK_SIZE
+    grid = [[0] * width for _ in range(height)]
+    for light in lights:
+        if light["emissive"]:
+            c0, r0, c1, r1 = light["px_box"]
+            fill_rect(grid, c0, r0, c1 + 1, r1 + 1, 255)
+    return grid
+
+
+def tile_sidecar(deck, layer, tile, offset, digest):
+    """The sidecar of one tile of a deck layer."""
+    width, height = TILE_SIZE
+    return {
+        "view": f"deck-{deck['id']}",
+        "layer": layer,
+        "size": {"width": width, "height": height},
+        "pixelsPerMetre": DECK_PPM,
+        "origin": list(DECK_ORIGIN),
+        "frame": " ".join(f"{n:g}" for n in DECK_FRAME),
+        "tile": {"name": tile, "offset": [offset, 0]},
+        "geometry": digest,
+    }
+
+
+def json_text(value):
+    return json.dumps(value, indent=2) + "\n"
+
+
+def export_deck_layers(geometry, out):
+    """Per deck, into <out>/<deck>/: the room index mask and the emissive mask in two tiles of
+    1216 by 640 at 32 pixels per metre, a sidecar beside each, the lights in deck pixels and
+    the room legend. No interactive mask: hit testing reads the geometry's footprints."""
+    hull = Hull(geometry["hull"])
+    digest = geometry_hash(geometry)
+    width, height = TILE_SIZE
+    legend = {
+        "size": {"width": DECK_SIZE[0], "height": DECK_SIZE[1]},
+        "frame": " ".join(f"{n:g}" for n in DECK_FRAME),
+        "pixelsPerMetre": DECK_PPM,
+        "origin": list(DECK_ORIGIN),
+        "space": SPACE,
+        "structure": STRUCTURE,
+        "rooms": room_legend(geometry),
+        "geometry": digest,
+    }
+    for deck in geometry["decks"]:
+        target = os.path.join(out, deck["id"])
+        os.makedirs(target, exist_ok=True)
+        lights = deck_lights(geometry, deck)
+        layers = {
+            "roomid": deck_rooms_mask(geometry, hull, deck),
+            "emissive": deck_emissive_mask(lights),
+        }
+        files = {
+            "lights.json": lights_text(lights).encode(),
+            "roomid-legend.json": json_text(legend).encode(),
+        }
+        for layer, grid in layers.items():
+            for tile, offset in DECK_TILES:
+                rows = [row[offset : offset + width] for row in grid]
+                files[f"{layer}-{tile}.png"] = png_grey(width, height, rows)
+                files[f"{layer}-{tile}.json"] = json_text(
+                    tile_sidecar(deck, layer, tile, offset, digest)
+                ).encode()
+        for name, data in files.items():
+            with open(os.path.join(target, name), "wb") as fh:
+                fh.write(data)
+        print(f"meridian-ship: wrote {target}")
+
+
 def export_svgs(geometry, out):
     hull = Hull(geometry["hull"])
     files = {
@@ -915,8 +1175,15 @@ if __name__ == "__main__":
         metavar="DIR",
         help="write the room index mask, the emissive mask and the lights of the unlit cutaway",
     )
+    parser.add_argument(
+        "--deck-layers",
+        metavar="DIR",
+        help="write the room index mask, the emissive mask and the lights of every deck map",
+    )
     args = parser.parse_args()
-    if args.cutaway_layers:
+    if args.deck_layers:
+        export_deck_layers(load(args.geometry), args.deck_layers)
+    elif args.cutaway_layers:
         export_cutaway_layers(load(args.geometry), args.cutaway_layers)
     elif not args.out:
         parser.error("--out is required")

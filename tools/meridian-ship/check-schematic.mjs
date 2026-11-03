@@ -1,8 +1,8 @@
-// Regenerates the schematic cutaway and the cutaway layers into temp
-// directories and compares them with the committed files. It never skips: a
+// Regenerates the schematic cutaway, the cutaway layers and the deck layers
+// into temp directories and compares them with the committed files. It never skips: a
 // machine without python3 fails.
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,6 +11,7 @@ import { inflateSync } from 'node:zlib';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const schematicDir = 'apps/docs/components/front-page';
 const layersDir = 'apps/docs/components/ship-art/cutaway';
+const deckDir = 'internal/meridian-deck/art';
 const script = 'tools/meridian-ship/ship_svg.py';
 
 /** The pixels of a PNG: the IHDR, then the inflated IDAT data. Byte-exact zlib output can differ between zlib builds, so the check compares what the file decodes to. */
@@ -59,6 +60,7 @@ function generate(args, label, command) {
 
 const schematicOut = mkdtempSync(join(tmpdir(), 'meridian-schematic-'));
 const layersOut = mkdtempSync(join(tmpdir(), 'meridian-layers-'));
+const decksOut = mkdtempSync(join(tmpdir(), 'meridian-decks-'));
 try {
   generate(
     ['--schematic', '--out', schematicOut],
@@ -96,10 +98,36 @@ try {
       process.exit(1);
     }
   }
+
+  generate(
+    ['--deck-layers', decksOut],
+    'deck layers',
+    `python3 -I ${script} --deck-layers <dir>`,
+  );
+  for (const deck of readdirSync(decksOut).sort()) {
+    for (const name of readdirSync(join(decksOut, deck)).sort()) {
+      const read = name.endsWith('.png')
+        ? decodePng
+        : (bytes) => bytes.toString('utf8');
+      let have;
+      try {
+        have = read(readFileSync(join(root, deckDir, deck, name)));
+      } catch {
+        have = null;
+      }
+      if (have !== read(readFileSync(join(decksOut, deck, name)))) {
+        console.error(
+          `check-schematic: ${deckDir}/${deck}/${name} differs from the geometry.\nRegenerate the layers and commit the result:\n  python3 -I ${script} --deck-layers ${deckDir}`,
+        );
+        process.exit(1);
+      }
+    }
+  }
   console.log(
-    'check-schematic: the committed cutaway and its layers match the geometry.',
+    'check-schematic: the committed cutaway, its layers and the deck layers match the geometry.',
   );
 } finally {
   rmSync(schematicOut, { recursive: true, force: true });
   rmSync(layersOut, { recursive: true, force: true });
+  rmSync(decksOut, { recursive: true, force: true });
 }

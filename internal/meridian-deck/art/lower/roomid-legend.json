@@ -1,0 +1,31 @@
+{
+  "size": {
+    "width": 2432,
+    "height": 640
+  },
+  "frame": "-2 -10 76 20",
+  "pixelsPerMetre": 32,
+  "origin": [
+    64,
+    320
+  ],
+  "space": 0,
+  "structure": 1,
+  "rooms": {
+    "bridge": 2,
+    "habitat": 3,
+    "reactor-bay": 4,
+    "airlock": 5,
+    "chart-room": 6,
+    "computer-core": 7,
+    "quarters": 8,
+    "comms-relay": 9,
+    "shuttle-bay": 10,
+    "drone-bay": 11,
+    "capacitor-room": 12,
+    "engineering": 13,
+    "ftl-core": 14,
+    "main-drive": 15
+  },
+  "geometry": "f21947b3c19d9cbb9ce68b0fd7c735e81b52028492c8c8aabe344cfda2ce77d9"
+}
