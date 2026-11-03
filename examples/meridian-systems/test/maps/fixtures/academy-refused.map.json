@@ -1,0 +1,64 @@
+{
+  "$schema": "../../../deck/maps/map.schema.json",
+  "version": 1,
+  "decks": ["main"],
+  "camera": {
+    "deck": "main",
+    "focus": "habitat",
+    "zoom": "section"
+  },
+  "scene": null,
+  "id": "academy-refused",
+  "title": "Academy refused",
+  "surface": "academy",
+  "triggers": [
+    {
+      "id": "enter-lights",
+      "when": {
+        "enter": true
+      },
+      "then": [
+        {
+          "room": "habitat",
+          "light": "alarm"
+        }
+      ]
+    },
+    {
+      "id": "select-sets",
+      "when": {
+        "select": "bridge.helm"
+      },
+      "then": [
+        {
+          "set": "bridge.helm",
+          "state": "on"
+        }
+      ]
+    },
+    {
+      "id": "telemetry-conduit",
+      "when": {
+        "record": "reactor.level",
+        "above": 0.5
+      },
+      "then": [
+        {
+          "conduit": "power.comms",
+          "state": "shed"
+        }
+      ]
+    },
+    {
+      "id": "wrong-hub",
+      "when": {
+        "passed": "first-mission"
+      },
+      "then": [
+        {
+          "announce": "Passed."
+        }
+      ]
+    }
+  ]
+}

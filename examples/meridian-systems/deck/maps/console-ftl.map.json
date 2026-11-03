@@ -1,0 +1,73 @@
+{
+  "$schema": "./map.schema.json",
+  "id": "console-ftl",
+  "version": 1,
+  "title": "FTL drive",
+  "surface": "demo",
+  "decks": ["lower", "main"],
+  "camera": {
+    "deck": "lower",
+    "focus": "ftl-core",
+    "zoom": "section"
+  },
+  "start": {
+    "fixtures": {
+      "ftl-core.ring": "off"
+    }
+  },
+  "directory": [
+    "ftl-core",
+    "ftl-core.ring",
+    "engineering-ftl-core",
+    "engineering"
+  ],
+  "callouts": [
+    {
+      "at": "ftl-core",
+      "show": ["ftl-status", "spool-charge", "sector", "last-jump"],
+      "zoom": "section"
+    }
+  ],
+  "firstVisit": {
+    "at": "ftl-core.ring",
+    "text": "FtlDrive is a section. It loads when you ask for it."
+  },
+  "triggers": [
+    {
+      "id": "drive-loaded",
+      "when": {
+        "loaded": "FtlDrive"
+      },
+      "then": [
+        {
+          "set": "ftl-core.ring",
+          "state": "on"
+        },
+        {
+          "conduit": "power.ftl-spool",
+          "state": "flowing"
+        },
+        {
+          "camera": "ftl-core"
+        },
+        {
+          "announce": "FtlDrive loaded."
+        }
+      ]
+    },
+    {
+      "id": "spool-charged",
+      "when": {
+        "record": "ftl.status",
+        "is": "charged"
+      },
+      "then": [
+        {
+          "callout": "ftl-core.ring",
+          "text": "The spool holds a full charge."
+        }
+      ]
+    }
+  ],
+  "scene": null
+}

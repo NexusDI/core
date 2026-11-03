@@ -1,0 +1,69 @@
+{
+  "$schema": "./map.schema.json",
+  "id": "console-safety",
+  "version": 1,
+  "title": "Safety",
+  "surface": "demo",
+  "decks": ["main", "upper", "lower"],
+  "camera": {
+    "deck": "main",
+    "focus": "habitat",
+    "zoom": "section"
+  },
+  "directory": [
+    "habitat",
+    "habitat-airlock",
+    "airlock-outer",
+    "habitat-engineering",
+    "bridge-habitat"
+  ],
+  "callouts": [
+    {
+      "at": "habitat",
+      "show": ["alarm-list", "door-state", "fire-intensity", "flood-released"],
+      "zoom": "section"
+    }
+  ],
+  "triggers": [
+    {
+      "id": "habitat-fire",
+      "when": {
+        "alarm": "FIRE",
+        "room": "habitat"
+      },
+      "then": [
+        {
+          "room": "habitat",
+          "light": "alarm"
+        },
+        {
+          "camera": "habitat",
+          "zoom": "section"
+        },
+        {
+          "announce": "Fire in the habitat."
+        }
+      ]
+    },
+    {
+      "id": "airlock-decompression",
+      "when": {
+        "alarm": "DECOMPRESSION",
+        "room": "airlock"
+      },
+      "then": [
+        {
+          "room": "airlock",
+          "light": "alarm"
+        },
+        {
+          "camera": "airlock"
+        },
+        {
+          "announce": "Decompression in the airlock."
+        }
+      ]
+    }
+  ],
+  "scene": null
+}

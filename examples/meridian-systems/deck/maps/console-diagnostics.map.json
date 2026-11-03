@@ -1,0 +1,52 @@
+{
+  "$schema": "./map.schema.json",
+  "id": "console-diagnostics",
+  "version": 1,
+  "title": "Diagnostics",
+  "surface": "demo",
+  "decks": ["main", "upper", "lower"],
+  "camera": {
+    "deck": "overview",
+    "focus": "computer-core",
+    "zoom": "ship"
+  },
+  "directory": [
+    "computer-core",
+    "computer-core.rack-port",
+    "computer-core.rack-forward",
+    "computer-core.rack-aft"
+  ],
+  "callouts": [
+    {
+      "at": "computer-core",
+      "show": ["graph-modules", "startup-steps"],
+      "zoom": "ship"
+    }
+  ],
+  "triggers": [
+    {
+      "id": "diagnostics-opened",
+      "when": {
+        "enter": true
+      },
+      "then": [
+        {
+          "announce": "Diagnostics shows the whole graph on the ship."
+        }
+      ]
+    },
+    {
+      "id": "core-selected",
+      "when": {
+        "select": "computer-core"
+      },
+      "then": [
+        {
+          "camera": "computer-core",
+          "zoom": "section"
+        }
+      ]
+    }
+  ],
+  "scene": null
+}

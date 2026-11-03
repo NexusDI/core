@@ -1,0 +1,94 @@
+{
+  "$schema": "./map.schema.json",
+  "id": "console-engineering",
+  "version": 1,
+  "title": "Engineering",
+  "surface": "demo",
+  "decks": ["main", "upper"],
+  "camera": {
+    "deck": "main",
+    "focus": "engineering",
+    "zoom": "section"
+  },
+  "directory": [
+    "engineering",
+    "reactor-bay",
+    "reactor-bay.coolant-pumps",
+    "engineering.power-router",
+    "engineering-reactor-bay"
+  ],
+  "callouts": [
+    {
+      "at": "engineering",
+      "show": [
+        "reactor-level",
+        "electric-output",
+        "coolant-temperature",
+        "shield-allocation"
+      ],
+      "zoom": "section"
+    },
+    {
+      "at": "reactor-bay",
+      "show": ["reactor-level", "coolant-temperature"],
+      "zoom": "section"
+    }
+  ],
+  "firstVisit": {
+    "at": "reactor-bay.coolant-pumps",
+    "text": "The coolant loop is private to Engineering. Select the pumps to see its provider."
+  },
+  "triggers": [
+    {
+      "id": "pumps-selected",
+      "when": {
+        "select": "reactor-bay.coolant-pumps"
+      },
+      "then": [
+        {
+          "camera": "reactor-bay.coolant-pumps",
+          "zoom": "room"
+        },
+        {
+          "callout": "reactor-bay.coolant-pumps",
+          "text": "CoolantLoop is provided in Engineering, which does not export it."
+        }
+      ]
+    },
+    {
+      "id": "reactor-tripped",
+      "when": {
+        "alarm": "REACTOR_TRIP",
+        "room": "reactor-bay"
+      },
+      "then": [
+        {
+          "room": "reactor-bay",
+          "light": "alarm"
+        },
+        {
+          "camera": "reactor-bay"
+        },
+        {
+          "announce": "The reactor tripped."
+        }
+      ]
+    },
+    {
+      "id": "budget-refused",
+      "when": {
+        "refused": "MERIDIAN_POWER_BUDGET"
+      },
+      "then": [
+        {
+          "camera": "engineering.power-router"
+        },
+        {
+          "callout": "engineering.power-router",
+          "show": ["electric-output"]
+        }
+      ]
+    }
+  ],
+  "scene": null
+}

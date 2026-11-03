@@ -1,0 +1,41 @@
+{
+  "$schema": "../../../deck/maps/map.schema.json",
+  "version": 1,
+  "decks": ["main"],
+  "camera": {
+    "deck": "main",
+    "focus": "habitat",
+    "zoom": "section"
+  },
+  "scene": "hero",
+  "id": "scene-refused",
+  "title": "Scene refused",
+  "surface": "scene",
+  "triggers": [
+    {
+      "id": "enter-lights",
+      "when": {
+        "enter": true
+      },
+      "then": [
+        {
+          "room": "habitat",
+          "light": "powered"
+        }
+      ]
+    },
+    {
+      "id": "alarm-sets",
+      "when": {
+        "alarm": "FIRE",
+        "room": "habitat"
+      },
+      "then": [
+        {
+          "set": "bridge.helm",
+          "state": "off"
+        }
+      ]
+    }
+  ]
+}
