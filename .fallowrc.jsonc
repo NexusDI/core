@@ -69,6 +69,9 @@
 
     // The check-schematic target of meridian-ship runs this script by path.
     "tools/meridian-ship/check-schematic.mjs",
+    // The maps test runs this script by path to check the schema's enums, and
+    // a hand run rewrites them after MAP_RECORDS or MAP_CODES changes.
+    "examples/meridian-systems/scripts/write-map-schema.mjs",
     // Run by hand in the Playwright container to draw the bay's baselines.
     "apps/docs-e2e/playwright.baselines.config.ts",
     // The e2e project's webServer command runs serve.mjs by path.
