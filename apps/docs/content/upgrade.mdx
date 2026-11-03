@@ -146,7 +146,7 @@ The 0.3 static `DynamicModule.forRoot(config)` took a module config and returned
 
 ```
 
-**Try it:** Save the region as `child.ts` and run `npx tsx child.ts`. It prints `[ 'NEXUS_MISSING_PROVIDER' ]` and then `Reactor output 1.21 GW.` Delete `imports: [Reactor],` from `EngineeringFixed` and the second `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`. The same rule applies to a `forRootAsync` factory that reads the importer's provider: [Configurable Modules](/configurable-modules/) shows the global module and the module factory for that case.
+**Try it:** Save the region as `child.ts` and run `npx tsx child.ts`. It prints `[ 'NEXUS_MISSING_PROVIDER' ]` and then `Reactor output 1.21 GW.` Delete `imports: [Reactor],` from `EngineeringFixed` and the second `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`. The same rule applies to a `forRootAsync` factory that reads the importer's provider: move that provider into a module that exports it and name the module in `forRootAsync({ imports })`. [Configurable Modules](/configurable-modules/) shows that pattern first, then the global module and the module factory.
 
 ## 5. Bootstrapping the Container
 

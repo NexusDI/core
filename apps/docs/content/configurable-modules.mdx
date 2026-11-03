@@ -53,7 +53,7 @@ This allows you to keep your components decoupled from the specific implementati
 
 ## Asynchronous Configuration with `forRootAsync`
 
-Sometimes your configuration isn't known at compile time (it might need to be fetched from a database or an environment variable). `forRootAsync` allows you to compute your options during the container's startup phase. The call takes `{ useFactory, deps }`.
+Sometimes your configuration isn't known at compile time (it might need to be fetched from a database or an environment variable). `forRootAsync` allows you to compute your options during the container's startup phase. The call takes `{ useFactory, deps }`, and an optional `imports` list that the next section covers.
 
 ```ts file=examples/meridian/src/pages/configurable-modules.md region=for-root-async
 
@@ -73,7 +73,15 @@ Sometimes the importer picks the strategy a configurable module uses. `Meridian`
 
 ```
 
-`Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and its one inner error is `NEXUS_MISSING_PROVIDER` for `SignalSource` in `Comms`. With `errors()` registered, the message adds a `Fix:` line: "Meridian imports Comms, so Comms cannot import Meridian." The obvious repair, importing `Meridian` into `Comms`, would close an import cycle and raise [NEXUS_MODULE_IMPORT_CYCLE](/errors/NEXUS_MODULE_IMPORT_CYCLE/). Two patterns work. Pick by who owns the strategy.
+`Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, and its one inner error is `NEXUS_MISSING_PROVIDER` for `SignalSource` in `Comms`. With `errors()` registered, the message adds a `Fix:` line: "Meridian imports Comms, so Comms cannot import Meridian." The obvious repair, importing `Meridian` into `Comms`, would close an import cycle and raise [NEXUS_MODULE_IMPORT_CYCLE](/errors/NEXUS_MODULE_IMPORT_CYCLE/). The `Fix:` line then tells you to move the provider into a module that `Comms` imports and to name that module in `Comms.forRootAsync({ imports })`. Three patterns work. Reach for `imports` first, and pick one of the other two when the strategy belongs to the whole ship or `Comms` takes no options.
+
+**Name the source module in `imports`.** Move the provider into its own module that exports the token, and pass that module in the `imports` of `forRootAsync`. The call adds the module to the imports of this `Comms` instance only. The factory's `deps` and the providers of `Comms` see its exports, and `Meridian` does not. The field matches the one NestJS gives `forRootAsync`.
+
+```ts file=examples/meridian/src/pages/configurable-modules.md region=importer-provider-imports
+
+```
+
+Each `forRootAsync()` call still makes its own instance, so two calls with different `imports` give two `Comms` instances with two sources. A module that two instances name is one module, and the container builds its providers once. The walk treats a module in `imports` as any other import: `check()` and `load()` read it, and an import that closes a loop raises `NEXUS_MODULE_IMPORT_CYCLE`. `forRoot(value)` takes no `imports`. Write `forRootAsync({ imports, useFactory: () => value })` when a fixed value needs a source module too.
 
 **Move the provider into a global module.** A global module provides and exports the token, and every module sees it. Use this when one source serves the whole ship. Two global modules that export the same token give `NEXUS_AMBIGUOUS_PROVIDER`, so each token has one global source.
 
@@ -87,7 +95,7 @@ Sometimes the importer picks the strategy a configurable module uses. `Meridian`
 
 ```
 
-**Try it:** Save the first region as `missing.ts` and run it. It prints `[ 'NEXUS_MISSING_PROVIDER' ]`. Save the second as `global.ts` and the third as `factory.ts`. Each prints `relay on 1420`. In `global.ts`, remove `global: true` and run it again. `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, because `Comms` no longer sees `Beacon`'s export. Put the line back.
+**Try it:** Save the first region as `missing.ts` and run it. It prints `[ 'NEXUS_MISSING_PROVIDER' ]`. Save the second as `imports.ts`, the third as `global.ts` and the fourth as `factory.ts`. Each prints `relay on 1420`. In `imports.ts`, remove `imports: [Beacon],` and run it again. `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, because `Comms` no longer imports `Beacon`. Put the line back. In `global.ts`, remove `global: true` and run it again. `Nexus.create` rejects with `NEXUS_BLUEPRINT_INVALID`, because `Comms` no longer sees `Beacon`'s export. Put the line back.
 
 ## Validating Options with Schemas
 
