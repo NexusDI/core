@@ -369,6 +369,8 @@ folder, so the owner of the vocabulary owns the files that name it (P1). The map
 lists the record paths and the codes from the library's exported types, and the guard
 refuses a path the snapshot type lacks.
 
+Amendment (MR3): the schema takes its record paths and codes from the `./maps` subpath of `@nexusdi/meridian-systems`, which holds the `MAP_RECORDS` and `MAP_CODES` constants, typed against `ShipReading`, `AlarmCode` and the library's error codes. A script writes the schema's enums from them, and a test fails when the committed schema differs.
+
 The effects:
 
 | `then`                                                               | Does                                                                       |
@@ -1200,7 +1202,7 @@ The map format and the library:
   `src/geometry/ship-geometry.ts` types them. The geometry test checks every map in
   `deck/maps/` against `map.schema.json` and the geometry's ids and states.
 - `src/notes.ts` adds the `fixture:` notes, and the geometry subpath exports `fixtureOf`.
-- `examples/meridian` exports its annotator with the same notes for the docs ship's tokens.
+- Step D7 (MR8): `examples/meridian` exports its annotator with the same notes for the docs ship's tokens.
 - `deck/maps/` holds the nine console maps, `bridge-stations` for the federation shell,
   `academy-hub` and one map per mission.
 

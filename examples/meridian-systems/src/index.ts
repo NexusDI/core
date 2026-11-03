@@ -9,6 +9,7 @@ export {
   UnknownCompartmentError,
   type BadArgumentProblem,
   type BadCommandReason,
+  type RefusalCode,
   type RelayFaultReason,
 } from './errors';
 

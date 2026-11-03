@@ -1,0 +1,57 @@
+{
+  "$schema": "../../../deck/maps/map.schema.json",
+  "version": 1,
+  "decks": ["main"],
+  "camera": {
+    "deck": "main",
+    "focus": "habitat",
+    "zoom": "section"
+  },
+  "scene": "hero",
+  "id": "scene-valid",
+  "title": "Scene valid",
+  "surface": "scene",
+  "triggers": [
+    {
+      "id": "module-loads",
+      "when": {
+        "loaded": "FtlDrive"
+      },
+      "then": [
+        {
+          "set": "ftl-core.ring",
+          "state": "on"
+        },
+        {
+          "conduit": "power.ftl-spool",
+          "state": "flowing"
+        }
+      ]
+    },
+    {
+      "id": "interlock-refuses",
+      "when": {
+        "refused": "MERIDIAN_INTERLOCK",
+        "door": "airlock-outer"
+      },
+      "then": [
+        {
+          "room": "airlock",
+          "light": "alarm"
+        }
+      ]
+    },
+    {
+      "id": "opened",
+      "when": {
+        "enter": true
+      },
+      "then": [
+        {
+          "camera": "habitat",
+          "zoom": "deck"
+        }
+      ]
+    }
+  ]
+}

@@ -31,6 +31,11 @@
       "import": "./src/geometry/ship-geometry.ts",
       "default": "./src/geometry/ship-geometry.ts"
     },
+    "./maps": {
+      "types": "./src/maps/map-definition.ts",
+      "import": "./src/maps/map-definition.ts",
+      "default": "./src/maps/map-definition.ts"
+    },
     "./test/fix-line": {
       "types": "./test/contracts/fix-line.ts",
       "import": "./test/contracts/fix-line.ts",
@@ -57,7 +62,8 @@
     "@nexusdi/errors": "*",
     "@nexusdi/interceptors": "*",
     "@nexusdi/testing": "*",
-    "@nexusdi/vitest": "*"
+    "@nexusdi/vitest": "*",
+    "ajv": "8.20.0"
   },
   "nx": {
     "tags": [

@@ -1,0 +1,46 @@
+{
+  "$schema": "./map.schema.json",
+  "id": "console-helm",
+  "version": 1,
+  "title": "Helm",
+  "surface": "demo",
+  "decks": ["main"],
+  "camera": {
+    "deck": "main",
+    "focus": "bridge",
+    "zoom": "section"
+  },
+  "directory": [
+    "bridge",
+    "bridge.helm",
+    "bridge.forward-console",
+    "chart-room",
+    "bridge-chart-room"
+  ],
+  "callouts": [
+    {
+      "at": "bridge.helm",
+      "show": ["heading", "course", "turn-rate", "thruster-torque"],
+      "zoom": "section"
+    }
+  ],
+  "triggers": [
+    {
+      "id": "helm-selected",
+      "when": {
+        "select": "bridge.helm"
+      },
+      "then": [
+        {
+          "camera": "bridge.helm",
+          "zoom": "room"
+        },
+        {
+          "callout": "bridge.helm",
+          "show": ["heading", "course"]
+        }
+      ]
+    }
+  ],
+  "scene": null
+}

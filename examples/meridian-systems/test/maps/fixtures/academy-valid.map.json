@@ -1,0 +1,93 @@
+{
+  "$schema": "../../../deck/maps/map.schema.json",
+  "version": 1,
+  "decks": ["main"],
+  "camera": {
+    "deck": "main",
+    "focus": "habitat",
+    "zoom": "section"
+  },
+  "scene": null,
+  "id": "academy-valid",
+  "title": "Academy valid",
+  "surface": "academy",
+  "start": {
+    "rooms": {
+      "habitat": {
+        "light": "unpowered"
+      }
+    },
+    "fixtures": {
+      "habitat.galley-counter": "default"
+    }
+  },
+  "goal": {
+    "rooms": {
+      "habitat": {
+        "light": "powered"
+      }
+    }
+  },
+  "triggers": [
+    {
+      "id": "provider-resolves",
+      "when": {
+        "provider": "bridge.helm",
+        "event": "construct"
+      },
+      "then": [
+        {
+          "set": "bridge.helm",
+          "state": "on"
+        },
+        {
+          "room": "habitat",
+          "light": "powered"
+        }
+      ]
+    },
+    {
+      "id": "objective-passes",
+      "when": {
+        "objective": "power-habitat",
+        "status": "pass"
+      },
+      "then": [
+        {
+          "room": "habitat",
+          "light": "powered"
+        },
+        {
+          "conduit": "power.life-support.forward",
+          "state": "flowing"
+        }
+      ]
+    },
+    {
+      "id": "opened",
+      "when": {
+        "enter": true
+      },
+      "then": [
+        {
+          "camera": "habitat"
+        },
+        {
+          "announce": "Power the habitat."
+        }
+      ]
+    },
+    {
+      "id": "picked",
+      "when": {
+        "select": "habitat"
+      },
+      "then": [
+        {
+          "callout": "habitat",
+          "text": "The habitat needs power."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,546 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nexusdi.dev/schemas/meridian-map/1.json",
+  "title": "Meridian map",
+  "description": "One playable setup of the ship: the decks that show, where the camera opens, each prop's starting state and the triggers that react to the run. The enums of recordPath, alarmCode and refusalCode come from the MAP_RECORDS and MAP_CODES constants of the maps subpath; scripts/write-map-schema.mjs writes them.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "version", "title", "surface", "decks", "camera", "scene"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "id": {
+      "$ref": "#/$defs/mapId"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "surface": {
+      "enum": ["demo", "academy", "scene"]
+    },
+    "decks": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "camera": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deck", "focus", "zoom"],
+      "properties": {
+        "deck": {
+          "$ref": "#/$defs/id"
+        },
+        "focus": {
+          "$ref": "#/$defs/id"
+        },
+        "zoom": {
+          "$ref": "#/$defs/zoom"
+        }
+      }
+    },
+    "start": {
+      "$ref": "#/$defs/state"
+    },
+    "directory": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "callouts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["at", "show"],
+        "properties": {
+          "at": {
+            "$ref": "#/$defs/id"
+          },
+          "show": {
+            "$ref": "#/$defs/readouts"
+          },
+          "zoom": {
+            "$ref": "#/$defs/zoom"
+          }
+        }
+      }
+    },
+    "firstVisit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["at", "text"],
+      "properties": {
+        "at": {
+          "$ref": "#/$defs/id"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "triggers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/trigger"
+      }
+    },
+    "scene": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "goal": {
+      "$ref": "#/$defs/state"
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9.-]*$"
+    },
+    "mapId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "readout": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "readouts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/readout"
+      }
+    },
+    "zoom": {
+      "oneOf": [
+        {
+          "enum": ["ship", "deck", "section", "room"]
+        },
+        {
+          "enum": [6, 8, 12, 16, 24, 32, 48]
+        }
+      ]
+    },
+    "propState": {
+      "enum": ["on", "off", "damaged", "open", "closed", "default"]
+    },
+    "roomLight": {
+      "enum": ["powered", "unpowered", "alarm"]
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fixtures": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/id"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/propState"
+          }
+        },
+        "doors": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/id"
+          },
+          "additionalProperties": {
+            "enum": ["open", "closed"]
+          }
+        },
+        "rooms": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/id"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "light": {
+                "$ref": "#/$defs/roomLight"
+              },
+              "alarm": {
+                "$ref": "#/$defs/alarmCode"
+              }
+            }
+          }
+        }
+      }
+    },
+    "recordPath": {
+      "enum": [
+        "tick",
+        "reactor.level",
+        "reactor.thermal",
+        "reactor.electric",
+        "reactor.tripped",
+        "coolant.temperature",
+        "power.output",
+        "drive.thrust",
+        "drive.velocity",
+        "helm.attitude",
+        "helm.rate",
+        "comms.status",
+        "comms.sent",
+        "weapons.status",
+        "weapons.charge",
+        "weapons.shots",
+        "weapons.hits",
+        "ftl.status",
+        "ftl.charge",
+        "ftl.sector",
+        "compartments.bridge.pressure",
+        "compartments.habitat.pressure",
+        "compartments.reactor-bay.pressure",
+        "compartments.airlock.pressure",
+        "compartments.chart-room.pressure",
+        "compartments.computer-core.pressure",
+        "compartments.quarters.pressure",
+        "compartments.comms-relay.pressure",
+        "compartments.shuttle-bay.pressure",
+        "compartments.drone-bay.pressure",
+        "compartments.capacitor-room.pressure",
+        "compartments.engineering.pressure",
+        "compartments.ftl-core.pressure",
+        "compartments.main-drive.pressure"
+      ]
+    },
+    "alarmCode": {
+      "enum": [
+        "FIRE",
+        "SENSOR_FAULT",
+        "HYPOXIA",
+        "CO2_HIGH",
+        "PRESSURE_LOW",
+        "TEMPERATURE",
+        "DECOMPRESSION",
+        "COOLANT_HIGH",
+        "REACTOR_TRIP",
+        "LOAD_SHED"
+      ]
+    },
+    "refusalCode": {
+      "enum": [
+        "MERIDIAN_POWER_BUDGET",
+        "MERIDIAN_BAD_COMMAND",
+        "MERIDIAN_UNKNOWN_COMPARTMENT",
+        "MERIDIAN_INTERLOCK",
+        "MERIDIAN_FTL_NOT_SPOOLED",
+        "MERIDIAN_RELAY",
+        "MERIDIAN_UNCHARTED"
+      ]
+    },
+    "recordValue": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "trigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "when", "then"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/mapId"
+        },
+        "when": {
+          "$ref": "#/$defs/condition"
+        },
+        "then": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/effect"
+          }
+        }
+      }
+    },
+    "condition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enter"],
+          "properties": {
+            "enter": {
+              "const": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["select"],
+          "properties": {
+            "select": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["record", "is"],
+          "properties": {
+            "record": {
+              "$ref": "#/$defs/recordPath"
+            },
+            "is": {
+              "$ref": "#/$defs/recordValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["record", "above"],
+          "properties": {
+            "record": {
+              "$ref": "#/$defs/recordPath"
+            },
+            "above": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["record", "below"],
+          "properties": {
+            "record": {
+              "$ref": "#/$defs/recordPath"
+            },
+            "below": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["alarm", "room"],
+          "properties": {
+            "alarm": {
+              "$ref": "#/$defs/alarmCode"
+            },
+            "room": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["refused"],
+          "properties": {
+            "refused": {
+              "$ref": "#/$defs/refusalCode"
+            },
+            "door": {
+              "$ref": "#/$defs/id"
+            },
+            "room": {
+              "$ref": "#/$defs/id"
+            },
+            "system": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provider", "event"],
+          "properties": {
+            "provider": {
+              "$ref": "#/$defs/id"
+            },
+            "event": {
+              "enum": ["construct", "init", "dispose:instance", "missing"]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["objective", "status"],
+          "properties": {
+            "objective": {
+              "$ref": "#/$defs/mapId"
+            },
+            "status": {
+              "enum": ["pass", "fail"]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["loaded"],
+          "properties": {
+            "loaded": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["passed"],
+          "properties": {
+            "passed": {
+              "$ref": "#/$defs/mapId"
+            }
+          }
+        }
+      ]
+    },
+    "effect": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["set", "state"],
+          "properties": {
+            "set": {
+              "$ref": "#/$defs/id"
+            },
+            "state": {
+              "$ref": "#/$defs/propState"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["room", "light"],
+          "properties": {
+            "room": {
+              "$ref": "#/$defs/id"
+            },
+            "light": {
+              "$ref": "#/$defs/roomLight"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["conduit", "state"],
+          "properties": {
+            "conduit": {
+              "$ref": "#/$defs/id"
+            },
+            "state": {
+              "enum": ["broken", "flowing", "shed"]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["camera"],
+          "properties": {
+            "camera": {
+              "$ref": "#/$defs/id"
+            },
+            "zoom": {
+              "$ref": "#/$defs/zoom"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["callout"],
+          "properties": {
+            "callout": {
+              "$ref": "#/$defs/id"
+            },
+            "show": {
+              "$ref": "#/$defs/readouts"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "anyOf": [
+            {
+              "required": ["show"],
+              "properties": {
+                "show": true
+              }
+            },
+            {
+              "required": ["text"],
+              "properties": {
+                "text": true
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["announce"],
+          "properties": {
+            "announce": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["release"],
+          "properties": {
+            "release": {
+              "$ref": "#/$defs/mapId"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

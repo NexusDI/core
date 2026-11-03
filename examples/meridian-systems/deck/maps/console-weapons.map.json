@@ -1,0 +1,61 @@
+{
+  "$schema": "./map.schema.json",
+  "id": "console-weapons",
+  "version": 1,
+  "title": "Weapons",
+  "surface": "demo",
+  "decks": ["upper", "main"],
+  "camera": {
+    "deck": "upper",
+    "focus": "capacitor-room",
+    "zoom": "section"
+  },
+  "directory": [
+    "capacitor-room",
+    "capacitor-room.breech",
+    "capacitor-room.bank-port",
+    "capacitor-room.bank-starboard",
+    "engineering-capacitor-room"
+  ],
+  "callouts": [
+    {
+      "at": "capacitor-room",
+      "show": ["weapons-status", "capacitor-charge", "shots", "hits"],
+      "zoom": "section"
+    }
+  ],
+  "triggers": [
+    {
+      "id": "breech-selected",
+      "when": {
+        "select": "capacitor-room.breech"
+      },
+      "then": [
+        {
+          "camera": "capacitor-room.breech",
+          "zoom": "room"
+        },
+        {
+          "callout": "capacitor-room.breech",
+          "text": "RailgunMount reaches POWER_ROUTER through a lazy edge."
+        }
+      ]
+    },
+    {
+      "id": "budget-refused",
+      "when": {
+        "refused": "MERIDIAN_POWER_BUDGET"
+      },
+      "then": [
+        {
+          "camera": "capacitor-room"
+        },
+        {
+          "callout": "capacitor-room",
+          "show": ["capacitor-charge"]
+        }
+      ]
+    }
+  ],
+  "scene": null
+}

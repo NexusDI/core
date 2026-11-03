@@ -1,0 +1,60 @@
+{
+  "$schema": "./map.schema.json",
+  "id": "console-airlock",
+  "version": 1,
+  "title": "Airlock drill",
+  "surface": "demo",
+  "decks": ["main", "lower"],
+  "camera": {
+    "deck": "main",
+    "focus": "airlock",
+    "zoom": "section"
+  },
+  "start": {
+    "doors": {
+      "habitat-airlock": "closed",
+      "airlock-outer": "closed"
+    },
+    "rooms": {
+      "shuttle-bay": {
+        "light": "unpowered"
+      }
+    }
+  },
+  "directory": ["airlock", "habitat-airlock", "airlock-outer", "habitat"],
+  "callouts": [
+    {
+      "at": "airlock",
+      "show": ["airlock-pressure", "pump-mode"],
+      "zoom": "section"
+    },
+    {
+      "at": "airlock-outer",
+      "show": ["pressure-difference"],
+      "zoom": "section"
+    }
+  ],
+  "firstVisit": {
+    "at": "airlock-outer",
+    "text": "PressureInterlock guards this hatch. Try to open it."
+  },
+  "triggers": [
+    {
+      "id": "outer-refused",
+      "when": {
+        "refused": "MERIDIAN_INTERLOCK",
+        "door": "airlock-outer"
+      },
+      "then": [
+        {
+          "camera": "airlock-outer"
+        },
+        {
+          "callout": "airlock-outer",
+          "show": ["interlock-chain"]
+        }
+      ]
+    }
+  ],
+  "scene": null
+}

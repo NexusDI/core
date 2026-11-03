@@ -1,4 +1,4 @@
-import { errorBase } from '@nexusdi/core';
+import { errorBase, type NexusErrorByCode } from '@nexusdi/core';
 
 /** The README section of each code; the one-line message ends with this url and the code. */
 const DOCS =
@@ -137,6 +137,9 @@ export class UnchartedStarError extends errorBase<
   'MERIDIAN_UNCHARTED',
   UnchartedStarFields
 >('MERIDIAN_UNCHARTED', 'UnchartedStarError', DOCS) {}
+
+/** Every code a Meridian error carries. A command answer can refuse with any of them. */
+export type RefusalCode = Extract<keyof NexusErrorByCode, `MERIDIAN_${string}`>;
 
 declare module '@nexusdi/core' {
   interface NexusErrorByCode {

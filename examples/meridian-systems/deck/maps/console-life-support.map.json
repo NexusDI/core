@@ -1,0 +1,67 @@
+{
+  "$schema": "./map.schema.json",
+  "id": "console-life-support",
+  "version": 1,
+  "title": "Life support",
+  "surface": "demo",
+  "decks": ["main", "upper", "lower"],
+  "camera": {
+    "deck": "main",
+    "focus": "habitat",
+    "zoom": "section"
+  },
+  "directory": [
+    "habitat",
+    "airlock",
+    "quarters",
+    "comms-relay",
+    "habitat-airlock"
+  ],
+  "callouts": [
+    {
+      "at": "habitat",
+      "show": [
+        "habitat-temperature",
+        "habitat-pressure",
+        "oxygen-partial-pressure",
+        "heater-power"
+      ],
+      "zoom": "section"
+    }
+  ],
+  "triggers": [
+    {
+      "id": "habitat-selected",
+      "when": {
+        "select": "habitat"
+      },
+      "then": [
+        {
+          "camera": "habitat",
+          "zoom": "section"
+        },
+        {
+          "callout": "habitat",
+          "text": "Request scope for habitat. GasAnalyzer is transient, so each read builds one."
+        }
+      ]
+    },
+    {
+      "id": "habitat-thin-air",
+      "when": {
+        "alarm": "PRESSURE_LOW",
+        "room": "habitat"
+      },
+      "then": [
+        {
+          "room": "habitat",
+          "light": "alarm"
+        },
+        {
+          "announce": "Habitat pressure is low."
+        }
+      ]
+    }
+  ],
+  "scene": null
+}

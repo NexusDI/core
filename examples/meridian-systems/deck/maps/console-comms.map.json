@@ -1,0 +1,45 @@
+{
+  "$schema": "./map.schema.json",
+  "id": "console-comms",
+  "version": 1,
+  "title": "Comms",
+  "surface": "demo",
+  "decks": ["upper", "main"],
+  "camera": {
+    "deck": "upper",
+    "focus": "comms-relay",
+    "zoom": "section"
+  },
+  "directory": [
+    "comms-relay",
+    "comms-relay.console",
+    "comms-relay.equipment-rack",
+    "habitat-comms-relay"
+  ],
+  "callouts": [
+    {
+      "at": "comms-relay.console",
+      "show": ["array-status", "hail-queued", "last-hail", "array-power"],
+      "zoom": "section"
+    }
+  ],
+  "triggers": [
+    {
+      "id": "no-link",
+      "when": {
+        "record": "comms.status",
+        "is": "no subspace link"
+      },
+      "then": [
+        {
+          "camera": "comms-relay.console"
+        },
+        {
+          "callout": "comms-relay.console",
+          "text": "PhasedArray reads optional(SUBSPACE_LINK) and got no link."
+        }
+      ]
+    }
+  ],
+  "scene": null
+}
