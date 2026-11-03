@@ -122,7 +122,9 @@ export class FakeShipFeed implements IShipFeed {
   }
 
   push(event: ShipFeedEvent): void {
-    if (event.type === 'reading') this.reading = event;
+    if (event.type === 'reading' || event.type === 'unreachable') {
+      this.reading = event;
+    }
     if (event.type === 'graph') this.graph = event;
     for (const listener of [...this.listeners]) listener(event);
   }

@@ -426,7 +426,7 @@ guard runs the hook headless (6.9).
 
 Amendment (MR1, A1): a fixture has two channels. `frames` holds the prop frame and `fixtures` holds the glow (`online`, `standby`, `offline`). A patch that sets a frame and no glow gets one from the store: `on` gives `online`, `off` and `damaged` give `offline`, and `open`, `closed` and `default` leave the glow to the room. A binding keeps `patchOf(event)` and returns a `DeckPatch` that may carry `frames`, `doors`, `conduits` and `alarms` (a list that replaces the previous one). The store keeps the base state apart from the holds of the triggers, answers `snapshot()` with the holds laid over the base (the later hold wins), and carries the camera target set by `setCameraTarget`. Where this section says room light `on` and `off`, read `powered` and `unpowered`.
 
-Amendment (MR14): `.` declares `PropFrame`, the six frames of `PropState` from `@nexusdi/meridian-systems/geometry`, as its own union. `.` imports nothing from meridian-systems, types included, because the docs app reads `.`'s declarations with a plain `tsc` that builds no references (TS6305). `src/bindings/prop-frame.test.ts` asserts `expectTypeOf<PropFrame>().toEqualTypeOf<PropState>()`, and the deck's `typecheck` fails when the two differ. This is the deck's one copy of meridian-systems' vocabulary.
+Amendment (MR14): `.` declares `PropFrame`, the six frames of `PropState` from `@nexusdi/meridian-systems/geometry`, as its own union. `.` imports nothing from meridian-systems, types included, because the docs app reads `.`'s declarations with a plain `tsc` that builds no references (TS6305). `src/bindings/prop-frame.test.ts` asserts `expectTypeOf<PropFrame>().toEqualTypeOf<PropState>()`, and the deck's `typecheck` fails when the two differ. The deck's copies of meridian-systems' vocabulary are each pinned to the owner's type by the compiler.
 
 `DeckStateStore` holds one record per room, door, fixture and conduit, and draws nothing.
 The layers and the DOM layer read it. Four kinds of state reach the art:
@@ -484,7 +484,7 @@ the computer core (ship-systems 16.5). `@nexusdi/meridian-systems/geometry` expo
 
 Amendment (MR1, A1): an app may bind its own `IDeckSource`. The front-page bay binds its `PreflightDeckSource`, and `./testing` offers `FakeDeckSource` for tests.
 
-Amendment (MR10, A10): `TelemetryDeckSource` reads `SHIP_FEED` (`IShipFeed`, exported by `./bindings`) and each app binds an adapter over its own client. A feed event is a reading frame, a command answer, a graph view or `unreachable`. A late subscriber hears the latest reading and graph at once. `unreachable` becomes a `state` patch that sets every room `unpowered` and clears the alarms.
+Amendment (MR10, A10): `TelemetryDeckSource` reads `SHIP_FEED` (`IShipFeed`, exported by `./bindings`) and each app binds an adapter over its own client. A feed event is a reading frame, a command answer, a graph view or `unreachable`. A late subscriber hears the latest reading, or `unreachable` when the link dropped after it, and the latest graph, at once. `unreachable` becomes a `state` patch that sets every room `unpowered` and clears the alarms.
 
 `DECK_SOURCE` turns what a surface knows into `DeckEvent`s. One interface, five classes:
 

@@ -111,6 +111,13 @@ describe('SafetyDeck', () => {
     expect(patch?.conduits).toEqual({});
   });
 
+  it('lights no room for a code that is a property of every object', async () => {
+    const patch = binding.patchOf(
+      readingEvent(await alarmed({ code: 'toString', subject: 'bridge' })),
+    );
+    expect(patch?.rooms).toEqual({});
+  });
+
   it('names only doors, rooms, conduits of a load and alarms', async () => {
     const patch = binding.patchOf(
       readingEvent(await alarmed({ code: 'FIRE', subject: 'habitat' })),
@@ -152,9 +159,13 @@ describe('SafetyDeck', () => {
     const graph = {
       type: 'graph' as const,
       modules: ['Root', 'Ship'],
-      providers: { REACTOR: ['construct', 'init'], HELM: ['construct'] },
+      providers: {
+        REACTOR: ['construct', 'init'],
+        HELM: ['construct', 'init:await'],
+        CALIBRATION: ['construct:await', 'dispose:instance'],
+      },
     };
     if (modules?.source === 'graph') expect(modules.read(graph)).toBe(2);
-    if (steps?.source === 'graph') expect(steps.read(graph)).toBe(3);
+    if (steps?.source === 'graph') expect(steps.read(graph)).toBe(5);
   });
 });

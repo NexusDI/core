@@ -1,4 +1,4 @@
-import type { AlarmCode, ShipReading } from '@nexusdi/meridian-systems';
+import type { RoomAlarmCode, ShipReading } from '@nexusdi/meridian-systems';
 import { SHIP_GEOMETRY } from '@nexusdi/meridian-systems/geometry';
 
 import type {} from '../maps/events.js';
@@ -38,15 +38,15 @@ export function frameAll(
  * The alarm codes that light the room they name. Other codes name a load or
  * the reactor, and a code this build does not list lights nothing.
  */
-const ROOM_ALARM_CODES: ReadonlySet<string> = new Set<AlarmCode>([
-  'FIRE',
-  'SENSOR_FAULT',
-  'HYPOXIA',
-  'CO2_HIGH',
-  'PRESSURE_LOW',
-  'TEMPERATURE',
-  'DECOMPRESSION',
-]);
+const ROOM_ALARM_CODES = {
+  FIRE: true,
+  SENSOR_FAULT: true,
+  HYPOXIA: true,
+  CO2_HIGH: true,
+  PRESSURE_LOW: true,
+  TEMPERATURE: true,
+  DECOMPRESSION: true,
+} satisfies Record<RoomAlarmCode, true>;
 
 /** The compartments whose alarm lights them. */
 export function alarmedRooms(reading: ShipReading): ReadonlySet<string> {
@@ -54,7 +54,8 @@ export function alarmedRooms(reading: ShipReading): ReadonlySet<string> {
   return new Set(
     reading.safety.alarms
       .filter(
-        ({ code, subject }) => ROOM_ALARM_CODES.has(code) && rooms.has(subject),
+        ({ code, subject }) =>
+          Object.hasOwn(ROOM_ALARM_CODES, code) && rooms.has(subject),
       )
       .map(({ subject }) => subject),
   );

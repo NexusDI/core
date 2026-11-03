@@ -35,8 +35,11 @@ afterEach(async () => {
 });
 
 /** The app: a global module binds the feed and the telemetry source, and the root imports the deck state and the seven bindings. */
-async function app() {
+async function app(before?: (feed: FakeShipFeed, ship: TestShip) => void) {
   const feed = new FakeShipFeed();
+  const ship = await TestShip.start({ ftl: true });
+  cleanup.push(() => ship.dispose());
+  before?.(feed, ship);
   const Wiring = defineModule({
     name: 'ShipWiring',
     global: true,
@@ -53,8 +56,6 @@ async function app() {
     }),
   );
   cleanup.push(() => nexus[Symbol.asyncDispose]());
-  const ship = await TestShip.start({ ftl: true });
-  cleanup.push(() => ship.dispose());
   return { nexus, feed, ship };
 }
 
@@ -116,6 +117,16 @@ describe('the seven bindings in one graph', () => {
     feed.push({ type: 'reading', reading: ship.powerUp() });
     feed.push({ type: 'unreachable' });
     expect(state.snapshot().rooms['bridge']).toBe('unpowered');
+  });
+
+  it('keeps a deck state built while the link is down unlit', async () => {
+    const { nexus } = await app((feed, ship) => {
+      feed.push({ type: 'reading', reading: ship.powerUp() });
+      feed.push({ type: 'unreachable' });
+    });
+    const { rooms } = nexus.get(DECK_STATE).snapshot();
+    expect(rooms['bridge']).toBe('unpowered');
+    expect(rooms['engineering']).toBe('unpowered');
   });
 
   it('hands a deck state built after a reading the latest frame at once', async () => {

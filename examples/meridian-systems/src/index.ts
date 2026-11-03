@@ -186,6 +186,7 @@ export {
 export {
   type Alarm,
   type AlarmCode,
+  type RoomAlarmCode,
   ALARM_BOARD,
   ALARM_SINKS,
   BLAST_DOORS,
