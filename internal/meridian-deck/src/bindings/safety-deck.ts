@@ -1,5 +1,6 @@
 import { defineModule, provide } from '@nexusdi/core';
-import type { ShipReading } from '@nexusdi/meridian-systems';
+import type { TraceEvent } from '@nexusdi/core';
+import type { AlarmCode, ShipReading } from '@nexusdi/meridian-systems';
 import { SHIP_GEOMETRY } from '@nexusdi/meridian-systems/geometry';
 
 import type {
@@ -28,7 +29,7 @@ import {
 } from './shared.js';
 
 /** The code of the alarm that closes a door and names the cause. */
-const DECOMPRESSION = 'DECOMPRESSION';
+const DECOMPRESSION: AlarmCode = 'DECOMPRESSION';
 
 const KILO = 1e3;
 /** The room the safety callout reads, and the door the airlock callout reads. */
@@ -36,7 +37,12 @@ const SAFETY_ROOM = 'habitat';
 const AIRLOCK_DOOR = 'airlock-outer';
 
 /** The trace events that run while a provider starts. */
-const STARTUP_EVENTS: ReadonlySet<string> = new Set(['construct', 'init']);
+const STARTUP_EVENTS: ReadonlySet<string> = new Set<TraceEvent['type']>([
+  'construct',
+  'construct:await',
+  'init',
+  'init:await',
+]);
 
 const FRAME_READOUTS: readonly FrameReadout[] = [
   {
@@ -53,7 +59,6 @@ const FRAME_READOUTS: readonly FrameReadout[] = [
   {
     name: 'door-state',
     label: 'Habitat doors open',
-    unit: 'open',
     source: 'reading',
     read: (reading) =>
       SHIP_GEOMETRY.doors.filter(
@@ -137,7 +142,7 @@ const READOUTS: readonly Readout[] = [
  * Safety's part of the deck: the alarm list, the light of an alarmed room,
  * every door and the conduit of a shed load. Safety has no hull section, so
  * its rooms and doors span the ship. It also carries the three readouts that
- * need an event instead of a frame: `interlock-chain` reads the latest
+ * read an event: `interlock-chain` reads the latest
  * `answer`, and `graph-modules` and `startup-steps` read the latest `graph`.
  */
 export class SafetyDeckBinding implements IDeckBinding {

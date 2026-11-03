@@ -6,7 +6,6 @@ export type {
   Readout,
   ReadoutValue,
   ShipFeedEvent,
-  ShipGraph,
 } from './contracts.js';
 export { CommsDeck } from './comms-deck.js';
 export { EngineeringDeck } from './engineering-deck.js';

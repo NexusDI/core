@@ -93,7 +93,12 @@ describe('EngineeringDeck', () => {
     const patch = binding.patchOf(
       readingEvent(
         withRecords(reading, {
-          power: { ...reading.power, shed: ['shields'] },
+          safety: {
+            ...reading.safety,
+            alarms: [
+              { code: 'LOAD_SHED', subject: 'shields', acknowledged: false },
+            ],
+          },
         }),
       ),
     );

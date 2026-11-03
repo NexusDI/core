@@ -1,34 +1,26 @@
-import type { RefusalCode, ShipReading } from '@nexusdi/meridian-systems';
+import type { ShipReading } from '@nexusdi/meridian-systems';
 
 import type {} from '../maps/events.js';
-import type { DeckEvent, ReadoutDefinition } from '../state/contracts.js';
-
-/** The graph the app reports after a section loads: the loaded modules and each provider's trace events. */
-export interface ShipGraph {
-  readonly modules: readonly string[];
-  readonly providers: Readonly<Record<string, readonly string[]>>;
-}
+import type {
+  DeckEvent,
+  DeckEventMap,
+  ReadoutDefinition,
+} from '../state/contracts.js';
 
 /**
  * What the app's client hears from the ship, by type. A backend that cannot
  * be reached is an event of its own, so the deck can show the ship as unread.
  */
 export type ShipFeedEvent =
-  | { readonly type: 'reading'; readonly reading: ShipReading }
-  | {
-      readonly type: 'answer';
-      /** The refusal code, or absent when the ship accepted the command. */
-      readonly refused?: RefusalCode;
-      readonly door?: string;
-      readonly room?: string;
-      readonly system?: string;
-    }
-  | ({ readonly type: 'graph' } & ShipGraph)
+  | ({ readonly type: 'reading' } & DeckEventMap['reading'])
+  | ({ readonly type: 'answer' } & DeckEventMap['answer'])
+  | ({ readonly type: 'graph' } & DeckEventMap['graph'])
   | { readonly type: 'unreachable' };
 
 /**
  * The app's adapter over its own client. A subscriber hears the latest
- * reading and the latest graph at once, then each later event.
+ * reading, or `unreachable` when the link dropped after it, and the latest
+ * graph, then each later event.
  */
 export interface IShipFeed {
   subscribe(listener: (event: ShipFeedEvent) => void): () => void;

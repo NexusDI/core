@@ -25,6 +25,15 @@ export type AlarmCode =
   | 'REACTOR_TRIP'
   | 'LOAD_SHED';
 
+/**
+ * The codes whose subject is a compartment, so the alarm lights that room. The
+ * other three name the reactor or a shed load.
+ */
+export type RoomAlarmCode = Exclude<
+  AlarmCode,
+  'COOLANT_HIGH' | 'REACTOR_TRIP' | 'LOAD_SHED'
+>;
+
 export interface Alarm {
   readonly code: AlarmCode;
   /** The compartment, the shed load's id, or `reactor`. */

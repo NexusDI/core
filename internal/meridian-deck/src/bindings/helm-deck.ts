@@ -39,7 +39,7 @@ const READOUTS: readonly FrameReadout[] = [
   {
     name: 'thruster-torque',
     label: 'Thruster torque',
-    unit: 'kN m',
+    unit: 'kN·m',
     source: 'reading',
     read: ({ helm }) => helm.torque / KILO,
   },

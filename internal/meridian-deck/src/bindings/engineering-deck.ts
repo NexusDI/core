@@ -94,8 +94,8 @@ const READOUTS: readonly FrameReadout[] = [
 /**
  * Engineering's part of the deck: the consoles and machinery of the
  * engineering room and the reactor bay, the engineering room's light, and the
- * power and coolant conduits. A power conduit whose load the router shed is
- * left to the safety binding, which marks it `shed` from its alarm.
+ * power and coolant conduits. A power conduit whose load has a `LOAD_SHED`
+ * alarm is left to the safety binding, which marks it `shed`.
  */
 export class EngineeringDeckBinding implements IDeckBinding {
   readonly readouts = READOUTS;
@@ -110,7 +110,7 @@ export class EngineeringDeckBinding implements IDeckBinding {
   private patch(reading: ShipReading): DeckPatch {
     const running = reading.reactor.level > 0 && !reading.reactor.tripped;
     const conduits: Record<string, ConduitState> = {};
-    const shed = new Set([...reading.power.shed, ...shedByAlarm(reading)]);
+    const shed = shedByAlarm(reading);
     for (const route of SHIP_GEOMETRY.conduits) {
       if (route.kind === 'coolant') {
         conduits[route.id] = coolantConduit(reading.coolant.temperature);
