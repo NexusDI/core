@@ -1,10 +1,15 @@
 # @nexusdi/meridian-deck
 
-The deck runtime of the Meridian docs. A private package, in three entries.
+The deck runtime of the Meridian docs. A private package, in four entries.
 
 - `@nexusdi/meridian-deck` holds the deck state: `DeckState` (a configurable
   module), the tokens `DECK_OPTIONS`, `DECK_SOURCE`, `DECK_STATE` and
   `DECK_BINDINGS`, and the contracts a source implements. It imports no Pixi.
+- `@nexusdi/meridian-deck/maps` holds `DeckMaps`, which runs the map files of
+  `@nexusdi/meridian-systems` over the deck state: the tokens `MAP`, `SCENE`
+  and `SCENE_RUNNER`, the trigger engine and `ScriptedDeckSource`. It imports
+  meridian-systems by `import type` only, an optional peer, so the app passes
+  the maps, the scene modules and the door ids in the options.
 - `@nexusdi/meridian-deck/view` holds `DeckView`, which exports `DECK_VIEW`
   alone. `DECK_VIEW.attach(canvas)` lights the unlit cutaway with PixiJS and
   resolves on the first presented frame.
@@ -16,6 +21,21 @@ The app binds `DECK_SOURCE` in its own global module, declares
 await nexus.load(DeckView, { imports: [BayDeckState] });
 await nexus.get(DECK_VIEW).attach(canvas);
 ```
+
+```ts
+await nexus.load(DeckMaps.forRoot({ maps, scenes, doors }), {
+  imports: [BayDeckState],
+});
+const scope = await nexus.createScope({ request: { map: 'console-airlock' } });
+await nexus.get(SCENE_RUNNER).open(nexus, scope, {
+  imports: [BayDeckState, BayDeckMaps],
+});
+```
+
+A scope opened with a map applies the map's start state and camera and fires
+its `enter` triggers. Each trigger holds its changes under `<mapId>:<triggerId>`
+and the scope's dispose releases them. `scope.get(SCENE).cues()` lists the
+callouts and announcements the triggers raised.
 
 - `@nexusdi/meridian-deck/testing` holds `FakeDeckSource`, a source a test
   pushes events through. It imports only the main entry.
