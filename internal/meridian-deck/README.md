@@ -40,6 +40,36 @@ callouts and announcements the triggers raised.
 - `@nexusdi/meridian-deck/testing` holds `FakeDeckSource`, a source a test
   pushes events through. It imports only the main entry.
 
+## The deck art
+
+`@nexusdi/meridian-deck/art/*` serves files and no JavaScript, in
+`art/<deck>/` for `lower`, `main` and `upper` and `art/shared/`:
+
+- `base-left.webp` and `base-right.webp`, the painted base (pass `swatch-v2`)
+  in two tiles of 1216 by 640 at 32 px/m, each with a `base-<tile>.json`
+  sidecar. A sidecar names the view (`deck-<id>`), the origin pixel (64, 320),
+  the tile's offset, the paint pass and the masks, lights and legend that go
+  with it.
+- `roomid-<tile>.png` and `emissive-<tile>.png`, 8-bit masks in the same tiles,
+  with a sidecar each, plus `lights.json` in deck pixels and
+  `roomid-legend.json`. `ship_svg.py --deck-layers` writes them.
+- `atlas-<n>.json` and `atlas-<n>.webp`, a Pixi spritesheet per page of at most
+  2048 by 2048. Frames are named `<fixture or door id>@<state>`, anchored at the
+  footprint centre and cut to the footprint plus 0.5 m on every side. A painted
+  frame also has an `<id>@<state>#emissive` frame whose alpha is the emissive
+  mask. `meta.sources` marks each frame `painted` or `generated`. A prop that
+  stands on several decks sits in `art/shared/`.
+
+`apps/docs/tools/deck-art-build.mjs` writes the tiles and the atlases from the
+painted sources, which are not in the repository:
+
+```sh
+node apps/docs/tools/deck-art-build.mjs --paintover <dir> --preview <dir>
+```
+
+A generated frame is a flat steel plate drawn from the geometry. A painted
+sprite replaces it with a file swap.
+
 ## What the state holds
 
 A patch sets rooms (`powered`, `unpowered`, `alarm`), fixtures (the glow:

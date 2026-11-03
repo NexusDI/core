@@ -1,0 +1,147 @@
+{
+  "frames": {
+    "reactor-bay.shadow-shield@default": {
+      "frame": {
+        "x": 1032,
+        "y": 0,
+        "w": 51,
+        "h": 166
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 51,
+        "h": 166
+      },
+      "sourceSize": {
+        "w": 51,
+        "h": 166
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "reactor-bay.vessel@off": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 256
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "reactor-bay.vessel@off#emissive": {
+      "frame": {
+        "x": 258,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 256
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "reactor-bay.vessel@on": {
+      "frame": {
+        "x": 516,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 256
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "reactor-bay.vessel@on#emissive": {
+      "frame": {
+        "x": 774,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 256,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 256,
+        "h": 256
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "nexusdi deck-art",
+    "version": "1",
+    "image": "atlas-0.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1083,
+      "h": 256
+    },
+    "scale": "1",
+    "view": "deck-shared",
+    "layer": "props",
+    "pixelsPerMetre": 32,
+    "marginPx": 16,
+    "sources": {
+      "reactor-bay.shadow-shield@default": "generated",
+      "reactor-bay.vessel@off": "painted",
+      "reactor-bay.vessel@off#emissive": "painted",
+      "reactor-bay.vessel@on": "painted",
+      "reactor-bay.vessel@on#emissive": "painted"
+    },
+    "geometry": "f21947b3c19d9cbb9ce68b0fd7c735e81b52028492c8c8aabe344cfda2ce77d9"
+  }
+}

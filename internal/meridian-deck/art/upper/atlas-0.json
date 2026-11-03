@@ -1,0 +1,547 @@
+{
+  "frames": {
+    "capacitor-room.bank-port@off": {
+      "frame": {
+        "x": 320,
+        "y": 0,
+        "w": 128,
+        "h": 93
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 93
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 93
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "capacitor-room.bank-port@on": {
+      "frame": {
+        "x": 0,
+        "y": 200,
+        "w": 128,
+        "h": 93
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 93
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 93
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "capacitor-room.bank-starboard@off": {
+      "frame": {
+        "x": 130,
+        "y": 200,
+        "w": 128,
+        "h": 93
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 93
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 93
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "capacitor-room.bank-starboard@on": {
+      "frame": {
+        "x": 260,
+        "y": 200,
+        "w": 128,
+        "h": 93
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 93
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 93
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "capacitor-room.breech@off": {
+      "frame": {
+        "x": 294,
+        "y": 389,
+        "w": 83,
+        "h": 83
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 83,
+        "h": 83
+      },
+      "sourceSize": {
+        "w": 83,
+        "h": 83
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "capacitor-room.breech@on": {
+      "frame": {
+        "x": 379,
+        "y": 389,
+        "w": 83,
+        "h": 83
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 83,
+        "h": 83
+      },
+      "sourceSize": {
+        "w": 83,
+        "h": 83
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "comms-relay.console@off": {
+      "frame": {
+        "x": 0,
+        "y": 481,
+        "w": 90,
+        "h": 54
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 90,
+        "h": 54
+      },
+      "sourceSize": {
+        "w": 90,
+        "h": 54
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "comms-relay.console@on": {
+      "frame": {
+        "x": 92,
+        "y": 481,
+        "w": 90,
+        "h": 54
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 90,
+        "h": 54
+      },
+      "sourceSize": {
+        "w": 90,
+        "h": 54
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "comms-relay.equipment-rack@off": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 198
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 198
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 198
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "comms-relay.equipment-rack@on": {
+      "frame": {
+        "x": 66,
+        "y": 0,
+        "w": 64,
+        "h": 198
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 198
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 198
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "engineering-capacitor-room@closed": {
+      "frame": {
+        "x": 390,
+        "y": 200,
+        "w": 108,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 108,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 108,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "engineering-capacitor-room@open": {
+      "frame": {
+        "x": 0,
+        "y": 295,
+        "w": 108,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 108,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 108,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "habitat-comms-relay@closed": {
+      "frame": {
+        "x": 132,
+        "y": 0,
+        "w": 92,
+        "h": 108
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 108
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 108
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "habitat-comms-relay@open": {
+      "frame": {
+        "x": 226,
+        "y": 0,
+        "w": 92,
+        "h": 108
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 108
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 108
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "habitat-quarters@closed": {
+      "frame": {
+        "x": 110,
+        "y": 295,
+        "w": 108,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 108,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 108,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "habitat-quarters@open": {
+      "frame": {
+        "x": 220,
+        "y": 295,
+        "w": 108,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 108,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 108,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "quarters.bunks-aft@default": {
+      "frame": {
+        "x": 330,
+        "y": 295,
+        "w": 96,
+        "h": 90
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 90
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 90
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "quarters.bunks-aft@default#emissive": {
+      "frame": {
+        "x": 0,
+        "y": 389,
+        "w": 96,
+        "h": 90
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 90
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 90
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "quarters.bunks-forward@default": {
+      "frame": {
+        "x": 98,
+        "y": 389,
+        "w": 96,
+        "h": 90
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 90
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 90
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "quarters.bunks-forward@default#emissive": {
+      "frame": {
+        "x": 196,
+        "y": 389,
+        "w": 96,
+        "h": 90
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 90
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 90
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "quarters.lockers@default": {
+      "frame": {
+        "x": 184,
+        "y": 481,
+        "w": 218,
+        "h": 53
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 218,
+        "h": 53
+      },
+      "sourceSize": {
+        "w": 218,
+        "h": 53
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "nexusdi deck-art",
+    "version": "1",
+    "image": "atlas-0.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 498,
+      "h": 535
+    },
+    "scale": "1",
+    "view": "deck-upper",
+    "layer": "props",
+    "pixelsPerMetre": 32,
+    "marginPx": 16,
+    "sources": {
+      "capacitor-room.bank-port@off": "generated",
+      "capacitor-room.bank-port@on": "generated",
+      "capacitor-room.bank-starboard@off": "generated",
+      "capacitor-room.bank-starboard@on": "generated",
+      "capacitor-room.breech@off": "generated",
+      "capacitor-room.breech@on": "generated",
+      "comms-relay.console@off": "generated",
+      "comms-relay.console@on": "generated",
+      "comms-relay.equipment-rack@off": "generated",
+      "comms-relay.equipment-rack@on": "generated",
+      "engineering-capacitor-room@closed": "generated",
+      "engineering-capacitor-room@open": "generated",
+      "habitat-comms-relay@closed": "generated",
+      "habitat-comms-relay@open": "generated",
+      "habitat-quarters@closed": "generated",
+      "habitat-quarters@open": "generated",
+      "quarters.bunks-aft@default": "painted",
+      "quarters.bunks-aft@default#emissive": "painted",
+      "quarters.bunks-forward@default": "painted",
+      "quarters.bunks-forward@default#emissive": "painted",
+      "quarters.lockers@default": "generated"
+    },
+    "geometry": "f21947b3c19d9cbb9ce68b0fd7c735e81b52028492c8c8aabe344cfda2ce77d9"
+  }
+}

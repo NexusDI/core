@@ -32,10 +32,12 @@
       "types": "./dist/testing/index.d.ts",
       "import": "./dist/testing.js",
       "default": "./dist/testing.js"
-    }
+    },
+    "./art/*": "./art/*"
   },
   "files": [
     "dist",
+    "art",
     "!dist/**/*.tsbuildinfo"
   ],
   "dependencies": {

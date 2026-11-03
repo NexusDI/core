@@ -88,10 +88,14 @@ describe('the @nexusdi/meridian-deck manifest', () => {
     expect(manifest.dependencies['pixi.js']).toBe('8.22.0');
   });
 
+  it('exports the deck art as plain files with no JavaScript', () => {
+    expect(manifest.exports['./art/*']).toBe('./art/*');
+  });
+
   it('has the entries of the extension principle, the map runtime, the view and the fakes apart from the state', () => {
     expect(
       Object.keys(manifest.exports).filter((key) => key !== './package.json'),
-    ).toEqual(['.', './maps', './view', './testing']);
+    ).toEqual(['.', './maps', './view', './testing', './art/*']);
     const state = manifest.exports['.'] as Record<string, string>;
     const maps = manifest.exports['./maps'] as Record<string, string>;
     const view = manifest.exports['./view'] as Record<string, string>;
