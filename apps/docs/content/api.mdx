@@ -231,6 +231,8 @@ Plugins run in the order the `plugins` array lists them, with the exceptions [Pl
 
 <!-- reference @nexusdi/core#ForRootAsyncConfig -->
 
+`forRootAsync({ useFactory, deps, imports })` builds the options with `useFactory` from the tokens in `deps`. Each module in `imports` joins the imports of that instance only, so the factory and the module's providers see its exports. [Configurable Modules](/configurable-modules/#when-the-factory-needs-a-provider-from-the-importer) shows the pattern.
+
 ## `InjectionToken`
 
 <!-- reference @nexusdi/core#InjectionToken -->

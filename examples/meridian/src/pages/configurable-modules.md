@@ -561,6 +561,68 @@ console.log(codes);
 
 <!-- #endregion importer-provider-missing -->
 
+<!-- #region importer-provider-imports -->
+
+```ts @import.meta.vitest
+import { Nexus, Token, defineModule, provide } from '@nexusdi/core';
+
+interface CommsOptions {
+  readonly frequency: number;
+}
+interface ISubspaceLink {
+  hail(): string;
+}
+interface ISignalSource {
+  frequency(): number;
+}
+const COMMS_OPTIONS = new Token<CommsOptions>('CommsOptions');
+const SUBSPACE_LINK = new Token<ISubspaceLink>('SubspaceLink');
+const SIGNAL_SOURCE = new Token<ISignalSource>('SignalSource');
+
+class SubspaceRelay implements ISubspaceLink {
+  static deps = [COMMS_OPTIONS] as const;
+  constructor(private readonly options: CommsOptions) {}
+  hail() {
+    return `relay on ${this.options.frequency}`;
+  }
+}
+class BeaconSource implements ISignalSource {
+  frequency() {
+    return 1420;
+  }
+}
+
+const Comms = defineModule({
+  name: 'Comms',
+  options: COMMS_OPTIONS,
+  providers: [provide(SUBSPACE_LINK, { useClass: SubspaceRelay })],
+  exports: [SUBSPACE_LINK],
+});
+
+// Beacon provides and exports SIGNAL_SOURCE. Comms imports it for this call only.
+const Beacon = defineModule({
+  name: 'Beacon',
+  providers: [provide(SIGNAL_SOURCE, { useClass: BeaconSource })],
+  exports: [SIGNAL_SOURCE],
+});
+const Meridian = defineModule({
+  name: 'Meridian',
+  imports: [
+    Comms.forRootAsync({
+      imports: [Beacon],
+      useFactory: (source) => ({ frequency: source.frequency() }),
+      deps: [SIGNAL_SOURCE],
+    }),
+  ],
+});
+
+await using ship = await Nexus.create(Meridian);
+const hail = ship.get(SUBSPACE_LINK).hail(); // -> 'relay on 1420'
+console.log(hail);
+```
+
+<!-- #endregion importer-provider-imports -->
+
 <!-- #region importer-provider-global -->
 
 ```ts @import.meta.vitest

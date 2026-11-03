@@ -11,8 +11,6 @@
       "FactoryDefinition: FactoryDefinition.deps",
       "FactoryDefinition: FactoryDefinition.eager",
       "FactoryDefinition: FactoryDefinition.lifetime",
-      "ForRootAsyncConfig: ForRootAsyncConfig.deps",
-      "ForRootAsyncConfig: ForRootAsyncConfig.useFactory",
       "LookupOptions: LookupOptions.module",
       "ModuleConfig: ModuleConfig.exports",
       "ModuleConfig: ModuleConfig.global",
