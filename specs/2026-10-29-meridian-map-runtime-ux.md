@@ -104,6 +104,8 @@ away in the DOM.
 `@nexusdi/meridian-systems/geometry` (`SHIP_GEOMETRY`), the one subpath of the library a
 frontend imports. The console's bundle check keeps refusing the library's main entry.
 
+Amendment (MR2, MR13): `.` imports `@nexusdi/core` and nothing from `@nexusdi/meridian-systems`, types included, because the docs app reads `.`'s declarations with a plain `tsc`. `./maps` holds `MAP`, `SCENE`, `SCENE_RUNNER`, `MapScene`, `SceneRunner`, the trigger engine and `ScriptedDeckSource` in a `DeckMaps` module that the app loads with `imports: [BayDeckState]`, as it loads `DeckView`. Its options carry `maps`, `scenes` and, when a trigger needs them at run time, the door ids of the geometry. `./maps` imports meridian-systems by `import type` only. The deck's eslint config lifts `enforceBuildableLibDependency` for `@nexusdi/meridian-systems`, `/maps` and `/geometry` in `src/maps/**` and `src/bindings/**` only, and `package-shape.test.ts` asserts that `.`, `./view` and `./testing` name meridian-systems nowhere. The deck's build fails on a declaration diagnostic, so a build that runs before `@nexusdi/meridian-systems:typecheck` has emitted its declarations (TS6305) cannot publish declarations without the imported types.
+
 The runtime is two layers, so the DOM works before the canvas exists:
 
 - The deck state, in the app's static client graph. It holds the map, the fixture states,
@@ -384,6 +386,8 @@ The effects:
 | `{ "callout": "<id>", "show": [...] }` or `"text": "..."`            | opens a callout                                                            |
 | `{ "announce": "..." }`                                              | queues a sentence for the polite live region (4.10)                        |
 | `{ "release": "<trigger id>" }`                                      | drops the holds another trigger set                                        |
+
+Amendment (MR2): a trigger's hold is keyed `<mapId>:<triggerId>`, the map's starting state is one hold keyed by the map id, and a scene hook's holds are keyed `<mapId>:scene:<id>`. A scope's dispose releases each of them. Cues (`callout` and `announce` effects) go to a list on `SCENE`, which the DOM layer reads with `cues()` and `onCue(listener)`. The events that a source sends for the conditions are `reading`, `answer`, `select`, `graph`, `objective` and `passed`, declared by `./maps` on `DeckEventMap`.
 
 The bindings set the base state on every telemetry frame, and trigger holds sit over it,
 so a map can stage a scene on a live ship without fighting the next frame. A trigger fires
