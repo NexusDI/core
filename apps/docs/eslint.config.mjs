@@ -15,6 +15,24 @@ const config = [
     // overlay imports a config that exists only inside the 0.3 site.
     ignores: ['.next/**/*', 'out/**/*', 'next-env.d.ts', 'snapshot/**/*'],
   },
+  {
+    // The data targets (behaviour-data, benchmark-data, scene-fixtures) and
+    // the build rewrite these paths, and eslint opens every file it finds
+    // under them, so a parallel run fails with ENOENT when a target deletes a
+    // file between the directory scan and the read. Their generators own the
+    // content and nothing here is hand-written.
+    ignores: [
+      'generated/**/*',
+      'public/behaviour/**/*',
+      'public/code-classes.css',
+      'public/runtime/**/*',
+      'public/academy-runtime/**/*',
+      'public/popups/**/*',
+      'components/api/behaviour/**/*',
+      'components/console/fixtures/**/*',
+      'components/front-page/fixtures/**/*',
+    ],
+  },
 ];
 
 export default config;
