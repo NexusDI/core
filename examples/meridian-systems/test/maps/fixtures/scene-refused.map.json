@@ -36,6 +36,28 @@
           "state": "off"
         }
       ]
+    },
+    {
+      "id": "alarm-sets",
+      "when": {
+        "enter": true
+      },
+      "then": [
+        {
+          "announce": "Twice."
+        }
+      ]
+    },
+    {
+      "id": "drop",
+      "when": {
+        "enter": true
+      },
+      "then": [
+        {
+          "release": "missing-trigger"
+        }
+      ]
     }
   ]
 }

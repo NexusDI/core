@@ -50,6 +50,18 @@
       ]
     },
     {
+      "id": "refused-lights",
+      "when": {
+        "refused": "MERIDIAN_POWER_BUDGET"
+      },
+      "then": [
+        {
+          "room": "habitat",
+          "light": "alarm"
+        }
+      ]
+    },
+    {
       "id": "wrong-hub",
       "when": {
         "passed": "first-mission"

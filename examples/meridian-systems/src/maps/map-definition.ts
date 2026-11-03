@@ -1,3 +1,4 @@
+import type {} from '../index';
 import type { RefusalCode } from '../errors';
 import type { PropState } from '../geometry/ship-geometry';
 import type { ShipReading } from '../simulation/contracts';
@@ -89,11 +90,8 @@ export type MapEffect =
   | { readonly room: string; readonly light: RoomLight }
   | { readonly conduit: string; readonly state: ConduitHold }
   | { readonly camera: string; readonly zoom?: MapZoom }
-  | {
-      readonly callout: string;
-      readonly show?: readonly string[];
-      readonly text?: string;
-    }
+  | { readonly callout: string; readonly show: readonly string[] }
+  | { readonly callout: string; readonly text: string }
   | { readonly announce: string }
   | { readonly release: string };
 
@@ -225,3 +223,8 @@ export const MAP_CODES: {
   readonly alarm: Exhaustive<AlarmCode, typeof ALARM_CODES>;
   readonly refused: Exhaustive<RefusalCode, typeof REFUSAL_CODES>;
 } = { alarm: ALARM_CODES, refused: REFUSAL_CODES };
+
+/** The codes an interceptor raises, so a container run decides their outcome. */
+export const INTERCEPTED_CODES = [
+  'MERIDIAN_INTERLOCK',
+] as const satisfies readonly RefusalCode[];

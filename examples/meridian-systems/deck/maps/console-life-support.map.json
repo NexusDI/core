@@ -42,7 +42,7 @@
         },
         {
           "callout": "habitat",
-          "text": "Request scope for habitat. GasAnalyzer is transient, so each read builds one."
+          "text": "Read atmosphere opens a request scope for habitat."
         }
       ]
     },

@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.lib.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "incremental": false,
+    "emitDeclarationOnly": false,
+    "declaration": true,
+    "declarationMap": false
+  },
+  "files": ["src/maps/map-definition.ts"],
+  "include": [],
+  "references": []
+}
