@@ -34,6 +34,17 @@ describe('forRootAsync', () => {
     Comms.forRootAsync({ useFactory: async () => ({ band: 'x' }) });
   });
 
+  it('takes modules in imports', () => {
+    const Beacon = defineModule({ name: 'Beacon' });
+    class Relay {}
+    Comms.forRootAsync({
+      imports: [Beacon, Relay],
+      useFactory: () => ({ frequency: 1 }),
+    });
+    // @ts-expect-error a number is not a module
+    Comms.forRootAsync({ imports: [1], useFactory: () => ({ frequency: 1 }) });
+  });
+
   it('has no with()', () => {
     // @ts-expect-error with() is gone
     Comms.with;

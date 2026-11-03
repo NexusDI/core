@@ -52,14 +52,21 @@ export interface ModuleDefinition {
 }
 
 /**
- * What forRootAsync() takes: a factory for the options, and its deps. The
- * factory returns `Input`, the value the module's schema reads.
+ * What forRootAsync() takes: a factory for the options, its deps and the
+ * modules the instance imports. The factory returns `Input`, the value the
+ * module's schema reads.
  */
 export interface ForRootAsyncConfig<Input, D extends readonly Dep[]> {
   readonly useFactory: (
     ...args: ResolveAll<D>
   ) => NoInfer<Input> | PromiseLike<NoInfer<Input>>;
   readonly deps?: D;
+  /**
+   * Modules the instance imports after the definition's own imports. Their
+   * exports are visible inside this instance only, to the factory's deps and
+   * to the module's providers, as in NestJS.
+   */
+  readonly imports?: readonly ModuleRef[];
 }
 
 /**
@@ -195,8 +202,16 @@ export function defineModule(
       source: undefined,
     });
   }
-  const instance = (source: OptionsSource): ModuleDefinition =>
-    register(fieldsOf(base), { base, options, schema, source });
+  const instance = (
+    source: OptionsSource,
+    imports: readonly ModuleRef[] = [],
+  ): ModuleDefinition =>
+    register(fieldsOf({ ...base, imports: [...base.imports, ...imports] }), {
+      base,
+      options,
+      schema,
+      source,
+    });
   const base: ConfigurableModule<unknown> = {
     ...fieldsOf(own as ModuleConfig),
     options,
@@ -204,15 +219,23 @@ export function defineModule(
     forRoot: (value: unknown) => instance({ kind: 'value', value }),
     forRootAsync: (config: unknown) => {
       // Own properties only, as the module config reads (SEC-002).
-      const fields: { useFactory?: unknown; deps?: unknown } =
+      const fields: {
+        useFactory?: unknown;
+        deps?: unknown;
+        imports?: unknown;
+      } =
         typeof config === 'object' && config !== null
-          ? pickOwn(config, ['useFactory', 'deps'])
+          ? pickOwn(config, ['useFactory', 'deps', 'imports'])
           : {};
-      return instance({
-        kind: 'factory',
-        deps: fields.deps ?? [],
-        useFactory: fields.useFactory,
-      });
+      // The walk checks each import as it checks a definition's own.
+      return instance(
+        {
+          kind: 'factory',
+          deps: fields.deps ?? [],
+          useFactory: fields.useFactory,
+        },
+        fields.imports as readonly ModuleRef[] | undefined,
+      );
     },
   };
   return register(base, { options, schema, source: undefined });

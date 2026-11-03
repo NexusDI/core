@@ -14,7 +14,8 @@ import { coreText } from '../text/index.js';
 // Issue #308: a configurable module sees its own providers, its imports'
 // exports and the global modules' exports (spec section 3.4). It never sees
 // a provider of the module that imports it, and the forRootAsync() factory
-// resolves its deps inside the configured module.
+// resolves its deps inside the configured module. Issue #330: the modules
+// forRootAsync({ imports }) names are imports of that instance.
 
 interface IDeckSource {
   events(): string[];
@@ -113,6 +114,29 @@ describe('#308 a configurable module and its importer', () => {
       }),
     );
     expect(ship.get(DECK_STATE).read()).toEqual(['preflight']);
+  });
+
+  it('sees a provider that a module named in forRootAsync({ imports }) exports', async () => {
+    const Source = defineModule({
+      name: 'PreflightSource',
+      providers: [provide(APP_SOURCE, { useClass: PreflightDeckSource })],
+      exports: [APP_SOURCE],
+    });
+    const ship = await Nexus.create(
+      defineModule({
+        name: 'App',
+        imports: [
+          DeckState.forRootAsync({
+            imports: [Source],
+            useFactory: (source) => ({ source }),
+            deps: [APP_SOURCE],
+          }),
+        ],
+      }),
+    );
+    expect(ship.get(DECK_STATE).read()).toEqual(['preflight']);
+    // The import is the instance's, so the importer does not see the export.
+    expect(ship.has(APP_SOURCE)).toBe(false);
   });
 
   it('tells the user to move the token or go global, and never to import the importer', () => {
