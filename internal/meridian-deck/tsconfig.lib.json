@@ -38,6 +38,9 @@
   "references": [
     {
       "path": "../../libs/core/tsconfig.lib.json"
+    },
+    {
+      "path": "../../examples/meridian-systems/tsconfig.lib.json"
     }
   ]
 }

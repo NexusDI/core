@@ -22,6 +22,36 @@ export const sharedRules = {
   '@typescript-eslint/no-empty-function': 'off',
 };
 
+/**
+ * The options of `@nx/enforce-module-boundaries` for every project.
+ *
+ * Exported so that a project config can widen `allow` for its own files. A
+ * later block that sets the rule replaces its options whole, so that block
+ * spreads this object and adds to `allow` instead of repeating the list.
+ */
+export const moduleBoundaries = {
+  enforceBuildableLibDependency: true,
+  // bridge-api loads @nexusdi/devtools with a dynamic import on its
+  // Worker entries, and with static imports everywhere else.
+  checkDynamicDependenciesExceptions: ['^@nexusdi/devtools$'],
+  // Build-time tooling that never reaches a shipped artefact. The
+  // eslint config is lint-only. @nexusdi/doc-examples is imported by
+  // libs/core/vite.config.ts to run the README's documented examples
+  // as tests, at build time, never in what the build produces.
+  // Without this, enforceBuildableLibDependency rejects a buildable
+  // project for importing it.
+  allow: [
+    '^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$',
+    '^@nexusdi/doc-examples(/.+)?$',
+  ],
+  depConstraints: [
+    {
+      sourceTag: '*',
+      onlyDependOnLibsWithTags: ['*'],
+    },
+  ],
+};
+
 export default [
   {
     files: ['**/*.json'],
@@ -62,31 +92,7 @@ export default [
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
     rules: {
-      '@nx/enforce-module-boundaries': [
-        'error',
-        {
-          enforceBuildableLibDependency: true,
-          // bridge-api loads @nexusdi/devtools with a dynamic import on its
-          // Worker entries, and with static imports everywhere else.
-          checkDynamicDependenciesExceptions: ['^@nexusdi/devtools$'],
-          // Build-time tooling that never reaches a shipped artefact. The
-          // eslint config is lint-only. @nexusdi/doc-examples is imported by
-          // libs/core/vite.config.ts to run the README's documented examples
-          // as tests, at build time, never in what the build produces.
-          // Without this, enforceBuildableLibDependency rejects a buildable
-          // project for importing it.
-          allow: [
-            '^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$',
-            '^@nexusdi/doc-examples(/.+)?$',
-          ],
-          depConstraints: [
-            {
-              sourceTag: '*',
-              onlyDependOnLibsWithTags: ['*'],
-            },
-          ],
-        },
-      ],
+      '@nx/enforce-module-boundaries': ['error', moduleBoundaries],
     },
   },
   {

@@ -10,18 +10,36 @@ export default defineConfig(() => ({
   root: here,
   cacheDir: '../../node_modules/.vite/internal/meridian-deck',
   plugins: [
-    dts({ entryRoot: 'src', tsconfigPath: join(here, 'tsconfig.lib.json') }),
+    dts({
+      entryRoot: 'src',
+      tsconfigPath: join(here, 'tsconfig.lib.json'),
+      // The plugin logs a declaration diagnostic and carries on, so a build
+      // run before `@nexusdi/meridian-systems:typecheck` has emitted its
+      // declarations (TS6305) would publish declarations with the imported
+      // types gone. The `build` target depends on `^typecheck` for that
+      // order, and a diagnostic that still appears fails the build.
+      afterDiagnostic(diagnostics) {
+        if (diagnostics.length > 0) {
+          const first = diagnostics[0]?.messageText;
+          throw new Error(
+            `The declarations did not build (${diagnostics.length} diagnostics): ${typeof first === 'string' ? first : first?.messageText}`,
+          );
+        }
+      },
+    }),
   ],
   build: {
     outDir: './dist',
     emptyOutDir: true,
     reportCompressedSize: true,
     lib: {
-      // `.` is the deck state and holds no Pixi. `./view` is the one entry
-      // that imports it, and the app loads it with an import(). `./testing`
-      // holds the fake source and imports `.` alone.
+      // `.` is the deck state and holds no Pixi. `./maps` runs the map files
+      // over it and imports meridian-systems by `import type` alone. `./view`
+      // is the one entry that imports Pixi, and the app loads it with an
+      // import(). `./testing` holds the fake source and imports `.` alone.
       entry: {
         index: 'src/state/index.ts',
+        maps: 'src/maps/index.ts',
         view: 'src/view/index.ts',
         testing: 'src/testing/index.ts',
       },
@@ -29,7 +47,7 @@ export default defineConfig(() => ({
       formats: ['es' as const],
     },
     rolldownOptions: {
-      external: [/^@nexusdi\/core/, /^pixi\.js/],
+      external: [/^@nexusdi\/core/, /^@nexusdi\/meridian-systems/, /^pixi\.js/],
       output: { entryFileNames: '[name].js' },
     },
   },
