@@ -14,6 +14,7 @@ import type {
   IDeckSource,
   IDeckState,
   PropFrame,
+  Ramp,
   RoomLight,
 } from './contracts.js';
 import { inDevelopment } from './dev.js';
@@ -100,10 +101,18 @@ export class DeckStateStore implements IDeckState, Disposable {
     const layer = emptyLayer();
     merge(layer, this.base);
     const held: Record<string, string> = {};
-    for (const [trigger, patch] of this.holds) {
-      merge(layer, patch);
+    const heldAlarms: DeckAlarm[] = [];
+    for (const [trigger, raw] of this.holds) {
+      const patch = withDerivedGlow(raw);
+      // A hold's alarms join the base list, so a staged scene never hides a live alarm.
+      const { alarms, ...rest } = patch;
+      merge(layer, rest);
       for (const channel of CHANNELS) {
         for (const id of Object.keys(patch[channel] ?? {})) held[id] = trigger;
+      }
+      for (const alarm of alarms ?? []) {
+        heldAlarms.push(alarm);
+        held[alarm.subject] = trigger;
       }
     }
     return {
@@ -112,7 +121,7 @@ export class DeckStateStore implements IDeckState, Disposable {
       frames: layer.frames,
       doors: layer.doors,
       conduits: layer.conduits,
-      alarms: layer.alarms ?? [],
+      alarms: [...(layer.alarms ?? []), ...heldAlarms],
       held,
       camera: this.camera,
     };
@@ -126,20 +135,30 @@ export class DeckStateStore implements IDeckState, Disposable {
   }
 
   hold(trigger: string, patch: DeckPatch): void {
-    const effective = withDerivedGlow(patch);
+    const before = this.snapshot();
+    const merged = emptyLayer();
+    const previous = this.holds.get(trigger);
+    if (previous !== undefined) merge(merged, previous);
+    merge(merged, patch);
+    // The trigger moves to the end of the order, so its hold counts as the latest.
     this.holds.delete(trigger);
-    this.holds.set(trigger, effective);
-    this.notify(effective);
+    this.holds.set(trigger, {
+      ...merged,
+      ...(patch.ramp === undefined ? {} : { ramp: patch.ramp }),
+    });
+    this.notify(before, patch.ramp);
   }
 
   release(trigger: string): void {
-    if (this.holds.delete(trigger)) this.notify({});
+    const before = this.snapshot();
+    if (this.holds.delete(trigger)) this.notify(before);
   }
 
   releaseAll(): void {
     if (this.holds.size === 0) return;
+    const before = this.snapshot();
     this.holds.clear();
-    this.notify({});
+    this.notify(before);
   }
 
   heldBy(id: string): string | undefined {
@@ -147,8 +166,9 @@ export class DeckStateStore implements IDeckState, Disposable {
   }
 
   setCameraTarget(target: CameraTarget): void {
+    const before = this.snapshot();
     this.camera = { ...target };
-    this.notify({});
+    this.notify(before);
   }
 
   /** Applies a patch as an event of the source would. */
@@ -178,29 +198,51 @@ export class DeckStateStore implements IDeckState, Disposable {
 
   private apply(answers: { patch: DeckPatch; binding?: IDeckBinding }[]): void {
     if (inDevelopment()) warnOnDoubleSet(answers);
-    const combined: {
-      -readonly [K in keyof DeckPatch]: DeckPatch[K];
-    } = {};
+    const before = this.snapshot();
+    // The raw answers merge first, so a glow any binding sets beats a derived one.
+    const combined = emptyLayer();
+    let ramp: Ramp | undefined;
     for (const { patch } of answers) {
-      const effective = withDerivedGlow(patch);
-      merge(this.base, effective);
-      for (const channel of CHANNELS) {
-        if (effective[channel] === undefined) continue;
-        combined[channel] = {
-          ...combined[channel],
-          ...effective[channel],
-        } as never;
-      }
-      if (effective.alarms !== undefined) combined.alarms = effective.alarms;
-      if (effective.ramp !== undefined) combined.ramp = effective.ramp;
+      merge(combined, patch);
+      ramp = patch.ramp ?? ramp;
     }
-    this.notify(combined);
+    merge(this.base, withDerivedGlow(combined));
+    this.notify(before, ramp);
   }
 
-  private notify(patch: DeckPatch): void {
+  /**
+   * Sends listeners what differs on screen between `before` and now, so a
+   * release carries the values the base shows and a base value under a hold
+   * drops out.
+   */
+  private notify(before: DeckSnapshot, ramp?: Ramp): void {
+    const patch = difference(before, this.snapshot(), ramp);
     const change = { patch, snapshot: this.snapshot() };
     for (const listener of [...this.listeners]) listener(change);
   }
+}
+
+/** The entries of `after` that differ from `before`, per channel, and the alarms when the list changed. */
+function difference(
+  before: DeckSnapshot,
+  after: DeckSnapshot,
+  ramp: Ramp | undefined,
+): DeckPatch {
+  const patch: { -readonly [K in keyof DeckPatch]: DeckPatch[K] } = {};
+  for (const channel of CHANNELS) {
+    const changed: Record<string, unknown> = {};
+    for (const [id, value] of Object.entries(after[channel])) {
+      if (JSON.stringify(before[channel][id]) !== JSON.stringify(value)) {
+        changed[id] = value;
+      }
+    }
+    if (Object.keys(changed).length > 0) patch[channel] = changed as never;
+  }
+  if (JSON.stringify(before.alarms) !== JSON.stringify(after.alarms)) {
+    patch.alarms = after.alarms;
+  }
+  if (ramp !== undefined) patch.ramp = ramp;
+  return patch;
 }
 
 /** Reports, in development, an id that two patches of one event set. */

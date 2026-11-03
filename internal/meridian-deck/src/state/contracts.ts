@@ -97,7 +97,8 @@ export type DeckEvent = {
 
 /**
  * The state of everything a source has set, with the holds laid over it. The
- * later hold wins on an id two holds set.
+ * later hold wins on an id two holds set. The alarms of the holds join the
+ * base alarms, so a staged scene never hides a live alarm.
  */
 export interface DeckSnapshot {
   readonly rooms: Readonly<Record<string, RoomLight>>;
@@ -106,12 +107,18 @@ export interface DeckSnapshot {
   readonly doors: Readonly<Record<string, DoorState>>;
   readonly conduits: Readonly<Record<string, ConduitState>>;
   readonly alarms: readonly DeckAlarm[];
-  /** The trigger that holds each id, for an id a hold sets. */
+  /** The trigger that holds each id, for an id a hold sets and the subject of a held alarm. */
   readonly held: Readonly<Record<string, string>>;
   readonly camera: CameraTarget | undefined;
 }
 
-/** A patch and the snapshot it produced. */
+/**
+ * What changed on screen and the snapshot after it. The patch lists the
+ * entries whose value differs from the snapshot before, per channel, and the
+ * whole alarm list when it changed. A base value under a hold drops out. A
+ * release carries the values the base shows, and an id the base never set has
+ * nothing to send, so it is left out and the view keeps its last value.
+ */
 export interface DeckChange {
   readonly patch: DeckPatch;
   readonly snapshot: DeckSnapshot;
@@ -145,8 +152,8 @@ export interface IDeckState {
   subscribe(listener: (change: DeckChange) => void): () => void;
   /**
    * Lays a patch over the base state for as long as the trigger holds it. A
-   * second `hold` by the same trigger replaces its patch and makes it the
-   * latest hold.
+   * second `hold` by the same trigger merges into its patch per channel (its
+   * alarms replace that trigger's alarms) and makes it the latest hold.
    */
   hold(trigger: string, patch: DeckPatch): void;
   /** Drops the hold of one trigger. A trigger with no hold changes nothing. */
