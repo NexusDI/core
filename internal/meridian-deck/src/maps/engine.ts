@@ -30,7 +30,7 @@ type Compiled =
   | ({ readonly kind: 'level' } & Level);
 
 interface Facts {
-  reading: Readonly<Record<string, unknown>> | undefined;
+  reading: object | undefined;
   modules: readonly string[];
   providers: Readonly<Record<string, readonly string[]>>;
   objectives: Map<string, 'pass' | 'fail'>;
@@ -51,7 +51,7 @@ function warn(message: string): void {
 }
 
 /** The value at a dotted path of a nested record, or undefined. */
-function valueAt(reading: Readonly<Record<string, unknown>>, path: string) {
+function valueAt(reading: object, path: string) {
   let value: unknown = reading;
   for (const key of path.split('.')) {
     if (typeof value !== 'object' || value === null) return undefined;
@@ -188,7 +188,9 @@ export class TriggerEngine {
         continue;
       }
       const effects = trigger.then.filter((effect) => {
-        const known = KNOWN_EFFECTS.some((key) => key in effect);
+        const known = KNOWN_EFFECTS.some(
+          (key) => typeof (effect as Record<string, unknown>)[key] === 'string',
+        );
         if (!known) {
           warn(
             `Trigger "${trigger.id}" has an effect this build does not know, so it is skipped: ${JSON.stringify(effect)}`,

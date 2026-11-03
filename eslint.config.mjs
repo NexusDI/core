@@ -27,7 +27,7 @@ export const sharedRules = {
  *
  * Exported so that a project config can widen `allow` for its own files. A
  * later block that sets the rule replaces its options whole, so that block
- * spreads this object and adds to `allow` instead of repeating the list.
+ * spreads this object and adds to `allow`, so the list stays in one place.
  */
 export const moduleBoundaries = {
   enforceBuildableLibDependency: true,

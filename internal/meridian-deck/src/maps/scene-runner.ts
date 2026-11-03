@@ -21,7 +21,7 @@ export class SceneRunner implements ISceneRunner {
 
   private readonly hooks = new Set<{ sceneId: string; hook: ISceneHook }>();
   private readonly bindings = new Set<SceneBinding>();
-  private readonly pending: Promise<void>[] = [];
+  private readonly pending = new Map<SceneBinding, Promise<void>[]>();
 
   constructor(private readonly options: DeckMapsOptions) {}
 
@@ -45,6 +45,7 @@ export class SceneRunner implements ISceneRunner {
       if (binding.sceneId === sceneId) this.enter(hook, binding);
     }
     return () => {
+      this.pending.delete(binding);
       if (!this.bindings.delete(binding)) return;
       for (const { sceneId, hook } of this.hooks) {
         if (binding.sceneId === sceneId) hook.onExit?.();
@@ -63,7 +64,8 @@ export class SceneRunner implements ISceneRunner {
     scope: Scope,
     options: Pick<LoadOptions, 'imports'>,
   ): Promise<void> {
-    const sceneId = scope.get(SCENE).map.scene;
+    const scene = scope.get(SCENE);
+    const sceneId = scene.map.scene;
     if (sceneId === null) return;
     const load = this.options.scenes?.[sceneId];
     if (load === undefined) {
@@ -76,11 +78,20 @@ export class SceneRunner implements ISceneRunner {
     }
     await loadOnce(nexus)(await load(), options);
     await scope.extend();
-    await Promise.all(this.pending.splice(0));
+    const mine = this.pending.get(scene.binding) ?? [];
+    this.pending.delete(scene.binding);
+    await Promise.all(mine);
   }
 
   private enter(hook: ISceneHook, binding: SceneBinding): void {
     const result = hook.onEnter?.(binding.context);
-    if (result !== undefined) this.pending.push(Promise.resolve(result));
+    if (result === undefined) return;
+    const list = this.pending.get(binding) ?? [];
+    const settled = Promise.resolve(result);
+    // A scope that never calls open() leaves this promise unobserved, and a
+    // rejection nobody awaits would end the process as unhandled.
+    settled.catch(() => {});
+    list.push(settled);
+    this.pending.set(binding, list);
   }
 }
