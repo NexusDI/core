@@ -2,8 +2,8 @@
   "frames": {
     "airlock-outer@closed": {
       "frame": {
-        "x": 312,
-        "y": 1128,
+        "x": 156,
+        "y": 1194,
         "w": 92,
         "h": 56
       },
@@ -26,8 +26,8 @@
     },
     "airlock-outer@open": {
       "frame": {
-        "x": 406,
-        "y": 1128,
+        "x": 250,
+        "y": 1194,
         "w": 92,
         "h": 56
       },
@@ -49,30 +49,6 @@
       }
     },
     "airlock-shuttle-bay@closed": {
-      "frame": {
-        "x": 316,
-        "y": 420,
-        "w": 108,
-        "h": 92
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 108,
-        "h": 92
-      },
-      "sourceSize": {
-        "w": 108,
-        "h": 92
-      },
-      "anchor": {
-        "x": 0.5,
-        "y": 0.5
-      }
-    },
-    "airlock-shuttle-bay@open": {
       "frame": {
         "x": 0,
         "y": 528,
@@ -96,10 +72,34 @@
         "y": 0.5
       }
     },
+    "airlock-shuttle-bay@open": {
+      "frame": {
+        "x": 110,
+        "y": 528,
+        "w": 108,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 108,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 108,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
     "airlock.inner-frame-aft@default": {
       "frame": {
-        "x": 47,
-        "y": 1299,
+        "x": 0,
+        "y": 1362,
         "w": 38,
         "h": 45
       },
@@ -122,8 +122,8 @@
     },
     "airlock.inner-frame-fwd@default": {
       "frame": {
-        "x": 87,
-        "y": 1299,
+        "x": 40,
+        "y": 1362,
         "w": 38,
         "h": 45
       },
@@ -146,8 +146,8 @@
     },
     "airlock.outer-frame-aft@default": {
       "frame": {
-        "x": 0,
-        "y": 1299,
+        "x": 443,
+        "y": 1312,
         "w": 45,
         "h": 45
       },
@@ -170,8 +170,8 @@
     },
     "airlock.outer-frame-fwd@default": {
       "frame": {
-        "x": 127,
-        "y": 1299,
+        "x": 80,
+        "y": 1362,
         "w": 38,
         "h": 45
       },
@@ -218,7 +218,7 @@
     },
     "bridge-chart-room@closed": {
       "frame": {
-        "x": 110,
+        "x": 220,
         "y": 622,
         "w": 56,
         "h": 92
@@ -242,7 +242,7 @@
     },
     "bridge-chart-room@closed#emissive": {
       "frame": {
-        "x": 168,
+        "x": 278,
         "y": 622,
         "w": 56,
         "h": 92
@@ -266,7 +266,7 @@
     },
     "bridge-chart-room@open": {
       "frame": {
-        "x": 226,
+        "x": 336,
         "y": 622,
         "w": 56,
         "h": 92
@@ -290,7 +290,7 @@
     },
     "bridge-chart-room@open#emissive": {
       "frame": {
-        "x": 284,
+        "x": 394,
         "y": 622,
         "w": 56,
         "h": 92
@@ -314,7 +314,7 @@
     },
     "bridge-computer-core@closed": {
       "frame": {
-        "x": 110,
+        "x": 220,
         "y": 528,
         "w": 108,
         "h": 92
@@ -338,7 +338,7 @@
     },
     "bridge-computer-core@open": {
       "frame": {
-        "x": 220,
+        "x": 330,
         "y": 528,
         "w": 108,
         "h": 92
@@ -362,7 +362,7 @@
     },
     "bridge-habitat@closed": {
       "frame": {
-        "x": 342,
+        "x": 452,
         "y": 622,
         "w": 56,
         "h": 92
@@ -386,30 +386,6 @@
     },
     "bridge-habitat@closed#emissive": {
       "frame": {
-        "x": 400,
-        "y": 622,
-        "w": 56,
-        "h": 92
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 56,
-        "h": 92
-      },
-      "sourceSize": {
-        "w": 56,
-        "h": 92
-      },
-      "anchor": {
-        "x": 0.5,
-        "y": 0.5
-      }
-    },
-    "bridge-habitat@open": {
-      "frame": {
         "x": 0,
         "y": 716,
         "w": 56,
@@ -432,7 +408,7 @@
         "y": 0.5
       }
     },
-    "bridge-habitat@open#emissive": {
+    "bridge-habitat@open": {
       "frame": {
         "x": 58,
         "y": 716,
@@ -456,10 +432,34 @@
         "y": 0.5
       }
     },
+    "bridge-habitat@open#emissive": {
+      "frame": {
+        "x": 116,
+        "y": 716,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
     "bridge.command-chair@default": {
       "frame": {
-        "x": 438,
-        "y": 1062,
+        "x": 114,
+        "y": 1128,
         "w": 64,
         "h": 64
       },
@@ -504,7 +504,7 @@
         "y": 0.5
       }
     },
-    "bridge.forward-console@off#emissive": {
+    "bridge.forward-console@on": {
       "frame": {
         "x": 66,
         "y": 0,
@@ -528,7 +528,7 @@
         "y": 0.5
       }
     },
-    "bridge.forward-console@on": {
+    "bridge.forward-console@on#emissive": {
       "frame": {
         "x": 132,
         "y": 0,
@@ -552,33 +552,9 @@
         "y": 0.5
       }
     },
-    "bridge.forward-console@on#emissive": {
-      "frame": {
-        "x": 198,
-        "y": 0,
-        "w": 64,
-        "h": 256
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 64,
-        "h": 256
-      },
-      "sourceSize": {
-        "w": 64,
-        "h": 256
-      },
-      "anchor": {
-        "x": 0.5,
-        "y": 0.5
-      }
-    },
     "bridge.helm@off": {
       "frame": {
-        "x": 184,
+        "x": 276,
         "y": 420,
         "w": 64,
         "h": 102
@@ -602,7 +578,31 @@
     },
     "bridge.helm@on": {
       "frame": {
-        "x": 250,
+        "x": 342,
+        "y": 420,
+        "w": 64,
+        "h": 102
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 102
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 102
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge.helm@on#emissive": {
+      "frame": {
+        "x": 408,
         "y": 420,
         "w": 64,
         "h": 102
@@ -626,7 +626,7 @@
     },
     "bridge.station-bank@off": {
       "frame": {
-        "x": 0,
+        "x": 180,
         "y": 1128,
         "w": 154,
         "h": 58
@@ -650,8 +650,32 @@
     },
     "bridge.station-bank@on": {
       "frame": {
-        "x": 156,
+        "x": 336,
         "y": 1128,
+        "w": 154,
+        "h": 58
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 154,
+        "h": 58
+      },
+      "sourceSize": {
+        "w": 154,
+        "h": 58
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge.station-bank@on#emissive": {
+      "frame": {
+        "x": 0,
+        "y": 1194,
         "w": 154,
         "h": 58
       },
@@ -674,8 +698,8 @@
     },
     "chart-room.chart-cabinets@default": {
       "frame": {
-        "x": 124,
-        "y": 1246,
+        "x": 0,
+        "y": 1312,
         "w": 147,
         "h": 48
       },
@@ -720,31 +744,31 @@
         "y": 0.5
       }
     },
-    "engineering-ftl-core@closed": {
+    "chart-room.plot-table@default#emissive": {
       "frame": {
-        "x": 330,
-        "y": 528,
-        "w": 108,
-        "h": 92
+        "x": 184,
+        "y": 420,
+        "w": 90,
+        "h": 102
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 108,
-        "h": 92
+        "w": 90,
+        "h": 102
       },
       "sourceSize": {
-        "w": 108,
-        "h": 92
+        "w": 90,
+        "h": 102
       },
       "anchor": {
         "x": 0.5,
         "y": 0.5
       }
     },
-    "engineering-ftl-core@open": {
+    "engineering-ftl-core@closed": {
       "frame": {
         "x": 0,
         "y": 622,
@@ -768,11 +792,11 @@
         "y": 0.5
       }
     },
-    "engineering-reactor-bay@closed": {
+    "engineering-ftl-core@open": {
       "frame": {
-        "x": 116,
-        "y": 716,
-        "w": 56,
+        "x": 110,
+        "y": 622,
+        "w": 108,
         "h": 92
       },
       "rotated": false,
@@ -780,11 +804,11 @@
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 56,
+        "w": 108,
         "h": 92
       },
       "sourceSize": {
-        "w": 56,
+        "w": 108,
         "h": 92
       },
       "anchor": {
@@ -792,7 +816,7 @@
         "y": 0.5
       }
     },
-    "engineering-reactor-bay@closed#emissive": {
+    "engineering-reactor-bay@closed": {
       "frame": {
         "x": 174,
         "y": 716,
@@ -816,7 +840,7 @@
         "y": 0.5
       }
     },
-    "engineering-reactor-bay@open": {
+    "engineering-reactor-bay@closed#emissive": {
       "frame": {
         "x": 232,
         "y": 716,
@@ -840,9 +864,33 @@
         "y": 0.5
       }
     },
-    "engineering-reactor-bay@open#emissive": {
+    "engineering-reactor-bay@open": {
       "frame": {
         "x": 290,
+        "y": 716,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "engineering-reactor-bay@open#emissive": {
+      "frame": {
+        "x": 348,
         "y": 716,
         "w": 56,
         "h": 92
@@ -912,10 +960,34 @@
         "y": 0.5
       }
     },
+    "engineering.control-desk@on#emissive": {
+      "frame": {
+        "x": 324,
+        "y": 1062,
+        "w": 160,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 160,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 160,
+        "h": 64
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
     "engineering.power-router@off": {
       "frame": {
-        "x": 348,
-        "y": 810,
+        "x": 0,
+        "y": 904,
         "w": 128,
         "h": 90
       },
@@ -938,7 +1010,7 @@
     },
     "engineering.power-router@on": {
       "frame": {
-        "x": 0,
+        "x": 130,
         "y": 904,
         "w": 128,
         "h": 90
@@ -1010,8 +1082,8 @@
     },
     "engineering.workbench@default": {
       "frame": {
-        "x": 324,
-        "y": 1062,
+        "x": 0,
+        "y": 1128,
         "w": 112,
         "h": 64
       },
@@ -1034,8 +1106,8 @@
     },
     "habitat-airlock@closed": {
       "frame": {
-        "x": 0,
-        "y": 1188,
+        "x": 344,
+        "y": 1194,
         "w": 92,
         "h": 56
       },
@@ -1058,8 +1130,8 @@
     },
     "habitat-airlock@open": {
       "frame": {
-        "x": 94,
-        "y": 1188,
+        "x": 0,
+        "y": 1254,
         "w": 92,
         "h": 56
       },
@@ -1081,30 +1153,6 @@
       }
     },
     "habitat-engineering@closed": {
-      "frame": {
-        "x": 348,
-        "y": 716,
-        "w": 56,
-        "h": 92
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 56,
-        "h": 92
-      },
-      "sourceSize": {
-        "w": 56,
-        "h": 92
-      },
-      "anchor": {
-        "x": 0.5,
-        "y": 0.5
-      }
-    },
-    "habitat-engineering@closed#emissive": {
       "frame": {
         "x": 406,
         "y": 716,
@@ -1128,7 +1176,7 @@
         "y": 0.5
       }
     },
-    "habitat-engineering@open": {
+    "habitat-engineering@closed#emissive": {
       "frame": {
         "x": 0,
         "y": 810,
@@ -1152,7 +1200,7 @@
         "y": 0.5
       }
     },
-    "habitat-engineering@open#emissive": {
+    "habitat-engineering@open": {
       "frame": {
         "x": 58,
         "y": 810,
@@ -1176,10 +1224,34 @@
         "y": 0.5
       }
     },
+    "habitat-engineering@open#emissive": {
+      "frame": {
+        "x": 116,
+        "y": 810,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
     "habitat.galley-counter@default": {
       "frame": {
-        "x": 188,
-        "y": 1188,
+        "x": 94,
+        "y": 1254,
         "w": 275,
         "h": 54
       },
@@ -1202,8 +1274,8 @@
     },
     "habitat.lockers@default": {
       "frame": {
-        "x": 0,
-        "y": 1246,
+        "x": 371,
+        "y": 1254,
         "w": 122,
         "h": 51
       },
@@ -1274,8 +1346,8 @@
     },
     "main-drive.control-panel@off": {
       "frame": {
-        "x": 273,
-        "y": 1246,
+        "x": 149,
+        "y": 1312,
         "w": 96,
         "h": 48
       },
@@ -1298,8 +1370,32 @@
     },
     "main-drive.control-panel@on": {
       "frame": {
-        "x": 371,
-        "y": 1246,
+        "x": 247,
+        "y": 1312,
+        "w": 96,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 48
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "main-drive.control-panel@on#emissive": {
+      "frame": {
+        "x": 345,
+        "y": 1312,
         "w": 96,
         "h": 48
       },
@@ -1322,7 +1418,7 @@
     },
     "main-drive.feed-assembly@off": {
       "frame": {
-        "x": 264,
+        "x": 198,
         "y": 0,
         "w": 211,
         "h": 160
@@ -1370,7 +1466,7 @@
     },
     "reactor-bay-main-drive@closed": {
       "frame": {
-        "x": 116,
+        "x": 174,
         "y": 810,
         "w": 56,
         "h": 92
@@ -1394,7 +1490,7 @@
     },
     "reactor-bay-main-drive@closed#emissive": {
       "frame": {
-        "x": 174,
+        "x": 232,
         "y": 810,
         "w": 56,
         "h": 92
@@ -1418,7 +1514,7 @@
     },
     "reactor-bay-main-drive@open": {
       "frame": {
-        "x": 232,
+        "x": 290,
         "y": 810,
         "w": 56,
         "h": 92
@@ -1442,7 +1538,7 @@
     },
     "reactor-bay-main-drive@open#emissive": {
       "frame": {
-        "x": 290,
+        "x": 348,
         "y": 810,
         "w": 56,
         "h": 92
@@ -1466,7 +1562,7 @@
     },
     "reactor-bay.coolant-pumps@off": {
       "frame": {
-        "x": 130,
+        "x": 260,
         "y": 904,
         "w": 83,
         "h": 90
@@ -1490,7 +1586,7 @@
     },
     "reactor-bay.coolant-pumps@on": {
       "frame": {
-        "x": 215,
+        "x": 345,
         "y": 904,
         "w": 83,
         "h": 90
@@ -1519,8 +1615,8 @@
     "image": "atlas-0.webp",
     "format": "RGBA8888",
     "size": {
-      "w": 502,
-      "h": 1344
+      "w": 508,
+      "h": 1407
     },
     "scale": "1",
     "view": "deck-main",
@@ -1549,15 +1645,17 @@
       "bridge-habitat@open#emissive": "painted",
       "bridge.command-chair@default": "generated",
       "bridge.forward-console@off": "painted",
-      "bridge.forward-console@off#emissive": "painted",
       "bridge.forward-console@on": "painted",
       "bridge.forward-console@on#emissive": "painted",
       "bridge.helm@off": "generated",
       "bridge.helm@on": "generated",
+      "bridge.helm@on#emissive": "generated",
       "bridge.station-bank@off": "generated",
       "bridge.station-bank@on": "generated",
+      "bridge.station-bank@on#emissive": "generated",
       "chart-room.chart-cabinets@default": "generated",
       "chart-room.plot-table@default": "generated",
+      "chart-room.plot-table@default#emissive": "generated",
       "engineering-ftl-core@closed": "generated",
       "engineering-ftl-core@open": "generated",
       "engineering-reactor-bay@closed": "painted",
@@ -1566,6 +1664,7 @@
       "engineering-reactor-bay@open#emissive": "painted",
       "engineering.control-desk@off": "generated",
       "engineering.control-desk@on": "generated",
+      "engineering.control-desk@on#emissive": "generated",
       "engineering.power-router@off": "generated",
       "engineering.power-router@on": "generated",
       "engineering.switchboards@off": "generated",
@@ -1583,6 +1682,7 @@
       "habitat.mess-table@default": "generated",
       "main-drive.control-panel@off": "generated",
       "main-drive.control-panel@on": "generated",
+      "main-drive.control-panel@on#emissive": "generated",
       "main-drive.feed-assembly@off": "generated",
       "main-drive.feed-assembly@on": "generated",
       "reactor-bay-main-drive@closed": "painted",

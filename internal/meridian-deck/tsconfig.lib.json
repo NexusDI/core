@@ -42,6 +42,9 @@
     },
     {
       "path": "../../examples/meridian-systems/tsconfig.lib.json"
+    },
+    {
+      "path": "../meridian-ui/tsconfig.lib.json"
     }
   ]
 }

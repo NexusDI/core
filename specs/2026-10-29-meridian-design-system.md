@@ -509,7 +509,7 @@ The deck map draws four layers, bottom to top, and bakes no light into any of th
    frame per state the simulation knows for it: `on`, `off`, `damaged`, `open`,
    `closed`. A prop with no state has one frame.
 3. Masks, generated from the geometry by `tools/meridian-ship`: a room-id mask (each
-   compartment in its own index value), an emissive mask (screens, and the lamp housings of the geometry's `lights` list). The
+   compartment in its own index value) and an emissive mask (the lamp housings of the geometry's `lights` list; a screen's emissive map is its prop's `#emissive` frame). The
    masks are data and never draw on screen. Amendment (MR5): the interactive mask is dropped, and hit testing reads the footprints in the geometry.
 4. Light, drawn by Pixi at run time (on the front page the canvas sits in the `Schematic`'s
    `layer` slot, and the painted tints of 8.4 give way to it once it presents): light sprites (soft radial textures tinted `lamp` for room light, `glow` over a screen or core, or
@@ -573,7 +573,7 @@ the light (8.4), so data stays crisp at every zoom.
 - Content: the runtime art draws every room, door and fixture the geometry lists, and
   nothing else (ship-systems 16.1: the art shows no room the simulation lacks). A fixture
   that shows in two views lives in the geometry.
-- Generated sprites (MR5): A fixture or door without a painted sprite has a generated footprint sprite, marked `generated` in its atlas, until its painting exists.
+- Generated sprites (MR5): a fixture or door without a painted sprite has a generated footprint sprite, marked `generated` in its atlas, until its painting exists.
 
 ### 8.4 Vector layers
 

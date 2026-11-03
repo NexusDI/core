@@ -1,4 +1,10 @@
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -7,11 +13,13 @@ import sharp from 'sharp';
 import {
   MARGIN_PX,
   PPM,
+  drawEmissive,
   drawPlate,
-  geometryHash,
+  emissiveState,
   itemsOf,
   packSprites,
   paintedFor,
+  paintedTableOf,
   readGeometry,
   sheetOf,
   stateFrame,
@@ -23,7 +31,7 @@ import {
  * atlases. The painted sources are not in the repository, so a run names the
  * folder that holds them:
  *
- *   node tools/deck-art-build.mjs --paintover <dir> [--out <dir>] [--preview <dir>]
+ *   node internal/meridian-deck/tools/deck-art-build.mjs --paintover <dir> [--out <dir>] [--preview <dir>]
  *
  * `<dir>/decks/<deck>/paint/deck-<deck>-swatch-v2.png` is the round-2 base at
  * 2432 by 640 and `<dir>/props/<prop>/<prop>-<state>-s211.png` the painted
@@ -49,7 +57,7 @@ const ORIGIN = [64, 320];
 /** The paint pass of the round-2 picks, named in each base sidecar. */
 export const BASE_PASS = 'swatch-v2';
 export const PROP_PASS = 's211';
-const BUDGET = 1.2 * 1024 * 1024;
+const BUDGET = 1_200_000;
 
 const json = (value) => `${JSON.stringify(value, null, 2)}\n`;
 
@@ -102,8 +110,8 @@ async function paintedSprite(paintover, prop, frame, item, emissive) {
 }
 
 /** Every sprite of an item: one per state, plus the emissive frame of each painted state. */
-async function spritesOf(paintover, item) {
-  const painted = paintedFor(item);
+async function spritesOf(paintover, item, table) {
+  const painted = paintedFor(item, table);
   const sprites = [];
   for (const state of item.states) {
     if (painted) {
@@ -113,11 +121,14 @@ async function spritesOf(paintover, item) {
         source: 'painted',
         ...(await paintedSprite(paintover, painted, frame, item, false)),
       });
-      sprites.push({
-        name: `${item.id}@${state}#emissive`,
-        source: 'painted',
-        ...(await paintedSprite(paintover, painted, frame, item, true)),
-      });
+      const glow = await paintedSprite(paintover, painted, frame, item, true);
+      // A state with no lit pixel (a prop that is off) has no emissive frame.
+      if (glow.data.some((value, at) => at % 4 === 3 && value > 0))
+        sprites.push({
+          name: `${item.id}@${state}#emissive`,
+          source: 'painted',
+          ...glow,
+        });
     } else {
       sprites.push({
         name: `${item.id}@${state}`,
@@ -126,6 +137,13 @@ async function spritesOf(paintover, item) {
       });
     }
   }
+  const glow = painted ? undefined : drawEmissive(item);
+  if (glow)
+    sprites.push({
+      name: `${item.id}@${emissiveState(item)}#emissive`,
+      source: 'generated',
+      ...glow,
+    });
   return sprites;
 }
 
@@ -137,9 +155,13 @@ async function webp(sprite) {
     .toBuffer();
 }
 
-async function writeAtlas(dir, sprites, view, geometry) {
+async function writeAtlas(dir, sprites, views, geometry) {
   const packed = packSprites(sprites, { padding: 2 });
-  const sheets = sheetOf(sprites, packed, { view, stem: 'atlas', geometry });
+  const sheets = sheetOf(sprites, packed, {
+    ...views,
+    stem: 'atlas',
+    geometry,
+  });
   const bytes = [];
   for (const sheet of sheets) {
     const page = packed.pages[sheet.page];
@@ -162,6 +184,23 @@ async function writeAtlas(dir, sprites, view, geometry) {
   return { sheets, bytes, packed };
 }
 
+/** The anchor of every painted prop: `<dir>/props/<prop>/anchor.json`. */
+async function anchorsOf(paintover) {
+  const props = join(paintover, 'props');
+  return readdirSync(props, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .flatMap((entry) => {
+      try {
+        const anchor = JSON.parse(
+          readFileSync(join(props, entry.name, 'anchor.json'), 'utf8'),
+        );
+        return [{ name: entry.name, anchor }];
+      } catch {
+        return [];
+      }
+    });
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const option = (name) => {
@@ -173,11 +212,18 @@ async function main() {
   const out = resolve(ROOT, option('--out') ?? 'internal/meridian-deck/art');
   const preview = option('--preview');
   const geometry = readGeometry();
-  const digest = geometryHash(geometry);
+  // The hash is the one `ship_svg.py --deck-layers` wrote into the legend.
+  const digest = JSON.parse(
+    readFileSync(join(out, geometry.decks[0].id, 'roomid-legend.json'), 'utf8'),
+  ).geometry;
   const items = itemsOf(geometry);
+  const table = paintedTableOf(await anchorsOf(resolve(paintover)), items);
   const spritesByItem = new Map();
   for (const item of items)
-    spritesByItem.set(item.id, await spritesOf(resolve(paintover), item));
+    spritesByItem.set(
+      item.id,
+      await spritesOf(resolve(paintover), item, table),
+    );
 
   const sharedItems = items.filter((item) => item.decks.length > 1);
   const shared = sharedItems.flatMap((item) => spritesByItem.get(item.id));
@@ -186,7 +232,18 @@ async function main() {
   let sharedResult = null;
   if (shared.length > 0) {
     mkdirSync(sharedDir, { recursive: true });
-    sharedResult = await writeAtlas(sharedDir, shared, 'deck-shared', digest);
+    sharedResult = await writeAtlas(
+      sharedDir,
+      shared,
+      {
+        views: geometry.decks
+          .filter((deck) =>
+            sharedItems.some((item) => item.decks.includes(deck.id)),
+          )
+          .map((deck) => `deck-${deck.id}`),
+      },
+      digest,
+    );
   }
 
   const report = [];
@@ -194,6 +251,9 @@ async function main() {
     const dir = join(out, deck.id);
     mkdirSync(dir, { recursive: true });
     const view = `deck-${deck.id}`;
+    const decksShared = sharedItems.filter((item) =>
+      item.decks.includes(deck.id),
+    );
     const base = await sharp(
       join(
         resolve(paintover),
@@ -237,7 +297,7 @@ async function main() {
           lights: 'lights.json',
           legend: 'roomid-legend.json',
           atlas: 'atlas-0.json',
-          sharedAtlas: sharedResult ? '../shared/atlas-0.json' : null,
+          sharedAtlas: decksShared.length > 0 ? '../shared/atlas-0.json' : null,
           geometry: digest,
         }),
       );
@@ -245,10 +305,7 @@ async function main() {
     const own = items
       .filter((item) => item.decks.length === 1 && item.decks[0] === deck.id)
       .flatMap((item) => spritesByItem.get(item.id));
-    const result = await writeAtlas(dir, own, view, digest);
-    const decksShared = sharedItems.filter((item) =>
-      item.decks.includes(deck.id),
-    );
+    const result = await writeAtlas(dir, own, { view }, digest);
     const sharedBytes = decksShared.length
       ? sharedResult.bytes.reduce((sum, page) => sum + page.bytes, 0)
       : 0;
@@ -274,7 +331,9 @@ async function main() {
       `shared: ${sharedResult.bytes.map((p) => `${p.name} ${p.width}x${p.height} ${p.bytes} B`).join(', ')}`,
     );
   const generated = items.flatMap((item) =>
-    paintedFor(item) ? [] : item.states.map((state) => `${item.id}@${state}`),
+    paintedFor(item, table)
+      ? []
+      : item.states.map((state) => `${item.id}@${state}`),
   );
   console.log(`generated frames: ${generated.length}`);
 }

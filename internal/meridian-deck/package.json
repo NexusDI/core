@@ -53,7 +53,9 @@
     }
   },
   "devDependencies": {
-    "@nexusdi/meridian-systems": "*"
+    "@nexusdi/meridian-systems": "*",
+    "@nexusdi/meridian-ui": "*",
+    "sharp": "0.35.5"
   },
   "nx": {
     "targets": {

@@ -3,11 +3,12 @@ import { describe, expect, it } from 'vitest';
 
 import {
   MARGIN_PX,
-  PAINTED,
+  drawEmissive,
   drawPlate,
   itemsOf,
   packSprites,
   paintedFor,
+  paintedTableOf,
   readGeometry,
   sheetOf,
   stateFrame,
@@ -16,6 +17,43 @@ import {
 const geometry = readGeometry();
 const items = itemsOf(geometry);
 const byId = (id) => items.find((item) => item.id === id);
+
+/** The anchor.json files of the four painted props, as the paint-over writes them. */
+const anchors = [
+  [
+    'console',
+    {
+      source: 'bridge.forward-console',
+      sprite_px: [32, 224],
+      states: ['off', 'on', 'damaged'],
+    },
+  ],
+  [
+    'bunk',
+    {
+      source: 'quarters.bunks-forward',
+      sprite_px: [64, 58],
+      states: ['off', 'on'],
+    },
+  ],
+  [
+    'reactor',
+    {
+      source: 'reactor-bay.vessel',
+      sprite_px: [224, 224],
+      states: ['off', 'on'],
+    },
+  ],
+  [
+    'hatch',
+    {
+      source: 'door bridge-habitat',
+      sprite_px: [24, 60],
+      states: ['closed', 'open'],
+    },
+  ],
+].map(([name, anchor]) => ({ name, anchor }));
+const PAINTED = paintedTableOf(anchors, items);
 
 const luminance = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 const at = (plate, x, y) => {
@@ -84,8 +122,8 @@ describe('the items the atlases draw', () => {
 describe('the painted props', () => {
   it('serves its own fixture and every item whose footprint matches', () => {
     const served = items
-      .filter((item) => paintedFor(item))
-      .map((item) => [item.id, paintedFor(item).name]);
+      .filter((item) => paintedFor(item, PAINTED))
+      .map((item) => [item.id, paintedFor(item, PAINTED).name]);
     expect(served).toContainEqual(['bridge.forward-console', 'console']);
     expect(served).toContainEqual(['reactor-bay.vessel', 'reactor']);
     expect(served).toContainEqual(['quarters.bunks-forward', 'bunk']);
@@ -95,20 +133,74 @@ describe('the painted props', () => {
   });
 
   it('refuses a footprint of another size or shape and a state the sprite lacks', () => {
-    expect(paintedFor(byId('bridge.helm'))).toBeUndefined();
-    expect(paintedFor(byId('habitat-airlock'))).toBeUndefined();
-    expect(paintedFor(byId('ftl-core.ring'))).toBeUndefined();
-    expect(paintedFor(byId('bridge-computer-core'))).toBeUndefined();
+    expect(paintedFor(byId('bridge.helm'), PAINTED)).toBeUndefined();
+    expect(paintedFor(byId('habitat-airlock'), PAINTED)).toBeUndefined();
+    expect(paintedFor(byId('ftl-core.ring'), PAINTED)).toBeUndefined();
+    expect(paintedFor(byId('bridge-computer-core'), PAINTED)).toBeUndefined();
   });
 
-  it('keeps the four vault props and their sources', () => {
+  it('builds the table from the anchor files and the geometry', () => {
     expect(Object.keys(PAINTED).sort()).toEqual([
       'bunk',
       'console',
       'hatch',
       'reactor',
     ]);
-    expect(PAINTED.hatch.id).toBe('bridge-habitat');
+    expect(PAINTED.hatch).toMatchObject({
+      id: 'bridge-habitat',
+      kind: 'door',
+      shape: 'box',
+      size: { width: 24, height: 60 },
+    });
+    expect(PAINTED.reactor.shape).toBe('ellipse');
+    expect(PAINTED.console.states).toEqual(['off', 'on', 'damaged']);
+  });
+
+  it('serves a new painted prop with no code change', () => {
+    const more = paintedTableOf(
+      [
+        ...anchors,
+        {
+          name: 'helm',
+          anchor: {
+            source: 'bridge.helm',
+            sprite_px: [32, 70],
+            states: ['off', 'on'],
+          },
+        },
+      ],
+      items,
+    );
+    expect(paintedFor(byId('bridge.helm'), more)?.name).toBe('helm');
+  });
+
+  it('refuses an anchor whose id the geometry lacks or whose sprite is not its footprint', () => {
+    expect(() =>
+      paintedTableOf(
+        [
+          {
+            name: 'x',
+            anchor: { source: 'nowhere', sprite_px: [1, 1], states: ['on'] },
+          },
+        ],
+        items,
+      ),
+    ).toThrow(/nowhere/);
+    expect(() =>
+      paintedTableOf(
+        [
+          {
+            name: 'x',
+            anchor: {
+              source: 'bridge.helm',
+              sprite_px: [9, 9],
+              states: ['on'],
+            },
+          },
+        ],
+        items,
+      ),
+    ).toThrow(/bridge\.helm/);
   });
 
   it('names the painted frame a state uses', () => {
@@ -197,6 +289,24 @@ describe('a generated plate', () => {
   });
 });
 
+describe('a generated emissive frame', () => {
+  it('lights the plate body inset two pixels, and only for a fixture marked emissive', () => {
+    const item = byId('bridge.helm');
+    expect(item.emissive).toBe(true);
+    const frame = drawEmissive(item);
+    const plate = drawPlate(item, 'on');
+    expect([frame.width, frame.height]).toEqual([plate.width, plate.height]);
+    expect(at(frame, MARGIN_PX + 1, MARGIN_PX + 1)[3]).toBe(0);
+    expect(at(frame, MARGIN_PX + 2, MARGIN_PX + 2)[3]).toBe(255);
+    expect(
+      at(frame, plate.width - MARGIN_PX - 3, plate.height - MARGIN_PX - 3)[3],
+    ).toBe(255);
+    expect(at(frame, plate.width - MARGIN_PX - 2, plate.height / 2)[3]).toBe(0);
+    expect(byId('habitat.mess-table').emissive).toBe(false);
+    expect(drawEmissive(byId('habitat.mess-table'))).toBeUndefined();
+  });
+});
+
 describe('packing sprites into pages', () => {
   const sprites = [
     { name: 'a@on', width: 100, height: 40 },
@@ -278,5 +388,18 @@ describe('the spritesheet of a page', () => {
     expect(sheet.json.meta.pixelsPerMetre).toBe(32);
     expect(sheet.json.meta.geometry).toBe('abc');
     expect(sheet.name).toBe('atlas-0.json');
+  });
+
+  it('names the views of a shared atlas and no view of its own', () => {
+    const sprites = [
+      { name: 'x@on', width: 10, height: 12, source: 'generated' },
+    ];
+    const [sheet] = sheetOf(sprites, packSprites(sprites), {
+      views: ['deck-main', 'deck-upper'],
+      stem: 'atlas',
+      geometry: 'abc',
+    });
+    expect(sheet.json.meta.views).toEqual(['deck-main', 'deck-upper']);
+    expect(sheet.json.meta.view).toBeUndefined();
   });
 });

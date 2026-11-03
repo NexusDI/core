@@ -28,8 +28,9 @@ pixels per metre): `meridian-cutaway-rooms.png` (a room index mask) with its
 `--deck-layers` writes, per deck, into `<dir>/<deck>/` the data layers of the deck map at 32
 pixels per metre on the deck frame (-2, -10, 76, 20), which is 2432 by 640 pixels with the
 origin at pixel (64, 320): the room index mask (`roomid-<tile>.png`), the emissive mask
-(`emissive-<tile>.png`), a JSON sidecar beside each, `lights.json` in deck pixels and
-`roomid-legend.json`. Each mask is cut into a `left` and a `right` tile of 1216 by 640.
+(`emissive-<tile>.png`), a JSON sidecar beside each, `lights.json` (the deck's `DeckLight`
+entries in deck pixels) and `roomid-legend.json` (the room indexes, the deck's room bounds and
+the geometry hash). Each mask is cut into a `left` and a `right` tile of 1216 by 640.
 """
 
 import argparse
@@ -1054,34 +1055,71 @@ def deck_rooms_mask(geometry, hull, deck):
 
 
 def deck_lights(geometry, deck):
-    """The deck's lights with their housing box, centre and reach in pixels of the deck frame."""
+    """The deck's lights as `DeckLight` entries in pixels of the deck frame.
+
+    Each entry has the fields of the cutaway's lights: the ids, the room, the kind, the art
+    colour, the fixture it names, the emissive flag, the share of its level that its sprite
+    (`gain`) and its housing (`housing`) show, the centre, the reach and the housing box. A
+    housing wider than 5 m reads as a strip and glows at the lower share.
+    """
+    strip = STRIP_WIDTH / PIXELS_PER_METRE * DECK_PPM
     lights = []
     for light in geometry["lights"]:
         if light["deck"] != deck["id"]:
             continue
         x0, x1 = light["x"]
         y0, y1 = light["y"]
-        centre = deck_px((x0 + x1) / 2, -(y0 + y1) / 2)
+        (u0, v0), (u1, v1) = deck_px(x0, -y1), deck_px(x1, -y0)
         lights.append(
             {
-                **light,
-                "px_box": deck_rect_px(x0, -y1, x1, -y0),
-                "px_centre": list(centre),
-                "px_radius": light["radius"] * DECK_PPM,
+                "ids": [light["id"]],
+                "room": light["room"],
+                "kind": light["kind"],
+                "colour": light["colour"],
+                "fixture": light.get("fixture"),
+                "emissive": light["emissive"],
+                "gain": GLOW_GAIN if light["kind"] == "glow" else 1.0,
+                "housing": STRIP_HOUSING if u1 - u0 > strip else HOUSING,
+                "centre": [round((u0 + u1) / 2, 1), round((v0 + v1) / 2, 1)],
+                "radius": round(light["radius"] * DECK_PPM, 1),
+                "box": [round(u0, 1), round(v0, 1), round(u1, 1), round(v1, 1)],
             }
         )
     return lights
 
 
 def deck_emissive_mask(lights):
-    """The housing of every emissive light of the deck at 255."""
+    """The housing of every emissive light that names no fixture, at its `housing` share of 255.
+
+    A light that names a fixture follows that fixture's level, so its housing is part of the
+    fixture's sprite and the mask leaves it out.
+    """
     width, height = DECK_SIZE
     grid = [[0] * width for _ in range(height)]
     for light in lights:
-        if light["emissive"]:
-            c0, r0, c1, r1 = light["px_box"]
-            fill_rect(grid, c0, r0, c1 + 1, r1 + 1, 255)
+        if light["emissive"] and light["fixture"] is None:
+            fill_rect(grid, *light["box"], round(255 * light["housing"]), outward=True)
     return grid
+
+
+def deck_room_bounds(geometry, hull, deck):
+    """Each room's bounding box on the deck in whole pixels, as [left, top, right, bottom]."""
+    bounds = {}
+    for room, (x0, y0, x1, y1) in deck_plan(geometry, hull, deck)[1]:
+        (u0, v0), (u1, v1) = deck_px(x0, y0), deck_px(x1, y1)
+        box = [math.floor(u0), math.floor(v0), math.ceil(u1), math.ceil(v1)]
+        old = bounds.get(room)
+        bounds[room] = (
+            box
+            if old is None
+            else [
+                min(old[0], box[0]),
+                min(old[1], box[1]),
+                max(old[2], box[2]),
+                max(old[3], box[3]),
+            ]
+        )
+    return bounds
 
 
 def tile_sidecar(deck, layer, tile, offset, digest):
@@ -1110,19 +1148,20 @@ def export_deck_layers(geometry, out):
     hull = Hull(geometry["hull"])
     digest = geometry_hash(geometry)
     width, height = TILE_SIZE
-    legend = {
-        "size": {"width": DECK_SIZE[0], "height": DECK_SIZE[1]},
-        "frame": " ".join(f"{n:g}" for n in DECK_FRAME),
-        "pixelsPerMetre": DECK_PPM,
-        "origin": list(DECK_ORIGIN),
-        "space": SPACE,
-        "structure": STRUCTURE,
-        "rooms": room_legend(geometry),
-        "geometry": digest,
-    }
     for deck in geometry["decks"]:
         target = os.path.join(out, deck["id"])
         os.makedirs(target, exist_ok=True)
+        legend = {
+            "size": {"width": DECK_SIZE[0], "height": DECK_SIZE[1]},
+            "frame": " ".join(f"{n:g}" for n in DECK_FRAME),
+            "pixelsPerMetre": DECK_PPM,
+            "origin": list(DECK_ORIGIN),
+            "space": SPACE,
+            "structure": STRUCTURE,
+            "rooms": room_legend(geometry),
+            "bounds": deck_room_bounds(geometry, hull, deck),
+            "geometry": digest,
+        }
         lights = deck_lights(geometry, deck)
         layers = {
             "roomid": deck_rooms_mask(geometry, hull, deck),

@@ -1,8 +1,24 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { art, colour } from '@nexusdi/meridian-ui/tokens';
 
-import { geometryHash, readGeometry } from './ship-art.mjs';
+const GEOMETRY_FILE = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+  '..',
+  'examples',
+  'meridian-systems',
+  'deck',
+  'meridian.geometry.json',
+);
 
-export { geometryHash, readGeometry };
+/** The ship's geometry, read by path: the package imports meridian-systems at no run time. */
+export function readGeometry() {
+  return JSON.parse(readFileSync(GEOMETRY_FILE, 'utf8'));
+}
 
 /**
  * The pure half of the deck art tool (design system 8.3): the footprint of
@@ -28,40 +44,38 @@ const flatAxis = (door) =>
   ['x', 'y', 'z'].find((a) => door[a][0] === door[a][1]);
 
 /**
- * The painted props of the owner's round-2 picks at seed 211, each at 32 px/m
- * in the size of its footprint. `id` is the fixture or door the painter drew;
- * `states` are the frames the vault holds.
+ * The painted props, from the `anchor.json` files of the painted sources. Each
+ * entry is `{ name, anchor }`: the prop's folder name and its anchor, whose
+ * `source` is a fixture id or `door <id>`, `sprite_px` the sprite size at
+ * 32 px/m and `states` the frames it holds. The shape comes from the geometry
+ * item of that id, so a new painted prop needs no code change.
+ *
+ * @param {{ name: string, anchor: { source: string, sprite_px: number[], states: string[] } }[]} anchors
+ * @param {ReturnType<typeof itemsOf>} items
  */
-export const PAINTED = {
-  console: {
-    kind: 'fixture',
-    id: 'bridge.forward-console',
-    shape: 'box',
-    size: { width: 32, height: 224 },
-    states: ['off', 'on', 'damaged'],
-  },
-  bunk: {
-    kind: 'fixture',
-    id: 'quarters.bunks-forward',
-    shape: 'box',
-    size: { width: 64, height: 58 },
-    states: ['off', 'on'],
-  },
-  reactor: {
-    kind: 'fixture',
-    id: 'reactor-bay.vessel',
-    shape: 'ellipse',
-    size: { width: 224, height: 224 },
-    states: ['off', 'on'],
-  },
-  hatch: {
-    kind: 'door',
-    id: 'bridge-habitat',
-    shape: 'box',
-    size: { width: 24, height: 60 },
-    states: ['closed', 'open'],
-  },
-};
+export function paintedTableOf(anchors, items) {
+  const table = {};
+  for (const { name, anchor } of anchors) {
+    const door = anchor.source.startsWith('door ');
+    const id = door ? anchor.source.slice('door '.length) : anchor.source;
+    const item = items.find((candidate) => candidate.id === id);
+    if (!item)
+      throw new Error(`painted prop ${name}: the geometry has no ${id}`);
+    const [width, height] = anchor.sprite_px;
+    if (width !== item.size.width || height !== item.size.height)
+      throw new Error(
+        `painted prop ${name}: the sprite is ${width}x${height}, the footprint of ${id} is ${item.size.width}x${item.size.height}`,
+      );
+    table[name] = {
+      kind: item.kind,
+      id,
+      shape: item.shape,
+      size: { width, height },
+      states: [...anchor.states],
+    };
+  }
+  return table;
+}
 
 /**
  * The painted frame that draws a state of an item, or undefined. A painted
@@ -75,11 +89,12 @@ export function stateFrame(painted, state) {
 }
 
 /**
- * The painted prop that serves an item (A5): the same kind and shape, a
- * footprint within one pixel at 32 px/m, and a frame for every state.
+ * The painted prop that serves an item: the same kind and shape, a footprint
+ * within one pixel at 32 px/m, which serves the item under its own frame name,
+ * and a frame for every state.
  */
-export function paintedFor(item) {
-  const hit = Object.entries(PAINTED).find(
+export function paintedFor(item, table) {
+  const hit = Object.entries(table).find(
     ([, prop]) =>
       prop.kind === item.kind &&
       prop.shape === item.shape &&
@@ -152,6 +167,7 @@ export function itemsOf(geometry) {
         kind: 'fixture',
         states: [...fixture.states],
         shape: fixture.shape === 'cylinder' ? 'ellipse' : 'box',
+        emissive: fixture.emissive === true,
         footprint: { x: [...fixture.x], y: [...fixture.y] },
         decks: decksOfFixture(geometry, room, fixture),
       });
@@ -163,6 +179,7 @@ export function itemsOf(geometry) {
       id: door.id,
       kind: 'door',
       doorKind: door.kind,
+      emissive: false,
       orientation,
       states: ['closed', 'open'],
       shape: 'box',
@@ -381,6 +398,37 @@ export function drawPlate(item, state) {
   return { width: canvas.width, height: canvas.height, data: canvas.data };
 }
 
+/** The state whose frame an emissive item lights: `on`, or its only state. */
+export const emissiveState = (item) =>
+  item.states.includes('on') ? 'on' : item.states[0];
+
+/**
+ * The emissive frame of a generated fixture marked `emissive`: the plate body
+ * inset two pixels at full alpha in the `on` steel, so a screen's glow has
+ * something to light. Returns undefined for a fixture with no screen.
+ *
+ * @returns {{ width: number, height: number, data: Uint8Array } | undefined}
+ */
+export function drawEmissive(item) {
+  if (!item.emissive || item.kind !== 'fixture') return undefined;
+  const { width, height } = item.size;
+  const canvas = canvasOf(width + 2 * MARGIN_PX, height + 2 * MARGIN_PX);
+  const inset = 2;
+  const cx = MARGIN_PX + width / 2;
+  const cy = MARGIN_PX + height / 2;
+  for (let y = MARGIN_PX + inset; y < MARGIN_PX + height - inset; y++) {
+    for (let x = MARGIN_PX + inset; x < MARGIN_PX + width - inset; x++) {
+      const inside =
+        item.shape !== 'ellipse' ||
+        ((x + 0.5 - cx) / (width / 2 - inset)) ** 2 +
+          ((y + 0.5 - cy) / (height / 2 - inset)) ** 2 <=
+          1;
+      if (inside) canvas.put(x, y, STEEL.on);
+    }
+  }
+  return { width: canvas.width, height: canvas.height, data: canvas.data };
+}
+
 /**
  * Packs sprites into pages of at most `PAGE_MAX` on a side with shelves. The
  * smallest width among 256, 512, 1024 and 2048 whose layout fits one page wins
@@ -448,9 +496,13 @@ export function packSprites(sprites, { padding = 2, max = PAGE_MAX } = {}) {
  *
  * @param {{ name: string, width: number, height: number, source: string }[]} sprites
  * @param {ReturnType<typeof packSprites>} packed
- * @param {{ view: string, stem: string, geometry: string, extra?: object }} meta
+ * @param {{ view?: string, views?: string[], stem: string, geometry: string, extra?: object }} meta
  */
-export function sheetOf(sprites, packed, { view, stem, geometry, extra = {} }) {
+export function sheetOf(
+  sprites,
+  packed,
+  { view, views, stem, geometry, extra = {} },
+) {
   const names = packed.pages.map((_, n) => `${stem}-${n}`);
   return packed.pages.map((page, n) => {
     const here = sprites
@@ -477,7 +529,7 @@ export function sheetOf(sprites, packed, { view, stem, geometry, extra = {} }) {
       format: 'RGBA8888',
       size: { w: page.width, h: page.height },
       scale: '1',
-      view,
+      ...(view ? { view } : { views }),
       layer: 'props',
       pixelsPerMetre: PPM,
       marginPx: MARGIN_PX,
