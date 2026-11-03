@@ -90,9 +90,7 @@ const FRAMEWORK_PACKAGES = [
 /** Nested lock keys that are allowed, each with the reason. */
 const NESTED_ALLOWED: Record<string, string> = {};
 
-function nestedFrameworkCopies(
-  packages: Record<string, unknown>,
-): string[] {
+function nestedFrameworkCopies(packages: Record<string, unknown>): string[] {
   return Object.keys(packages).filter((key) => {
     const match = /^.+\/node_modules\/(.+)$/.exec(key);
     return (
@@ -108,6 +106,8 @@ function nestedMessage(nested: string[]): string {
     'package-lock.json holds nested copies of framework packages:',
     ...nested.map((key) => `  ${key}`),
     'Delete those lock entries and run `npm install --package-lock-only`.',
+    'If the copy comes back, align that workspace range with the root range.',
+    'A legitimate copy goes in NESTED_ALLOWED with its reason.',
   ].join('\n');
 }
 
