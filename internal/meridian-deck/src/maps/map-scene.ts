@@ -67,7 +67,7 @@ export class MapScene implements IScene, Disposable {
   private readonly keys = new Set<string>();
   private readonly stops: (() => void)[] = [];
   private readonly doors: ReadonlySet<string>;
-  private readonly binding: SceneBinding;
+  readonly binding: SceneBinding;
 
   constructor(
     readonly map: MapDefinition,
@@ -103,7 +103,9 @@ export class MapScene implements IScene, Disposable {
       );
     }
 
-    this.stops.push(this.runner.register(this.binding));
+    if (engine !== undefined) {
+      this.stops.push(this.runner.register(this.binding));
+    }
     this.stops.push(
       this.source.subscribe((event) => {
         engine?.feed(event);

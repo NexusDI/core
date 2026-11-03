@@ -44,6 +44,8 @@ export type Cue =
  */
 export interface IScene {
   readonly map: MapDefinition;
+  /** What the scene runner pairs with the hooks of this map. */
+  readonly binding: SceneBinding;
   /** Every cue raised since the scope opened, oldest first. */
   cues(): readonly Cue[];
   /** Calls the listener for each later cue. Returns the function that stops it. */

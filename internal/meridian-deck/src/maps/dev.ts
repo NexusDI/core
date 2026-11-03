@@ -1,6 +1,7 @@
 /**
  * True while the build is not a production build. The maps entry keeps its own
- * copy so that the main entry's bundle holds no chunk shared with it.
+ * copy, so the build keeps `state/dev.ts` inside `index.js` and leaves the main
+ * entry's bytes alone.
  */
 export function inDevelopment(): boolean {
   try {

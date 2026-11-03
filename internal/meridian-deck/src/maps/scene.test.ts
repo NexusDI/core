@@ -1,5 +1,6 @@
 import { defineModule, provide, Token } from '@nexusdi/core';
 import type { Nexus, Scope } from '@nexusdi/core';
+import type { ShipReading } from '@nexusdi/meridian-systems';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { DECK_STATE } from '../state/tokens.js';
@@ -193,6 +194,95 @@ describe('the scene runner', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('nowhere'));
   });
 
+  /** Three maps of one scene, and a hook whose onEnter the test decides per map. */
+  async function threeMaps(onEnter: (map: string) => void | Promise<void>) {
+    const calls: string[] = [];
+    const module = sceneModule(calls, {
+      onEnter: (context) => onEnter(context.map.id),
+    });
+    const harness = await app({
+      maps: {
+        a: mapOf({ id: 'a', scene: 'drill' }),
+        b: mapOf({ id: 'b', scene: 'drill' }),
+        newer: mapOf({
+          id: 'newer',
+          scene: 'drill',
+          $schema: 'https://nexusdi.dev/schemas/meridian-map/2.json',
+        }),
+      },
+      scenes: { drill: async () => module },
+    });
+    cleanup.push(harness.nexus);
+    return {
+      ...harness,
+      calls,
+      imports: [harness.BayDeckState, harness.BayDeckMaps],
+    };
+  }
+
+  it('awaits only the onEnter of its own scope', async () => {
+    let release: () => void = () => {};
+    const slow = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const { open, nexus, runner, imports } = await threeMaps((map) =>
+      map === 'b' ? slow : undefined,
+    );
+    const first = await open('a');
+    const second = await open('b');
+    cleanup.push(first, second);
+    await runner.open(nexus, first, { imports });
+    let secondDone = false;
+    const waiting = runner.open(nexus, second, { imports }).then(() => {
+      secondDone = true;
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(secondDone).toBe(false);
+    release();
+    await waiting;
+    expect(secondDone).toBe(true);
+  });
+
+  it('leaves no unhandled rejection for a failed onEnter of a scope that never opens a scene', async () => {
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      const { open, nexus, runner, imports } = await threeMaps((map) =>
+        map === 'b' ? Promise.reject(new Error('refused')) : undefined,
+      );
+      const first = await open('a');
+      const second = await open('b');
+      cleanup.push(first, second);
+      await runner.open(nexus, first, { imports });
+      await new Promise((resolve) => setImmediate(resolve));
+      await new Promise((resolve) => setImmediate(resolve));
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
+    expect(unhandled).not.toHaveBeenCalled();
+  });
+
+  it('rejects open when the onEnter of its own scope fails', async () => {
+    const { open, nexus, runner, imports } = await threeMaps((map) =>
+      map === 'a' ? Promise.reject(new Error('refused')) : undefined,
+    );
+    const first = await open('a');
+    cleanup.push(first);
+    await expect(runner.open(nexus, first, { imports })).rejects.toThrow(
+      'refused',
+    );
+  });
+
+  it('registers no scene binding for a map of a newer schema', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { open, nexus, runner, imports, calls } = await threeMaps(() => {});
+    const scope = await open('newer');
+    cleanup.push(scope);
+    await runner.open(nexus, scope, { imports });
+    expect(calls).toEqual([]);
+  });
+
   it('keeps the state store through DECK_STATE for the scene', async () => {
     const { nexus } = await drill([]);
     expect(nexus.get(DECK_STATE)).toBeDefined();
@@ -251,7 +341,10 @@ describe('ScriptedDeckSource', () => {
 
   it('drives a map’s triggers through the store', async () => {
     const source = new ScriptedDeckSource([
-      { type: 'reading', reading: { ftl: { status: 'charged' } } },
+      {
+        type: 'reading',
+        reading: { ftl: { status: 'charged' } } as unknown as ShipReading,
+      },
     ]);
     const harness = await app(
       {

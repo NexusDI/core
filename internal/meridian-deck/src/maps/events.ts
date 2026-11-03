@@ -2,13 +2,15 @@
  * The events the trigger engine reads that no source in this package sends.
  * A source that has the facts sends them; the engine reads the shapes below.
  */
+import type { RefusalCode, ShipReading } from '@nexusdi/meridian-systems';
+
 declare module '../state/contracts.js' {
   interface DeckEventMap {
-    /** A telemetry frame, as nested records. A `record` condition reads a dotted path of it. */
-    reading: { readonly reading: Readonly<Record<string, unknown>> };
+    /** A telemetry frame. A `record` condition reads a dotted path of it. */
+    reading: { readonly reading: ShipReading };
     /** A command answer. `refused` carries the refusal code and the narrowing fields name what it refused. */
     answer: {
-      readonly refused?: string;
+      readonly refused?: RefusalCode;
       readonly door?: string;
       readonly room?: string;
       readonly system?: string;

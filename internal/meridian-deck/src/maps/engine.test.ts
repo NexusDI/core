@@ -1,5 +1,6 @@
 import type { MapDefinition, MapTrigger } from '@nexusdi/meridian-systems/maps';
 import type { Nexus, Scope } from '@nexusdi/core';
+import type { ShipReading } from '@nexusdi/meridian-systems';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { DeckEvent } from '../state/contracts.js';
@@ -35,9 +36,16 @@ async function run(
   };
 }
 
+/** A partial frame is enough for the paths a test reads. */
 const reading = (values: Record<string, unknown>): DeckEvent => ({
   type: 'reading',
-  reading: values,
+  reading: values as unknown as ShipReading,
+});
+
+/** The event type takes a whole `ShipReading` without a cast. */
+export const acceptsShipReading = (frame: ShipReading): DeckEvent => ({
+  type: 'reading',
+  reading: frame,
 });
 
 describe('the conditions', () => {
@@ -272,6 +280,21 @@ describe('the conditions', () => {
     expect(
       cues().map((cue) => (cue.kind === 'announce' ? cue.text : '')),
     ).toEqual(['built', 'loaded', 'pass', 'passed']);
+  });
+
+  it('skips an effect whose value is not the type its key takes', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { source, state, cues } = await run([
+      {
+        id: 'bad-value',
+        when: { enter: true },
+        then: [{ set: 5, state: 'on' } as never, { announce: 'kept' }],
+      },
+    ]);
+    source.push({ type: 'select', id: 'bridge' });
+    expect(cues()).toEqual([{ kind: 'announce', text: 'kept' }]);
+    expect(state.snapshot().held).toEqual({});
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('bad-value'));
   });
 
   it('skips a condition and an effect it does not know, with a development warning', async () => {
