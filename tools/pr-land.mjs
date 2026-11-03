@@ -114,11 +114,15 @@ async function rerunWhenComplete(id) {
   await gh('run', 'rerun', id, '--failed');
 }
 
-/** A line that names a failed test or task: vitest, Playwright's dot reporter and Nx. */
+/**
+ * A line that names a failed test, task or finding: vitest, Playwright's dot
+ * reporter, Nx, fallow's finding headings and the files under them, and
+ * ESLint's problem count.
+ */
 const SUMMARY =
-  / FAIL |^\s*\d+\) \[[^\]]+\] › |^\s*\[[^\]]+\] › .*:\d+:\d+|Failed tasks|^\s*- @\S+:\S+/;
+  / FAIL |^\s*\d+\) \[[^\]]+\] › |^\s*\[[^\]]+\] › .*:\d+:\d+|Failed tasks|^\s*- @\S+:\S+|^● |^\s{2}[\w@./-]+\.[cm]?[jt]sx?$|✖ \d+ problems?/;
 /** A line that says why a test failed. */
-const CAUSE = /timed out|Test timeout of|AssertionError|Error:/;
+const CAUSE = /timed out|Test timeout of|AssertionError|Error:|error TS\d+/;
 
 /**
  * failureLines returns the lines of a run's latest attempt that name what
@@ -189,6 +193,9 @@ async function land() {
       await sleep(POLL_MS);
       continue;
     }
+    // A conflicted head gets no new check runs, so waiting on them never ends.
+    if (state.mergeStateStatus === 'DIRTY')
+      stop(`it conflicts with ${state.baseRefName}; rebase it by hand`);
 
     const list = await checks();
     // A settle window starts fresh each time the checks go back to running.
