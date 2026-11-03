@@ -18,10 +18,12 @@ export default defineConfig(() => ({
     reportCompressedSize: true,
     lib: {
       // `.` is the deck state and holds no Pixi. `./view` is the one entry
-      // that imports it, and the app loads it with an import().
+      // that imports it, and the app loads it with an import(). `./testing`
+      // holds the fake source and imports `.` alone.
       entry: {
         index: 'src/state/index.ts',
         view: 'src/view/index.ts',
+        testing: 'src/testing/index.ts',
       },
       name: '@nexusdi/meridian-deck',
       formats: ['es' as const],

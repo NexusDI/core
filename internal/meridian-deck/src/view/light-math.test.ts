@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { DeckChange } from '../state/contracts.js';
+import { EMPTY_SNAPSHOT } from '../test-support.js';
 
 import {
   ALARM_GLOW,
@@ -30,7 +31,7 @@ import {
 
 const change = (patch: DeckChange['patch']): DeckChange => ({
   patch,
-  snapshot: { rooms: {}, fixtures: {} },
+  snapshot: EMPTY_SNAPSHOT,
 });
 
 describe('the room and fixture targets', () => {

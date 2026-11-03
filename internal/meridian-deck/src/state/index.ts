@@ -1,4 +1,7 @@
 export type {
+  CameraTarget,
+  ConduitState,
+  DeckAlarm,
   DeckChange,
   DeckEvent,
   DeckEventMap,
@@ -10,11 +13,14 @@ export type {
   DeckPatch,
   DeckScene,
   DeckSnapshot,
+  DoorState,
   FixtureLight,
   IDeckBinding,
   IDeckSource,
   IDeckState,
+  PropFrame,
   Ramp,
+  ReadoutDefinition,
   RoomLight,
 } from './contracts.js';
 export { DeckState } from './deck-state.module.js';

@@ -4,6 +4,7 @@ import type {
   DeckEvent,
   DeckImage,
   DeckOptions,
+  DeckSnapshot,
   IDeckSource,
 } from './state/contracts.js';
 import { DECK_SOURCE } from './state/tokens.js';
@@ -22,6 +23,18 @@ export const OPTIONS: DeckOptions = {
     },
     lights: [],
   },
+};
+
+/** A snapshot with nothing set. */
+export const EMPTY_SNAPSHOT: DeckSnapshot = {
+  rooms: {},
+  fixtures: {},
+  frames: {},
+  doors: {},
+  conduits: {},
+  alarms: [],
+  held: {},
+  camera: undefined,
 };
 
 /** A source a test pushes events through. */

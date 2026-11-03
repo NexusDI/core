@@ -3,7 +3,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { DeckState } from './state/deck-state.module.js';
 import { DECK_BINDINGS, DECK_OPTIONS, DECK_STATE } from './state/tokens.js';
-import { FakeSource, OPTIONS, globalSource } from './test-support.js';
+import {
+  EMPTY_SNAPSHOT,
+  FakeSource,
+  OPTIONS,
+  globalSource,
+} from './test-support.js';
 import { DeckView } from './view/deck-view.module.js';
 import {
   DECK_COMPOSITOR,
@@ -39,10 +44,7 @@ describe('the deck container graph', () => {
   it('lets DeckState export DECK_OPTIONS, and hands the options to a reader of the module', async () => {
     const { nexus } = await app();
     expect(nexus.get(DECK_OPTIONS)).toBe(OPTIONS);
-    expect(nexus.get(DECK_STATE).snapshot()).toEqual({
-      rooms: {},
-      fixtures: {},
-    });
+    expect(nexus.get(DECK_STATE).snapshot()).toEqual(EMPTY_SNAPSHOT);
   });
 
   it('feeds the store from the source the app binds in its global module', async () => {

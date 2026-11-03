@@ -498,6 +498,8 @@ vector's.
 
 ### 8.2 Runtime layers
 
+Amendment (MR1, A1): the glow channel carries the standby level, and the frame picks the sprite.
+
 The deck map draws four layers, bottom to top, and bakes no light into any of them.
 
 1. The deck base: one unlit painted image per deck with the floors, the walls and the

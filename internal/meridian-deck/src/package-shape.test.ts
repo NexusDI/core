@@ -33,14 +33,17 @@ describe('the @nexusdi/meridian-deck manifest', () => {
     expect(manifest.dependencies['pixi.js']).toBe('8.22.0');
   });
 
-  it('has the two entries of the extension principle, the view apart from the state', () => {
+  it('has the entries of the extension principle, the view and the fakes apart from the state', () => {
     expect(
       Object.keys(manifest.exports).filter((key) => key !== './package.json'),
-    ).toEqual(['.', './view']);
+    ).toEqual(['.', './view', './testing']);
     const state = manifest.exports['.'] as Record<string, string>;
     const view = manifest.exports['./view'] as Record<string, string>;
     expect(state['@nexusdi/source']).toBe('./src/state/index.ts');
     expect(view['@nexusdi/source']).toBe('./src/view/index.ts');
+    const testing = manifest.exports['./testing'] as Record<string, string>;
+    expect(testing['@nexusdi/source']).toBe('./src/testing/index.ts');
+    expect(Object.keys(testing)).toEqual(Object.keys(state));
   });
 });
 
@@ -51,8 +54,36 @@ describe('the imports of the package', () => {
     }
   });
 
+  it('keeps Pixi out of the testing entry', () => {
+    for (const { file, text } of sources('testing')) {
+      expect(text, file).not.toMatch(/from 'pixi\.js|from "pixi\.js|'pixi\.js/);
+    }
+  });
+
+  it('imports nothing from meridian-systems at run time in the state and testing entries', () => {
+    for (const { file, text } of [...sources('state'), ...sources('testing')]) {
+      const runtime = text
+        .split('\n')
+        .filter((line) => !/^\s*import type\b/.test(line));
+      expect(runtime.join('\n'), file).not.toMatch(
+        /@nexusdi\/meridian-systems/,
+      );
+    }
+  });
+
+  it('lets the testing entry reach the state through relative imports only', () => {
+    for (const { file, text } of sources('testing')) {
+      expect(text, file).not.toMatch(/@nexusdi\/meridian-deck/);
+      expect(text, file).not.toMatch(/\.\.\/view/);
+    }
+  });
+
   it('imports neither meridian-ui nor the docs app (P5)', () => {
-    for (const { file, text } of [...sources('state'), ...sources('view')]) {
+    for (const { file, text } of [
+      ...sources('state'),
+      ...sources('view'),
+      ...sources('testing'),
+    ]) {
       expect(text, file).not.toMatch(/@nexusdi\/meridian-ui|apps\/docs/);
     }
   });
