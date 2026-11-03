@@ -27,6 +27,12 @@
       "import": "./dist/view.js",
       "default": "./dist/view.js"
     },
+    "./bindings": {
+      "@nexusdi/source": "./src/bindings/index.ts",
+      "types": "./dist/bindings/index.d.ts",
+      "import": "./dist/bindings.js",
+      "default": "./dist/bindings.js"
+    },
     "./testing": {
       "@nexusdi/source": "./src/testing/index.ts",
       "types": "./dist/testing/index.d.ts",

@@ -18,11 +18,16 @@ const manifest = JSON.parse(
   exports: Record<string, Record<string, string> | string>;
 };
 
-/** Every source file of a folder and its subfolders, tests left out. */
+/** Every source file of a folder and its subfolders, tests and their support files left out. */
 function sources(folder: string): { file: string; text: string }[] {
   const dir = join(import.meta.dirname, folder);
   return readdirSync(dir, { recursive: true, encoding: 'utf8' })
-    .filter((name) => name.endsWith('.ts') && !name.endsWith('.test.ts'))
+    .filter(
+      (name) =>
+        name.endsWith('.ts') &&
+        !name.endsWith('.test.ts') &&
+        !name.endsWith('test-support.ts'),
+    )
     .map((name) => ({
       file: `${folder}/${name}`,
       text: readFileSync(join(dir, name), 'utf8'),
@@ -95,17 +100,20 @@ describe('the @nexusdi/meridian-deck manifest', () => {
   it('has the entries of the extension principle, the map runtime, the view and the fakes apart from the state', () => {
     expect(
       Object.keys(manifest.exports).filter((key) => key !== './package.json'),
-    ).toEqual(['.', './maps', './view', './testing', './art/*']);
+    ).toEqual(['.', './maps', './view', './bindings', './testing', './art/*']);
     const state = manifest.exports['.'] as Record<string, string>;
     const maps = manifest.exports['./maps'] as Record<string, string>;
     const view = manifest.exports['./view'] as Record<string, string>;
+    const bindings = manifest.exports['./bindings'] as Record<string, string>;
     expect(state['@nexusdi/source']).toBe('./src/state/index.ts');
     expect(maps['@nexusdi/source']).toBe('./src/maps/index.ts');
     expect(view['@nexusdi/source']).toBe('./src/view/index.ts');
+    expect(bindings['@nexusdi/source']).toBe('./src/bindings/index.ts');
     const testing = manifest.exports['./testing'] as Record<string, string>;
     expect(testing['@nexusdi/source']).toBe('./src/testing/index.ts');
     expect(Object.keys(testing)).toEqual(Object.keys(state));
     expect(Object.keys(maps)).toEqual(Object.keys(state));
+    expect(Object.keys(bindings)).toEqual(Object.keys(state));
   });
 
   it('takes meridian-systems as an optional peer and a dev dependency', () => {
@@ -119,12 +127,13 @@ describe('the @nexusdi/meridian-deck manifest', () => {
     const config = readFileSync(join(root, 'vite.config.ts'), 'utf8');
     expect(config).toMatch(/external:\s*\[[^\]]*@nexusdi\\\/meridian-systems/s);
     expect(config).toMatch(/maps:\s*'src\/maps\/index\.ts'/);
+    expect(config).toMatch(/bindings:\s*'src\/bindings\/index\.ts'/);
   });
 });
 
 describe('the imports of the package', () => {
-  it('keeps Pixi out of the state, maps and testing entries', () => {
-    for (const folder of ['state', 'maps', 'testing']) {
+  it('keeps Pixi out of the state, maps, bindings and testing entries', () => {
+    for (const folder of ['state', 'maps', 'bindings', 'testing']) {
       for (const { file, text } of sources(folder)) {
         const pixi = statementsOf(text).filter(({ specifier }) =>
           specifier.startsWith('pixi.js'),
@@ -145,6 +154,16 @@ describe('the imports of the package', () => {
     expect(statements.length).toBeGreaterThan(0);
     for (const { file, typeOnly } of statements) {
       expect(typeOnly, file).toBe(true);
+    }
+  });
+
+  it('imports meridian-systems at run time from its geometry subpath alone in the bindings entry', () => {
+    const statements = namingSystems('bindings');
+    expect(statements.length).toBeGreaterThan(0);
+    for (const { file, specifier, typeOnly } of statements) {
+      if (!typeOnly) {
+        expect(specifier, file).toBe(`${SYSTEMS}/geometry`);
+      }
     }
   });
 
@@ -176,6 +195,7 @@ describe('the imports of the package', () => {
     for (const { file, text } of [
       ...sources('state'),
       ...sources('maps'),
+      ...sources('bindings'),
       ...sources('view'),
       ...sources('testing'),
     ]) {
@@ -186,6 +206,13 @@ describe('the imports of the package', () => {
   it('lets the view reach the state through relative imports and nothing else of the package', () => {
     for (const { file, text } of sources('view')) {
       expect(text, file).not.toMatch(/@nexusdi\/meridian-deck/);
+    }
+  });
+
+  it('lets the bindings entry reach the state through relative imports and never the view', () => {
+    for (const { file, text } of sources('bindings')) {
+      expect(text, file).not.toMatch(/@nexusdi\/meridian-deck/);
+      expect(text, file).not.toMatch(/\.\.\/view/);
     }
   });
 

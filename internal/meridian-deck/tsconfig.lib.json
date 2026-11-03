@@ -33,6 +33,7 @@
     "src/test-setup.ts",
     "src/test-support.ts",
     "src/maps/test-support.ts",
+    "src/bindings/test-support.ts",
     "eslint.config.mjs"
   ],
   "include": ["src/**/*.ts", "src/**/*.tsx"],

@@ -34,13 +34,16 @@ export default defineConfig(() => ({
     reportCompressedSize: true,
     lib: {
       // `.` is the deck state and holds no Pixi. `./maps` runs the map files
-      // over it and imports meridian-systems by `import type` alone. `./view`
-      // is the one entry that imports Pixi, and the app loads it with an
-      // import(). `./testing` holds the fake source and imports `.` alone.
+      // over it and imports meridian-systems by `import type` alone.
+      // `./bindings` turns ship telemetry into patches and imports the ship
+      // geometry at run time. `./view` is the one entry that imports Pixi,
+      // and the app loads it with an import(). `./testing` holds the fake
+      // source and imports `.` alone.
       entry: {
         index: 'src/state/index.ts',
         maps: 'src/maps/index.ts',
         view: 'src/view/index.ts',
+        bindings: 'src/bindings/index.ts',
         testing: 'src/testing/index.ts',
       },
       name: '@nexusdi/meridian-deck',
