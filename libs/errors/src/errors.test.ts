@@ -129,7 +129,7 @@ describe('errors', () => {
           message:
             '[NEXUS_MISSING_PROVIDER] DeckOptions (module DeckState) depends on AppSource, but no provider of AppSource is visible in DeckState.\n' +
             '  AppSource is provided in App, which imports DeckState, directly or through other modules.\n' +
-            "  Fix: App imports DeckState, so DeckState cannot import App. Move AppSource into a module that DeckState imports, or into a global module that exports it. Then name that module in DeckState.forRootAsync({ imports }).",
+            '  Fix: App imports DeckState, so DeckState cannot import App. Move AppSource into a module that DeckState imports, or into a global module that exports it. Then name that module in DeckState.forRootAsync({ imports }).',
         },
       ],
     });
