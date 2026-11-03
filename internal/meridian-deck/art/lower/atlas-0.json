@@ -1,0 +1,672 @@
+{
+  "frames": {
+    "computer-core.rack-aft@off": {
+      "frame": {
+        "x": 142,
+        "y": 697,
+        "w": 64,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "computer-core.rack-aft@on": {
+      "frame": {
+        "x": 208,
+        "y": 697,
+        "w": 64,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "computer-core.rack-forward@off": {
+      "frame": {
+        "x": 274,
+        "y": 697,
+        "w": 64,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "computer-core.rack-forward@on": {
+      "frame": {
+        "x": 340,
+        "y": 697,
+        "w": 64,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "computer-core.rack-port@off": {
+      "frame": {
+        "x": 0,
+        "y": 901,
+        "w": 198,
+        "h": 58
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 198,
+        "h": 58
+      },
+      "sourceSize": {
+        "w": 198,
+        "h": 58
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "computer-core.rack-port@on": {
+      "frame": {
+        "x": 200,
+        "y": 901,
+        "w": 198,
+        "h": 58
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 198,
+        "h": 58
+      },
+      "sourceSize": {
+        "w": 198,
+        "h": 58
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "drone-bay-outer@closed": {
+      "frame": {
+        "x": 272,
+        "y": 561,
+        "w": 140,
+        "h": 108
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 140,
+        "h": 108
+      },
+      "sourceSize": {
+        "w": 140,
+        "h": 108
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "drone-bay-outer@open": {
+      "frame": {
+        "x": 0,
+        "y": 697,
+        "w": 140,
+        "h": 108
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 140,
+        "h": 108
+      },
+      "sourceSize": {
+        "w": 140,
+        "h": 108
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "drone-bay.drone@default": {
+      "frame": {
+        "x": 174,
+        "y": 807,
+        "w": 77,
+        "h": 77
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 77,
+        "h": 77
+      },
+      "sourceSize": {
+        "w": 77,
+        "h": 77
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "drone-bay.rack-port@off": {
+      "frame": {
+        "x": 0,
+        "y": 961,
+        "w": 195,
+        "h": 58
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 195,
+        "h": 58
+      },
+      "sourceSize": {
+        "w": 195,
+        "h": 58
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "drone-bay.rack-port@on": {
+      "frame": {
+        "x": 197,
+        "y": 961,
+        "w": 195,
+        "h": 58
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 195,
+        "h": 58
+      },
+      "sourceSize": {
+        "w": 195,
+        "h": 58
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "drone-bay.rack-starboard@off": {
+      "frame": {
+        "x": 0,
+        "y": 1021,
+        "w": 195,
+        "h": 58
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 195,
+        "h": 58
+      },
+      "sourceSize": {
+        "w": 195,
+        "h": 58
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "drone-bay.rack-starboard@on": {
+      "frame": {
+        "x": 197,
+        "y": 1021,
+        "w": 195,
+        "h": 58
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 195,
+        "h": 58
+      },
+      "sourceSize": {
+        "w": 195,
+        "h": 58
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "ftl-core.capacitor-cabinet@off": {
+      "frame": {
+        "x": 253,
+        "y": 807,
+        "w": 70,
+        "h": 74
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 70,
+        "h": 74
+      },
+      "sourceSize": {
+        "w": 70,
+        "h": 74
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "ftl-core.capacitor-cabinet@on": {
+      "frame": {
+        "x": 325,
+        "y": 807,
+        "w": 70,
+        "h": 74
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 70,
+        "h": 74
+      },
+      "sourceSize": {
+        "w": 70,
+        "h": 74
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "ftl-core.ring@damaged": {
+      "frame": {
+        "x": 338,
+        "y": 412,
+        "w": 134,
+        "h": 134
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 134,
+        "h": 134
+      },
+      "sourceSize": {
+        "w": 134,
+        "h": 134
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "ftl-core.ring@off": {
+      "frame": {
+        "x": 0,
+        "y": 561,
+        "w": 134,
+        "h": 134
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 134,
+        "h": 134
+      },
+      "sourceSize": {
+        "w": 134,
+        "h": 134
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "ftl-core.ring@on": {
+      "frame": {
+        "x": 136,
+        "y": 561,
+        "w": 134,
+        "h": 134
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 134,
+        "h": 134
+      },
+      "sourceSize": {
+        "w": 134,
+        "h": 134
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "shuttle-bay-drone-bay@closed": {
+      "frame": {
+        "x": 406,
+        "y": 697,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "shuttle-bay-drone-bay@closed#emissive": {
+      "frame": {
+        "x": 0,
+        "y": 807,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "shuttle-bay-drone-bay@open": {
+      "frame": {
+        "x": 58,
+        "y": 807,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "shuttle-bay-drone-bay@open#emissive": {
+      "frame": {
+        "x": 116,
+        "y": 807,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "shuttle-bay-outer@closed": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 364,
+        "h": 204
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 364,
+        "h": 204
+      },
+      "sourceSize": {
+        "w": 364,
+        "h": 204
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "shuttle-bay-outer@open": {
+      "frame": {
+        "x": 0,
+        "y": 206,
+        "w": 364,
+        "h": 204
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 364,
+        "h": 204
+      },
+      "sourceSize": {
+        "w": 364,
+        "h": 204
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "shuttle-bay.fuel-rig@default": {
+      "frame": {
+        "x": 397,
+        "y": 807,
+        "w": 83,
+        "h": 70
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 83,
+        "h": 70
+      },
+      "sourceSize": {
+        "w": 83,
+        "h": 70
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "shuttle-bay.shuttle@default": {
+      "frame": {
+        "x": 0,
+        "y": 412,
+        "w": 336,
+        "h": 147
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 336,
+        "h": 147
+      },
+      "sourceSize": {
+        "w": 336,
+        "h": 147
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "nexusdi deck-art",
+    "version": "1",
+    "image": "atlas-0.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 480,
+      "h": 1079
+    },
+    "scale": "1",
+    "view": "deck-lower",
+    "layer": "props",
+    "pixelsPerMetre": 32,
+    "marginPx": 16,
+    "sources": {
+      "computer-core.rack-aft@off": "generated",
+      "computer-core.rack-aft@on": "generated",
+      "computer-core.rack-forward@off": "generated",
+      "computer-core.rack-forward@on": "generated",
+      "computer-core.rack-port@off": "generated",
+      "computer-core.rack-port@on": "generated",
+      "drone-bay-outer@closed": "generated",
+      "drone-bay-outer@open": "generated",
+      "drone-bay.drone@default": "generated",
+      "drone-bay.rack-port@off": "generated",
+      "drone-bay.rack-port@on": "generated",
+      "drone-bay.rack-starboard@off": "generated",
+      "drone-bay.rack-starboard@on": "generated",
+      "ftl-core.capacitor-cabinet@off": "generated",
+      "ftl-core.capacitor-cabinet@on": "generated",
+      "ftl-core.ring@damaged": "generated",
+      "ftl-core.ring@off": "generated",
+      "ftl-core.ring@on": "generated",
+      "shuttle-bay-drone-bay@closed": "painted",
+      "shuttle-bay-drone-bay@closed#emissive": "painted",
+      "shuttle-bay-drone-bay@open": "painted",
+      "shuttle-bay-drone-bay@open#emissive": "painted",
+      "shuttle-bay-outer@closed": "generated",
+      "shuttle-bay-outer@open": "generated",
+      "shuttle-bay.fuel-rig@default": "generated",
+      "shuttle-bay.shuttle@default": "generated"
+    },
+    "geometry": "f21947b3c19d9cbb9ce68b0fd7c735e81b52028492c8c8aabe344cfda2ce77d9"
+  }
+}

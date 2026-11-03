@@ -1,0 +1,1597 @@
+{
+  "frames": {
+    "airlock-outer@closed": {
+      "frame": {
+        "x": 312,
+        "y": 1128,
+        "w": 92,
+        "h": 56
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 56
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 56
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "airlock-outer@open": {
+      "frame": {
+        "x": 406,
+        "y": 1128,
+        "w": 92,
+        "h": 56
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 56
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 56
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "airlock-shuttle-bay@closed": {
+      "frame": {
+        "x": 316,
+        "y": 420,
+        "w": 108,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 108,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 108,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "airlock-shuttle-bay@open": {
+      "frame": {
+        "x": 0,
+        "y": 528,
+        "w": 108,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 108,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 108,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "airlock.inner-frame-aft@default": {
+      "frame": {
+        "x": 47,
+        "y": 1299,
+        "w": 38,
+        "h": 45
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 45
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 45
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "airlock.inner-frame-fwd@default": {
+      "frame": {
+        "x": 87,
+        "y": 1299,
+        "w": 38,
+        "h": 45
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 45
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 45
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "airlock.outer-frame-aft@default": {
+      "frame": {
+        "x": 0,
+        "y": 1299,
+        "w": 45,
+        "h": 45
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 45,
+        "h": 45
+      },
+      "sourceSize": {
+        "w": 45,
+        "h": 45
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "airlock.outer-frame-fwd@default": {
+      "frame": {
+        "x": 127,
+        "y": 1299,
+        "w": 38,
+        "h": 45
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 45
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 45
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "airlock.suit-lockers@default": {
+      "frame": {
+        "x": 213,
+        "y": 258,
+        "w": 50,
+        "h": 115
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 50,
+        "h": 115
+      },
+      "sourceSize": {
+        "w": 50,
+        "h": 115
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge-chart-room@closed": {
+      "frame": {
+        "x": 110,
+        "y": 622,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge-chart-room@closed#emissive": {
+      "frame": {
+        "x": 168,
+        "y": 622,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge-chart-room@open": {
+      "frame": {
+        "x": 226,
+        "y": 622,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge-chart-room@open#emissive": {
+      "frame": {
+        "x": 284,
+        "y": 622,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge-computer-core@closed": {
+      "frame": {
+        "x": 110,
+        "y": 528,
+        "w": 108,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 108,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 108,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge-computer-core@open": {
+      "frame": {
+        "x": 220,
+        "y": 528,
+        "w": 108,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 108,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 108,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge-habitat@closed": {
+      "frame": {
+        "x": 342,
+        "y": 622,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge-habitat@closed#emissive": {
+      "frame": {
+        "x": 400,
+        "y": 622,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge-habitat@open": {
+      "frame": {
+        "x": 0,
+        "y": 716,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge-habitat@open#emissive": {
+      "frame": {
+        "x": 58,
+        "y": 716,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge.command-chair@default": {
+      "frame": {
+        "x": 438,
+        "y": 1062,
+        "w": 64,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 64
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge.forward-console@off": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 256
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge.forward-console@off#emissive": {
+      "frame": {
+        "x": 66,
+        "y": 0,
+        "w": 64,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 256
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge.forward-console@on": {
+      "frame": {
+        "x": 132,
+        "y": 0,
+        "w": 64,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 256
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge.forward-console@on#emissive": {
+      "frame": {
+        "x": 198,
+        "y": 0,
+        "w": 64,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 256
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge.helm@off": {
+      "frame": {
+        "x": 184,
+        "y": 420,
+        "w": 64,
+        "h": 102
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 102
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 102
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge.helm@on": {
+      "frame": {
+        "x": 250,
+        "y": 420,
+        "w": 64,
+        "h": 102
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 102
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 102
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge.station-bank@off": {
+      "frame": {
+        "x": 0,
+        "y": 1128,
+        "w": 154,
+        "h": 58
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 154,
+        "h": 58
+      },
+      "sourceSize": {
+        "w": 154,
+        "h": 58
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bridge.station-bank@on": {
+      "frame": {
+        "x": 156,
+        "y": 1128,
+        "w": 154,
+        "h": 58
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 154,
+        "h": 58
+      },
+      "sourceSize": {
+        "w": 154,
+        "h": 58
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "chart-room.chart-cabinets@default": {
+      "frame": {
+        "x": 124,
+        "y": 1246,
+        "w": 147,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 147,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 147,
+        "h": 48
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "chart-room.plot-table@default": {
+      "frame": {
+        "x": 92,
+        "y": 420,
+        "w": 90,
+        "h": 102
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 90,
+        "h": 102
+      },
+      "sourceSize": {
+        "w": 90,
+        "h": 102
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "engineering-ftl-core@closed": {
+      "frame": {
+        "x": 330,
+        "y": 528,
+        "w": 108,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 108,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 108,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "engineering-ftl-core@open": {
+      "frame": {
+        "x": 0,
+        "y": 622,
+        "w": 108,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 108,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 108,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "engineering-reactor-bay@closed": {
+      "frame": {
+        "x": 116,
+        "y": 716,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "engineering-reactor-bay@closed#emissive": {
+      "frame": {
+        "x": 174,
+        "y": 716,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "engineering-reactor-bay@open": {
+      "frame": {
+        "x": 232,
+        "y": 716,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "engineering-reactor-bay@open#emissive": {
+      "frame": {
+        "x": 290,
+        "y": 716,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "engineering.control-desk@off": {
+      "frame": {
+        "x": 0,
+        "y": 1062,
+        "w": 160,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 160,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 160,
+        "h": 64
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "engineering.control-desk@on": {
+      "frame": {
+        "x": 162,
+        "y": 1062,
+        "w": 160,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 160,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 160,
+        "h": 64
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "engineering.power-router@off": {
+      "frame": {
+        "x": 348,
+        "y": 810,
+        "w": 128,
+        "h": 90
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 90
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 90
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "engineering.power-router@on": {
+      "frame": {
+        "x": 0,
+        "y": 904,
+        "w": 128,
+        "h": 90
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 90
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 90
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "engineering.switchboards@off": {
+      "frame": {
+        "x": 0,
+        "y": 996,
+        "w": 240,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 64
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "engineering.switchboards@on": {
+      "frame": {
+        "x": 242,
+        "y": 996,
+        "w": 240,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 240,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 240,
+        "h": 64
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "engineering.workbench@default": {
+      "frame": {
+        "x": 324,
+        "y": 1062,
+        "w": 112,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 112,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 112,
+        "h": 64
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "habitat-airlock@closed": {
+      "frame": {
+        "x": 0,
+        "y": 1188,
+        "w": 92,
+        "h": 56
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 56
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 56
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "habitat-airlock@open": {
+      "frame": {
+        "x": 94,
+        "y": 1188,
+        "w": 92,
+        "h": 56
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 56
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 56
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "habitat-engineering@closed": {
+      "frame": {
+        "x": 348,
+        "y": 716,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "habitat-engineering@closed#emissive": {
+      "frame": {
+        "x": 406,
+        "y": 716,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "habitat-engineering@open": {
+      "frame": {
+        "x": 0,
+        "y": 810,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "habitat-engineering@open#emissive": {
+      "frame": {
+        "x": 58,
+        "y": 810,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "habitat.galley-counter@default": {
+      "frame": {
+        "x": 188,
+        "y": 1188,
+        "w": 275,
+        "h": 54
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 275,
+        "h": 54
+      },
+      "sourceSize": {
+        "w": 275,
+        "h": 54
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "habitat.lockers@default": {
+      "frame": {
+        "x": 0,
+        "y": 1246,
+        "w": 122,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 122,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 122,
+        "h": 51
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "habitat.medical-berth@default": {
+      "frame": {
+        "x": 0,
+        "y": 420,
+        "w": 90,
+        "h": 106
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 90,
+        "h": 106
+      },
+      "sourceSize": {
+        "w": 90,
+        "h": 106
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "habitat.mess-table@default": {
+      "frame": {
+        "x": 265,
+        "y": 258,
+        "w": 160,
+        "h": 109
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 160,
+        "h": 109
+      },
+      "sourceSize": {
+        "w": 160,
+        "h": 109
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "main-drive.control-panel@off": {
+      "frame": {
+        "x": 273,
+        "y": 1246,
+        "w": 96,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 48
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "main-drive.control-panel@on": {
+      "frame": {
+        "x": 371,
+        "y": 1246,
+        "w": 96,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 48
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "main-drive.feed-assembly@off": {
+      "frame": {
+        "x": 264,
+        "y": 0,
+        "w": 211,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 211,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 211,
+        "h": 160
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "main-drive.feed-assembly@on": {
+      "frame": {
+        "x": 0,
+        "y": 258,
+        "w": 211,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 211,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 211,
+        "h": 160
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "reactor-bay-main-drive@closed": {
+      "frame": {
+        "x": 116,
+        "y": 810,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "reactor-bay-main-drive@closed#emissive": {
+      "frame": {
+        "x": 174,
+        "y": 810,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "reactor-bay-main-drive@open": {
+      "frame": {
+        "x": 232,
+        "y": 810,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "reactor-bay-main-drive@open#emissive": {
+      "frame": {
+        "x": 290,
+        "y": 810,
+        "w": 56,
+        "h": 92
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 92
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 92
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "reactor-bay.coolant-pumps@off": {
+      "frame": {
+        "x": 130,
+        "y": 904,
+        "w": 83,
+        "h": 90
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 83,
+        "h": 90
+      },
+      "sourceSize": {
+        "w": 83,
+        "h": 90
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "reactor-bay.coolant-pumps@on": {
+      "frame": {
+        "x": 215,
+        "y": 904,
+        "w": 83,
+        "h": 90
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 83,
+        "h": 90
+      },
+      "sourceSize": {
+        "w": 83,
+        "h": 90
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "nexusdi deck-art",
+    "version": "1",
+    "image": "atlas-0.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 502,
+      "h": 1344
+    },
+    "scale": "1",
+    "view": "deck-main",
+    "layer": "props",
+    "pixelsPerMetre": 32,
+    "marginPx": 16,
+    "sources": {
+      "airlock-outer@closed": "generated",
+      "airlock-outer@open": "generated",
+      "airlock-shuttle-bay@closed": "generated",
+      "airlock-shuttle-bay@open": "generated",
+      "airlock.inner-frame-aft@default": "generated",
+      "airlock.inner-frame-fwd@default": "generated",
+      "airlock.outer-frame-aft@default": "generated",
+      "airlock.outer-frame-fwd@default": "generated",
+      "airlock.suit-lockers@default": "generated",
+      "bridge-chart-room@closed": "painted",
+      "bridge-chart-room@closed#emissive": "painted",
+      "bridge-chart-room@open": "painted",
+      "bridge-chart-room@open#emissive": "painted",
+      "bridge-computer-core@closed": "generated",
+      "bridge-computer-core@open": "generated",
+      "bridge-habitat@closed": "painted",
+      "bridge-habitat@closed#emissive": "painted",
+      "bridge-habitat@open": "painted",
+      "bridge-habitat@open#emissive": "painted",
+      "bridge.command-chair@default": "generated",
+      "bridge.forward-console@off": "painted",
+      "bridge.forward-console@off#emissive": "painted",
+      "bridge.forward-console@on": "painted",
+      "bridge.forward-console@on#emissive": "painted",
+      "bridge.helm@off": "generated",
+      "bridge.helm@on": "generated",
+      "bridge.station-bank@off": "generated",
+      "bridge.station-bank@on": "generated",
+      "chart-room.chart-cabinets@default": "generated",
+      "chart-room.plot-table@default": "generated",
+      "engineering-ftl-core@closed": "generated",
+      "engineering-ftl-core@open": "generated",
+      "engineering-reactor-bay@closed": "painted",
+      "engineering-reactor-bay@closed#emissive": "painted",
+      "engineering-reactor-bay@open": "painted",
+      "engineering-reactor-bay@open#emissive": "painted",
+      "engineering.control-desk@off": "generated",
+      "engineering.control-desk@on": "generated",
+      "engineering.power-router@off": "generated",
+      "engineering.power-router@on": "generated",
+      "engineering.switchboards@off": "generated",
+      "engineering.switchboards@on": "generated",
+      "engineering.workbench@default": "generated",
+      "habitat-airlock@closed": "generated",
+      "habitat-airlock@open": "generated",
+      "habitat-engineering@closed": "painted",
+      "habitat-engineering@closed#emissive": "painted",
+      "habitat-engineering@open": "painted",
+      "habitat-engineering@open#emissive": "painted",
+      "habitat.galley-counter@default": "generated",
+      "habitat.lockers@default": "generated",
+      "habitat.medical-berth@default": "generated",
+      "habitat.mess-table@default": "generated",
+      "main-drive.control-panel@off": "generated",
+      "main-drive.control-panel@on": "generated",
+      "main-drive.feed-assembly@off": "generated",
+      "main-drive.feed-assembly@on": "generated",
+      "reactor-bay-main-drive@closed": "painted",
+      "reactor-bay-main-drive@closed#emissive": "painted",
+      "reactor-bay-main-drive@open": "painted",
+      "reactor-bay-main-drive@open#emissive": "painted",
+      "reactor-bay.coolant-pumps@off": "generated",
+      "reactor-bay.coolant-pumps@on": "generated"
+    },
+    "geometry": "f21947b3c19d9cbb9ce68b0fd7c735e81b52028492c8c8aabe344cfda2ce77d9"
+  }
+}

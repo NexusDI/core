@@ -1,0 +1,37 @@
+{
+  "view": "deck-upper",
+  "layer": "base",
+  "size": {
+    "width": 1216,
+    "height": 640
+  },
+  "pixelsPerMetre": 32,
+  "origin": [
+    64,
+    320
+  ],
+  "frame": "-2 -10 76 20",
+  "tile": {
+    "name": "right",
+    "offset": [
+      1216,
+      0
+    ]
+  },
+  "pass": "swatch-v2",
+  "masks": {
+    "roomId": {
+      "image": "roomid-right.png",
+      "sidecar": "roomid-right.json"
+    },
+    "emissive": {
+      "image": "emissive-right.png",
+      "sidecar": "emissive-right.json"
+    }
+  },
+  "lights": "lights.json",
+  "legend": "roomid-legend.json",
+  "atlas": "atlas-0.json",
+  "sharedAtlas": "../shared/atlas-0.json",
+  "geometry": "f21947b3c19d9cbb9ce68b0fd7c735e81b52028492c8c8aabe344cfda2ce77d9"
+}
