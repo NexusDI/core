@@ -18,6 +18,11 @@ import { describe, expect, it } from 'vitest';
  * in a workspace that disagrees with the root range makes npm install a nested
  * copy under that workspace rather than fail, and the hoisted copy stays at the
  * version everything else sees.
+ *
+ * The same lock check covers the other framework packages the docs twoslash
+ * fences resolve (see FRAMEWORK_PACKAGES). A nested copy of any of them makes
+ * `npm ls` report "deduped" while TypeScript sees two declarations and fails
+ * with TS2307 or TS2717.
  */
 
 const PAIR = ['react', 'react-dom'] as const;
@@ -63,18 +68,87 @@ describe('react and react-dom', () => {
 
     expect(split).toEqual([]);
   });
+});
 
-  it('resolve to one installed react-dom', () => {
+/**
+ * Packages whose lock entry must exist once, at the top level. `npm install`
+ * nested a second react-router under the workspaces on 2026-11-01 and
+ * 2026-11-03. Add a name to NESTED_ALLOWED only with the reason beside it.
+ */
+const FRAMEWORK_PACKAGES = [
+  'react',
+  'react-dom',
+  'react-router',
+  '@react-router/dev',
+  '@react-router/node',
+  '@react-router/serve',
+  '@types/react',
+  '@types/react-dom',
+  'next',
+] as const;
+
+/** Nested lock keys that are allowed, each with the reason. */
+const NESTED_ALLOWED: Record<string, string> = {};
+
+function nestedFrameworkCopies(
+  packages: Record<string, unknown>,
+): string[] {
+  return Object.keys(packages).filter((key) => {
+    const match = /^.+\/node_modules\/(.+)$/.exec(key);
+    return (
+      match !== null &&
+      (FRAMEWORK_PACKAGES as readonly string[]).includes(match[1]) &&
+      NESTED_ALLOWED[key] === undefined
+    );
+  });
+}
+
+function nestedMessage(nested: string[]): string {
+  return [
+    'package-lock.json holds nested copies of framework packages:',
+    ...nested.map((key) => `  ${key}`),
+    'Delete those lock entries and run `npm install --package-lock-only`.',
+  ].join('\n');
+}
+
+describe('framework packages in package-lock.json', () => {
+  it('have no nested copy under a workspace or another package', () => {
     const lock = JSON.parse(
       readFileSync(join(workspaceRoot, 'package-lock.json'), 'utf-8'),
-    ) as { packages: Record<string, { version?: string }> };
+    ) as { packages: Record<string, unknown> };
 
-    const nested = Object.keys(lock.packages).filter(
-      (path) =>
-        path.endsWith('/node_modules/react-dom') &&
-        path !== 'node_modules/react-dom',
+    const nested = nestedFrameworkCopies(lock.packages);
+
+    expect(nested, nested.length > 0 ? nestedMessage(nested) : '').toEqual([]);
+  });
+
+  it('flags a nested react-router in a fixture lock', () => {
+    const nested = nestedFrameworkCopies({
+      'node_modules/react-router': {},
+      'apps/docs/node_modules/react-router': {},
+      'node_modules/@types/react': {},
+      'libs/react/node_modules/@types/react': {},
+    });
+
+    expect(nested).toEqual([
+      'apps/docs/node_modules/react-router',
+      'libs/react/node_modules/@types/react',
+    ]);
+    expect(nestedMessage(nested)).toContain(
+      'apps/docs/node_modules/react-router',
     );
+    expect(nestedMessage(nested)).toContain('npm install --package-lock-only');
+  });
 
-    expect(nested).toEqual([]);
+  it('passes a clean fixture lock', () => {
+    expect(
+      nestedFrameworkCopies({
+        '': {},
+        'node_modules/react-router': {},
+        'node_modules/react': {},
+        'apps/docs/node_modules/left-pad': {},
+        'node_modules/foo/node_modules/react-router-dom': {},
+      }),
+    ).toEqual([]);
   });
 });
