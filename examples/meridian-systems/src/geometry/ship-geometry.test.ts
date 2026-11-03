@@ -574,8 +574,7 @@ describe('the ship geometry', () => {
   /**
    * The states rule: `on` and `off` where the fixture's system has a power or
    * online status, or a provider at it can power it (Academy maps).
-   * `damaged` joins them only where a binding of map runtime spec 4.7 sets
-   * it: today `ftl-core.ring` under a fire in its room. The simulation
+   * `damaged` joins them only where a deck binding sets it: today `ftl-core.ring` under a fire in its room. The simulation
    * records fire per room and no damage per device. `default` stands alone
    * for a passive prop or a hatch frame. Doors are `open` and `closed`. A
    * core with a `glow` light (`ftl-core.ring`, `reactor-bay.vessel`) keeps

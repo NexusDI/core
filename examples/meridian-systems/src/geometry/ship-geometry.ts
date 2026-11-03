@@ -94,14 +94,14 @@ export const DOOR_STATES: readonly PropState[] = ['open', 'closed'];
  *
  * The `states` rule: a fixture whose system has a power or online status, or
  * a provider at it can power it (Academy maps), lists `on` and `off`.
- * `damaged` joins them only where a binding of map runtime spec 4.7 sets it:
- * today `ftl-core.ring` under a fire in its room. The simulation records fire
+ * `damaged` joins them only where a deck binding sets it: today
+ * `ftl-core.ring` under a fire in its room. The simulation records fire
  * per room and no damage per device. `open` and `closed` belong to
  * doors, whose records drive them; a hatch frame is fixed art and lists
  * `default`, as does every passive item such as a table, counter, seat, bunk,
  * locker, cabinet or craft. A fixture a `glow` light names lists `on` and
  * `off`, with `ftl-core.ring` also `damaged`, except `chart-room.plot-table`,
- * which lists `default` so its glow follows its room (MR1). A core with a
+ * which lists `default` so its glow follows its room. A core with a
  * `glow` light (`ftl-core.ring`, `reactor-bay.vessel`) keeps `emissive`
  * false, since its light draws the glow.
  */
