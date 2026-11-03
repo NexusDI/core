@@ -10,16 +10,65 @@ export type RoomLight = 'powered' | 'unpowered' | 'alarm';
 /** A fixture's glow: full when `online`, half while it `standby`s at startup, off when `offline`. */
 export type FixtureLight = 'online' | 'standby' | 'offline';
 
+/**
+ * One frame of a prop sprite. The union lists the same members as the
+ * geometry's `PropState`, and a test keeps the two lists equal. It is declared
+ * here so this entry needs no package of the ship geometry.
+ */
+export type PropFrame =
+  'on' | 'off' | 'damaged' | 'open' | 'closed' | 'default';
+
+/** A door's state and, when something forced it, the code of the cause. */
+export interface DoorState {
+  readonly state: 'open' | 'closed';
+  readonly cause?: string;
+}
+
+/** A conduit's state and how full it runs, from 0 to 1. */
+export interface ConduitState {
+  readonly state: 'flowing' | 'shed' | 'broken';
+  readonly level: number;
+}
+
+/**
+ * An alarm on a subject. `code` is a plain string, so a code this build does
+ * not know raises the alarm and lights nothing.
+ */
+export interface DeckAlarm {
+  readonly code: string;
+  readonly subject: string;
+}
+
+/** Where the map view looks. A field left out keeps the view's own choice. */
+export interface CameraTarget {
+  readonly deck?: string;
+  readonly focus?: string;
+  readonly zoom?: string | number;
+}
+
 /** How the changes in a patch arrive, in milliseconds. */
 export interface Ramp {
   readonly delay: number;
   readonly duration: number;
 }
 
-/** The changes one event makes. A key not listed keeps its state. */
+/**
+ * The changes one event makes. A key not listed keeps its state, except
+ * `alarms`: a patch that lists alarms replaces the whole list, so a source
+ * sends the alarms of a frame in full and an empty list clears them.
+ *
+ * `fixtures` is the glow channel and `frames` picks the sprite. A patch that
+ * sets a frame and no glow for an id gets one from the store: `on` gives
+ * `online`, `off` and `damaged` give `offline`, and `open`, `closed` and
+ * `default` leave the glow to the room.
+ */
 export interface DeckPatch {
   readonly rooms?: Readonly<Record<string, RoomLight>>;
   readonly fixtures?: Readonly<Record<string, FixtureLight>>;
+  readonly frames?: Readonly<Record<string, PropFrame>>;
+  readonly doors?: Readonly<Record<string, DoorState>>;
+  readonly conduits?: Readonly<Record<string, ConduitState>>;
+  readonly alarms?: readonly DeckAlarm[];
   /** Absent: the options' `rampMs`. Under reduced motion every ramp is zero. */
   readonly ramp?: Ramp;
 }
@@ -46,10 +95,20 @@ export type DeckEvent = {
   [Type in keyof DeckEventMap]: { readonly type: Type } & DeckEventMap[Type];
 }[keyof DeckEventMap];
 
-/** The state of every room and fixture a source has set. */
+/**
+ * The state of everything a source has set, with the holds laid over it. The
+ * later hold wins on an id two holds set.
+ */
 export interface DeckSnapshot {
   readonly rooms: Readonly<Record<string, RoomLight>>;
   readonly fixtures: Readonly<Record<string, FixtureLight>>;
+  readonly frames: Readonly<Record<string, PropFrame>>;
+  readonly doors: Readonly<Record<string, DoorState>>;
+  readonly conduits: Readonly<Record<string, ConduitState>>;
+  readonly alarms: readonly DeckAlarm[];
+  /** The trigger that holds each id, for an id a hold sets. */
+  readonly held: Readonly<Record<string, string>>;
+  readonly camera: CameraTarget | undefined;
 }
 
 /** A patch and the snapshot it produced. */
@@ -67,15 +126,36 @@ export interface IDeckSource {
   subscribe(listener: (event: DeckEvent) => void): () => void;
 }
 
+/** A readout a binding offers: its name, its label and its unit. */
+export interface ReadoutDefinition {
+  readonly name: string;
+  readonly label: string;
+  readonly unit?: string;
+}
+
 /** A class that reads an event type the store does not know and answers with a patch. */
 export interface IDeckBinding {
   patchOf(event: DeckEvent): DeckPatch | undefined;
+  readonly readouts?: readonly ReadoutDefinition[];
 }
 
 /** The store the views read. */
 export interface IDeckState {
   snapshot(): DeckSnapshot;
   subscribe(listener: (change: DeckChange) => void): () => void;
+  /**
+   * Lays a patch over the base state for as long as the trigger holds it. A
+   * second `hold` by the same trigger replaces its patch and makes it the
+   * latest hold.
+   */
+  hold(trigger: string, patch: DeckPatch): void;
+  /** Drops the hold of one trigger. A trigger with no hold changes nothing. */
+  release(trigger: string): void;
+  releaseAll(): void;
+  /** The trigger whose hold currently decides the id, if any. */
+  heldBy(id: string): string | undefined;
+  /** Replaces the camera target. The map view follows it. */
+  setCameraTarget(target: CameraTarget): void;
 }
 
 /** The art colours of the light, as `#rrggbb`. The app passes its tokens (`lamp`, `glow`, `alarm`). */

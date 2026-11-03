@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { DeckOptions, IDeckState } from '../state/contracts.js';
-import { OPTIONS } from '../test-support.js';
+import { EMPTY_SNAPSHOT, OPTIONS } from '../test-support.js';
 
 import type { LayerContext } from './contracts.js';
 
@@ -58,8 +58,13 @@ vi.mock('./modulate-blend.js', () => ({ MODULATE_2X: 'modulate-2x' }));
 import { LightLayer } from './light-layer.js';
 
 const state: IDeckState = {
-  snapshot: () => ({ rooms: {}, fixtures: {} }),
+  snapshot: () => EMPTY_SNAPSHOT,
   subscribe: () => () => {},
+  hold: () => {},
+  release: () => {},
+  releaseAll: () => {},
+  heldBy: () => undefined,
+  setCameraTarget: () => {},
 };
 
 beforeEach(() => {

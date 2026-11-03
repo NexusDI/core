@@ -275,6 +275,8 @@ Two hit areas that overlap after growing go to the one whose centre is nearer.
 
 ### 4.5 The map file
 
+Amendment (MR1, A1): `start.rooms` light uses `powered`, `unpowered` and `alarm`, the vocabulary of the deck state and the Schematic, where this section's tables say `on`, `off` and `alarm`.
+
 A map is one JSON file in `examples/meridian-systems/deck/maps/`, named `<id>.map.json`.
 `maps/map.schema.json` describes the format, and the geometry test validates every map
 against it and checks that every id it names exists in the geometry (design system 8.5).
@@ -343,6 +345,8 @@ version shows the deck with no triggers and logs the version it lacks, so an old
 runtime never misreads a new map.
 
 ### 4.6 Triggers and scene hooks
+
+Amendment (MR1, A1): the room effect takes `powered`, `unpowered` or `alarm` for `light`, and a trigger's hold goes through `hold(trigger, patch)` of the store.
 
 A trigger pairs a condition with a list of effects. A map author writes the common case as triggers, and writes a scene hook for what a trigger cannot say.
 
@@ -413,6 +417,8 @@ guard runs the hook headless (6.9).
 
 ### 4.7 The state that drives the art
 
+Amendment (MR1, A1): a fixture has two channels. `frames` holds the prop frame and `fixtures` holds the glow (`online`, `standby`, `offline`). A patch that sets a frame and no glow gets one from the store: `on` gives `online`, `off` and `damaged` give `offline`, and `open`, `closed` and `default` leave the glow to the room. A binding keeps `patchOf(event)` and returns a `DeckPatch` that may carry `frames`, `doors`, `conduits` and `alarms` (a list that replaces the previous one). The store keeps the base state apart from the holds of the triggers, answers `snapshot()` with the holds laid over the base (the later hold wins), and carries the camera target set by `setCameraTarget`. Where this section says room light `on` and `off`, read `powered` and `unpowered`.
+
 `DeckStateStore` holds one record per room, door, fixture and conduit, and draws nothing.
 The layers and the DOM layer read it. Four kinds of state reach the art:
 
@@ -466,6 +472,8 @@ the computer core (ship-systems 16.5). `@nexusdi/meridian-systems/geometry` expo
 `fixtureOf(notes)`, which reads the note, so no other package parses the note's text (P4).
 
 ### 4.8 Sources
+
+Amendment (MR1, A1): an app may bind its own `IDeckSource`. The front-page bay binds its `PreflightDeckSource`, and `./testing` offers `FakeDeckSource` for tests.
 
 `DECK_SOURCE` turns what a surface knows into `DeckEvent`s. One interface, five classes:
 
