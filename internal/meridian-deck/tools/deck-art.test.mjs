@@ -62,9 +62,12 @@ const at = (plate, x, y) => {
 };
 const opaque = (plate) => {
   const out = [];
-  for (let y = 0; y < plate.height; y++)
-    for (let x = 0; x < plate.width; x++)
-      if (at(plate, x, y)[3] > 0) out.push([x, y]);
+  const { data, width } = plate;
+  for (let at = 3; at < data.length; at += 4)
+    if (data[at] > 0) {
+      const pixel = (at - 3) / 4;
+      out.push([pixel % width, Math.floor(pixel / width)]);
+    }
   return out;
 };
 const meanOf = (plate) => {
@@ -210,6 +213,14 @@ describe('the painted props', () => {
   });
 });
 
+/** Every plate of every state, drawn once for the tests that scan them all. */
+const rendered = items.flatMap((item) =>
+  item.states.map((state) => ({
+    name: `${item.id}@${state}`,
+    plate: drawPlate(item, state),
+  })),
+);
+
 describe('a generated plate', () => {
   it('is the footprint plus a margin of 0.5 m on every side, and the margin is clear', () => {
     const item = byId('bridge.helm');
@@ -245,17 +256,19 @@ describe('a generated plate', () => {
   });
 
   it('draws no meaning hue: every pixel is a steel grey within a small blue tint', () => {
-    for (const item of items) {
-      for (const state of item.states) {
-        const plate = drawPlate(item, state);
-        for (const [x, y] of opaque(plate)) {
-          const [r, g, b] = at(plate, x, y);
-          expect(b - r, `${item.id}@${state}`).toBeLessThanOrEqual(26);
-          expect(b - r, `${item.id}@${state}`).toBeGreaterThanOrEqual(0);
-          expect(Math.abs(g - r)).toBeLessThanOrEqual(12);
+    const bad = [];
+    for (const { name, plate } of rendered) {
+      const { data } = plate;
+      for (let at = 0; at < data.length; at += 4) {
+        if (data[at + 3] === 0) continue;
+        const tint = data[at + 2] - data[at];
+        if (tint < 0 || tint > 26 || Math.abs(data[at + 1] - data[at]) > 12) {
+          bad.push(name);
+          break;
         }
       }
     }
+    expect(bad).toEqual([]);
   });
 
   it('shows an open door as a gap and a closed door as a leaf', () => {
