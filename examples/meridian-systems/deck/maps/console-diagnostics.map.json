@@ -20,7 +20,7 @@
     {
       "at": "computer-core",
       "show": ["graph-modules", "startup-steps"],
-      "zoom": "ship"
+      "zoom": "section"
     }
   ],
   "triggers": [

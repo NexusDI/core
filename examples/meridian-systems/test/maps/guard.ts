@@ -1,13 +1,16 @@
-import type { MapDefinition, MapEffect } from '../../src/maps/map-definition';
 import type { ShipGeometry } from '../../src/geometry/ship-geometry';
+import {
+  INTERCEPTED_CODES,
+  type MapDefinition,
+  type MapEffect,
+} from '../../src/maps/map-definition';
 
-/** The conditions whose outcome comes from a container run, not from the telemetry or a click. */
+/** The conditions whose outcome a container run decides. */
 const CONTAINER_CONDITIONS = [
   'provider',
   'loaded',
   'objective',
   'passed',
-  'refused',
 ] as const;
 
 /** The effects that light, darken or alarm a room, a fixture or a conduit. */
@@ -87,6 +90,23 @@ export function mapProblems(
     );
   }
   place('camera.focus', map.camera.focus);
+  if (map.camera.deck !== 'overview') {
+    const onDeck = new Set(
+      geometry.compartments
+        .filter(
+          (r) =>
+            r.id === map.camera.focus ||
+            r.fixtures.some((f) => f.id === map.camera.focus) ||
+            doors.get(map.camera.focus)?.between.includes(r.id),
+        )
+        .flatMap((r) => r.decks),
+    );
+    if (onDeck.size > 0 && !onDeck.has(map.camera.deck)) {
+      problems.push(
+        `camera.focus: "${map.camera.focus}" is not on deck "${map.camera.deck}"`,
+      );
+    }
+  }
   checkState('start', map.start);
   checkState('goal', map.goal);
   for (const id of map.directory ?? []) place('directory', id);
@@ -94,9 +114,16 @@ export function mapProblems(
   if (map.firstVisit) place('firstVisit', map.firstVisit.at);
 
   const restricted = map.surface !== 'demo';
+  const ids = new Set<string>();
+  const triggerIds = new Set((map.triggers ?? []).map((t) => t.id));
   for (const trigger of map.triggers ?? []) {
     const where = `trigger "${trigger.id}"`;
     const when = trigger.when;
+
+    if (ids.has(trigger.id)) {
+      problems.push(`${where}: the id is used by two triggers`);
+    }
+    ids.add(trigger.id);
 
     if ('select' in when) place(`${where} select`, when.select);
     if ('alarm' in when) room(`${where} alarm`, when.room);
@@ -122,13 +149,19 @@ export function mapProblems(
       }
       if ('camera' in effect) place(`${where} camera`, effect.camera);
       if ('callout' in effect) place(`${where} callout`, effect.callout);
+      if ('release' in effect && !triggerIds.has(effect.release)) {
+        problems.push(`${where} release: no trigger "${effect.release}"`);
+      }
     }
 
     if (!restricted) continue;
-    const fromContainer = CONTAINER_CONDITIONS.some((key) => has(when, key));
+    const fromContainer =
+      CONTAINER_CONDITIONS.some((key) => has(when, key)) ||
+      ('refused' in when &&
+        (INTERCEPTED_CODES as readonly string[]).includes(when.refused));
     if (!fromContainer && trigger.then.some(shipEffect)) {
       problems.push(
-        `${where}: a ${map.surface} map changes the ship only from a container condition`,
+        `${where}: on an academy or scene map, a ship effect needs a container condition`,
       );
     }
   }

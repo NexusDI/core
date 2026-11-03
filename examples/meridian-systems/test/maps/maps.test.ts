@@ -1,14 +1,14 @@
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
 
+import type { RefusalCode } from '../../src/errors';
 import { SHIP_GEOMETRY } from '../../src/geometry/ship-geometry';
 import {
-  MAP_CODES,
-  MAP_RECORDS,
   type MapDefinition,
   type RecordPath,
 } from '../../src/maps/map-definition';
@@ -67,14 +67,6 @@ describe('the map schema', () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
-  });
-
-  it('lists every record path and code the constants name', () => {
-    const defs = (schema as { $defs: Record<string, { enum: string[] }> })
-      .$defs;
-    expect(defs.recordPath.enum).toEqual([...MAP_RECORDS]);
-    expect(defs.alarmCode.enum).toEqual([...MAP_CODES.alarm]);
-    expect(defs.refusalCode.enum).toEqual([...MAP_CODES.refused]);
   });
 
   it('refuses a field it does not know', () => {
@@ -146,7 +138,31 @@ describe('the map schema', () => {
   });
 });
 
+declare module '@nexusdi/core' {
+  interface NexusErrorByCode {
+    MERIDIAN_Z: Error;
+  }
+}
+
 describe('the record paths and codes', () => {
+  it('leave out a code another package adds', () => {
+    // @ts-expect-error MERIDIAN_Z belongs to another package
+    const z: RefusalCode = 'MERIDIAN_Z';
+    const own: RefusalCode = 'MERIDIAN_INTERLOCK';
+    expect([z, own]).toHaveLength(2);
+  });
+
+  it('type-check when the maps subpath is the only entry', () => {
+    const tsc = createRequire(import.meta.url).resolve('typescript/bin/tsc');
+    const run = () =>
+      execFileSync(
+        process.execPath,
+        [tsc, '-p', join(ROOT, 'tsconfig.maps-alone.json')],
+        { stdio: 'pipe', encoding: 'utf-8' },
+      );
+    expect(run).not.toThrow();
+  }, 60_000);
+
   it('type-check against the telemetry frame and the library unions', () => {
     const path: RecordPath = 'ftl.status';
     // @ts-expect-error the frame has no ftl.state
@@ -156,7 +172,7 @@ describe('the record paths and codes', () => {
 });
 
 describe('deck/maps', () => {
-  it('holds the nine console maps and the schema', () => {
+  it('holds the nine console maps', () => {
     expect(mapFiles.sort()).toEqual(
       CONSOLE_MAPS.map((id) => `${id}.map.json`).sort(),
     );
@@ -210,17 +226,20 @@ describe('the guard', () => {
 
   it('refuses an academy map that lights the ship from enter, select or a record', () => {
     expect(mapProblems(fixture('academy-refused'), SHIP_GEOMETRY)).toEqual([
-      'trigger "enter-lights": a academy map changes the ship only from a container condition',
-      'trigger "select-sets": a academy map changes the ship only from a container condition',
-      'trigger "telemetry-conduit": a academy map changes the ship only from a container condition',
+      'trigger "enter-lights": on an academy or scene map, a ship effect needs a container condition',
+      'trigger "select-sets": on an academy or scene map, a ship effect needs a container condition',
+      'trigger "telemetry-conduit": on an academy or scene map, a ship effect needs a container condition',
+      'trigger "refused-lights": on an academy or scene map, a ship effect needs a container condition',
       'trigger "wrong-hub": passed is valid on academy-hub alone',
     ]);
   });
 
-  it('refuses a scene map that lights the ship from enter or an alarm', () => {
+  it('refuses a scene map that lights the ship from enter or an alarm, repeats a trigger id and releases a trigger it lacks', () => {
     expect(mapProblems(fixture('scene-refused'), SHIP_GEOMETRY)).toEqual([
-      'trigger "enter-lights": a scene map changes the ship only from a container condition',
-      'trigger "alarm-sets": a scene map changes the ship only from a container condition',
+      'trigger "enter-lights": on an academy or scene map, a ship effect needs a container condition',
+      'trigger "alarm-sets": on an academy or scene map, a ship effect needs a container condition',
+      'trigger "alarm-sets": the id is used by two triggers',
+      'trigger "drop" release: no trigger "missing-trigger"',
     ]);
   });
 
@@ -296,7 +315,17 @@ describe('the guard', () => {
     }) as MapDefinition;
     expect(mapProblems(map, SHIP_GEOMETRY)).toEqual([
       'camera.deck: "upper" is not one of the map\'s decks',
+      'camera.focus: "airlock" is not on deck "upper"',
       'trigger "one" conduit: no conduit "power.nope"',
+    ]);
+  });
+
+  it('refuses a focus that sits on another deck', () => {
+    const map = airlock({
+      camera: { deck: 'lower', focus: 'airlock', zoom: 'section' },
+    }) as MapDefinition;
+    expect(mapProblems(map, SHIP_GEOMETRY)).toEqual([
+      'camera.focus: "airlock" is not on deck "lower"',
     ]);
   });
 

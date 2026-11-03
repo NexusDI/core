@@ -1,4 +1,4 @@
-import { errorBase, type NexusErrorByCode } from '@nexusdi/core';
+import { errorBase } from '@nexusdi/core';
 
 /** The README section of each code; the one-line message ends with this url and the code. */
 const DOCS =
@@ -138,17 +138,21 @@ export class UnchartedStarError extends errorBase<
   UnchartedStarFields
 >('MERIDIAN_UNCHARTED', 'UnchartedStarError', DOCS) {}
 
-/** Every code a Meridian error carries. A command answer can refuse with any of them. */
-export type RefusalCode = Extract<keyof NexusErrorByCode, `MERIDIAN_${string}`>;
+/** The errors this library declares, by code. */
+export interface MeridianErrorByCode {
+  MERIDIAN_POWER_BUDGET: PowerBudgetError;
+  MERIDIAN_BAD_COMMAND: BadCommandError;
+  MERIDIAN_UNKNOWN_COMPARTMENT: UnknownCompartmentError;
+  MERIDIAN_INTERLOCK: InterlockError;
+  MERIDIAN_FTL_NOT_SPOOLED: FtlNotSpooledError;
+  MERIDIAN_RELAY: RelayError;
+  MERIDIAN_UNCHARTED: UnchartedStarError;
+}
+
+/** Every code this library's errors carry. A command answer can refuse with any of them. */
+export type RefusalCode = keyof MeridianErrorByCode;
 
 declare module '@nexusdi/core' {
-  interface NexusErrorByCode {
-    MERIDIAN_POWER_BUDGET: PowerBudgetError;
-    MERIDIAN_BAD_COMMAND: BadCommandError;
-    MERIDIAN_UNKNOWN_COMPARTMENT: UnknownCompartmentError;
-    MERIDIAN_INTERLOCK: InterlockError;
-    MERIDIAN_FTL_NOT_SPOOLED: FtlNotSpooledError;
-    MERIDIAN_RELAY: RelayError;
-    MERIDIAN_UNCHARTED: UnchartedStarError;
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface, @typescript-eslint/no-empty-object-type -- the merge adds the library's codes to the shared map.
+  interface NexusErrorByCode extends MeridianErrorByCode {}
 }

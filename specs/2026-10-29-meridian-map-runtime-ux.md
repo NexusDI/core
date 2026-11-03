@@ -332,6 +332,8 @@ A map names ids alone and holds no position, so the layout keeps one copy.
 | `scene`         | an optional scene module id (4.6), or null                                                                                                                 |
 | `goal`          | Academy maps: the state a passing solution reaches, which the mission guard asserts (6.9)                                                                  |
 
+Amendment: `camera.deck` takes `overview` to open the map in the overview mode of 4.3, which stacks every deck the map names.
+
 The geometry gains two fields on each fixture, as design system 8.5 sets: `states`, the
 list of state frames its prop sprite holds (one of `on`, `off`, `damaged`, `open`,
 `closed`, or `default` for a prop with one frame), and `emissive`, true for a screen. A
