@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { rejected } from '../../test-support/catch.js';
+import { rejected, thrown } from '../../test-support/catch.js';
+import { check } from '../runtime/check.js';
 import { Nexus } from '../runtime/nexus.js';
-import { defineModule } from './define-module.js';
+import {
+  declareModuleClass,
+  defineModule,
+  type ModuleRef,
+} from './define-module.js';
 import { provide } from './provide.js';
 import type { StandardSchemaV1 } from './standard-schema.js';
 import { Token } from './token.js';
@@ -84,6 +89,186 @@ describe('forRootAsync', () => {
         { code: 'NEXUS_INVALID_PROVIDER', reason: 'factory-not-a-function' },
       ],
     });
+  });
+});
+
+describe('forRootAsync imports', () => {
+  const SIGNAL = new Token<{ frequency(): number }>('Signal');
+  const beacon = (name: string, frequency: number) =>
+    defineModule({
+      name,
+      providers: [
+        provide(SIGNAL, { useValue: { frequency: () => frequency } }),
+      ],
+      exports: [SIGNAL],
+    });
+  const tuned = (...imports: ModuleRef[]) =>
+    Comms.forRootAsync({
+      imports,
+      useFactory: (signal) => ({ frequency: signal.frequency() }),
+      deps: [SIGNAL],
+    });
+
+  it('appends the named modules to the instance and leaves the definition as it was', () => {
+    const Beacon = beacon('Beacon', 1420);
+    const Base = defineModule({
+      name: 'Base',
+      options: COMMS_OPTIONS,
+      imports: [Comms.forRoot({ frequency: 1 })],
+    });
+    const instance = Base.forRootAsync({
+      imports: [Beacon],
+      useFactory: () => ({ frequency: 2 }),
+    });
+    expect(instance.imports).toEqual([Base.imports[0], Beacon]);
+    expect(Base.imports).toHaveLength(1);
+  });
+
+  it('gives each call its own instance, which sees only its own imports', async () => {
+    const Bridge = defineModule({
+      name: 'Bridge',
+      imports: [tuned(beacon('Near', 1420))],
+      exports: [SubspaceRelay],
+    });
+    const Tactical = defineModule({
+      name: 'Tactical',
+      imports: [tuned(beacon('Far', 1701))],
+      exports: [SubspaceRelay],
+    });
+    const ship = await Nexus.create({ imports: [Bridge] });
+    const other = await Nexus.create({ imports: [Tactical] });
+    expect(ship.get(SubspaceRelay).options).toEqual({ frequency: 1420 });
+    expect(other.get(SubspaceRelay).options).toEqual({ frequency: 1701 });
+  });
+
+  it('walks a module that two instances name once', async () => {
+    let built = 0;
+    const Shared = defineModule({
+      name: 'Shared',
+      providers: [
+        provide(SIGNAL, {
+          useFactory: () => {
+            built += 1;
+            return { frequency: () => 1420 };
+          },
+        }),
+      ],
+      exports: [SIGNAL],
+    });
+    const wing = (name: string) =>
+      defineModule({ name, imports: [tuned(Shared)] });
+    await Nexus.create({ imports: [wing('Port'), wing('Starboard')] });
+    expect(built).toBe(1);
+  });
+
+  it('reads a global module the caller names', async () => {
+    const Global = defineModule({
+      name: 'Global',
+      global: true,
+      providers: [provide(SIGNAL, { useValue: { frequency: () => 9 } })],
+      exports: [SIGNAL],
+    });
+    const ship = await Nexus.create({ imports: [tuned(Global)] });
+    expect(ship.get(SubspaceRelay).options).toEqual({ frequency: 9 });
+  });
+
+  it('reports a cycle that an import closes', async () => {
+    class Hub {}
+    declareModuleClass(Hub, { name: 'Hub', imports: [tuned(Hub)] });
+    const error = (await rejected(Nexus.create(Hub))) as { errors: unknown[] };
+    expect(error.errors[0]).toMatchObject({
+      code: 'NEXUS_MODULE_IMPORT_CYCLE',
+      path: ['Hub', 'Comms', 'Hub'],
+    });
+  });
+
+  it('reports a module that is not a module, with its path', async () => {
+    const error = (await rejected(
+      Nexus.create(
+        defineModule({ name: 'Root', imports: [tuned(7 as never)] }),
+      ),
+    )) as { errors: unknown[] };
+    expect(error.errors[0]).toMatchObject({
+      code: 'NEXUS_INVALID_MODULE',
+      path: ['Root', 'Comms'],
+    });
+  });
+
+  it('works through load() and a load import', async () => {
+    const Host = beacon('Host', 1420);
+    const ship = await Nexus.create(
+      defineModule({ name: 'Root', imports: [Host] }),
+    );
+    await ship.load(
+      defineModule({ name: 'Section', imports: [tuned(Host)], exports: [] }),
+    );
+    // A helper the instance names reads the host's export through the load import.
+    const READING = new Token<number>('Reading');
+    const Helper = defineModule({
+      name: 'Helper',
+      providers: [
+        provide(READING, {
+          useFactory: (signal: { frequency(): number }) => signal.frequency(),
+          deps: [SIGNAL],
+        }),
+      ],
+      exports: [READING],
+    });
+    const Late = defineModule({
+      name: 'Late',
+      imports: [
+        Comms.forRootAsync({
+          imports: [Helper],
+          useFactory: (reading) => ({ frequency: reading }),
+          deps: [READING],
+        }),
+      ],
+      exports: [SubspaceRelay],
+    });
+    await ship.load(Late, { imports: [Host] });
+    expect(ship.get(SubspaceRelay).options).toEqual({ frequency: 1420 });
+  });
+
+  it('makes check() report a missing provider in a named import as in a static one', () => {
+    const MISSING = new Token<number>('Missing');
+    const Broken = defineModule({
+      name: 'Broken',
+      providers: [
+        provide(SIGNAL, { useFactory: () => null as never, deps: [MISSING] }),
+      ],
+      exports: [SIGNAL],
+    });
+    const named = thrown(() =>
+      check(defineModule({ name: 'Root', imports: [tuned(Broken)] })),
+    );
+    // The same module, with Broken in the definition's own imports.
+    const StaticComms = defineModule({
+      name: 'Comms',
+      options: COMMS_OPTIONS,
+      imports: [Broken],
+      providers: [SubspaceRelay],
+      exports: [SubspaceRelay],
+    });
+    const plain = thrown(() =>
+      check(
+        defineModule({
+          name: 'Root',
+          imports: [
+            StaticComms.forRootAsync({
+              useFactory: (signal) => ({ frequency: signal.frequency() }),
+              deps: [SIGNAL],
+            }),
+          ],
+        }),
+      ),
+    );
+    expect(named).toMatchObject({
+      code: 'NEXUS_BLUEPRINT_INVALID',
+      errors: [
+        { code: 'NEXUS_MISSING_PROVIDER', token: 'Missing', module: 'Broken' },
+      ],
+    });
+    expect(named).toEqual(plain);
   });
 });
 
