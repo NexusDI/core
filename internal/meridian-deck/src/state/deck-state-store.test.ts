@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { FakeSource } from '../test-support.js';
+import { LightModel } from '../view/light-math.js';
 
 import type {
   DeckChange,
@@ -243,21 +244,49 @@ describe('holds', () => {
     expect(store.heldBy('bridge')).toBe('a');
   });
 
-  it('makes a repeated hold by one trigger the latest', () => {
+  it('merges a repeated hold by one trigger into its patch and makes it the latest', () => {
     const { store } = build();
-    store.hold('a', { rooms: { bridge: 'alarm' } });
+    store.hold('a', {
+      rooms: { bridge: 'alarm', galley: 'alarm' },
+      alarms: [{ code: 'FIRE', subject: 'galley' }],
+    });
     store.hold('b', { rooms: { bridge: 'unpowered' } });
-    store.hold('a', { rooms: { bridge: 'powered' } });
-    expect(store.snapshot().rooms.bridge).toBe('powered');
+    store.hold('a', {
+      rooms: { bridge: 'powered' },
+      alarms: [{ code: 'BREACH', subject: 'bridge' }],
+    });
+    const snap = store.snapshot();
+    expect(snap.rooms).toEqual({ bridge: 'powered', galley: 'alarm' });
+    expect(snap.alarms).toEqual([{ code: 'BREACH', subject: 'bridge' }]);
   });
 
-  it('derives the glow of a held frame and replaces alarms with the later hold', () => {
+  it('adds the alarms of a hold to the base alarms and lists their subjects as held', () => {
+    const { source, store } = build();
+    source.push({
+      type: 'state',
+      patch: { alarms: [{ code: 'FIRE', subject: 'engineering' }] },
+    });
+    store.hold('scene', { alarms: [{ code: 'BREACH', subject: 'bridge' }] });
+    const snap = store.snapshot();
+    expect(snap.alarms).toEqual([
+      { code: 'FIRE', subject: 'engineering' },
+      { code: 'BREACH', subject: 'bridge' },
+    ]);
+    expect(snap.held).toEqual({ bridge: 'scene' });
+    expect(store.heldBy('bridge')).toBe('scene');
+    store.release('scene');
+    expect(store.snapshot().alarms).toEqual([
+      { code: 'FIRE', subject: 'engineering' },
+    ]);
+  });
+
+  it('derives the glow of a held frame and replaces the alarms of the same trigger', () => {
     const { store } = build();
     store.hold('a', {
       frames: { x: 'off' },
       alarms: [{ code: 'FIRE', subject: 'x' }],
     });
-    store.hold('b', { alarms: [{ code: 'BREACH', subject: 'y' }] });
+    store.hold('a', { alarms: [{ code: 'BREACH', subject: 'y' }] });
     const snap = store.snapshot();
     expect(snap.fixtures.x).toBe('offline');
     expect(snap.alarms).toEqual([{ code: 'BREACH', subject: 'y' }]);
@@ -273,7 +302,8 @@ describe('holds', () => {
   });
 
   it('sends one change per hold and per release, and none for a release of nothing', () => {
-    const { store } = build();
+    const { source, store } = build();
+    source.push({ type: 'state', patch: { rooms: { bridge: 'powered' } } });
     const heard: DeckChange[] = [];
     store.subscribe((change) => heard.push(change));
     store.hold('a', { rooms: { bridge: 'alarm' } });
@@ -281,10 +311,55 @@ describe('holds', () => {
     store.releaseAll();
     expect(heard).toHaveLength(2);
     expect(heard[0]?.patch).toEqual({ rooms: { bridge: 'alarm' } });
-    expect(heard[1]?.patch).toEqual({});
+    expect(heard[1]?.patch).toEqual({ rooms: { bridge: 'powered' } });
     expect(heard[1]?.snapshot.held).toEqual({});
     store.releaseAll();
     expect(heard).toHaveLength(2);
+  });
+});
+
+describe('what a change sends', () => {
+  it('drops a base value for an id a hold covers and sends the base on release', () => {
+    const { source, store } = build();
+    const heard: DeckChange[] = [];
+    store.hold('scene', { rooms: { bridge: 'alarm' } });
+    store.subscribe((change) => heard.push(change));
+    source.push({
+      type: 'state',
+      patch: { rooms: { bridge: 'unpowered', galley: 'powered' } },
+    });
+    expect(heard[0]?.patch.rooms).toEqual({ galley: 'powered' });
+    store.release('scene');
+    expect(heard[1]?.patch.rooms).toEqual({ bridge: 'unpowered' });
+  });
+
+  it('sends nothing for an id that the base never set', () => {
+    const { store } = build();
+    const heard: DeckChange[] = [];
+    store.hold('scene', { rooms: { bridge: 'alarm' } });
+    store.subscribe((change) => heard.push(change));
+    store.release('scene');
+    expect(heard[0]?.patch).toEqual({});
+  });
+
+  it('keeps the ramp of the patch that caused the change', () => {
+    const { store } = build();
+    const heard: DeckChange[] = [];
+    store.subscribe((change) => heard.push(change));
+    const ramp = { delay: 5, duration: 50 };
+    store.hold('scene', { rooms: { bridge: 'alarm' }, ramp });
+    expect(heard[0]?.patch.ramp).toEqual(ramp);
+  });
+
+  it('takes the room back through the light model after a release', () => {
+    const { source, store } = build();
+    const model = new LightModel(['bridge'], [], false, 100);
+    store.subscribe((change) => model.apply(change, 0));
+    source.push({ type: 'state', patch: { rooms: { bridge: 'powered' } } });
+    store.hold('scene', { rooms: { bridge: 'unpowered' } });
+    expect(model.room('bridge', 100)?.lamp).toBe(0);
+    store.release('scene');
+    expect(model.room('bridge', 200)?.lamp).toBe(1);
   });
 });
 
@@ -331,6 +406,32 @@ describe('the patches of one event', () => {
       bridge: 'powered',
       galley: 'powered',
     });
+  });
+
+  it('lets a glow any binding sets beat a derived one, whatever the order', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    class FrameBinding implements IDeckBinding {
+      patchOf(event: DeckEvent): DeckPatch | undefined {
+        return event.type === 'sweep'
+          ? { frames: { 'ftl.drive': 'on' } }
+          : undefined;
+      }
+    }
+    class GlowBinding implements IDeckBinding {
+      patchOf(event: DeckEvent): DeckPatch | undefined {
+        return event.type === 'sweep'
+          ? { fixtures: { 'ftl.drive': 'standby' } }
+          : undefined;
+      }
+    }
+    for (const bindings of [
+      [new FrameBinding(), new GlowBinding()],
+      [new GlowBinding(), new FrameBinding()],
+    ]) {
+      const { source, store } = build(bindings);
+      source.push({ type: 'sweep', n: 1 });
+      expect(store.snapshot().fixtures['ftl.drive']).toBe('standby');
+    }
   });
 
   it('warns in development with both class names for an id two patches set', () => {
