@@ -336,6 +336,8 @@ list of state frames its prop sprite holds (one of `on`, `off`, `damaged`, `open
 lamp housing carries the flag on its light in the geometry's `lights` list (design system 8.5). Each door has the states `open` and `closed`. A map's `start` and every
 effect may only name a state the fixture lists, and the guard checks it.
 
+Amendment (MR1, MR11): the 42 current fixtures, `bridge.station-bank` included, carry the two fields first. A PR after rc.3 adds the four station fixtures and their states.
+
 The format is versioned by `$schema`. A runtime that reads a map with a newer schema
 version shows the deck with no triggers and logs the version it lacks, so an old cached
 runtime never misreads a new map.

@@ -621,6 +621,8 @@ starting state and its triggers, every one by fixture or door id, and the geomet
 checks that every id a map names exists in the geometry. The map files hold no positions,
 so the layout has one copy.
 
+Amendment (MR11): the 42 current fixtures carry the fields first. A PR after rc.3 splits `bridge.station-bank` into four fixtures, which makes 45.
+
 The geometry also holds a `lights` list, so the deck view knows where to draw the light
 sprites of 8.2. Each light names its room and deck, its housing as a box, its kind (`lamp`
 or `strip` under the ceiling, `flood` in a bay, `glow` over a screen or a core), its art

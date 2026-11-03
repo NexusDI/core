@@ -261,6 +261,8 @@
           "id": "bridge.forward-console",
           "kind": "console",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": true,
           "x": [2.2, 3.2],
           "y": [-3.5, 3.5],
           "z": [4.8, 5.9]
@@ -269,6 +271,8 @@
           "id": "bridge.helm",
           "kind": "console",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": true,
           "x": [4.2, 5.2],
           "y": [-3.6, -1.4],
           "z": [4.8, 5.8]
@@ -277,6 +281,8 @@
           "id": "bridge.station-bank",
           "kind": "console",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": true,
           "x": [4.2, 8.0],
           "y": [3.6, 4.4],
           "z": [4.8, 6.0]
@@ -285,6 +291,8 @@
           "id": "bridge.command-chair",
           "kind": "seat",
           "shape": "cylinder",
+          "states": ["default"],
+          "emissive": false,
           "x": [6.8, 7.8],
           "y": [-2.2, -1.2],
           "z": [4.8, 6.0]
@@ -307,6 +315,8 @@
           "id": "habitat.galley-counter",
           "kind": "counter",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [14.4, 22.0],
           "y": [-6.9, -6.2],
           "z": [4.8, 5.75]
@@ -315,6 +325,8 @@
           "id": "habitat.mess-table",
           "kind": "table",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [20.6, 24.6],
           "y": [2.8, 5.2],
           "z": [4.8, 5.55]
@@ -323,6 +335,8 @@
           "id": "habitat.lockers",
           "kind": "rack",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [14.2, 17.0],
           "y": [6.3, 6.9],
           "z": [4.8, 6.8]
@@ -331,6 +345,8 @@
           "id": "habitat.medical-berth",
           "kind": "bunk",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [26.0, 27.8],
           "y": [4.5, 6.8],
           "z": [4.8, 5.6]
@@ -349,6 +365,8 @@
           "id": "reactor-bay.vessel",
           "kind": "reactor",
           "shape": "cylinder",
+          "states": ["on", "off"],
+          "emissive": false,
           "x": [45.5, 52.5],
           "y": [-3.5, 3.5],
           "z": [4.8, 10.8]
@@ -357,6 +375,8 @@
           "id": "reactor-bay.shadow-shield",
           "kind": "shield",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [44.2, 44.8],
           "y": [-5.8, -1.6],
           "z": [4.8, 10.8]
@@ -365,6 +385,8 @@
           "id": "reactor-bay.coolant-pumps",
           "kind": "machinery",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": false,
           "x": [53.2, 54.8],
           "y": [-5.6, -3.8],
           "z": [4.8, 6.6]
@@ -383,6 +405,8 @@
           "id": "airlock.inner-frame-fwd",
           "kind": "hatch-frame",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [24.05, 24.25],
           "y": [-2.4, -2.0],
           "z": [4.8, 7.2]
@@ -391,6 +415,8 @@
           "id": "airlock.inner-frame-aft",
           "kind": "hatch-frame",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [26.75, 26.95],
           "y": [-2.4, -2.0],
           "z": [4.8, 7.2]
@@ -399,6 +425,8 @@
           "id": "airlock.outer-frame-fwd",
           "kind": "hatch-frame",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [24.02, 24.22],
           "y": [-7.5, -7.1],
           "z": [4.8, 7.2]
@@ -407,6 +435,8 @@
           "id": "airlock.outer-frame-aft",
           "kind": "hatch-frame",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [25.8, 26.2],
           "y": [-7.5, -7.1],
           "z": [4.8, 7.2]
@@ -415,6 +445,8 @@
           "id": "airlock.suit-lockers",
           "kind": "rack",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [26.4, 26.95],
           "y": [-6.8, -4.2],
           "z": [4.8, 7.0]
@@ -433,6 +465,8 @@
           "id": "chart-room.plot-table",
           "kind": "table",
           "shape": "box",
+          "states": ["default"],
+          "emissive": true,
           "x": [11.2, 13.0],
           "y": [3.0, 5.2],
           "z": [4.8, 5.8]
@@ -441,6 +475,8 @@
           "id": "chart-room.chart-cabinets",
           "kind": "rack",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [10.2, 13.8],
           "y": [5.9, 6.4],
           "z": [4.8, 6.8]
@@ -459,6 +495,8 @@
           "id": "computer-core.rack-port",
           "kind": "rack",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": true,
           "x": [3.4, 8.6],
           "y": [-2.3, -1.5],
           "z": [1.6, 3.9]
@@ -467,6 +505,8 @@
           "id": "computer-core.rack-forward",
           "kind": "rack",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": false,
           "x": [3.4, 4.4],
           "y": [0.3, 2.3],
           "z": [1.6, 3.9]
@@ -475,6 +515,8 @@
           "id": "computer-core.rack-aft",
           "kind": "rack",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": false,
           "x": [7.6, 8.6],
           "y": [0.3, 2.3],
           "z": [1.6, 3.9]
@@ -493,6 +535,8 @@
           "id": "quarters.bunks-forward",
           "kind": "bunk",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [21.0, 23.0],
           "y": [4.6, 6.4],
           "z": [8.0, 10.2]
@@ -501,6 +545,8 @@
           "id": "quarters.bunks-aft",
           "kind": "bunk",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [24.5, 26.5],
           "y": [4.6, 6.4],
           "z": [8.0, 10.2]
@@ -509,6 +555,8 @@
           "id": "quarters.lockers",
           "kind": "rack",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [21.0, 26.8],
           "y": [0.85, 1.5],
           "z": [8.0, 10.2]
@@ -527,6 +575,8 @@
           "id": "comms-relay.equipment-rack",
           "kind": "rack",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": false,
           "x": [12.2, 13.2],
           "y": [1.0, 6.2],
           "z": [8.0, 10.4]
@@ -535,6 +585,8 @@
           "id": "comms-relay.console",
           "kind": "console",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": true,
           "x": [14.0, 15.8],
           "y": [5.6, 6.3],
           "z": [8.0, 9.1]
@@ -553,6 +605,8 @@
           "id": "shuttle-bay.shuttle",
           "kind": "craft",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [17.5, 27.0],
           "y": [-1.8, 1.8],
           "z": [0.5, 3.3]
@@ -561,6 +615,8 @@
           "id": "shuttle-bay.fuel-rig",
           "kind": "rack",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [29.0, 30.6],
           "y": [2.6, 3.8],
           "z": [0.4, 2.4]
@@ -579,6 +635,8 @@
           "id": "drone-bay.rack-port",
           "kind": "rack",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": false,
           "x": [32.5, 37.6],
           "y": [-2.4, -1.6],
           "z": [0.4, 3.6]
@@ -587,6 +645,8 @@
           "id": "drone-bay.rack-starboard",
           "kind": "rack",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": false,
           "x": [32.5, 37.6],
           "y": [1.6, 2.4],
           "z": [0.4, 3.6]
@@ -595,6 +655,8 @@
           "id": "drone-bay.drone",
           "kind": "craft",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [33.8, 35.2],
           "y": [-0.7, 0.7],
           "z": [0.5, 1.3]
@@ -613,6 +675,8 @@
           "id": "capacitor-room.bank-port",
           "kind": "capacitor",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": false,
           "x": [34.8, 37.8],
           "y": [-3.3, -1.4],
           "z": [8.0, 10.6]
@@ -621,6 +685,8 @@
           "id": "capacitor-room.bank-starboard",
           "kind": "capacitor",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": false,
           "x": [34.8, 37.8],
           "y": [1.4, 3.3],
           "z": [8.0, 10.6]
@@ -629,6 +695,8 @@
           "id": "capacitor-room.breech",
           "kind": "machinery",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": false,
           "x": [30.0, 31.6],
           "y": [-0.8, 0.8],
           "z": [9.0, 10.4]
@@ -647,6 +715,8 @@
           "id": "engineering.control-desk",
           "kind": "console",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": true,
           "x": [30.0, 34.0],
           "y": [2.6, 3.6],
           "z": [4.8, 5.9]
@@ -655,6 +725,8 @@
           "id": "engineering.power-router",
           "kind": "machinery",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": false,
           "x": [35.5, 38.5],
           "y": [-4.8, -3.0],
           "z": [4.8, 7.6]
@@ -663,6 +735,8 @@
           "id": "engineering.switchboards",
           "kind": "rack",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": false,
           "x": [35.0, 41.5],
           "y": [3.8, 4.8],
           "z": [4.8, 7.2]
@@ -671,6 +745,8 @@
           "id": "engineering.workbench",
           "kind": "counter",
           "shape": "box",
+          "states": ["default"],
+          "emissive": false,
           "x": [29.0, 31.5],
           "y": [-4.8, -3.8],
           "z": [4.8, 5.7]
@@ -689,6 +765,8 @@
           "id": "ftl-core.ring",
           "kind": "ftl",
           "shape": "cylinder",
+          "states": ["on", "off", "damaged"],
+          "emissive": false,
           "x": [42.6, 45.8],
           "y": [-1.6, 1.6],
           "z": [1.8, 4.6]
@@ -697,6 +775,8 @@
           "id": "ftl-core.capacitor-cabinet",
           "kind": "rack",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": false,
           "x": [38.2, 39.4],
           "y": [-2.9, -1.6],
           "z": [1.6, 4.0]
@@ -715,6 +795,8 @@
           "id": "main-drive.feed-assembly",
           "kind": "machinery",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": false,
           "x": [59.0, 64.6],
           "y": [-2.0, 2.0],
           "z": [4.8, 7.6]
@@ -723,6 +805,8 @@
           "id": "main-drive.control-panel",
           "kind": "console",
           "shape": "box",
+          "states": ["on", "off"],
+          "emissive": true,
           "x": [56.0, 58.0],
           "y": [2.9, 3.4],
           "z": [4.8, 6.4]
