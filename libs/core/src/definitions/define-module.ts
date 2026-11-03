@@ -234,7 +234,7 @@ export function defineModule(
           deps: fields.deps ?? [],
           useFactory: fields.useFactory,
         },
-        fields.imports as readonly ModuleRef[] | undefined,
+        (fields.imports ?? []) as readonly ModuleRef[],
       );
     },
   };

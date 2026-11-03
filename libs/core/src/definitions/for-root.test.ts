@@ -141,6 +141,31 @@ describe('forRootAsync imports', () => {
     expect(other.get(SubspaceRelay).options).toEqual({ frequency: 1701 });
   });
 
+  it('lets two instances in one graph each read their own source', async () => {
+    const wing = (name: string, frequency: number) =>
+      defineModule({
+        name,
+        imports: [tuned(beacon(`${name}Beacon`, frequency))],
+      });
+    const Port = wing('Port', 1420);
+    const Starboard = wing('Starboard', 1701);
+    const ship = await Nexus.create({ imports: [Port, Starboard] });
+    expect(ship.get(SubspaceRelay, { module: Port }).options.frequency).toBe(
+      1420,
+    );
+    expect(
+      ship.get(SubspaceRelay, { module: Starboard }).options.frequency,
+    ).toBe(1701);
+  });
+
+  it('reads imports: null as no imports', () => {
+    const instance = Comms.forRootAsync({
+      imports: null as never,
+      useFactory: () => ({ frequency: 1 }),
+    });
+    expect(instance.imports).toEqual(Comms.imports);
+  });
+
   it('walks a module that two instances name once', async () => {
     let built = 0;
     const Shared = defineModule({

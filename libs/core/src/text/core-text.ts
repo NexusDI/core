@@ -85,20 +85,26 @@ function nearMissFix(
   const reachable = misses.find(
     (miss) => miss.kind === 'not-exported' || miss.kind === 'not-imported',
   );
+  // A configured instance is a library module the caller cannot edit, so
+  // the fix names the module in the caller's forRootAsync({ imports }).
+  const importInto = (name: string): string =>
+    context.configured
+      ? `name ${name} in ${module}.forRootAsync({ imports })`
+      : `import ${name} into ${module}`;
   if (reachable?.kind === 'not-exported') {
     const exportIt = `add ${token} to ${reachable.module}'s exports`;
     return context.isGlobal(reachable.module)
       ? `${exportIt}. ${reachable.module} is global, so ${module} sees what it exports.`
-      : `${exportIt} and import ${reachable.module} into ${module}.`;
+      : `${exportIt} and ${importInto(reachable.module)}.`;
   }
   if (reachable?.kind === 'not-imported')
-    return `import ${reachable.module} into ${module}.`;
+    return `${importInto(reachable.module)}.`;
   const importer = misses.find((miss) => miss.kind === 'importer');
   if (importer !== undefined) {
-    const named = context.configured
-      ? ` Then name that module in ${module}.forRootAsync({ imports }).`
-      : '';
-    return `${importer.module} imports ${module}, so ${module} cannot import ${importer.module}. Move ${token} into a module that ${module} imports, or into a global module that exports it.${named}`;
+    const move = context.configured
+      ? `a module that exports it and name that module in ${module}.forRootAsync({ imports })`
+      : `a module that ${module} imports`;
+    return `${importer.module} imports ${module}, so ${module} cannot import ${importer.module}. Move ${token} into ${move}, or into a global module that exports it.`;
   }
   return `provide ${token} in ${module} or in a module ${module} imports.`;
 }

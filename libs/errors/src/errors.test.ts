@@ -5,6 +5,7 @@ import {
   Token,
   defineModule,
   provide,
+  type ModuleDefinition,
   type NexusPlugin,
 } from '@nexusdi/core';
 
@@ -129,10 +130,41 @@ describe('errors', () => {
           message:
             '[NEXUS_MISSING_PROVIDER] DeckOptions (module DeckState) depends on AppSource, but no provider of AppSource is visible in DeckState.\n' +
             '  AppSource is provided in App, which imports DeckState, directly or through other modules.\n' +
-            '  Fix: App imports DeckState, so DeckState cannot import App. Move AppSource into a module that DeckState imports, or into a global module that exports it. Then name that module in DeckState.forRootAsync({ imports }).',
+            '  Fix: App imports DeckState, so DeckState cannot import App. Move AppSource into a module that exports it and name that module in DeckState.forRootAsync({ imports }), or into a global module that exports it.',
         },
       ],
     });
+  });
+
+  it('names the module in forRootAsync({ imports }) for a configured instance', async () => {
+    const DeckOptions = new Token<{ charts: NavCharts }>('DeckOptions');
+    const DeckState = defineModule({ name: 'DeckState', options: DeckOptions });
+    const instance = DeckState.forRootAsync({
+      useFactory: (charts: NavCharts) => ({ charts }),
+      deps: [NAV_CHARTS],
+    });
+    const fixOf = async (source: ModuleDefinition) => {
+      const error = (await Nexus.create(
+        defineModule({ name: 'App', imports: [source, instance] }),
+        { plugins: [errors()] },
+      ).then(
+        () => undefined,
+        (caught: unknown) => caught,
+      )) as { errors: Error[] };
+      return error.errors[0]?.message.split('\n').at(-1);
+    };
+    expect(
+      await fixOf(
+        defineModule({
+          name: 'Charts',
+          providers: [provide(NAV_CHARTS, { useValue: { plot: () => 'x' } })],
+          exports: [NAV_CHARTS],
+        }),
+      ),
+    ).toBe('  Fix: name Charts in DeckState.forRootAsync({ imports }).');
+    expect(await fixOf(Tactical)).toBe(
+      "  Fix: add NavCharts to Tactical's exports and name Tactical in DeckState.forRootAsync({ imports }).",
+    );
   });
 
   it('leaves nearMisses empty without the plugin', async () => {
