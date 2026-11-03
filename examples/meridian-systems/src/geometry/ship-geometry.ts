@@ -69,13 +69,50 @@ export interface CompartmentShape {
 }
 
 /**
+ * One frame a prop sprite holds. `default` is the only frame of a prop with
+ * no state of its own and always stands alone in a fixture's `states`.
+ */
+export type PropState =
+  'on' | 'off' | 'damaged' | 'open' | 'closed' | 'default';
+
+/** Every state a fixture may list. */
+export const PROP_STATES: readonly PropState[] = [
+  'on',
+  'off',
+  'damaged',
+  'open',
+  'closed',
+  'default',
+];
+
+/** A door has no `states` field. It is `open` or `closed`, whatever its kind. */
+export const DOOR_STATES: readonly PropState[] = ['open', 'closed'];
+
+/**
  * A blockout item inside a room, such as a console or the reactor vessel.
  * A `cylinder` stands upright in its box's footprint.
+ *
+ * The `states` rule: a fixture whose system has a power or online status, or
+ * a provider at it can power it (Academy maps), lists `on` and `off`.
+ * `damaged` joins them only where a binding of map runtime spec 4.7 sets it:
+ * today `ftl-core.ring` under a fire in its room. The simulation records fire
+ * per room and no damage per device. `open` and `closed` belong to
+ * doors, whose records drive them; a hatch frame is fixed art and lists
+ * `default`, as does every passive item such as a table, counter, seat, bunk,
+ * locker, cabinet or craft. A fixture a `glow` light names lists `on` and
+ * `off`, with `ftl-core.ring` also `damaged`, except `chart-room.plot-table`,
+ * which lists `default` so its glow follows its room (MR1). A core with a
+ * `glow` light (`ftl-core.ring`, `reactor-bay.vessel`) keeps `emissive`
+ * false, since its light draws the glow.
  */
 export interface FixtureShape extends Box {
   readonly id: string;
   readonly kind: string;
   readonly shape: string;
+  /** The frames of the prop sprite, one of `PropState`. */
+  readonly states: readonly PropState[];
+  /** True for a screen. A lamp housing keeps its flag on its light. */
+  readonly emissive: boolean;
 }
 
 /**
@@ -239,10 +276,24 @@ export interface ShipGeometry {
   readonly exterior: Exterior;
 }
 
+/** `ShipGeometry` with each `PropState` widened to `string`, as the JSON module types it. */
+type AsJson<T> = T extends PropState
+  ? string
+  : T extends readonly (infer U)[]
+    ? readonly AsJson<U>[]
+    : T extends object
+      ? { readonly [K in keyof T]: AsJson<T[K]> }
+      : T;
+const plan: AsJson<ShipGeometry> = geometry;
+
 /**
  * The Meridian's layout in metres: the hull, the decks, every compartment's
  * boxes, the doors and the conduit routes. The deck view, the cutaway and the
  * concept mesh in `tools/meridian-ship` all draw from this one plan. The x
  * axis runs aft from the bow, y to starboard and z up from the ventral skin.
+ *
+ * The JSON module types each `states` entry as `string`. `plan` checks every
+ * other field, the assignment narrows `states`, and the geometry test checks
+ * every value against `PROP_STATES`.
  */
-export const SHIP_GEOMETRY: ShipGeometry = geometry;
+export const SHIP_GEOMETRY = plan as ShipGeometry;

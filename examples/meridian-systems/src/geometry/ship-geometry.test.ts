@@ -4,6 +4,8 @@ import deck from '../../deck/meridian.deck.json';
 import { COMPARTMENT_IDS, DOOR_IDS } from '../simulation/contracts';
 
 import {
+  DOOR_STATES,
+  PROP_STATES,
   SHIP_GEOMETRY,
   type Box,
   type CompartmentShape,
@@ -567,6 +569,54 @@ describe('the ship geometry', () => {
       expect(light.radius, light.id).toBeLessThanOrEqual(MAX_REACH);
       expect([...light.states].sort(), light.id).toEqual(['off', 'on']);
     }
+  });
+
+  /**
+   * The states rule: `on` and `off` where the fixture's system has a power or
+   * online status, or a provider at it can power it (Academy maps).
+   * `damaged` joins them only where a binding of map runtime spec 4.7 sets
+   * it: today `ftl-core.ring` under a fire in its room. The simulation
+   * records fire per room and no damage per device. `default` stands alone
+   * for a passive prop or a hatch frame. Doors are `open` and `closed`. A
+   * core with a `glow` light (`ftl-core.ring`, `reactor-bay.vessel`) keeps
+   * `emissive` false, since its light draws the glow.
+   */
+  it('gives each fixture a non-empty list of known, distinct states, and default alone', () => {
+    const all = compartments.flatMap((c) => c.fixtures);
+    expect(DOOR_STATES).toEqual(['open', 'closed']);
+    for (const f of all) {
+      expect(f.states.length, f.id).toBeGreaterThan(0);
+      for (const s of f.states) expect(PROP_STATES, f.id).toContain(s);
+      expect(new Set(f.states).size, f.id).toBe(f.states.length);
+      if (f.states.includes('default'))
+        expect(f.states, f.id).toEqual(['default']);
+      expect(typeof f.emissive, f.id).toBe('boolean');
+    }
+  });
+
+  it('lets only the ftl ring be damaged, and gives hatch frames the default frame', () => {
+    const all = compartments.flatMap((c) => c.fixtures);
+    expect(
+      all.filter((f) => f.states.includes('damaged')).map((f) => f.id),
+    ).toEqual(['ftl-core.ring']);
+    for (const f of all.filter((f) => f.kind === 'hatch-frame'))
+      expect(f.states, f.id).toEqual(['default']);
+  });
+
+  it('gives each fixture that a glow light names on and off, or default alone', () => {
+    const all = compartments.flatMap((c) => c.fixtures);
+    for (const light of lights.filter((l) => l.kind === 'glow')) {
+      const f = all.find((x) => x.id === light.fixture);
+      if (!f) throw new Error(`${light.id}: no fixture`);
+      const powered =
+        f.states.every((s) => s === 'on' || s === 'off' || s === 'damaged') &&
+        f.states.includes('on') &&
+        f.states.includes('off');
+      const plain = f.states.length === 1 && f.states[0] === 'default';
+      expect(powered || plain, f.id).toBe(true);
+    }
+    const table = all.find((f) => f.id === 'chart-room.plot-table');
+    expect(table?.states).toEqual(['default']);
   });
 
   it('hangs each lamp, strip and flood under its deck ceiling, clear of fixtures and doors', () => {
