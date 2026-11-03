@@ -69,3 +69,5 @@ apps/docs/components/front-page/fixtures
 # check-schematic compares the file with a fresh run, so a format pass would
 # fail the next check.
 apps/docs/components/ship-art/cutaway/meridian-cutaway-lights.json
+# The deck art tools write these JSON files, and check-schematic compares them byte for byte.
+internal/meridian-deck/art/**/*.json

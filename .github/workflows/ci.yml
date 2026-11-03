@@ -119,6 +119,8 @@ jobs:
 
       - run: npx nx run meridian-ship:check-schematic
 
+      - run: npx nx run meridian-ship:test
+
       # `react-router typegen` writes the +types/*.d.ts files
       # examples/bridge-console reaches through tsconfig.app.json's rootDirs. On a
       # fresh checkout they don't exist yet. typecheck's own Nx target

@@ -89,6 +89,46 @@ A run takes a few seconds and under 1 GB of memory. Nothing in the scripts is
 random and the PNGs carry no stamp metadata, so the same geometry gives the
 same files, byte for byte.
 
+## The deck layers
+
+`--deck-layers <dir>` writes the data layers of the deck maps, per deck, into
+`<dir>/<deck>/` at 32 pixels per metre on the deck frame (-2, -10, 76, 20), so
+2432 by 640 pixels with the ship's origin at pixel (64, 320). The room index
+mask (`roomid-<tile>.png`) and the emissive mask (`emissive-<tile>.png`) are
+8-bit grey, each cut into a `left` and a `right` tile of 1216 by 640. A JSON
+sidecar sits beside each image and names its view (`deck-<id>`), its scale, its
+origin, the tile's offset and the sha256 of the geometry that
+`geometryHash()` in `apps/docs/tools/ship-art.mjs` computes. `lights.json` holds
+the deck's lights in deck pixels, and `roomid-legend.json` the room indexes,
+which are the ones of the cutaway layers. There is no interactive mask: hit
+testing reads the footprints in the geometry.
+
+The committed copies are in `internal/meridian-deck/art/`. Regenerate them with:
+
+```sh
+python3 -I tools/meridian-ship/ship_svg.py --deck-layers internal/meridian-deck/art
+```
+
+`check-schematic` regenerates them into a temporary directory and fails on any
+difference.
+
+## The frame sidecars
+
+`build_ship.py` writes `<render>.json` beside every orthographic render it makes
+(`sv01-side`, `sv01-top`, `sv01-cutaway` and the two silhouettes). The file
+holds the view, the image size, the pixels per metre, the pixel of the ship's
+origin, the frame in metres, the camera's projection and projection formulas,
+and the geometry hash. `ship_svg.frame_sidecar` builds it, so a unit test can
+check it without Blender.
+
+## Tests
+
+```sh
+npx nx run meridian-ship:test
+```
+
+runs the Python unit tests with the standard library alone.
+
 ## Style
 
 The repo's lint and CI cover TypeScript alone. `ruff.toml` here pins the

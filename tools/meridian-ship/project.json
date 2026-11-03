@@ -9,6 +9,14 @@
         "cwd": "{workspaceRoot}",
         "command": "node tools/meridian-ship/check-schematic.mjs"
       }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools/meridian-ship"
+      }
     }
   }
 }
