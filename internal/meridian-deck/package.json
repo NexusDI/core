@@ -15,6 +15,12 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./maps": {
+      "@nexusdi/source": "./src/maps/index.ts",
+      "types": "./dist/maps/index.d.ts",
+      "import": "./dist/maps.js",
+      "default": "./dist/maps.js"
+    },
     "./view": {
       "@nexusdi/source": "./src/view/index.ts",
       "types": "./dist/view/index.d.ts",
@@ -35,5 +41,26 @@
   "dependencies": {
     "@nexusdi/core": "*",
     "pixi.js": "8.22.0"
+  },
+  "peerDependencies": {
+    "@nexusdi/meridian-systems": "*"
+  },
+  "peerDependenciesMeta": {
+    "@nexusdi/meridian-systems": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@nexusdi/meridian-systems": "*"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "dependsOn": [
+          "^build",
+          "^typecheck"
+        ]
+      }
+    }
   }
 }
