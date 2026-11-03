@@ -2,7 +2,7 @@
   "frames": {
     "reactor-bay.shadow-shield@default": {
       "frame": {
-        "x": 1032,
+        "x": 774,
         "y": 0,
         "w": 51,
         "h": 166
@@ -48,7 +48,7 @@
         "y": 0.5
       }
     },
-    "reactor-bay.vessel@off#emissive": {
+    "reactor-bay.vessel@on": {
       "frame": {
         "x": 258,
         "y": 0,
@@ -72,33 +72,9 @@
         "y": 0.5
       }
     },
-    "reactor-bay.vessel@on": {
-      "frame": {
-        "x": 516,
-        "y": 0,
-        "w": 256,
-        "h": 256
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 256,
-        "h": 256
-      },
-      "sourceSize": {
-        "w": 256,
-        "h": 256
-      },
-      "anchor": {
-        "x": 0.5,
-        "y": 0.5
-      }
-    },
     "reactor-bay.vessel@on#emissive": {
       "frame": {
-        "x": 774,
+        "x": 516,
         "y": 0,
         "w": 256,
         "h": 256
@@ -127,18 +103,20 @@
     "image": "atlas-0.webp",
     "format": "RGBA8888",
     "size": {
-      "w": 1083,
+      "w": 825,
       "h": 256
     },
     "scale": "1",
-    "view": "deck-shared",
+    "views": [
+      "deck-main",
+      "deck-upper"
+    ],
     "layer": "props",
     "pixelsPerMetre": 32,
     "marginPx": 16,
     "sources": {
       "reactor-bay.shadow-shield@default": "generated",
       "reactor-bay.vessel@off": "painted",
-      "reactor-bay.vessel@off#emissive": "painted",
       "reactor-bay.vessel@on": "painted",
       "reactor-bay.vessel@on#emissive": "painted"
     },

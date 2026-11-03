@@ -60,15 +60,17 @@ callouts and announcements the triggers raised.
   mask. `meta.sources` marks each frame `painted` or `generated`. A prop that
   stands on several decks sits in `art/shared/`.
 
-`apps/docs/tools/deck-art-build.mjs` writes the tiles and the atlases from the
-painted sources, which are not in the repository:
+`tools/deck-art-build.mjs` writes the tiles and the atlases from the
+painted sources, which are not in the repository. It reads the geometry hash from the legend that `--deck-layers` wrote, so run that first, and it needs `@nexusdi/meridian-ui` built:
 
 ```sh
-node apps/docs/tools/deck-art-build.mjs --paintover <dir> --preview <dir>
+python3 -I tools/meridian-ship/ship_svg.py --deck-layers internal/meridian-deck/art
+node internal/meridian-deck/tools/deck-art-build.mjs --paintover <dir> --preview <dir>
 ```
 
-A generated frame is a flat steel plate drawn from the geometry. A painted
-sprite replaces it with a file swap.
+A generated frame is a flat steel plate drawn from the geometry, and a generated
+fixture marked `emissive` also has an `<id>@on#emissive` frame. A painted sprite
+replaces a plate with a file swap.
 
 ## What the state holds
 

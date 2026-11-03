@@ -99,8 +99,10 @@ mask (`roomid-<tile>.png`) and the emissive mask (`emissive-<tile>.png`) are
 sidecar sits beside each image and names its view (`deck-<id>`), its scale, its
 origin, the tile's offset and the sha256 of the geometry that
 `geometryHash()` in `apps/docs/tools/ship-art.mjs` computes. `lights.json` holds
-the deck's lights in deck pixels, and `roomid-legend.json` the room indexes,
-which are the ones of the cutaway layers. There is no interactive mask: hit
+the deck's lights as `DeckLight` entries in deck pixels, and `roomid-legend.json`
+the room indexes (the ones of the cutaway layers), the deck's room bounds and
+the geometry hash. The emissive mask holds each emissive light's housing at its
+`housing` share of 255 and leaves out lights that name a fixture. There is no interactive mask: hit
 testing reads the footprints in the geometry.
 
 The committed copies are in `internal/meridian-deck/art/`. Regenerate them with:

@@ -67,7 +67,7 @@ export default defineConfig(() => ({
     watch: false,
     globals: true,
     environment: 'node',
-    include: ['src/**/*.{test,spec}.ts'],
+    include: ['src/**/*.{test,spec}.ts', 'tools/**/*.test.mjs'],
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',

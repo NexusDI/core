@@ -215,8 +215,7 @@ The deck view draws eight layers, bottom to top. Layers 1 to 3 draw the base, th
 | 8   | DOM layer | the deck directory: every room, door, fixture and alarm as text and controls                                                                      | the deck state                              |
 
 Layers 7 and 8 are DOM, so their text scales with the reader's text size and reaches assistive technology. Layer 7 follows the camera through one CSS
-transform per frame. Layer 8 sits beside the canvas (4.10). The interactive mask is data
-and never draws. The input of 4.4 reads it.
+transform per frame. Layer 8 sits beside the canvas (4.10).
 
 ### 4.3 Decks, camera and zoom
 
@@ -270,7 +269,7 @@ the DOM layer, and the canvas follows it (4.10).
 The single-key shortcuts act only while focus sits in the deck region, and a "Keyboard
 shortcuts" switch in the station toolbar turns them off (WCAG 2.1.4). `?` opens the list.
 
-Hit testing reads the interactive mask at the pointer's metre position, so a fixture's hit
+Hit testing reads the fixture and door footprints of the geometry at the pointer's metre position (MR5), so a fixture's hit
 area is its footprint. A door's footprint at 12 pixels per metre is 18 pixels wide, so the
 hit area grows to 24 CSS pixels at least, and to 44 on a coarse pointer (design system 10).
 Two hit areas that overlap after growing go to the one whose centre is nearer.

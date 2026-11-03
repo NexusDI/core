@@ -73,7 +73,7 @@
     // a hand run rewrites them after MAP_RECORDS or MAP_CODES changes.
     "examples/meridian-systems/scripts/write-map-schema.mjs",
     // Run by hand to write the deck tiles and atlases of meridian-deck from the painted sources.
-    "apps/docs/tools/deck-art-build.mjs",
+    "internal/meridian-deck/tools/deck-art-build.mjs",
     // Run by hand in the Playwright container to draw the bay's baselines.
     "apps/docs-e2e/playwright.baselines.config.ts",
     // The e2e project's webServer command runs serve.mjs by path.

@@ -27,5 +27,31 @@
     "ftl-core": 14,
     "main-drive": 15
   },
+  "bounds": {
+    "computer-core": [
+      160,
+      240,
+      352,
+      400
+    ],
+    "shuttle-bay": [
+      544,
+      192,
+      1056,
+      448
+    ],
+    "drone-bay": [
+      1056,
+      240,
+      1280,
+      400
+    ],
+    "ftl-core": [
+      1280,
+      224,
+      1536,
+      416
+    ]
+  },
   "geometry": "f21947b3c19d9cbb9ce68b0fd7c735e81b52028492c8c8aabe344cfda2ce77d9"
 }

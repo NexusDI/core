@@ -160,28 +160,45 @@ class DeckLayers(unittest.TestCase):
         v = round((10 - sum(box["y"]) / 2) * 32)
         self.assertEqual(right[v][u], legend["reactor-bay"])
 
-    def test_the_emissive_mask_holds_only_emissive_lights_of_the_deck(self):
+    def test_lights_are_deck_lights_in_pixels_of_the_deck_frame(self):
         lights = read_json(self.path("main", "lights.json"))
         self.assertTrue(lights)
-        self.assertTrue(all(light["deck"] == "main" for light in lights))
+        keys = {
+            "ids", "room", "kind", "colour", "fixture", "emissive", "gain", "housing",
+            "centre", "radius", "box",
+        }  # fmt: skip
+        source = {light["id"]: light for light in GEOMETRY["lights"]}
+        for light in lights:
+            self.assertEqual(set(light), keys)
+            first = source[light["ids"][0]]
+            self.assertEqual(first["deck"], "main")
+            x0, x1 = first["x"]
+            y0, y1 = first["y"]
+            self.assertAlmostEqual(light["centre"][0], ((x0 + x1) / 2 + 2) * 32, places=1)
+            self.assertAlmostEqual(light["centre"][1], (10 - (y0 + y1) / 2) * 32, places=1)
+            self.assertAlmostEqual(light["radius"], first["radius"] * 32, places=1)
+            self.assertEqual(light["gain"], 0.8 if light["kind"] == "glow" else 1.0)
+            wide = light["box"][2] - light["box"][0] > 160
+            self.assertEqual(light["housing"], 0.45 if wide else 0.75)
+        self.assertTrue(any(light["kind"] == "glow" for light in lights))
+
+    def test_the_emissive_mask_holds_the_housing_share_of_lights_that_name_no_fixture(self):
+        lights = read_json(self.path("main", "lights.json"))
         lit = 0
         for tile, base in (("left", 0), ("right", 1216)):
             _, _, rows = read_grey(self.path("main", f"emissive-{tile}.png"))
             for light in lights:
-                c0, r0, c1, r1 = light["px_box"]
-                if light["emissive"] and base <= c0 < base + 1216:
-                    self.assertEqual(rows[r0][c0 - base], 255)
+                c0, r0, c1, r1 = light["box"]
+                col, row = int((c0 + c1) / 2), int((r0 + r1) / 2)
+                if not base <= col < base + 1216:
+                    continue
+                value = rows[row][col - base]
+                if light["emissive"] and light["fixture"] is None:
+                    self.assertEqual(value, round(255 * light["housing"]))
                     lit += 1
+                elif light["fixture"] is not None:
+                    self.assertEqual(value, 0, light["ids"])
         self.assertGreater(lit, 0)
-        self.assertTrue(any(not light["emissive"] for light in lights))
-
-    def test_lights_carry_pixels_of_the_deck_frame(self):
-        light = read_json(self.path("main", "lights.json"))[0]
-        x0, x1 = light["x"]
-        y0, y1 = light["y"]
-        self.assertAlmostEqual(light["px_centre"][0], ((x0 + x1) / 2 + 2) * 32)
-        self.assertAlmostEqual(light["px_centre"][1], (10 - (y0 + y1) / 2) * 32)
-        self.assertAlmostEqual(light["px_radius"], light["radius"] * 32)
 
     def test_sidecars_place_each_image_by_themselves(self):
         for layer in ("roomid", "emissive"):
@@ -200,6 +217,16 @@ class DeckLayers(unittest.TestCase):
         legend = read_json(self.path("main", "roomid-legend.json"))
         self.assertEqual(legend["rooms"], ship_svg.room_legend(GEOMETRY))
         self.assertEqual((legend["space"], legend["structure"]), (0, 1))
+
+    def test_the_legend_bounds_hold_the_rooms_of_the_deck_in_whole_pixels(self):
+        legend = read_json(self.path("main", "roomid-legend.json"))
+        on_deck = {r["id"] for r in GEOMETRY["compartments"] if "main" in r["decks"]}
+        self.assertEqual(set(legend["bounds"]), on_deck)
+        for left, top, right, bottom in legend["bounds"].values():
+            self.assertTrue(left < right and top < bottom)
+        bridge = next(r for r in GEOMETRY["compartments"] if r["id"] == "bridge")
+        x0 = min(b["x"][0] for b in bridge["boxes"])
+        self.assertEqual(legend["bounds"]["bridge"][0], int((x0 + 2) * 32))
 
     def test_a_second_run_writes_the_same_bytes(self):
         with tempfile.TemporaryDirectory() as other:

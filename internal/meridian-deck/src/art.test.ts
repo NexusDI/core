@@ -172,6 +172,61 @@ describe('the deck art atlases', () => {
   });
 });
 
+describe('the deck art sidecars', () => {
+  it('carry the geometry hash of the legend that the layers tool wrote', () => {
+    for (const deck of geometry.decks) {
+      const hash = read<{ geometry: string }>(
+        deck.id,
+        'roomid-legend.json',
+      ).geometry;
+      expect(hash).toMatch(/^[0-9a-f]{64}$/);
+      const names = readdirSync(join(art, deck.id)).filter(
+        (name) => name.endsWith('.json') && name !== 'lights.json',
+      );
+      expect(names.length).toBeGreaterThan(6);
+      for (const name of names) {
+        const card = read<{ geometry?: string; meta?: { geometry?: string } }>(
+          deck.id,
+          name,
+        );
+        expect(card.geometry ?? card.meta?.geometry, `${deck.id}/${name}`).toBe(
+          hash,
+        );
+      }
+      const shared = read<{ meta: { geometry: string } }>(
+        'shared',
+        'atlas-0.json',
+      );
+      expect(shared.meta.geometry).toBe(hash);
+    }
+  });
+
+  it('name the deck view of every atlas, and the views of the shared one', () => {
+    for (const deck of geometry.decks) {
+      const sheet = read<{ meta: { view: string } }>(deck.id, 'atlas-0.json');
+      expect(sheet.meta.view).toBe(`deck-${deck.id}`);
+    }
+    const shared = read<{ meta: { view?: string; views: string[] } }>(
+      'shared',
+      'atlas-0.json',
+    );
+    expect(shared.meta.view).toBeUndefined();
+    expect(shared.meta.views).toEqual(['deck-main', 'deck-upper']);
+  });
+
+  it('give each legend the bounds of the rooms on its deck', () => {
+    for (const deck of geometry.decks) {
+      const legend = read<{
+        bounds: Record<string, number[]>;
+        rooms: Record<string, number>;
+      }>(deck.id, 'roomid-legend.json');
+      expect(Object.keys(legend.bounds).length).toBeGreaterThan(0);
+      for (const room of Object.keys(legend.bounds))
+        expect(legend.rooms[room]).toBeDefined();
+    }
+  });
+});
+
 describe('the deck base tiles', () => {
   for (const deck of geometry.decks) {
     it(`gives ${deck.id} two tiles of 1216 by 640 placed by their sidecars`, () => {

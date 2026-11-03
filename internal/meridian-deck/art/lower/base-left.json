@@ -32,6 +32,6 @@
   "lights": "lights.json",
   "legend": "roomid-legend.json",
   "atlas": "atlas-0.json",
-  "sharedAtlas": "../shared/atlas-0.json",
+  "sharedAtlas": null,
   "geometry": "f21947b3c19d9cbb9ce68b0fd7c735e81b52028492c8c8aabe344cfda2ce77d9"
 }

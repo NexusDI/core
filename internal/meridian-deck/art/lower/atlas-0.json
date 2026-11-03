@@ -144,6 +144,30 @@
         "y": 0.5
       }
     },
+    "computer-core.rack-port@on#emissive": {
+      "frame": {
+        "x": 0,
+        "y": 961,
+        "w": 198,
+        "h": 58
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 198,
+        "h": 58
+      },
+      "sourceSize": {
+        "w": 198,
+        "h": 58
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
     "drone-bay-outer@closed": {
       "frame": {
         "x": 272,
@@ -218,7 +242,7 @@
     },
     "drone-bay.rack-port@off": {
       "frame": {
-        "x": 0,
+        "x": 200,
         "y": 961,
         "w": 195,
         "h": 58
@@ -242,8 +266,8 @@
     },
     "drone-bay.rack-port@on": {
       "frame": {
-        "x": 197,
-        "y": 961,
+        "x": 0,
+        "y": 1021,
         "w": 195,
         "h": 58
       },
@@ -266,7 +290,7 @@
     },
     "drone-bay.rack-starboard@off": {
       "frame": {
-        "x": 0,
+        "x": 197,
         "y": 1021,
         "w": 195,
         "h": 58
@@ -290,8 +314,8 @@
     },
     "drone-bay.rack-starboard@on": {
       "frame": {
-        "x": 197,
-        "y": 1021,
+        "x": 0,
+        "y": 1081,
         "w": 195,
         "h": 58
       },
@@ -632,7 +656,7 @@
     "format": "RGBA8888",
     "size": {
       "w": 480,
-      "h": 1079
+      "h": 1139
     },
     "scale": "1",
     "view": "deck-lower",
@@ -646,6 +670,7 @@
       "computer-core.rack-forward@on": "generated",
       "computer-core.rack-port@off": "generated",
       "computer-core.rack-port@on": "generated",
+      "computer-core.rack-port@on#emissive": "generated",
       "drone-bay-outer@closed": "generated",
       "drone-bay-outer@open": "generated",
       "drone-bay.drone@default": "generated",
