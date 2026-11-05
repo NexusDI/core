@@ -49,6 +49,10 @@ jobs:
     env:
       HUSKY: '0'
       NX_NO_CLOUD: 'true'
+      # No remote cache here: npm provenance says the package was built in
+      # this run, so nothing may be restored from the cache. The cache action
+      # is absent on purpose and NX_SELF_HOSTED_REMOTE_CACHE_SERVER stays
+      # unset.
       NX_DAEMON: 'false'
       EVENT: ${{ inputs.event }}
       DRY_RUN: ${{ inputs.dry-run }}

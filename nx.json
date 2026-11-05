@@ -97,8 +97,8 @@
   "tui": {
     "enabled": false
   },
-  "nxCloudId": "685998b2269aa55b8173bae6",
   "plugins": [
+    "@evanion/nx-cache-reporter",
     {
       "plugin": "@nx/js/typescript",
       "options": {
