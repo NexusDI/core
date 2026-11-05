@@ -176,12 +176,13 @@
     // project references (devtools' vitest typecheck reads decorators'
     // out-tsc/vitest). A cache hit with no outputs restored nothing, so
     // the next project failed with "has not been built from source file".
+    // dist is left out: restoring its declarations and tsbuildinfo without
+    // the JS makes the build's `tsc --build` think dist is current, and the
+    // build then caches a package with no JavaScript.
     "typecheck": {
       "outputs": [
         "{projectRoot}/out-tsc/**/*.{d.ts,d.cts,d.mts}{,.map}",
-        "{projectRoot}/out-tsc/**/*.tsbuildinfo",
-        "{projectRoot}/dist/**/*.{d.ts,d.cts,d.mts}{,.map}",
-        "{projectRoot}/dist/*.tsbuildinfo"
+        "{projectRoot}/out-tsc/**/*.tsbuildinfo"
       ]
     },
     "@nx/js:tsc": {
