@@ -49,6 +49,10 @@ jobs:
     env:
       HUSKY: '0'
       NX_NO_CLOUD: 'true'
+      # No remote cache here: npm provenance attests the package was built in
+      # this run, so nothing may be restored from the cache. The cache action
+      # is deliberately absent and NX_SELF_HOSTED_REMOTE_CACHE_SERVER stays
+      # unset.
       NX_DAEMON: 'false'
       EVENT: ${{ inputs.event }}
       DRY_RUN: ${{ inputs.dry-run }}
@@ -77,11 +81,6 @@ jobs:
           # cannot publish to npm or change settings. RELEASING.md covers
           # rotating it.
           ssh-key: ${{ secrets.RELEASE_SSH_KEY }}
-
-      - uses: Evanion/nx-cache-action@a20fdbcc4f479b3ff937fac31a56c17968ff5966 # v0.1.0
-        with:
-          server: ${{ vars.NX_SELF_HOSTED_REMOTE_CACHE_SERVER }}
-          read-token: ${{ secrets.NX_CACHE_READ_TOKEN }}
 
       # The release commit and the sync merge both need an
       # identity.
