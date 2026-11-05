@@ -6,5 +6,15 @@
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "nx": {
+    "targets": {
+      "typecheck": {
+        "outputs": [
+          "{projectRoot}/dist/**/*.{d.ts,d.cts,d.mts}{,.map}",
+          "{projectRoot}/dist/*.tsbuildinfo"
+        ]
+      }
+    }
   }
 }

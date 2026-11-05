@@ -17,5 +17,15 @@
     "./mdx-reference-loader": "./src/mdx-reference-loader.mjs",
     "./md-siblings": "./src/md-siblings.mjs",
     "./package-exports": "./src/package-exports.mjs"
+  },
+  "nx": {
+    "targets": {
+      "typecheck": {
+        "outputs": [
+          "{projectRoot}/dist/**/*.{d.ts,d.cts,d.mts}{,.map}",
+          "{projectRoot}/dist/*.tsbuildinfo"
+        ]
+      }
+    }
   }
 }
