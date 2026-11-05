@@ -465,8 +465,8 @@ Default setup is off.
 
 Environment `release` has deployment branch policies `main`, `release/*` and
 `[0-9]*.x`, and holds the `RELEASE_SSH_KEY` secret. A workflow on any other
-ref gets neither the key nor npm. The `Main` environment stays: it holds
-`NX_CLOUD_ACCESS_TOKEN`.
+ref gets neither the key nor npm. The `Main` environment holds the old
+`NX_CLOUD_ACCESS_TOKEN`, which no workflow reads any more.
 
 Deploy keys are enabled for the `NexusDI` org
 (`deploy_keys_enabled_for_repositories: true`). The repository carries one

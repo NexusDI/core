@@ -78,6 +78,11 @@ jobs:
           # rotating it.
           ssh-key: ${{ secrets.RELEASE_SSH_KEY }}
 
+      - uses: Evanion/nx-cache-action@a20fdbcc4f479b3ff937fac31a56c17968ff5966 # v0.1.0
+        with:
+          server: ${{ vars.NX_SELF_HOSTED_REMOTE_CACHE_SERVER }}
+          read-token: ${{ secrets.NX_CACHE_READ_TOKEN }}
+
       # The release commit and the sync merge both need an
       # identity.
       - name: Configure git
