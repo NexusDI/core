@@ -92,6 +92,13 @@ jobs:
   # and the builds they depend on, two tasks at a time.
   main-build:
     runs-on: ubuntu-latest
+    # The cache action swaps the job's OIDC token for a write token: the shared
+    # cache on a trusted branch, the PR's own namespace on a pull request.
+    # Without id-token the job reads only.
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -102,6 +109,11 @@ jobs:
           # oldest results file can sit hundreds of commits back.
           filter: blob:none
           fetch-depth: 0
+
+      - uses: Evanion/nx-cache-action@17250c9d85478ac67a514f18e94607b562380378 # v0.2.0
+        with:
+          server: ${{ vars.NX_SELF_HOSTED_REMOTE_CACHE_SERVER }}
+          read-token: ${{ secrets.NX_CACHE_READ_TOKEN }}
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -151,13 +163,15 @@ jobs:
       # bridge-api and bridge-console carry only the demo tag and stay here.
       - run: npx nx run-many -t lint build typecheck --exclude=tag:demo-frontend
 
-      # Reports the run's task results to Nx Cloud. `always()` because the run
-      # it reports on is the failing one.
-      - run: npx nx fix-ci
-        if: always()
-
   main-test:
     runs-on: ubuntu-latest
+    # The cache action swaps the job's OIDC token for a write token: the shared
+    # cache on a trusted branch, the PR's own namespace on a pull request.
+    # Without id-token the job reads only.
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -165,6 +179,11 @@ jobs:
           # way main-build's comment describes.
           filter: blob:none
           fetch-depth: 0
+
+      - uses: Evanion/nx-cache-action@17250c9d85478ac67a514f18e94607b562380378 # v0.2.0
+        with:
+          server: ${{ vars.NX_SELF_HOSTED_REMOTE_CACHE_SERVER }}
+          read-token: ${{ secrets.NX_CACHE_READ_TOKEN }}
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -184,9 +203,6 @@ jobs:
       - run: npx nx run-many -t test --exclude=tag:demo-frontend --parallel=2
         env:
           VITEST_MAX_WORKERS: 2
-
-      - run: npx nx fix-ci
-        if: always()
 
   # The rulesets and release.yml require a check named `main`. This job
   # gives that check the gate's result: green when both halves are green,
@@ -227,11 +243,23 @@ jobs:
   # and a federation leg in a matrix.
   demo-apps:
     runs-on: ubuntu-latest
+    # The cache action swaps the job's OIDC token for a write token: the shared
+    # cache on a trusted branch, the PR's own namespace on a pull request.
+    # Without id-token the job reads only.
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           filter: tree:0
+
+      - uses: Evanion/nx-cache-action@17250c9d85478ac67a514f18e94607b562380378 # v0.2.0
+        with:
+          server: ${{ vars.NX_SELF_HOSTED_REMOTE_CACHE_SERVER }}
+          read-token: ${{ secrets.NX_CACHE_READ_TOKEN }}
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -275,11 +303,23 @@ jobs:
   # e2e-growth target.
   demo-growth:
     runs-on: ubuntu-latest
+    # The cache action swaps the job's OIDC token for a write token: the shared
+    # cache on a trusted branch, the PR's own namespace on a pull request.
+    # Without id-token the job reads only.
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           filter: tree:0
+
+      - uses: Evanion/nx-cache-action@17250c9d85478ac67a514f18e94607b562380378 # v0.2.0
+        with:
+          server: ${{ vars.NX_SELF_HOSTED_REMOTE_CACHE_SERVER }}
+          read-token: ${{ secrets.NX_CACHE_READ_TOKEN }}
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -431,8 +471,12 @@ jobs:
   docs-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # The cache action swaps the job's OIDC token for a write token: the shared
+    # cache on a trusted branch, the PR's own namespace on a pull request.
+    # Without id-token the job reads only.
     permissions:
       contents: read
+      id-token: write
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
     env:
@@ -448,6 +492,11 @@ jobs:
       # The checkout belongs to the runner's user, and git inside the
       # container refuses a repository it does not own.
       - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - uses: Evanion/nx-cache-action@17250c9d85478ac67a514f18e94607b562380378 # v0.2.0
+        with:
+          server: ${{ vars.NX_SELF_HOSTED_REMOTE_CACHE_SERVER }}
+          read-token: ${{ secrets.NX_CACHE_READ_TOKEN }}
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -470,10 +519,22 @@ jobs:
   toolchain-matrix:
     needs: packaging
     runs-on: ubuntu-latest
+    # The cache action swaps the job's OIDC token for a write token: the shared
+    # cache on a trusted branch, the PR's own namespace on a pull request.
+    # Without id-token the job reads only.
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           filter: tree:0
+
+      - uses: Evanion/nx-cache-action@17250c9d85478ac67a514f18e94607b562380378 # v0.2.0
+        with:
+          server: ${{ vars.NX_SELF_HOSTED_REMOTE_CACHE_SERVER }}
+          read-token: ${{ secrets.NX_CACHE_READ_TOKEN }}
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -497,10 +558,22 @@ jobs:
   # project graph on 22.12.
   cli-node-floor:
     runs-on: ubuntu-latest
+    # The cache action swaps the job's OIDC token for a write token: the shared
+    # cache on a trusted branch, the PR's own namespace on a pull request.
+    # Without id-token the job reads only.
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           filter: tree:0
+
+      - uses: Evanion/nx-cache-action@17250c9d85478ac67a514f18e94607b562380378 # v0.2.0
+        with:
+          server: ${{ vars.NX_SELF_HOSTED_REMOTE_CACHE_SERVER }}
+          read-token: ${{ secrets.NX_CACHE_READ_TOKEN }}
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -543,6 +616,13 @@ jobs:
   # gate step in the main job.
   adapter-runtimes:
     runs-on: ubuntu-latest
+    # The cache action swaps the job's OIDC token for a write token: the shared
+    # cache on a trusted branch, the PR's own namespace on a pull request.
+    # Without id-token the job reads only.
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -551,6 +631,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           filter: tree:0
+
+      - uses: Evanion/nx-cache-action@17250c9d85478ac67a514f18e94607b562380378 # v0.2.0
+        with:
+          server: ${{ vars.NX_SELF_HOSTED_REMOTE_CACHE_SERVER }}
+          read-token: ${{ secrets.NX_CACHE_READ_TOKEN }}
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -641,6 +726,13 @@ jobs:
   # node-floor.test.ts derives this matrix from libs/.
   node-floor:
     runs-on: ubuntu-latest
+    # The cache action swaps the job's OIDC token for a write token: the shared
+    # cache on a trusted branch, the PR's own namespace on a pull request.
+    # Without id-token the job reads only.
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -663,6 +755,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           filter: tree:0
+
+      - uses: Evanion/nx-cache-action@17250c9d85478ac67a514f18e94607b562380378 # v0.2.0
+        with:
+          server: ${{ vars.NX_SELF_HOSTED_REMOTE_CACHE_SERVER }}
+          read-token: ${{ secrets.NX_CACHE_READ_TOKEN }}
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:

@@ -17,6 +17,7 @@
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
+    "@evanion/nx-cache-reporter": "0.1.0",
     "@nexusdi/release": "*",
     "@nx/devkit": "23.3.0",
     "@nx/eslint": "23.3.0",
