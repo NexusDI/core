@@ -46,10 +46,10 @@
     }
   },
   "dependencies": {
-    "@module-federation/enhanced": "2.9.2",
+    "@module-federation/enhanced": "2.9.3",
     "@nexusdi/core": "*",
     "@nexusdi/federation": "*",
-    "@rspack/core": "2.3.0",
+    "@rspack/core": "2.3.1",
     "@rspack/plugin-react-refresh": "2.0.2",
     "react": "19.3.1",
     "react-refresh": "0.19.0"

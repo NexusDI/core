@@ -10,7 +10,7 @@
     "./hono": "./src/entries/hono.ts"
   },
   "dependencies": {
-    "@hono/node-server": "2.1.5",
+    "@hono/node-server": "2.1.6",
     "@nexusdi/core": "*",
     "@nexusdi/devtools": "*",
     "@nexusdi/errors": "*",
@@ -21,8 +21,8 @@
     "@nexusdi/meridian-systems": "*",
     "@nexusdi/node": "*",
     "express": "5.3.0",
-    "fastify": "5.12.7",
-    "hono": "4.13.14"
+    "fastify": "5.12.8",
+    "hono": "4.13.16"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.4.7",
