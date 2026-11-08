@@ -8,7 +8,7 @@
     "build": "rspack build --mode=production"
   },
   "dependencies": {
-    "@module-federation/runtime": "2.9.2",
+    "@module-federation/runtime": "2.9.3",
     "@nexusdi/core": "*",
     "@nexusdi/devtools": "*",
     "@nexusdi/errors": "*",
