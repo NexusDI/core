@@ -55,7 +55,7 @@
     "@react-router/dev": "^8.5.1",
     "@react-router/node": "^8.5.1",
     "@testing-library/react": "16.3.3",
-    "isbot": "^5.2.2",
+    "isbot": "^5.2.3",
     "jsdom": "30.1.2",
     "react": "19.3.1",
     "react-dom": "19.3.1",
