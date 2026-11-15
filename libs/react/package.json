@@ -51,7 +51,7 @@
     "react": "^19.0.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.64.1",
+    "@playwright/test": "^1.65.0",
     "@react-router/dev": "^8.5.1",
     "@react-router/node": "^8.5.1",
     "@testing-library/react": "16.3.3",
@@ -60,7 +60,7 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-router": "^8.5.1",
-    "vite": "8.3.5"
+    "vite": "8.3.8"
   },
   "publishConfig": {
     "access": "public",
